@@ -9,52 +9,49 @@ import { Button } from './ui/button'
 
 interface PlaygroundProps {
   items: PlaygroundItem[]
-  elements: Map&lt;string, ElementDef&gt;
-  discovered: Set&lt;string&gt;
+  elements: Map<string, ElementDef>
+  discovered: Set<string>
   discoveredCount: number
   totalCount: number
-  onDrop: (element: string, x: number, y: number) =&gt; string
-  onMove: (id: string, x: number, y: number) =&gt; void
-  onMerge: (id1: string, id2: string) =&gt; string | null
-  onDropAndMerge: (element: string, x: number, y: number, targetId: string) =&gt; string | null
-  onRemove: (id: string) =&gt; void
-  onClear: () =&gt; void
-  onReset: () =&gt; void
+  onDrop: (element: string, x: number, y: number) => string
+  onMove: (id: string, x: number, y: number) => void
+  onMerge: (id1: string, id2: string) => string | null
+  onDropAndMerge: (element: string, x: number, y: number, targetId: string) => string | null
+  onRemove: (id: string) => void
+  onClear: () => void
+  onReset: () => void
 }
 
 type SortType = 'name' | 'recent' | 'category'
+
+interface DragState {
+  source: 'inventory' | 'playground'
+  elementName: string
+  itemId?: string
+  x: number
+  y: number
+  offsetX: number
+  offsetY: number
+}
 
 export function Playground({
   items, elements, discovered, discoveredCount, totalCount,
   onDrop, onMove, onMerge, onDropAndMerge, onRemove, onClear, onReset,
 }: PlaygroundProps) {
-  const containerRef = useRef&lt;HTMLDivElement&gt;(null)
-  const inventoryRef = useRef&lt;HTMLDivElement&gt;(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const inventoryRef = useRef<HTMLDivElement>(null)
 
-  // Drag state - one unified system
-  const [dragging, setDragging] = useState&lt;{
-    source: 'inventory' | 'playground'
-    elementName: string
-    itemId?: string // only for playground items
-    x: number
-    y: number
-    offsetX: number
-    offsetY: number
-  } | null&gt;(null)
+  const [dragging, setDragging] = useState<DragState | null>(null)
+  const [nearMergeId, setNearMergeId] = useState<string | null>(null)
+  const [mergeAnimation, setMergeAnimation] = useState<{ x: number; y: number; element: string } | null>(null)
+  const [shakeId, setShakeId] = useState<string | null>(null)
 
-  // Visual states
-  const [nearMergeId, setNearMergeId] = useState&lt;string | null&gt;(null)
-  const [mergeAnimation, setMergeAnimation] = useState&lt;{ x: number; y: number; element: string } | null&gt;(null)
-  const [shakeId, setShakeId] = useState&lt;string | null&gt;(null)
-
-  // Inventory state
   const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState&lt;SortType&gt;('recent')
+  const [sortBy, setSortBy] = useState<SortType>('recent')
   const [sortReverse, setSortReverse] = useState(false)
   const [showReset, setShowReset] = useState(false)
   const { theme, setTheme } = useTheme()
 
-  // Helpers
   const getRelativePos = useCallback((clientX: number, clientY: number) => {
     if (!containerRef.current) return { x: 0, y: 0 }
     const rect = containerRef.current.getBoundingClientRect()
@@ -68,19 +65,17 @@ export function Playground({
       const dx = x - item.x
       const dy = y - item.y
       const dist = Math.sqrt(dx * dx + dy * dy)
-      if (dist &lt; 80 && (!nearest || dist &lt; nearest.dist)) {
+      if (dist < 80 && (!nearest || dist < nearest.dist)) {
         nearest = { item, dist }
       }
     })
     return nearest?.item || null
   }, [items])
 
-  // === POINTER EVENTS (one system for everything) ===
-
+  // === POINTER DOWN ===
   const handlePointerDown = useCallback((e: React.PointerEvent, source: 'inventory' | 'playground', elementName: string, itemId?: string) => {
     e.preventDefault()
     e.stopPropagation()
-
     const pos = getRelativePos(e.clientX, e.clientY)
 
     if (source === 'playground' && itemId) {
@@ -96,7 +91,6 @@ export function Playground({
         offsetY: pos.y - item.y,
       })
     } else {
-      // Inventory - ghost starts at cursor
       setDragging({
         source: 'inventory',
         elementName,
@@ -106,14 +100,13 @@ export function Playground({
         offsetY: 18,
       })
     }
-
     containerRef.current?.setPointerCapture(e.pointerId)
   }, [getRelativePos, items])
 
+  // === POINTER MOVE ===
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!dragging) return
     e.preventDefault()
-
     const pos = getRelativePos(e.clientX, e.clientY)
     const newX = pos.x - dragging.offsetX
     const newY = pos.y - dragging.offsetY
@@ -121,29 +114,25 @@ export function Playground({
     if (dragging.source === 'playground' && dragging.itemId) {
       onMove(dragging.itemId, newX, newY)
       setDragging(prev => prev ? { ...prev, x: newX, y: newY } : null)
-      const nearest = findNearestItem(newX, newY, dragging.itemId)
-      setNearMergeId(nearest?.id || null)
+      setNearMergeId(findNearestItem(newX, newY, dragging.itemId)?.id || null)
     } else {
       setDragging(prev => prev ? { ...prev, x: newX, y: newY } : null)
-      // Highlight nearest playground item for inventory ghost too
-      const nearest = findNearestItem(newX, newY)
-      setNearMergeId(nearest?.id || null)
+      setNearMergeId(findNearestItem(newX, newY)?.id || null)
     }
   }, [dragging, getRelativePos, onMove, findNearestItem])
 
+  // === POINTER UP ===
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (!dragging) return
     e.preventDefault()
     e.stopPropagation()
     containerRef.current?.releasePointerCapture(e.pointerId)
 
-    // Check if dropped on inventory panel
     const dropPoint = document.elementFromPoint(e.clientX, e.clientY)
     const droppedOnInventory = inventoryRef.current?.contains(dropPoint)
 
     if (dragging.source === 'inventory') {
       if (droppedOnInventory) {
-        // Cancel
         setDragging(null)
         setNearMergeId(null)
         return
@@ -151,7 +140,6 @@ export function Playground({
 
       const nearest = findNearestItem(dragging.x, dragging.y)
       if (nearest) {
-        // Merge directly - single atomic operation in the store
         const result = onDropAndMerge(dragging.elementName, dragging.x, dragging.y, nearest.id)
         if (result) {
           setMergeAnimation({
@@ -161,18 +149,14 @@ export function Playground({
           })
           setTimeout(() => setMergeAnimation(null), 700)
         } else {
-          // No recipe - just drop
-          onDrop(dragging.elementName, dragging.x, dragging.y)
-          const newId = items[items.length - 1]?.id
-          if (newId) {
-            setShakeId(newId)
-            setTimeout(() => setShakeId(null), 400)
-          }
+          const newId = onDrop(dragging.elementName, dragging.x, dragging.y)
+          setShakeId(newId)
+          setTimeout(() => setShakeId(null), 400)
         }
       } else {
-        // No nearby item - just drop
         onDrop(dragging.elementName, dragging.x, dragging.y)
       }
+
     } else if (dragging.source === 'playground' && dragging.itemId) {
       const nearest = findNearestItem(dragging.x, dragging.y, dragging.itemId)
       if (nearest) {
@@ -193,23 +177,18 @@ export function Playground({
 
     setDragging(null)
     setNearMergeId(null)
-  }, [dragging, findNearestItem, onDrop, onMerge, onDropAndMerge, items])
+  }, [dragging, findNearestItem, onDrop, onMerge, onDropAndMerge])
 
-  // === INVENTORY SORTING ===
-
+  // === INVENTORY SORT ===
   const discoveredElements = Array.from(discovered)
     .map(name => elements.get(name))
     .filter((el): el is ElementDef => el !== undefined)
     .filter(el => el.name.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
-      if (sortBy === 'name') {
-        const cmp = a.name.localeCompare(b.name)
-        return sortReverse ? -cmp : cmp
-      } else if (sortBy === 'category') {
-        const cmp = a.category.localeCompare(b.category)
-        return sortReverse ? -cmp : cmp
-      }
-      return sortReverse ? 1 : -1
+      let cmp = 0
+      if (sortBy === 'name') cmp = a.name.localeCompare(b.name)
+      else if (sortBy === 'category') cmp = a.category.localeCompare(b.category)
+      return sortReverse ? -cmp : cmp
     })
 
   const toggleSort = (type: SortType) => {
@@ -225,7 +204,7 @@ export function Playground({
       onPointerUp={handlePointerUp}
       style={{ touchAction: 'none' }}
     >
-      {/* Dot grid background */}
+      {/* Dot grid */}
       <div
         className="absolute inset-0 opacity-[0.03]"
         style={{
@@ -234,7 +213,7 @@ export function Playground({
         }}
       />
 
-      {/* === PLAYGROUND ITEMS === */}
+      {/* PLAYGROUND ITEMS */}
       {items.map(item => {
         const el = elements.get(item.element)
         if (!el) return null
@@ -262,7 +241,7 @@ export function Playground({
         )
       })}
 
-      {/* === GHOST (dragged from inventory) === */}
+      {/* GHOST (inventory drag) */}
       {dragging?.source === 'inventory' && elements.get(dragging.elementName) && (
         <div
           className="absolute pointer-events-none"
@@ -271,14 +250,14 @@ export function Playground({
             top: dragging.y,
             zIndex: 9999,
             transform: 'scale(1.05)',
-            opacity: 0.92,
+            opacity: 0.9,
           }}
         >
           <ElementBadge element={elements.get(dragging.elementName)!} size="md" />
         </div>
       )}
 
-      {/* === MERGE ANIMATION === */}
+      {/* MERGE ANIMATION */}
       {mergeAnimation && elements.get(mergeAnimation.element) && (
         <div
           className="absolute pointer-events-none animate-in zoom-in fade-in duration-500"
@@ -294,7 +273,7 @@ export function Playground({
         </div>
       )}
 
-      {/* === CLEAR BUTTON === */}
+      {/* CLEAR */}
       {items.length > 0 && (
         <button
           onClick={onClear}
@@ -305,10 +284,10 @@ export function Playground({
         </button>
       )}
 
-      {/* === INVENTORY PANEL (inside playground) === */}
+      {/* INVENTORY PANEL */}
       <div
         ref={inventoryRef}
-        className="absolute bottom-3 right-3 w-80 max-h-[70vh] lg:w-96 bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-2xl flex flex-col"
+        className="absolute bottom-3 right-3 w-72 max-h-[65vh] lg:w-80 bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-2xl flex flex-col"
         style={{ zIndex: 100 }}
       >
         {/* Header */}
@@ -329,14 +308,10 @@ export function Playground({
                   <>
                     <div className="fixed inset-0 z-[200]" onClick={() => setShowReset(false)} />
                     <div className="absolute right-0 top-full mt-2 z-[201] bg-popover border border-border rounded-lg shadow-xl p-3 w-44">
-                      <p className="text-xs mb-2">{'R\u00e9initialiser ?'}</p>
+                      <p className="text-xs mb-2">Reinitialiser ?</p>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="destructive" className="flex-1" onClick={() => { onReset(); setShowReset(false) }}>
-                          Oui
-                        </Button>
-                        <Button size="sm" variant="outline" className="flex-1" onClick={() => setShowReset(false)}>
-                          Non
-                        </Button>
+                        <Button size="sm" variant="destructive" className="flex-1" onClick={() => { onReset(); setShowReset(false) }}>Oui</Button>
+                        <Button size="sm" variant="outline" className="flex-1" onClick={() => setShowReset(false)}>Non</Button>
                       </div>
                     </div>
                   </>
@@ -372,14 +347,14 @@ export function Playground({
                 className="flex-1 h-7 text-[10px] gap-1 px-2"
                 onClick={() => toggleSort(type)}
               >
-                {type === 'name' ? 'Nom' : type === 'recent' ? 'R\u00e9cent' : 'Type'}
-                {sortBy === type && <ArrowUpDown className={`w-2.5 h-2.5 ${sortReverse ? 'rotate-180' : ''}`} />}
+                {type === 'name' ? 'Nom' : type === 'recent' ? 'Recent' : 'Type'}
+                {sortBy === type && <ArrowUpDown className={`w-2.5 h-2.5 transition-transform ${sortReverse ? 'rotate-180' : ''}`} />}
               </Button>
             ))}
           </div>
         </div>
 
-        {/* Element grid - exact same ElementBadge as playground */}
+        {/* Element grid - exact same ElementBadge size as playground */}
         <div
           className="flex-1 overflow-y-auto p-2 scrollbar-thin"
           style={{ touchAction: 'pan-y' }}
