@@ -44,7 +44,7 @@ export function AlchemyGame() {
   }
 
   return (
-    <div className="h-screen bg-background overflow-hidden">
+    <div className="game-container bg-background">
       <Playground
         items={playground}
         elements={elements}

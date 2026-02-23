@@ -39,20 +39,20 @@ const ELEMENT_ICONS: Record<string, (color: string) => React.ReactNode> = {
 
 const SQUARE_SIZE = {
   sm: 'w-16 h-16',
-  md: 'w-20 h-20',
-  lg: 'w-24 h-24',
+  md: 'w-24 h-24',
+  lg: 'w-28 h-28',
 }
 
 const ICON_SIZE = {
   sm: 'w-7 h-7',
-  md: 'w-9 h-9',
-  lg: 'w-12 h-12',
+  md: 'w-12 h-12',
+  lg: 'w-14 h-14',
 }
 
 const TEXT_SIZE = {
   sm: 'text-[9px]',
-  md: 'text-[11px]',
-  lg: 'text-xs',
+  md: 'text-xs',
+  lg: 'text-sm',
 }
 
 export function ElementBadge({ element, size = 'md', className = '', style }: ElementBadgeProps) {

@@ -121,6 +121,10 @@
   }
   html, body {
     @apply bg-background text-foreground;
+  }
+  
+  /* Only apply no-scroll on the game page, not admin */
+  .game-container {
     overflow: hidden;
     height: 100vh;
     touch-action: none;

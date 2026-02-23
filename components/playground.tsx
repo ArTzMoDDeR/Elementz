@@ -424,7 +424,7 @@ export function Playground({
           onPointerUp={cancelPendingDrag}
           onPointerCancel={cancelPendingDrag}
         >
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-4 lg:grid-cols-3 gap-1.5">
             {discoveredElements.map(element => (
               <div
                 key={element.name}
