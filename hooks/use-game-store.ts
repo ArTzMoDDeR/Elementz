@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { parseRecipes, findRecipe, buildRecipeMap, type ElementDef } from '@/lib/game-data'
+import { RAW_RECIPES } from '@/lib/recipes-raw'
 
 const STORAGE_KEY = 'alchemy-discovered'
 const BASE_ELEMENTS = ['eau', 'feu', 'terre', 'air']
@@ -13,54 +14,37 @@ export interface PlaygroundItem {
   y: number
 }
 
+// Parse once at module level - no async needed
+const parsed = parseRecipes(RAW_RECIPES)
+const ALL_ELEMENTS = parsed.elements
+const RECIPE_MAP = buildRecipeMap(parsed.recipes)
+
 export function useGameStore() {
-  const [elements, setElements] = useState<Map<string, ElementDef>>(new Map())
-  const [recipeMap, setRecipeMap] = useState<Map<string, string>>(new Map())
-  const [discovered, setDiscovered] = useState<Set<string>>(new Set())
+  const [discovered, setDiscovered] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set(BASE_ELEMENTS)
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        const arr = JSON.parse(saved) as string[]
+        const disc = new Set(arr)
+        BASE_ELEMENTS.forEach(e => disc.add(e))
+        return disc
+      }
+    } catch { /* ignore */ }
+    return new Set(BASE_ELEMENTS)
+  })
   const [playground, setPlayground] = useState<PlaygroundItem[]>([])
   const [newlyDiscovered, setNewlyDiscovered] = useState<string | null>(null)
-  const [initialized, setInitialized] = useState(false)
   const idCounter = useRef(0)
-  const [totalCount, setTotalCount] = useState(0)
-
-  // Load recipes and saved state
-  useEffect(() => {
-    fetch('/api/recipes')
-      .then(res => res.text())
-      .then(text => {
-        const { elements: els, recipes: recs } = parseRecipes(text)
-        setElements(els)
-        setRecipeMap(buildRecipeMap(recs))
-        setTotalCount(els.size)
-
-        // Load saved progress from localStorage
-        try {
-          const saved = localStorage.getItem(STORAGE_KEY)
-          if (saved) {
-            const parsed = JSON.parse(saved) as string[]
-            const disc = new Set(parsed)
-            BASE_ELEMENTS.forEach(e => disc.add(e))
-            setDiscovered(disc)
-          } else {
-            setDiscovered(new Set(BASE_ELEMENTS))
-          }
-        } catch {
-          setDiscovered(new Set(BASE_ELEMENTS))
-        }
-        setInitialized(true)
-      })
-  }, [])
 
   // Save progress whenever discovered changes
   useEffect(() => {
-    if (initialized && discovered.size > 0) {
+    if (discovered.size > 0) {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify([...discovered]))
-      } catch {
-        // Storage full or unavailable
-      }
+      } catch { /* Storage full or unavailable */ }
     }
-  }, [discovered, initialized])
+  }, [discovered])
 
   const generateId = useCallback(() => {
     idCounter.current += 1
@@ -92,9 +76,8 @@ export function useGameStore() {
     const item2 = playground.find(i => i.id === id2)
     if (!item1 || !item2) return null
 
-    const result = findRecipe(recipeMap, item1.element, item2.element)
+    const result = findRecipe(RECIPE_MAP, item1.element, item2.element)
     if (result) {
-      // Remove both items and add result at midpoint
       const midX = (item1.x + item2.x) / 2
       const midY = (item1.y + item2.y) / 2
       const newId = generateId()
@@ -104,7 +87,6 @@ export function useGameStore() {
         { id: newId, element: result, x: midX, y: midY }
       ])
 
-      // Discover new element
       if (!discovered.has(result)) {
         setDiscovered(prev => new Set([...prev, result]))
         setNewlyDiscovered(result)
@@ -113,7 +95,7 @@ export function useGameStore() {
       return result
     }
     return null
-  }, [playground, recipeMap, discovered, generateId])
+  }, [playground, discovered, generateId])
 
   const resetProgress = useCallback(() => {
     setDiscovered(new Set(BASE_ELEMENTS))
@@ -122,12 +104,12 @@ export function useGameStore() {
   }, [])
 
   return {
-    elements,
+    elements: ALL_ELEMENTS,
     discovered,
     playground,
     newlyDiscovered,
-    initialized,
-    totalElements: totalCount,
+    initialized: true,
+    totalElements: ALL_ELEMENTS.size,
     addToPlayground,
     moveOnPlayground,
     removeFromPlayground,
