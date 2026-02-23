@@ -214,7 +214,7 @@ export function Playground({ items, elements, onDrop, onMove, onMerge, onRemove,
             onPointerDown={(e) => handleItemPointerDown(e, item.id)}
             onDoubleClick={() => handleDoubleClick(item.id)}
           >
-            <ElementBadge element={el} />
+            <ElementBadge element={el} size="lg" />
           </div>
         )
       })}
@@ -234,7 +234,7 @@ export function Playground({ items, elements, onDrop, onMove, onMerge, onRemove,
               className="absolute -inset-2 rounded-full opacity-10"
               style={{ backgroundColor: elements.get(mergeAnimation.element)!.color }}
             />
-            <ElementBadge element={elements.get(mergeAnimation.element)!} />
+            <ElementBadge element={elements.get(mergeAnimation.element)!} size="lg" />
           </div>
         </div>
       )}

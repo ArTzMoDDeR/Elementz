@@ -32,7 +32,6 @@ export function Inventory({
   const [sortAsc, setSortAsc] = useState(false)
   const [showReset, setShowReset] = useState(false)
   const { theme, setTheme } = useTheme()
-  const dragPreviewRef = useRef<HTMLDivElement>(null)
 
   const discoveredElements = useMemo(() => {
     const list = Array.from(discovered)
@@ -77,14 +76,20 @@ export function Inventory({
     e.dataTransfer.effectAllowed = 'copy'
     e.dataTransfer.setData('text/element', element.name)
     
-    // Create custom drag preview matching playground style
-    if (dragPreviewRef.current) {
-      const preview = dragPreviewRef.current.cloneNode(true) as HTMLElement
-      preview.style.position = 'absolute'
-      preview.style.top = '-9999px'
-      document.body.appendChild(preview)
-      e.dataTransfer.setDragImage(preview, 45, 18)
-      setTimeout(() => document.body.removeChild(preview), 0)
+    // Create custom drag preview matching the actual badge
+    const dragTarget = e.currentTarget as HTMLElement
+    const badge = dragTarget.querySelector('[data-element-badge]')
+    if (badge) {
+      const clone = badge.cloneNode(true) as HTMLElement
+      clone.style.position = 'absolute'
+      clone.style.top = '-9999px'
+      clone.style.pointerEvents = 'none'
+      document.body.appendChild(clone)
+      
+      const rect = badge.getBoundingClientRect()
+      e.dataTransfer.setDragImage(clone, rect.width / 2, rect.height / 2)
+      
+      setTimeout(() => document.body.removeChild(clone), 0)
     }
   }
 
@@ -98,13 +103,6 @@ export function Inventory({
 
   return (
     <div className="flex-shrink-0 w-full lg:w-[420px] h-[50vh] lg:h-full flex flex-col bg-card border-t lg:border-t-0 lg:border-l border-border">
-      {/* Hidden drag preview template */}
-      <div ref={dragPreviewRef} className="hidden">
-        <div className="px-3 py-2 rounded-lg bg-card border-2 border-primary/50 shadow-lg">
-          <span className="text-xs font-medium">Element</span>
-        </div>
-      </div>
-
       {/* Header with counter and controls */}
       <div className="flex-shrink-0 px-4 py-3 border-b border-border bg-muted/30">
         <div className="flex items-center justify-between mb-3">
@@ -235,7 +233,9 @@ export function Inventory({
                 onDoubleClick={() => handleDoubleClick(element)}
                 className="cursor-grab active:cursor-grabbing"
               >
-                <ElementBadge element={element} size="lg" className="hover:opacity-80 transition-opacity" />
+                <div data-element-badge>
+                  <ElementBadge element={element} size="lg" className="hover:opacity-80 transition-opacity" />
+                </div>
               </div>
             ))}
           </div>
