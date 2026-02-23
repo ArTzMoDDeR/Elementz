@@ -287,7 +287,7 @@ export function Playground({
       {/* INVENTORY PANEL - full height right on desktop, full width bottom on mobile */}
       <div
         ref={inventoryRef}
-        className="absolute bottom-0 left-0 right-0 h-[45vh] lg:bottom-0 lg:left-auto lg:top-0 lg:right-0 lg:h-full lg:w-[280px] bg-card/95 backdrop-blur-xl border-t lg:border-t-0 lg:border-l border-border flex flex-col"
+        className="absolute bottom-0 left-0 right-0 h-[45vh] lg:bottom-0 lg:left-auto lg:top-0 lg:right-0 lg:h-full lg:w-[220px] bg-card/95 backdrop-blur-xl border-t lg:border-t-0 lg:border-l border-border flex flex-col"
         style={{ zIndex: 100 }}
       >
         {/* Header */}
@@ -360,7 +360,7 @@ export function Playground({
           style={{ touchAction: 'pan-y' }}
           onPointerDown={e => e.stopPropagation()}
         >
-          <div className="grid grid-cols-4 lg:grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-4 lg:grid-cols-2 gap-2">
             {discoveredElements.map(element => (
               <div
                 key={element.name}
