@@ -1,9 +1,10 @@
 import { readFileSync, writeFileSync } from 'fs'
-import { resolve } from 'path'
+
+const BASE = '/vercel/share/v0-project/scripts'
 
 // Read JSON files
-const enPath = resolve('user_read_only_context/text_attachments/alchemy_EN-bOdba.json')
-const frPath = resolve('user_read_only_context/text_attachments/alchemy_FR-GGdVd.json')
+const enPath = `${BASE}/alchemy_EN.json`
+const frPath = `${BASE}/alchemy_FR.json`
 
 const enData = JSON.parse(readFileSync(enPath, 'utf-8'))
 const frData = JSON.parse(readFileSync(frPath, 'utf-8'))
@@ -149,5 +150,5 @@ sql += `-- Summary
 -- Total recipes: ${recipes.length}
 `
 
-writeFileSync(resolve('scripts/005-rebuild-database.sql'), sql)
+writeFileSync(`${BASE}/005-rebuild-database.sql`, sql)
 console.log('SQL written to scripts/005-rebuild-database.sql')

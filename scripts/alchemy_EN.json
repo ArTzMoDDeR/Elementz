@@ -1,0 +1,5068 @@
+{
+    "water": [
+        [
+            "fire",
+            "ice"
+        ]
+    ],
+    "life": [
+        [
+            "energy",
+            "swamp"
+        ],
+        [
+            "love",
+            "time"
+        ]
+    ],
+    "time": [
+        [
+            "glass",
+            "sand"
+        ]
+    ],
+    "internet": [
+        [
+            "computer",
+            "web"
+        ],
+        [
+            "computer",
+            "wire"
+        ]
+    ],
+    "acid rain": [
+        [
+            "rain",
+            "smog"
+        ],
+        [
+            "rain",
+            "smoke"
+        ]
+    ],
+    "airplane": [
+        [
+            "bird",
+            "metal"
+        ],
+        [
+            "bird",
+            "steel"
+        ]
+    ],
+    "alarm clock": [
+        [
+            "clock",
+            "sound"
+        ]
+    ],
+    "alcohol": [
+        [
+            "fruit",
+            "time"
+        ],
+        [
+            "juice",
+            "time"
+        ]
+    ],
+    "algae": [
+        [
+            "ocean",
+            "plant"
+        ],
+        [
+            "plant",
+            "sea"
+        ],
+        [
+            "plant",
+            "water"
+        ]
+    ],
+    "alien": [
+        [
+            "life",
+            "space"
+        ]
+    ],
+    "allergy": [
+        [
+            "dust",
+            "human"
+        ]
+    ],
+    "alligator": [
+        [
+            "lizard",
+            "river"
+        ],
+        [
+            "lizard",
+            "swamp"
+        ]
+    ],
+    "alpaca": [
+        [
+            "mountain",
+            "sheep"
+        ]
+    ],
+    "ambulance": [
+        [
+            "car",
+            "doctor"
+        ],
+        [
+            "car",
+            "hospital"
+        ]
+    ],
+    "angel": [
+        [
+            "bird",
+            "human"
+        ]
+    ],
+    "angler": [
+        [
+            "fishing rod",
+            "human"
+        ]
+    ],
+    "ant": [
+        [
+            "grass",
+            "wild animal"
+        ],
+        [
+            "sugar",
+            "wild animal"
+        ]
+    ],
+    "antarctica": [
+        [
+            "desert",
+            "ice"
+        ],
+        [
+            "desert",
+            "snow"
+        ]
+    ],
+    "aquarium": [
+        [
+            "fish",
+            "glass"
+        ],
+        [
+            "glass",
+            "water"
+        ]
+    ],
+    "armadillo": [
+        [
+            "armor",
+            "wild animal"
+        ]
+    ],
+    "armor": [
+        [
+            "metal",
+            "tool"
+        ],
+        [
+            "steel",
+            "tool"
+        ]
+    ],
+    "ash": [
+        [
+            "energy",
+            "volcano"
+        ]
+    ],
+    "astronaut": [
+        [
+            "human",
+            "moon"
+        ],
+        [
+            "human",
+            "rocket"
+        ],
+        [
+            "human",
+            "space station"
+        ],
+        [
+            "human",
+            "space"
+        ]
+    ],
+    "astronaut ice cream": [
+        [
+            "astronaut",
+            "ice cream"
+        ]
+    ],
+    "atmosphere": [
+        [
+            "air",
+            "pressure"
+        ],
+        [
+            "pressure",
+            "sky"
+        ]
+    ],
+    "atomic bomb": [
+        [
+            "energy",
+            "explosion"
+        ]
+    ],
+    "aurora": [
+        [
+            "antarctica",
+            "atmosphere"
+        ],
+        [
+            "antarctica",
+            "sky"
+        ],
+        [
+            "antarctica",
+            "sun"
+        ]
+    ],
+    "avalanche": [
+        [
+            "energy",
+            "snow"
+        ]
+    ],
+    "axe": [
+        [
+            "blade",
+            "wood"
+        ]
+    ],
+    "bacon": [
+        [
+            "fire",
+            "pig"
+        ]
+    ],
+    "bacteria": [
+        [
+            "life",
+            "swamp"
+        ]
+    ],
+    "baker": [
+        [
+            "bread",
+            "human"
+        ],
+        [
+            "dough",
+            "human"
+        ],
+        [
+            "flour",
+            "human"
+        ]
+    ],
+    "bakery": [
+        [
+            "baker",
+            "house"
+        ],
+        [
+            "bread",
+            "house"
+        ]
+    ],
+    "banana": [
+        [
+            "fruit",
+            "monkey"
+        ]
+    ],
+    "banana bread": [
+        [
+            "banana",
+            "bread"
+        ]
+    ],
+    "bandage": [
+        [
+            "blood",
+            "fabric"
+        ]
+    ],
+    "bank": [
+        [
+            "gold",
+            "house"
+        ],
+        [
+            "house",
+            "money"
+        ],
+        [
+            "house",
+            "safe"
+        ]
+    ],
+    "barn": [
+        [
+            "cow",
+            "house"
+        ],
+        [
+            "hay",
+            "house"
+        ],
+        [
+            "house",
+            "livestock"
+        ]
+    ],
+    "bat": [
+        [
+            "bird",
+            "mouse"
+        ],
+        [
+            "mouse",
+            "sky"
+        ]
+    ],
+    "batman": [
+        [
+            "bat",
+            "human"
+        ]
+    ],
+    "batter": [
+        [
+            "flour",
+            "milk"
+        ]
+    ],
+    "bayonet": [
+        [
+            "blade",
+            "gun"
+        ],
+        [
+            "gun",
+            "sword"
+        ]
+    ],
+    "bbq": [
+        [
+            "campfire",
+            "garden"
+        ],
+        [
+            "campfire",
+            "meat"
+        ]
+    ],
+    "beach": [
+        [
+            "ocean",
+            "sand"
+        ],
+        [
+            "sand",
+            "sea"
+        ],
+        [
+            "sand",
+            "water"
+        ]
+    ],
+    "beaver": [
+        [
+            "dam",
+            "wild animal"
+        ],
+        [
+            "wild animal",
+            "wood"
+        ]
+    ],
+    "bee": [
+        [
+            "flower",
+            "wild animal"
+        ]
+    ],
+    "beehive": [
+        [
+            "bee",
+            "house"
+        ],
+        [
+            "bee",
+            "tree"
+        ]
+    ],
+    "beer": [
+        [
+            "alcohol",
+            "wheat"
+        ]
+    ],
+    "bird": [
+        [
+            "air",
+            "egg"
+        ],
+        [
+            "air",
+            "life"
+        ],
+        [
+            "egg",
+            "sky"
+        ],
+        [
+            "life",
+            "sky"
+        ]
+    ],
+    "birdhouse": [
+        [
+            "bird",
+            "house"
+        ]
+    ],
+    "black hole": [
+        [
+            "pressure",
+            "star"
+        ]
+    ],
+    "blade": [
+        [
+            "metal",
+            "stone"
+        ]
+    ],
+    "blender": [
+        [
+            "blade",
+            "electricity"
+        ],
+        [
+            "blade",
+            "glass"
+        ]
+    ],
+    "blizzard": [
+        [
+            "snow",
+            "storm"
+        ],
+        [
+            "snow",
+            "wind"
+        ]
+    ],
+    "blood": [
+        [
+            "blade",
+            "human"
+        ]
+    ],
+    "blueprint": [
+        [
+            "engineer",
+            "paper"
+        ]
+    ],
+    "boat": [
+        [
+            "water",
+            "wood"
+        ]
+    ],
+    "boiler": [
+        [
+            "metal",
+            "steam"
+        ]
+    ],
+    "bone": [
+        [
+            "corpse",
+            "time"
+        ]
+    ],
+    "bonsai tree": [
+        [
+            "pottery",
+            "tree"
+        ],
+        [
+            "scissors",
+            "tree"
+        ]
+    ],
+    "book": [
+        [
+            "paper",
+            "story"
+        ],
+        [
+            "paper",
+            "wood"
+        ]
+    ],
+    "bread": [
+        [
+            "dough",
+            "fire"
+        ]
+    ],
+    "brick": [
+        [
+            "clay",
+            "fire"
+        ],
+        [
+            "clay",
+            "sun"
+        ],
+        [
+            "fire",
+            "mud"
+        ],
+        [
+            "mud",
+            "sun"
+        ]
+    ],
+    "bridge": [
+        [
+            "metal",
+            "river"
+        ],
+        [
+            "river",
+            "steel"
+        ],
+        [
+            "river",
+            "wood"
+        ]
+    ],
+    "broom": [
+        [
+            "hay",
+            "wood"
+        ]
+    ],
+    "bullet": [
+        [
+            "gunpowder",
+            "metal"
+        ]
+    ],
+    "bulletproof vest": [
+        [
+            "armor",
+            "bullet"
+        ]
+    ],
+    "butcher": [
+        [
+            "human",
+            "meat"
+        ]
+    ],
+    "butter": [
+        [
+            "energy",
+            "milk"
+        ],
+        [
+            "milk",
+            "pressure"
+        ]
+    ],
+    "butterfly": [
+        [
+            "flower",
+            "wild animal"
+        ]
+    ],
+    "cactus": [
+        [
+            "desert",
+            "plant"
+        ],
+        [
+            "plant",
+            "sand"
+        ]
+    ],
+    "cadbury eggs": [
+        [
+            "chocolate",
+            "egg"
+        ]
+    ],
+    "cake": [
+        [
+            "candle",
+            "dough"
+        ]
+    ],
+    "camel": [
+        [
+            "desert",
+            "horse"
+        ],
+        [
+            "desert",
+            "livestock"
+        ],
+        [
+            "desert",
+            "wild animal"
+        ]
+    ],
+    "campfire": [
+        [
+            "fire",
+            "wood"
+        ]
+    ],
+    "candle": [
+        [
+            "fire",
+            "wax"
+        ],
+        [
+            "thread",
+            "wax"
+        ]
+    ],
+    "candy cane": [
+        [
+            "christmas tree",
+            "sugar"
+        ]
+    ],
+    "cannon": [
+        [
+            "castle",
+            "gunpowder"
+        ],
+        [
+            "gunpowder",
+            "pirate ship"
+        ]
+    ],
+    "cape": [
+        [
+            "fabric",
+            "hero"
+        ]
+    ],
+    "car": [
+        [
+            "metal",
+            "wheel"
+        ]
+    ],
+    "caramel": [
+        [
+            "fire",
+            "sugar"
+        ]
+    ],
+    "caramel apple": [
+        [
+            "caramel",
+            "orchard"
+        ]
+    ],
+    "caramelo": [
+        [
+            "caramel",
+            "chocolate"
+        ]
+    ],
+    "carbon dioxide": [
+        [
+            "human",
+            "oxygen"
+        ],
+        [
+            "night",
+            "plant"
+        ],
+        [
+            "night",
+            "tree"
+        ]
+    ],
+    "carrot": [
+        [
+            "snowman",
+            "sun"
+        ],
+        [
+            "snowman",
+            "vegetable"
+        ]
+    ],
+    "cart": [
+        [
+            "wheel",
+            "wood"
+        ]
+    ],
+    "cashmere": [
+        [
+            "fabric",
+            "mountain goat"
+        ],
+        [
+            "mountain goat",
+            "scissors"
+        ],
+        [
+            "mountain goat",
+            "thread"
+        ],
+        [
+            "mountain goat",
+            "tool"
+        ],
+        [
+            "mountain goat",
+            "wool"
+        ]
+    ],
+    "castle": [
+        [
+            "house",
+            "knight"
+        ]
+    ],
+    "cat": [
+        [
+            "milk",
+            "wild animal"
+        ]
+    ],
+    "catnip": [
+        [
+            "cat",
+            "plant"
+        ]
+    ],
+    "cauldron": [
+        [
+            "campfire",
+            "witch"
+        ],
+        [
+            "fireplace",
+            "witch"
+        ],
+        [
+            "metal",
+            "witch"
+        ],
+        [
+            "steel",
+            "witch"
+        ]
+    ],
+    "caviar": [
+        [
+            "hard roe",
+            "human"
+        ]
+    ],
+    "centaur": [
+        [
+            "horse",
+            "human"
+        ]
+    ],
+    "cereal": [
+        [
+            "milk",
+            "wheat"
+        ]
+    ],
+    "chain": [
+        [
+            "metal",
+            "rope"
+        ],
+        [
+            "rope",
+            "steel"
+        ]
+    ],
+    "chainsaw": [
+        [
+            "axe",
+            "electricity"
+        ]
+    ],
+    "chameleon": [
+        [
+            "lizard",
+            "rainbow"
+        ]
+    ],
+    "charcoal": [
+        [
+            "fire",
+            "tree"
+        ],
+        [
+            "fire",
+            "wood"
+        ]
+    ],
+    "cheese": [
+        [
+            "milk",
+            "time"
+        ]
+    ],
+    "cheeseburger": [
+        [
+            "cheese",
+            "hamburger"
+        ]
+    ],
+    "chicken": [
+        [
+            "bird",
+            "farmer"
+        ],
+        [
+            "bird",
+            "livestock"
+        ],
+        [
+            "egg",
+            "livestock"
+        ]
+    ],
+    "chicken soup": [
+        [
+            "chicken",
+            "water"
+        ]
+    ],
+    "chicken wing": [
+        [
+            "bone",
+            "chicken"
+        ]
+    ],
+    "chimney": [
+        [
+            "brick",
+            "fireplace"
+        ],
+        [
+            "brick",
+            "smoke"
+        ],
+        [
+            "fireplace",
+            "house"
+        ]
+    ],
+    "chocolate": [
+        [
+            "river",
+            "willy wonka"
+        ]
+    ],
+    "chocolate milk": [
+        [
+            "chocolate",
+            "milk"
+        ]
+    ],
+    "christmas stocking": [
+        [
+            "fireplace",
+            "wool"
+        ]
+    ],
+    "christmas tree": [
+        [
+            "light bulb",
+            "tree"
+        ],
+        [
+            "star",
+            "tree"
+        ]
+    ],
+    "cigarette": [
+        [
+            "paper",
+            "tobacco"
+        ]
+    ],
+    "clay": [
+        [
+            "mud",
+            "sand"
+        ]
+    ],
+    "clock": [
+        [
+            "electricity",
+            "time"
+        ],
+        [
+            "time",
+            "tool"
+        ],
+        [
+            "time",
+            "wheel"
+        ]
+    ],
+    "cloud": [
+        [
+            "air",
+            "steam"
+        ]
+    ],
+    "coal": [
+        [
+            "plant",
+            "pressure"
+        ],
+        [
+            "snowman",
+            "sun"
+        ]
+    ],
+    "coconut": [
+        [
+            "fruit",
+            "palm"
+        ]
+    ],
+    "coconut milk": [
+        [
+            "coconut",
+            "milk"
+        ],
+        [
+            "coconut",
+            "tool"
+        ]
+    ],
+    "coffin": [
+        [
+            "corpse",
+            "wood"
+        ]
+    ],
+    "cold": [
+        [
+            "human",
+            "rain"
+        ]
+    ],
+    "computer": [
+        [
+            "electricity",
+            "nerd"
+        ],
+        [
+            "nerd",
+            "tool"
+        ],
+        [
+            "nerd",
+            "wire"
+        ]
+    ],
+    "computer mouse": [
+        [
+            "computer",
+            "mouse"
+        ]
+    ],
+    "confetti": [
+        [
+            "blade",
+            "paper"
+        ],
+        [
+            "paper",
+            "scissors"
+        ]
+    ],
+    "cookbook": [
+        [
+            "book",
+            "recipe"
+        ]
+    ],
+    "cookie": [
+        [
+            "dough",
+            "sugar"
+        ]
+    ],
+    "cookie dough": [
+        [
+            "cookie",
+            "dough"
+        ]
+    ],
+    "corpse": [
+        [
+            "grim reaper",
+            "human"
+        ],
+        [
+            "gun",
+            "human"
+        ]
+    ],
+    "cotton": [
+        [
+            "cloud",
+            "plant"
+        ]
+    ],
+    "cotton candy": [
+        [
+            "cloud",
+            "sugar"
+        ],
+        [
+            "electricity",
+            "sugar"
+        ]
+    ],
+    "cow": [
+        [
+            "grass",
+            "livestock"
+        ]
+    ],
+    "crayon": [
+        [
+            "pencil",
+            "rainbow"
+        ],
+        [
+            "rainbow",
+            "wax"
+        ]
+    ],
+    "crow": [
+        [
+            "bird",
+            "field"
+        ],
+        [
+            "bird",
+            "scarecrow"
+        ]
+    ],
+    "crown": [
+        [
+            "gold",
+            "monarch"
+        ],
+        [
+            "metal",
+            "monarch"
+        ]
+    ],
+    "crystal ball": [
+        [
+            "glass",
+            "witch"
+        ],
+        [
+            "glass",
+            "wizard"
+        ]
+    ],
+    "cuckoo": [
+        [
+            "bird",
+            "clock"
+        ]
+    ],
+    "cyborg": [
+        [
+            "human",
+            "robot"
+        ]
+    ],
+    "cyclist": [
+        [
+            "bicycle",
+            "human"
+        ]
+    ],
+    "dam": [
+        [
+            "beaver",
+            "river"
+        ],
+        [
+            "beaver",
+            "tree"
+        ],
+        [
+            "beaver",
+            "wood"
+        ],
+        [
+            "river",
+            "wall"
+        ]
+    ],
+    "darth vader": [
+        [
+            "fire",
+            "jedi"
+        ],
+        [
+            "jedi",
+            "lava"
+        ]
+    ],
+    "day": [
+        [
+            "night",
+            "sun"
+        ],
+        [
+            "night",
+            "time"
+        ],
+        [
+            "sky",
+            "sun"
+        ],
+        [
+            "sun",
+            "time"
+        ]
+    ],
+    "desert": [
+        [
+            "cactus",
+            "sand"
+        ]
+    ],
+    "dew": [
+        [
+            "fog",
+            "grass"
+        ],
+        [
+            "grass",
+            "water"
+        ]
+    ],
+    "diamond": [
+        [
+            "coal",
+            "pressure"
+        ],
+        [
+            "coal",
+            "time"
+        ]
+    ],
+    "dinosaur": [
+        [
+            "lizard",
+            "time"
+        ]
+    ],
+    "doctor": [
+        [
+            "hospital",
+            "human"
+        ]
+    ],
+    "dog": [
+        [
+            "bone",
+            "wolf"
+        ],
+        [
+            "human",
+            "wild animal"
+        ]
+    ],
+    "doge": [
+        [
+            "computer",
+            "dog"
+        ],
+        [
+            "dog",
+            "internet"
+        ]
+    ],
+    "doghouse": [
+        [
+            "dog",
+            "house"
+        ]
+    ],
+    "don quixote": [
+        [
+            "knight",
+            "windmill"
+        ]
+    ],
+    "donut": [
+        [
+            "dough",
+            "oil"
+        ]
+    ],
+    "dough": [
+        [
+            "flour",
+            "water"
+        ]
+    ],
+    "dragon": [
+        [
+            "fire",
+            "lizard"
+        ]
+    ],
+    "drone": [
+        [
+            "airplane",
+            "robot"
+        ]
+    ],
+    "drum": [
+        [
+            "leather",
+            "wood"
+        ]
+    ],
+    "drunk": [
+        [
+            "alcohol",
+            "human"
+        ],
+        [
+            "beer",
+            "human"
+        ],
+        [
+            "human",
+            "wine"
+        ]
+    ],
+    "dry ice": [
+        [
+            "carbon dioxide",
+            "cold"
+        ],
+        [
+            "carbon dioxide",
+            "ice"
+        ]
+    ],
+    "duck": [
+        [
+            "bird",
+            "lake"
+        ],
+        [
+            "bird",
+            "pond"
+        ],
+        [
+            "bird",
+            "water"
+        ],
+        [
+            "duckling",
+            "time"
+        ]
+    ],
+    "duckling": [
+        [
+            "duck",
+            "egg"
+        ]
+    ],
+    "dune": [
+        [
+            "beach",
+            "wind"
+        ],
+        [
+            "desert",
+            "wind"
+        ],
+        [
+            "sand",
+            "wind"
+        ]
+    ],
+    "dust": [
+        [
+            "air",
+            "earth"
+        ],
+        [
+            "day",
+            "vampire"
+        ],
+        [
+            "sun",
+            "vampire"
+        ]
+    ],
+    "dynamite": [
+        [
+            "gunpowder",
+            "wire"
+        ]
+    ],
+    "eagle": [
+        [
+            "bird",
+            "mountain"
+        ]
+    ],
+    "earthquake": [
+        [
+            "earth",
+            "energy"
+        ],
+        [
+            "earth",
+            "wave"
+        ]
+    ],
+    "eclipse": [
+        [
+            "moon",
+            "sun"
+        ]
+    ],
+    "egg": [
+        [
+            "life",
+            "stone"
+        ]
+    ],
+    "egg timer": [
+        [
+            "clock",
+            "egg"
+        ],
+        [
+            "egg",
+            "watch"
+        ]
+    ],
+    "electric car": [
+        [
+            "car",
+            "electricity"
+        ]
+    ],
+    "electric eel": [
+        [
+            "electricity",
+            "fish"
+        ]
+    ],
+    "electrician": [
+        [
+            "electricity",
+            "human"
+        ],
+        [
+            "human",
+            "wire"
+        ]
+    ],
+    "electricity": [
+        [
+            "energy",
+            "metal"
+        ],
+        [
+            "light",
+            "solar cell"
+        ],
+        [
+            "solar cell",
+            "sun"
+        ],
+        [
+            "wind turbine",
+            "wind"
+        ]
+    ],
+    "email": [
+        [
+            "computer",
+            "letter"
+        ],
+        [
+            "internet",
+            "letter"
+        ]
+    ],
+    "energy": [
+        [
+            "air",
+            "fire"
+        ],
+        [
+            "plant",
+            "sun"
+        ]
+    ],
+    "engineer": [
+        [
+            "human",
+            "tool"
+        ]
+    ],
+    "eruption": [
+        [
+            "energy",
+            "volcano"
+        ]
+    ],
+    "excalibur": [
+        [
+            "stone",
+            "sword"
+        ]
+    ],
+    "explosion": [
+        [
+            "fire",
+            "gunpowder"
+        ]
+    ],
+    "fabric": [
+        [
+            "thread",
+            "tool"
+        ]
+    ],
+    "fairy tale": [
+        [
+            "castle",
+            "story"
+        ],
+        [
+            "dragon",
+            "story"
+        ],
+        [
+            "knight",
+            "story"
+        ],
+        [
+            "monarch",
+            "story"
+        ]
+    ],
+    "family": [
+        [
+            "house",
+            "human"
+        ]
+    ],
+    "family tree": [
+        [
+            "family",
+            "tree"
+        ]
+    ],
+    "farm": [
+        [
+            "barn",
+            "farmer"
+        ],
+        [
+            "farmer",
+            "house"
+        ]
+    ],
+    "farmer": [
+        [
+            "field",
+            "human"
+        ],
+        [
+            "human",
+            "pitchfork"
+        ],
+        [
+            "human",
+            "plant"
+        ]
+    ],
+    "faun": [
+        [
+            "goat",
+            "human"
+        ]
+    ],
+    "fence": [
+        [
+            "wall",
+            "wood"
+        ]
+    ],
+    "field": [
+        [
+            "earth",
+            "farmer"
+        ],
+        [
+            "earth",
+            "tool"
+        ]
+    ],
+    "fire extinguisher": [
+        [
+            "carbon dioxide",
+            "fire"
+        ],
+        [
+            "carbon dioxide",
+            "metal"
+        ],
+        [
+            "carbon dioxide",
+            "pressure"
+        ]
+    ],
+    "fireman": [
+        [
+            "fire",
+            "human"
+        ],
+        [
+            "firetruck",
+            "human"
+        ]
+    ],
+    "fireplace": [
+        [
+            "brick",
+            "campfire"
+        ],
+        [
+            "campfire",
+            "house"
+        ],
+        [
+            "campfire",
+            "wall"
+        ]
+    ],
+    "firetruck": [
+        [
+            "car",
+            "fireman"
+        ]
+    ],
+    "fireworks": [
+        [
+            "explosion",
+            "sky"
+        ]
+    ],
+    "fish": [
+        [
+            "hard roe",
+            "time"
+        ]
+    ],
+    "fish and chips": [
+        [
+            "fish",
+            "french fries"
+        ]
+    ],
+    "fishing rod": [
+        [
+            "fish",
+            "tool"
+        ],
+        [
+            "fish",
+            "wood"
+        ]
+    ],
+    "flamethrower": [
+        [
+            "fire",
+            "gun"
+        ]
+    ],
+    "flashlight": [
+        [
+            "light",
+            "tool"
+        ]
+    ],
+    "flood": [
+        [
+            "rain",
+            "time"
+        ]
+    ],
+    "flour": [
+        [
+            "stone",
+            "wheat"
+        ],
+        [
+            "waterwheel",
+            "wheat"
+        ],
+        [
+            "wheat",
+            "windmill"
+        ]
+    ],
+    "flower": [
+        [
+            "garden",
+            "plant"
+        ]
+    ],
+    "flute": [
+        [
+            "wind",
+            "wood"
+        ]
+    ],
+    "flying fish": [
+        [
+            "bird",
+            "fish"
+        ],
+        [
+            "fish",
+            "sky"
+        ]
+    ],
+    "flying squirrel": [
+        [
+            "airplane",
+            "squirrel"
+        ],
+        [
+            "bird",
+            "squirrel"
+        ],
+        [
+            "sky",
+            "squirrel"
+        ],
+        [
+            "squirrel",
+            "wind"
+        ]
+    ],
+    "fog": [
+        [
+            "cloud",
+            "earth"
+        ]
+    ],
+    "fortune cookie": [
+        [
+            "cookie",
+            "paper"
+        ]
+    ],
+    "fossil": [
+        [
+            "dinosaur",
+            "earth"
+        ],
+        [
+            "dinosaur",
+            "stone"
+        ],
+        [
+            "dinosaur",
+            "time"
+        ]
+    ],
+    "fountain": [
+        [
+            "statue",
+            "water"
+        ]
+    ],
+    "fox": [
+        [
+            "chicken",
+            "wild animal"
+        ]
+    ],
+    "frankenstein": [
+        [
+            "corpse",
+            "electricity"
+        ],
+        [
+            "electricity",
+            "zombie"
+        ]
+    ],
+    "french fries": [
+        [
+            "oil",
+            "vegetable"
+        ]
+    ],
+    "fridge": [
+        [
+            "cold",
+            "electricity"
+        ],
+        [
+            "cold",
+            "metal"
+        ],
+        [
+            "ice",
+            "metal"
+        ]
+    ],
+    "frog": [
+        [
+            "pond",
+            "wild animal"
+        ]
+    ],
+    "frozen yogurt": [
+        [
+            "cold",
+            "yogurt"
+        ],
+        [
+            "ice",
+            "yogurt"
+        ]
+    ],
+    "fruit": [
+        [
+            "farmer",
+            "tree"
+        ],
+        [
+            "sun",
+            "tree"
+        ]
+    ],
+    "fruit tree": [
+        [
+            "fruit",
+            "tree"
+        ]
+    ],
+    "fun dip": [
+        [
+            "sand",
+            "sugar"
+        ]
+    ],
+    "garden": [
+        [
+            "grass",
+            "house"
+        ],
+        [
+            "grass",
+            "plant"
+        ]
+    ],
+    "gardener": [
+        [
+            "garden",
+            "human"
+        ]
+    ],
+    "geyser": [
+        [
+            "earth",
+            "steam"
+        ]
+    ],
+    "ghost": [
+        [
+            "castle",
+            "night"
+        ],
+        [
+            "graveyard",
+            "night"
+        ]
+    ],
+    "gift": [
+        [
+            "chimney",
+            "santa"
+        ],
+        [
+            "christmas stocking",
+            "santa"
+        ],
+        [
+            "christmas tree",
+            "santa"
+        ],
+        [
+            "cookie",
+            "santa"
+        ],
+        [
+            "fireplace",
+            "santa"
+        ]
+    ],
+    "gingerbread house": [
+        [
+            "dough",
+            "house"
+        ],
+        [
+            "gingerbread man",
+            "house"
+        ]
+    ],
+    "gingerbread man": [
+        [
+            "dough",
+            "life"
+        ]
+    ],
+    "glacier": [
+        [
+            "ice",
+            "mountain"
+        ]
+    ],
+    "glass": [
+        [
+            "electricity",
+            "sand"
+        ],
+        [
+            "fire",
+            "sand"
+        ]
+    ],
+    "glasses": [
+        [
+            "glass",
+            "metal"
+        ]
+    ],
+    "gnome": [
+        [
+            "garden",
+            "statue"
+        ]
+    ],
+    "goat": [
+        [
+            "livestock",
+            "mountain"
+        ]
+    ],
+    "godzilla": [
+        [
+            "city",
+            "dinosaur"
+        ]
+    ],
+    "gold": [
+        [
+            "metal",
+            "rainbow"
+        ],
+        [
+            "metal",
+            "sun"
+        ]
+    ],
+    "goldfish": [
+        [
+            "cheese",
+            "fish"
+        ]
+    ],
+    "golem": [
+        [
+            "clay",
+            "life"
+        ]
+    ],
+    "granite": [
+        [
+            "lava",
+            "pressure"
+        ]
+    ],
+    "grass": [
+        [
+            "earth",
+            "plant"
+        ]
+    ],
+    "grave": [
+        [
+            "coffin",
+            "earth"
+        ],
+        [
+            "corpse",
+            "earth"
+        ]
+    ],
+    "gravestone": [
+        [
+            "grave",
+            "stone"
+        ]
+    ],
+    "greenhouse": [
+        [
+            "glass",
+            "plant"
+        ]
+    ],
+    "grenade": [
+        [
+            "explosion",
+            "metal"
+        ]
+    ],
+    "grilled cheese": [
+        [
+            "cheese",
+            "toast"
+        ]
+    ],
+    "grim reaper": [
+        [
+            "corpse",
+            "scythe"
+        ],
+        [
+            "human",
+            "scythe"
+        ]
+    ],
+    "guinness float": [
+        [
+            "beer",
+            "ice cream"
+        ]
+    ],
+    "gun": [
+        [
+            "bullet",
+            "metal"
+        ]
+    ],
+    "gunpowder": [
+        [
+            "dust",
+            "fire"
+        ]
+    ],
+    "hail": [
+        [
+            "cloud",
+            "ice"
+        ],
+        [
+            "ice",
+            "rain"
+        ],
+        [
+            "ice",
+            "storm"
+        ]
+    ],
+    "ham": [
+        [
+            "meat",
+            "smoke"
+        ]
+    ],
+    "hamburger": [
+        [
+            "bread",
+            "meat"
+        ]
+    ],
+    "hammer": [
+        [
+            "metal",
+            "wood"
+        ]
+    ],
+    "hamster": [
+        [
+            "mouse",
+            "wheel"
+        ]
+    ],
+    "hard roe": [
+        [
+            "egg",
+            "ocean"
+        ],
+        [
+            "egg",
+            "pond"
+        ],
+        [
+            "egg",
+            "sea"
+        ],
+        [
+            "egg",
+            "water"
+        ]
+    ],
+    "harp": [
+        [
+            "angel",
+            "music"
+        ]
+    ],
+    "hay": [
+        [
+            "farmer",
+            "grass"
+        ],
+        [
+            "grass",
+            "scythe"
+        ],
+        [
+            "grass",
+            "sun"
+        ]
+    ],
+    "hedge": [
+        [
+            "fence",
+            "leaf"
+        ],
+        [
+            "fence",
+            "plant"
+        ]
+    ],
+    "helicopter": [
+        [
+            "airplane",
+            "blade"
+        ],
+        [
+            "airplane",
+            "windmill"
+        ]
+    ],
+    "herb": [
+        [
+            "leaf",
+            "sickness"
+        ],
+        [
+            "plant",
+            "sickness"
+        ]
+    ],
+    "hero": [
+        [
+            "dragon",
+            "knight"
+        ]
+    ],
+    "hippo": [
+        [
+            "horse",
+            "river"
+        ],
+        [
+            "horse",
+            "water"
+        ]
+    ],
+    "honey": [
+        [
+            "bee",
+            "beehive"
+        ],
+        [
+            "bee",
+            "flower"
+        ]
+    ],
+    "horizon": [
+        [
+            "earth",
+            "sky"
+        ],
+        [
+            "ocean",
+            "sky"
+        ],
+        [
+            "sea",
+            "sky"
+        ]
+    ],
+    "horse": [
+        [
+            "hay",
+            "livestock"
+        ]
+    ],
+    "horseshoe": [
+        [
+            "horse",
+            "metal"
+        ]
+    ],
+    "hospital": [
+        [
+            "ambulance",
+            "house"
+        ],
+        [
+            "doctor",
+            "house"
+        ],
+        [
+            "house",
+            "sickness"
+        ]
+    ],
+    "hourglass": [
+        [
+            "glass",
+            "sand"
+        ]
+    ],
+    "house": [
+        [
+            "brick",
+            "human"
+        ],
+        [
+            "brick",
+            "tool"
+        ],
+        [
+            "human",
+            "wood"
+        ]
+    ],
+    "human": [
+        [
+            "earth",
+            "life"
+        ]
+    ],
+    "hummingbird": [
+        [
+            "bird",
+            "flower"
+        ]
+    ],
+    "hurricane": [
+        [
+            "energy",
+            "wind"
+        ]
+    ],
+    "husky": [
+        [
+            "dog",
+            "ice"
+        ],
+        [
+            "dog",
+            "snow"
+        ]
+    ],
+    "ice": [
+        [
+            "cold",
+            "water"
+        ]
+    ],
+    "ice cream": [
+        [
+            "cold",
+            "milk"
+        ],
+        [
+            "ice",
+            "milk"
+        ]
+    ],
+    "ice cream truck": [
+        [
+            "car",
+            "ice cream"
+        ]
+    ],
+    "iceberg": [
+        [
+            "antarctica",
+            "ocean"
+        ],
+        [
+            "antarctica",
+            "sea"
+        ],
+        [
+            "ice",
+            "ocean"
+        ],
+        [
+            "ice",
+            "sea"
+        ]
+    ],
+    "iced tea": [
+        [
+            "cold",
+            "tea"
+        ],
+        [
+            "ice",
+            "tea"
+        ]
+    ],
+    "idea": [
+        [
+            "human",
+            "light bulb"
+        ],
+        [
+            "light bulb",
+            "nerd"
+        ]
+    ],
+    "igloo": [
+        [
+            "house",
+            "ice"
+        ],
+        [
+            "house",
+            "snow"
+        ]
+    ],
+    "isle": [
+        [
+            "ocean",
+            "volcano"
+        ],
+        [
+            "sea",
+            "volcano"
+        ]
+    ],
+    "ivy": [
+        [
+            "plant",
+            "wall"
+        ]
+    ],
+    "jack-o'-lantern": [
+        [
+            "blade",
+            "pumpkin"
+        ],
+        [
+            "candle",
+            "pumpkin"
+        ],
+        [
+            "fire",
+            "pumpkin"
+        ]
+    ],
+    "jam": [
+        [
+            "juice",
+            "sugar"
+        ]
+    ],
+    "jedi": [
+        [
+            "human",
+            "lightsaber"
+        ],
+        [
+            "knight",
+            "lightsaber"
+        ]
+    ],
+    "jerky": [
+        [
+            "meat",
+            "salt"
+        ],
+        [
+            "meat",
+            "sun"
+        ]
+    ],
+    "juice": [
+        [
+            "fruit",
+            "pressure"
+        ],
+        [
+            "fruit",
+            "water"
+        ]
+    ],
+    "juicy fruit": [
+        [
+            "fruit",
+            "juice"
+        ]
+    ],
+    "keyboard cat": [
+        [
+            "cat",
+            "music"
+        ]
+    ],
+    "kite": [
+        [
+            "paper",
+            "sky"
+        ],
+        [
+            "paper",
+            "wind"
+        ]
+    ],
+    "knight": [
+        [
+            "armor",
+            "human"
+        ]
+    ],
+    "lake": [
+        [
+            "dam",
+            "river"
+        ],
+        [
+            "pond",
+            "water"
+        ]
+    ],
+    "lamp": [
+        [
+            "light bulb",
+            "metal"
+        ]
+    ],
+    "lasso": [
+        [
+            "cow",
+            "rope"
+        ],
+        [
+            "horse",
+            "rope"
+        ]
+    ],
+    "lava": [
+        [
+            "earth",
+            "fire"
+        ]
+    ],
+    "lava lamp": [
+        [
+            "lamp",
+            "lava"
+        ]
+    ],
+    "lawn mower": [
+        [
+            "electricity",
+            "scythe"
+        ],
+        [
+            "grass",
+            "tool"
+        ]
+    ],
+    "leaf": [
+        [
+            "tree",
+            "wind"
+        ]
+    ],
+    "leather": [
+        [
+            "blade",
+            "cow"
+        ],
+        [
+            "blade",
+            "pig"
+        ]
+    ],
+    "lemonade": [
+        [
+            "fruit",
+            "water"
+        ]
+    ],
+    "letter": [
+        [
+            "paper",
+            "pencil"
+        ]
+    ],
+    "library": [
+        [
+            "book",
+            "house"
+        ]
+    ],
+    "light": [
+        [
+            "electricity",
+            "flashlight"
+        ],
+        [
+            "electricity",
+            "light bulb"
+        ]
+    ],
+    "light bulb": [
+        [
+            "electricity",
+            "glass"
+        ]
+    ],
+    "lighthouse": [
+        [
+            "beach",
+            "light"
+        ],
+        [
+            "house",
+            "light"
+        ],
+        [
+            "light",
+            "ocean"
+        ],
+        [
+            "light",
+            "sea"
+        ]
+    ],
+    "lightsaber": [
+        [
+            "electricity",
+            "sword"
+        ],
+        [
+            "energy",
+            "sword"
+        ],
+        [
+            "light",
+            "sword"
+        ]
+    ],
+    "lion": [
+        [
+            "cat",
+            "wild animal"
+        ]
+    ],
+    "livestock": [
+        [
+            "farmer",
+            "life"
+        ],
+        [
+            "farmer",
+            "wild animal"
+        ],
+        [
+            "human",
+            "wild animal"
+        ]
+    ],
+    "lizard": [
+        [
+            "egg",
+            "swamp"
+        ]
+    ],
+    "log cabin": [
+        [
+            "house",
+            "wood"
+        ]
+    ],
+    "lumberjack": [
+        [
+            "axe",
+            "human"
+        ],
+        [
+            "chainsaw",
+            "human"
+        ]
+    ],
+    "mac and cheese": [
+        [
+            "cheese",
+            "pasta"
+        ]
+    ],
+    "mailman": [
+        [
+            "human",
+            "letter"
+        ]
+    ],
+    "manatee": [
+        [
+            "cow",
+            "sea"
+        ]
+    ],
+    "map": [
+        [
+            "earth",
+            "paper"
+        ]
+    ],
+    "mars": [
+        [
+            "planet",
+            "rust"
+        ]
+    ],
+    "marshmallows": [
+        [
+            "campfire",
+            "sugar"
+        ]
+    ],
+    "mayonnaise": [
+        [
+            "egg",
+            "oil"
+        ]
+    ],
+    "meat": [
+        [
+            "blade",
+            "livestock"
+        ],
+        [
+            "butcher",
+            "cow"
+        ],
+        [
+            "butcher",
+            "livestock"
+        ],
+        [
+            "butcher",
+            "pig"
+        ],
+        [
+            "cow",
+            "tool"
+        ],
+        [
+            "pig",
+            "tool"
+        ]
+    ],
+    "medusa": [
+        [
+            "human",
+            "snake"
+        ]
+    ],
+    "mermaid": [
+        [
+            "fish",
+            "human"
+        ]
+    ],
+    "metal": [
+        [
+            "fire",
+            "stone"
+        ]
+    ],
+    "meteor": [
+        [
+            "atmosphere",
+            "meteoroid"
+        ],
+        [
+            "meteoroid",
+            "sky"
+        ]
+    ],
+    "meteoroid": [
+        [
+            "space",
+            "stone"
+        ]
+    ],
+    "microscope": [
+        [
+            "bacteria",
+            "glass"
+        ],
+        [
+            "bacteria",
+            "glasses"
+        ]
+    ],
+    "milk": [
+        [
+            "cow",
+            "farmer"
+        ],
+        [
+            "cow",
+            "human"
+        ]
+    ],
+    "milk shake": [
+        [
+            "ice cream",
+            "milk"
+        ]
+    ],
+    "milky way": [
+        [
+            "milk",
+            "space"
+        ]
+    ],
+    "minotaur": [
+        [
+            "cow",
+            "human"
+        ]
+    ],
+    "mirror": [
+        [
+            "glass",
+            "metal"
+        ]
+    ],
+    "mold": [
+        [
+            "bread",
+            "time"
+        ]
+    ],
+    "monarch": [
+        [
+            "castle",
+            "human"
+        ],
+        [
+            "crown",
+            "human"
+        ],
+        [
+            "excalibur",
+            "human"
+        ]
+    ],
+    "money": [
+        [
+            "gold",
+            "paper"
+        ]
+    ],
+    "monkey": [
+        [
+            "tree",
+            "wild animal"
+        ]
+    ],
+    "moon": [
+        [
+            "cheese",
+            "sky"
+        ],
+        [
+            "sky",
+            "stone"
+        ]
+    ],
+    "moss": [
+        [
+            "algae",
+            "stone"
+        ],
+        [
+            "plant",
+            "stone"
+        ]
+    ],
+    "moth": [
+        [
+            "butterfly",
+            "moon"
+        ],
+        [
+            "butterfly",
+            "night"
+        ]
+    ],
+    "motorcycle": [
+        [
+            "bicycle",
+            "energy"
+        ],
+        [
+            "bicycle",
+            "steel"
+        ]
+    ],
+    "mounds": [
+        [
+            "chocolate",
+            "coconut"
+        ]
+    ],
+    "mountain": [
+        [
+            "earth",
+            "earthquake"
+        ]
+    ],
+    "mountain goat": [
+        [
+            "goat",
+            "mountain range"
+        ],
+        [
+            "goat",
+            "mountain"
+        ]
+    ],
+    "mouse": [
+        [
+            "cheese",
+            "wild animal"
+        ]
+    ],
+    "mousetrap": [
+        [
+            "cheese",
+            "metal"
+        ],
+        [
+            "cheese",
+            "wood"
+        ]
+    ],
+    "mud": [
+        [
+            "earth",
+            "water"
+        ]
+    ],
+    "mummy": [
+        [
+            "corpse",
+            "pyramid"
+        ]
+    ],
+    "music": [
+        [
+            "flute",
+            "human"
+        ],
+        [
+            "human",
+            "sound"
+        ]
+    ],
+    "narwhal": [
+        [
+            "ocean",
+            "unicorn"
+        ],
+        [
+            "sea",
+            "unicorn"
+        ],
+        [
+            "unicorn",
+            "water"
+        ]
+    ],
+    "needle": [
+        [
+            "hay",
+            "metal"
+        ],
+        [
+            "metal",
+            "thread"
+        ]
+    ],
+    "nerd": [
+        [
+            "glasses",
+            "human"
+        ]
+    ],
+    "nerds": [
+        [
+            "nerd",
+            "sugar"
+        ]
+    ],
+    "nessie": [
+        [
+            "lake",
+            "story"
+        ]
+    ],
+    "nest": [
+        [
+            "bird",
+            "hay"
+        ],
+        [
+            "bird",
+            "tree"
+        ],
+        [
+            "egg",
+            "hay"
+        ]
+    ],
+    "night": [
+        [
+            "day",
+            "time"
+        ],
+        [
+            "moon",
+            "sky"
+        ],
+        [
+            "moon",
+            "time"
+        ]
+    ],
+    "ninja": [
+        [
+            "human",
+            "shuriken"
+        ]
+    ],
+    "ninja turtle": [
+        [
+            "ninja",
+            "turtle"
+        ]
+    ],
+    "nut": [
+        [
+            "squirrel",
+            "tree"
+        ]
+    ],
+    "oasis": [
+        [
+            "desert",
+            "palm"
+        ],
+        [
+            "desert",
+            "tree"
+        ],
+        [
+            "desert",
+            "water"
+        ]
+    ],
+    "obsidian": [
+        [
+            "lava",
+            "water"
+        ]
+    ],
+    "ocean": [
+        [
+            "sea",
+            "water"
+        ]
+    ],
+    "oil": [
+        [
+            "pressure",
+            "sunflower"
+        ]
+    ],
+    "oil lamp": [
+        [
+            "clay",
+            "oil"
+        ],
+        [
+            "fire",
+            "oil"
+        ],
+        [
+            "glass",
+            "oil"
+        ],
+        [
+            "oil",
+            "pottery"
+        ],
+        [
+            "oil",
+            "rope"
+        ]
+    ],
+    "omelette": [
+        [
+            "egg",
+            "fire"
+        ]
+    ],
+    "optical fiber": [
+        [
+            "light",
+            "wire"
+        ]
+    ],
+    "orchard": [
+        [
+            "field",
+            "fruit tree"
+        ]
+    ],
+    "origami": [
+        [
+            "bird",
+            "paper"
+        ]
+    ],
+    "ostrich": [
+        [
+            "bird",
+            "earth"
+        ],
+        [
+            "bird",
+            "sand"
+        ]
+    ],
+    "owl": [
+        [
+            "bird",
+            "night"
+        ],
+        [
+            "bird",
+            "wizard"
+        ]
+    ],
+    "oxygen": [
+        [
+            "carbon dioxide",
+            "plant"
+        ],
+        [
+            "plant",
+            "sun"
+        ]
+    ],
+    "ozone": [
+        [
+            "electricity",
+            "oxygen"
+        ]
+    ],
+    "paint": [
+        [
+            "pencil",
+            "water"
+        ],
+        [
+            "rainbow",
+            "water"
+        ]
+    ],
+    "palm": [
+        [
+            "beach",
+            "tree"
+        ],
+        [
+            "isle",
+            "tree"
+        ]
+    ],
+    "paper": [
+        [
+            "pressure",
+            "wood"
+        ]
+    ],
+    "paper airplane": [
+        [
+            "airplane",
+            "paper"
+        ]
+    ],
+    "parachute": [
+        [
+            "fabric",
+            "pilot"
+        ],
+        [
+            "pilot",
+            "umbrella"
+        ]
+    ],
+    "parrot": [
+        [
+            "bird",
+            "pirate"
+        ]
+    ],
+    "pasta": [
+        [
+            "egg",
+            "flour"
+        ]
+    ],
+    "peacock": [
+        [
+            "bird",
+            "rainbow"
+        ]
+    ],
+    "peeps": [
+        [
+            "chicken",
+            "sugar"
+        ]
+    ],
+    "pegasus": [
+        [
+            "bird",
+            "horse"
+        ],
+        [
+            "bird",
+            "unicorn"
+        ],
+        [
+            "horse",
+            "sky"
+        ]
+    ],
+    "pencil": [
+        [
+            "charcoal",
+            "wood"
+        ],
+        [
+            "coal",
+            "wood"
+        ]
+    ],
+    "pencil sharpener": [
+        [
+            "blade",
+            "pencil"
+        ]
+    ],
+    "penguin": [
+        [
+            "bird",
+            "ice"
+        ],
+        [
+            "bird",
+            "snow"
+        ],
+        [
+            "ice",
+            "wild animal"
+        ]
+    ],
+    "penicillin": [
+        [
+            "doctor",
+            "mold"
+        ]
+    ],
+    "perfume": [
+        [
+            "alcohol",
+            "flower"
+        ],
+        [
+            "alcohol",
+            "rose"
+        ],
+        [
+            "flower",
+            "steam"
+        ],
+        [
+            "flower",
+            "water"
+        ],
+        [
+            "rose",
+            "steam"
+        ],
+        [
+            "rose",
+            "water"
+        ]
+    ],
+    "petroleum": [
+        [
+            "fossil",
+            "pressure"
+        ],
+        [
+            "fossil",
+            "time"
+        ]
+    ],
+    "phoenix": [
+        [
+            "bird",
+            "fire"
+        ]
+    ],
+    "picnic": [
+        [
+            "beach",
+            "sandwich"
+        ],
+        [
+            "grass",
+            "sandwich"
+        ]
+    ],
+    "pie": [
+        [
+            "dough",
+            "fruit"
+        ]
+    ],
+    "pig": [
+        [
+            "livestock",
+            "mud"
+        ]
+    ],
+    "pigeon": [
+        [
+            "bird",
+            "city"
+        ],
+        [
+            "bird",
+            "letter"
+        ],
+        [
+            "bird",
+            "statue"
+        ]
+    ],
+    "piggy bank": [
+        [
+            "money",
+            "pig"
+        ],
+        [
+            "pig",
+            "pottery"
+        ]
+    ],
+    "pillow": [
+        [
+            "cotton",
+            "fabric"
+        ]
+    ],
+    "pilot": [
+        [
+            "airplane",
+            "human"
+        ],
+        [
+            "human",
+            "seaplane"
+        ]
+    ],
+    "pinocchio": [
+        [
+            "life",
+            "wood"
+        ]
+    ],
+    "pipe": [
+        [
+            "tobacco",
+            "wood"
+        ]
+    ],
+    "piranha": [
+        [
+            "blood",
+            "fish"
+        ]
+    ],
+    "pirate": [
+        [
+            "pirate ship",
+            "sailor"
+        ],
+        [
+            "sailor",
+            "sword"
+        ]
+    ],
+    "pirate ship": [
+        [
+            "boat",
+            "pirate"
+        ],
+        [
+            "pirate",
+            "sailboat"
+        ]
+    ],
+    "pitchfork": [
+        [
+            "hay",
+            "tool"
+        ]
+    ],
+    "pizza": [
+        [
+            "cheese",
+            "dough"
+        ]
+    ],
+    "planet": [
+        [
+            "earth",
+            "space"
+        ]
+    ],
+    "plankton": [
+        [
+            "life",
+            "ocean"
+        ],
+        [
+            "life",
+            "sea"
+        ],
+        [
+            "life",
+            "water"
+        ]
+    ],
+    "plant": [
+        [
+            "earth",
+            "rain"
+        ]
+    ],
+    "platypus": [
+        [
+            "beaver",
+            "duck"
+        ]
+    ],
+    "pokki": [
+        [
+            "computer",
+            "squirrel"
+        ]
+    ],
+    "pond": [
+        [
+            "garden",
+            "water"
+        ]
+    ],
+    "pop rocks": [
+        [
+            "explosion",
+            "stone"
+        ]
+    ],
+    "popsicle": [
+        [
+            "cold",
+            "juice"
+        ],
+        [
+            "ice",
+            "juice"
+        ]
+    ],
+    "pottery": [
+        [
+            "clay",
+            "fire"
+        ],
+        [
+            "clay",
+            "tool"
+        ],
+        [
+            "clay",
+            "wheel"
+        ]
+    ],
+    "printer": [
+        [
+            "computer",
+            "paper"
+        ]
+    ],
+    "prism": [
+        [
+            "glass",
+            "rainbow"
+        ]
+    ],
+    "pterodactyl": [
+        [
+            "air",
+            "dinosaur"
+        ],
+        [
+            "bird",
+            "dinosaur"
+        ]
+    ],
+    "puddle": [
+        [
+            "flamethrower",
+            "snowman"
+        ],
+        [
+            "ice",
+            "sun"
+        ],
+        [
+            "snowman",
+            "sun"
+        ]
+    ],
+    "pumpkin": [
+        [
+            "fire",
+            "vegetable"
+        ],
+        [
+            "light",
+            "vegetable"
+        ]
+    ],
+    "pyramid": [
+        [
+            "desert",
+            "grave"
+        ],
+        [
+            "desert",
+            "stone"
+        ]
+    ],
+    "quicksand": [
+        [
+            "sand",
+            "swamp"
+        ]
+    ],
+    "rabbit": [
+        [
+            "carrot",
+            "wild animal"
+        ]
+    ],
+    "rain": [
+        [
+            "air",
+            "water"
+        ],
+        [
+            "cloud",
+            "water"
+        ]
+    ],
+    "rainbow": [
+        [
+            "light",
+            "rain"
+        ],
+        [
+            "rain",
+            "sun"
+        ]
+    ],
+    "rat": [
+        [
+            "pirate ship",
+            "wild animal"
+        ],
+        [
+            "sailboat",
+            "wild animal"
+        ]
+    ],
+    "recipe": [
+        [
+            "baker",
+            "paper"
+        ],
+        [
+            "flour",
+            "paper"
+        ]
+    ],
+    "red vines": [
+        [
+            "sugar",
+            "wire"
+        ]
+    ],
+    "reindeer": [
+        [
+            "livestock",
+            "santa"
+        ],
+        [
+            "santa",
+            "wild animal"
+        ]
+    ],
+    "ring": [
+        [
+            "diamond",
+            "gold"
+        ],
+        [
+            "diamond",
+            "metal"
+        ]
+    ],
+    "ring pop": [
+        [
+            "diamond",
+            "sugar"
+        ]
+    ],
+    "river": [
+        [
+            "mountain",
+            "rain"
+        ],
+        [
+            "mountain",
+            "water"
+        ]
+    ],
+    "robot": [
+        [
+            "armor",
+            "life"
+        ],
+        [
+            "life",
+            "metal"
+        ],
+        [
+            "life",
+            "steel"
+        ]
+    ],
+    "rocket": [
+        [
+            "airplane",
+            "space"
+        ]
+    ],
+    "roller coaster": [
+        [
+            "cart",
+            "mountain"
+        ],
+        [
+            "mountain",
+            "train"
+        ]
+    ],
+    "roomba": [
+        [
+            "robot",
+            "vacuum cleaner"
+        ]
+    ],
+    "rose": [
+        [
+            "flower",
+            "love"
+        ],
+        [
+            "love",
+            "plant"
+        ]
+    ],
+    "ruins": [
+        [
+            "castle",
+            "time"
+        ],
+        [
+            "house",
+            "time"
+        ]
+    ],
+    "ruler": [
+        [
+            "pencil",
+            "wood"
+        ]
+    ],
+    "rust": [
+        [
+            "air",
+            "metal"
+        ],
+        [
+            "air",
+            "steel"
+        ],
+        [
+            "metal",
+            "oxygen"
+        ],
+        [
+            "oxygen",
+            "steel"
+        ]
+    ],
+    "rv": [
+        [
+            "car",
+            "house"
+        ]
+    ],
+    "saddle": [
+        [
+            "horse",
+            "leather"
+        ]
+    ],
+    "safe": [
+        [
+            "gold",
+            "metal"
+        ],
+        [
+            "gold",
+            "steel"
+        ],
+        [
+            "metal",
+            "money"
+        ],
+        [
+            "money",
+            "steel"
+        ]
+    ],
+    "safety glasses": [
+        [
+            "engineer",
+            "glasses"
+        ],
+        [
+            "explosion",
+            "glasses"
+        ],
+        [
+            "glasses",
+            "tool"
+        ]
+    ],
+    "sailboat": [
+        [
+            "boat",
+            "fabric"
+        ],
+        [
+            "boat",
+            "wind"
+        ]
+    ],
+    "sailor": [
+        [
+            "boat",
+            "human"
+        ],
+        [
+            "human",
+            "sailboat"
+        ]
+    ],
+    "salt": [
+        [
+            "fire",
+            "ocean"
+        ],
+        [
+            "fire",
+            "sea"
+        ],
+        [
+            "ocean",
+            "sun"
+        ],
+        [
+            "sea",
+            "sun"
+        ]
+    ],
+    "sand": [
+        [
+            "air",
+            "stone"
+        ],
+        [
+            "stone",
+            "wind"
+        ]
+    ],
+    "sand castle": [
+        [
+            "castle",
+            "sand"
+        ]
+    ],
+    "sandpaper": [
+        [
+            "paper",
+            "sand"
+        ]
+    ],
+    "sandstone": [
+        [
+            "sand",
+            "stone"
+        ]
+    ],
+    "sandstorm": [
+        [
+            "energy",
+            "sand"
+        ],
+        [
+            "hurricane",
+            "sand"
+        ],
+        [
+            "sand",
+            "storm"
+        ]
+    ],
+    "sandwich": [
+        [
+            "bacon",
+            "bread"
+        ],
+        [
+            "bread",
+            "cheese"
+        ],
+        [
+            "bread",
+            "ham"
+        ]
+    ],
+    "santa": [
+        [
+            "christmas tree",
+            "human"
+        ]
+    ],
+    "saturn": [
+        [
+            "planet",
+            "ring"
+        ]
+    ],
+    "scalpel": [
+        [
+            "blade",
+            "doctor"
+        ],
+        [
+            "blade",
+            "hospital"
+        ]
+    ],
+    "scarecrow": [
+        [
+            "hay",
+            "human"
+        ]
+    ],
+    "scorpion": [
+        [
+            "dune",
+            "wild animal"
+        ],
+        [
+            "sand",
+            "wild animal"
+        ]
+    ],
+    "scythe": [
+        [
+            "blade",
+            "grass"
+        ],
+        [
+            "blade",
+            "wheat"
+        ]
+    ],
+    "seagull": [
+        [
+            "beach",
+            "bird"
+        ],
+        [
+            "bird",
+            "ocean"
+        ],
+        [
+            "bird",
+            "sea"
+        ]
+    ],
+    "seahorse": [
+        [
+            "fish",
+            "horse"
+        ],
+        [
+            "horse",
+            "ocean"
+        ],
+        [
+            "horse",
+            "sea"
+        ]
+    ],
+    "seal": [
+        [
+            "dog",
+            "sea"
+        ]
+    ],
+    "seaplane": [
+        [
+            "airplane",
+            "ocean"
+        ],
+        [
+            "airplane",
+            "sea"
+        ],
+        [
+            "airplane",
+            "water"
+        ]
+    ],
+    "seasickness": [
+        [
+            "boat",
+            "sickness"
+        ],
+        [
+            "ocean",
+            "sickness"
+        ],
+        [
+            "sailboat",
+            "sickness"
+        ],
+        [
+            "sea",
+            "sickness"
+        ],
+        [
+            "sickness",
+            "steamboat"
+        ]
+    ],
+    "seaweed": [
+        [
+            "ocean",
+            "plant"
+        ],
+        [
+            "plant",
+            "sea"
+        ]
+    ],
+    "sewing machine": [
+        [
+            "electricity",
+            "needle"
+        ],
+        [
+            "needle",
+            "robot"
+        ]
+    ],
+    "shark": [
+        [
+            "blood",
+            "ocean"
+        ],
+        [
+            "blood",
+            "sea"
+        ],
+        [
+            "ocean",
+            "wild animal"
+        ],
+        [
+            "sea",
+            "wild animal"
+        ]
+    ],
+    "sheep": [
+        [
+            "cloud",
+            "livestock"
+        ]
+    ],
+    "sheet music": [
+        [
+            "music",
+            "paper"
+        ]
+    ],
+    "shuriken": [
+        [
+            "blade",
+            "star"
+        ]
+    ],
+    "sickness": [
+        [
+            "bacteria",
+            "human"
+        ],
+        [
+            "human",
+            "rain"
+        ],
+        [
+            "human",
+            "sickness"
+        ]
+    ],
+    "skateboard": [
+        [
+            "snowboard",
+            "wheel"
+        ]
+    ],
+    "skeleton": [
+        [
+            "corpse",
+            "time"
+        ]
+    ],
+    "ski goggles": [
+        [
+            "glasses",
+            "snow"
+        ]
+    ],
+    "skittles": [
+        [
+            "rainbow",
+            "sugar"
+        ]
+    ],
+    "sky": [
+        [
+            "air",
+            "cloud"
+        ]
+    ],
+    "skyscraper": [
+        [
+            "house",
+            "sky"
+        ]
+    ],
+    "sledge": [
+        [
+            "cart",
+            "snow"
+        ],
+        [
+            "snow",
+            "wagon"
+        ]
+    ],
+    "sloth": [
+        [
+            "time",
+            "wild animal"
+        ]
+    ],
+    "smog": [
+        [
+            "city",
+            "fog"
+        ],
+        [
+            "fog",
+            "smoke"
+        ]
+    ],
+    "smoke": [
+        [
+            "fire",
+            "wood"
+        ]
+    ],
+    "smoke signal": [
+        [
+            "campfire",
+            "fabric"
+        ],
+        [
+            "fabric",
+            "smoke"
+        ]
+    ],
+    "smoothie": [
+        [
+            "blender",
+            "fruit"
+        ]
+    ],
+    "snake": [
+        [
+            "wild animal",
+            "wire"
+        ]
+    ],
+    "snow": [
+        [
+            "cold",
+            "rain"
+        ],
+        [
+            "cold",
+            "steam"
+        ]
+    ],
+    "snow globe": [
+        [
+            "christmas tree",
+            "glass"
+        ],
+        [
+            "crystal ball",
+            "snow"
+        ],
+        [
+            "glass",
+            "snow"
+        ],
+        [
+            "glass",
+            "snowman"
+        ]
+    ],
+    "snowball": [
+        [
+            "human",
+            "snow"
+        ]
+    ],
+    "snowboard": [
+        [
+            "snow",
+            "surfer"
+        ],
+        [
+            "snow",
+            "wood"
+        ]
+    ],
+    "snowman": [
+        [
+            "carrot",
+            "snow"
+        ],
+        [
+            "carrot",
+            "snowball"
+        ],
+        [
+            "human",
+            "snow"
+        ]
+    ],
+    "snowmobile": [
+        [
+            "car",
+            "snow"
+        ],
+        [
+            "motorcycle",
+            "snow"
+        ]
+    ],
+    "soap": [
+        [
+            "ash",
+            "oil"
+        ]
+    ],
+    "soap bubble": [
+        [
+            "air",
+            "soap"
+        ],
+        [
+            "soap",
+            "water"
+        ]
+    ],
+    "soda": [
+        [
+            "carbon dioxide",
+            "juice"
+        ],
+        [
+            "carbon dioxide",
+            "water"
+        ]
+    ],
+    "solar cell": [
+        [
+            "sun",
+            "tool"
+        ]
+    ],
+    "solar system": [
+        [
+            "planet",
+            "sun"
+        ]
+    ],
+    "sound": [
+        [
+            "air",
+            "wave"
+        ]
+    ],
+    "space": [
+        [
+            "moon",
+            "star"
+        ],
+        [
+            "sky",
+            "star"
+        ],
+        [
+            "star",
+            "sun"
+        ]
+    ],
+    "space station": [
+        [
+            "house",
+            "space"
+        ]
+    ],
+    "spaceship": [
+        [
+            "airplane",
+            "astronaut"
+        ]
+    ],
+    "spaghetti": [
+        [
+            "pasta",
+            "thread"
+        ]
+    ],
+    "sphinx": [
+        [
+            "human",
+            "lion"
+        ]
+    ],
+    "spider": [
+        [
+            "thread",
+            "wild animal"
+        ]
+    ],
+    "sprinkles": [
+        [
+            "confetti",
+            "sugar"
+        ]
+    ],
+    "squirrel": [
+        [
+            "mouse",
+            "tree"
+        ]
+    ],
+    "star": [
+        [
+            "night",
+            "sky"
+        ],
+        [
+            "night",
+            "telescope"
+        ]
+    ],
+    "starburst": [
+        [
+            "fruit",
+            "rocket"
+        ]
+    ],
+    "starfish": [
+        [
+            "fish",
+            "star"
+        ],
+        [
+            "ocean",
+            "star"
+        ],
+        [
+            "sea",
+            "star"
+        ]
+    ],
+    "statue": [
+        [
+            "human",
+            "medusa"
+        ],
+        [
+            "stone",
+            "tool"
+        ]
+    ],
+    "steak": [
+        [
+            "bbq",
+            "meat"
+        ],
+        [
+            "cow",
+            "fire"
+        ]
+    ],
+    "steam": [
+        [
+            "energy",
+            "water"
+        ],
+        [
+            "fire",
+            "water"
+        ]
+    ],
+    "steam engine": [
+        [
+            "boiler",
+            "tool"
+        ],
+        [
+            "boiler",
+            "wheel"
+        ]
+    ],
+    "steamboat": [
+        [
+            "boat",
+            "steam engine"
+        ],
+        [
+            "steam engine",
+            "water"
+        ]
+    ],
+    "steel": [
+        [
+            "coal",
+            "metal"
+        ]
+    ],
+    "steel wool": [
+        [
+            "steel",
+            "wool"
+        ],
+        [
+            "wire",
+            "wool"
+        ]
+    ],
+    "stethoscope": [
+        [
+            "doctor",
+            "tool"
+        ]
+    ],
+    "stone": [
+        [
+            "air",
+            "lava"
+        ]
+    ],
+    "storm": [
+        [
+            "cloud",
+            "electricity"
+        ],
+        [
+            "cloud",
+            "energy"
+        ]
+    ],
+    "story": [
+        [
+            "campfire",
+            "human"
+        ]
+    ],
+    "sugar": [
+        [
+            "energy",
+            "fruit"
+        ],
+        [
+            "energy",
+            "juice"
+        ],
+        [
+            "fire",
+            "juice"
+        ]
+    ],
+    "sun": [
+        [
+            "fire",
+            "sky"
+        ]
+    ],
+    "sundial": [
+        [
+            "clock",
+            "sun"
+        ]
+    ],
+    "sunflower": [
+        [
+            "flower",
+            "sun"
+        ],
+        [
+            "plant",
+            "sun"
+        ]
+    ],
+    "sunglasses": [
+        [
+            "beach",
+            "glasses"
+        ],
+        [
+            "glasses",
+            "sun"
+        ]
+    ],
+    "super nova": [
+        [
+            "explosion",
+            "star"
+        ]
+    ],
+    "surfer": [
+        [
+            "human",
+            "wave"
+        ]
+    ],
+    "sushi": [
+        [
+            "caviar",
+            "seaweed"
+        ],
+        [
+            "fish",
+            "seaweed"
+        ]
+    ],
+    "swamp": [
+        [
+            "grass",
+            "mud"
+        ],
+        [
+            "mud",
+            "plant"
+        ]
+    ],
+    "sweater": [
+        [
+            "human",
+            "wool"
+        ],
+        [
+            "tool",
+            "wool"
+        ]
+    ],
+    "swedish fish": [
+        [
+            "fish",
+            "sugar"
+        ]
+    ],
+    "sweethearts": [
+        [
+            "love",
+            "sugar"
+        ]
+    ],
+    "swim goggles": [
+        [
+            "glasses",
+            "water"
+        ]
+    ],
+    "swimmer": [
+        [
+            "human",
+            "swim goggles"
+        ]
+    ],
+    "sword": [
+        [
+            "blade",
+            "metal"
+        ],
+        [
+            "blade",
+            "steel"
+        ]
+    ],
+    "swordfish": [
+        [
+            "fish",
+            "sword"
+        ]
+    ],
+    "tank": [
+        [
+            "armor",
+            "car"
+        ],
+        [
+            "car",
+            "gun"
+        ]
+    ],
+    "tardis": [
+        [
+            "space",
+            "time"
+        ]
+    ],
+    "taser": [
+        [
+            "electricity",
+            "gun"
+        ]
+    ],
+    "tea": [
+        [
+            "leaf",
+            "water"
+        ]
+    ],
+    "telescope": [
+        [
+            "glass",
+            "sky"
+        ],
+        [
+            "glass",
+            "space"
+        ],
+        [
+            "glass",
+            "star"
+        ]
+    ],
+    "tent": [
+        [
+            "fabric",
+            "house"
+        ],
+        [
+            "fabric",
+            "wood"
+        ]
+    ],
+    "the doctor": [
+        [
+            "doctor",
+            "tardis"
+        ]
+    ],
+    "the one ring": [
+        [
+            "ring",
+            "volcano"
+        ]
+    ],
+    "thread": [
+        [
+            "cotton",
+            "tool"
+        ],
+        [
+            "wheel",
+            "wool"
+        ]
+    ],
+    "tide": [
+        [
+            "moon",
+            "ocean"
+        ],
+        [
+            "moon",
+            "sea"
+        ]
+    ],
+    "titanic": [
+        [
+            "iceberg",
+            "steamboat"
+        ]
+    ],
+    "toast": [
+        [
+            "bread",
+            "fire"
+        ],
+        [
+            "fire",
+            "sandwich"
+        ]
+    ],
+    "tobacco": [
+        [
+            "fire",
+            "plant"
+        ]
+    ],
+    "tool": [
+        [
+            "human",
+            "metal"
+        ]
+    ],
+    "toucan": [
+        [
+            "bird",
+            "rainbow"
+        ]
+    ],
+    "tractor": [
+        [
+            "car",
+            "farmer"
+        ],
+        [
+            "car",
+            "field"
+        ]
+    ],
+    "train": [
+        [
+            "metal",
+            "steam engine"
+        ],
+        [
+            "steam engine",
+            "steel"
+        ],
+        [
+            "steam engine",
+            "wagon"
+        ],
+        [
+            "steam engine",
+            "wheel"
+        ]
+    ],
+    "treasure": [
+        [
+            "pirate",
+            "treasure map"
+        ]
+    ],
+    "treasure map": [
+        [
+            "map",
+            "pirate"
+        ]
+    ],
+    "tree": [
+        [
+            "plant",
+            "time"
+        ]
+    ],
+    "treehouse": [
+        [
+            "house",
+            "tree"
+        ]
+    ],
+    "trojan horse": [
+        [
+            "horse",
+            "wood"
+        ]
+    ],
+    "tsunami": [
+        [
+            "earthquake",
+            "ocean"
+        ],
+        [
+            "earthquake",
+            "sea"
+        ]
+    ],
+    "tunnel": [
+        [
+            "engineer",
+            "mountain"
+        ]
+    ],
+    "turtle": [
+        [
+            "egg",
+            "sand"
+        ]
+    ],
+    "twilight": [
+        [
+            "day",
+            "night"
+        ]
+    ],
+    "twix": [
+        [
+            "caramelo",
+            "cookie"
+        ]
+    ],
+    "tyrannosaurus rex": [
+        [
+            "dinosaur",
+            "meat"
+        ]
+    ],
+    "ufo": [
+        [
+            "airplane",
+            "alien"
+        ],
+        [
+            "alien",
+            "rocket"
+        ]
+    ],
+    "umbrella": [
+        [
+            "fabric",
+            "rain"
+        ],
+        [
+            "rain",
+            "tool"
+        ]
+    ],
+    "unicorn": [
+        [
+            "double rainbow!",
+            "horse"
+        ],
+        [
+            "double rainbow!",
+            "life"
+        ],
+        [
+            "horse",
+            "rainbow"
+        ],
+        [
+            "life",
+            "rainbow"
+        ]
+    ],
+    "vacuum cleaner": [
+        [
+            "broom",
+            "electricity"
+        ]
+    ],
+    "vampire": [
+        [
+            "blood",
+            "human"
+        ],
+        [
+            "human",
+            "vampire"
+        ]
+    ],
+    "vase": [
+        [
+            "flower",
+            "pottery"
+        ],
+        [
+            "plant",
+            "pottery"
+        ]
+    ],
+    "vegetable": [
+        [
+            "field",
+            "fruit"
+        ]
+    ],
+    "vinegar": [
+        [
+            "air",
+            "wine"
+        ],
+        [
+            "oxygen",
+            "wine"
+        ],
+        [
+            "time",
+            "wine"
+        ]
+    ],
+    "volcano": [
+        [
+            "earth",
+            "lava"
+        ],
+        [
+            "fire",
+            "mountain"
+        ],
+        [
+            "lava",
+            "mountain"
+        ]
+    ],
+    "vulture": [
+        [
+            "bird",
+            "corpse"
+        ]
+    ],
+    "wagon": [
+        [
+            "cart",
+            "horse"
+        ]
+    ],
+    "wallet": [
+        [
+            "leather",
+            "money"
+        ]
+    ],
+    "wand": [
+        [
+            "wizard",
+            "wood"
+        ]
+    ],
+    "warrior": [
+        [
+            "human",
+            "sword"
+        ]
+    ],
+    "watch": [
+        [
+            "clock",
+            "human"
+        ]
+    ],
+    "water gun": [
+        [
+            "gun",
+            "water"
+        ]
+    ],
+    "water lily": [
+        [
+            "flower",
+            "pond"
+        ]
+    ],
+    "water pipe": [
+        [
+            "pipe",
+            "water"
+        ]
+    ],
+    "waterfall": [
+        [
+            "mountain",
+            "river"
+        ]
+    ],
+    "waterwheel": [
+        [
+            "river",
+            "wheel"
+        ],
+        [
+            "water",
+            "wheel"
+        ]
+    ],
+    "wave": [
+        [
+            "ocean",
+            "wind"
+        ],
+        [
+            "sea",
+            "wind"
+        ]
+    ],
+    "wax": [
+        [
+            "bee",
+            "beehive"
+        ]
+    ],
+    "web": [
+        [
+            "spider",
+            "thread"
+        ]
+    ],
+    "werewolf": [
+        [
+            "human",
+            "werewolf"
+        ],
+        [
+            "human",
+            "wolf"
+        ]
+    ],
+    "wheat": [
+        [
+            "farmer",
+            "field"
+        ],
+        [
+            "farmer",
+            "plant"
+        ]
+    ],
+    "wheel": [
+        [
+            "tool",
+            "wood"
+        ]
+    ],
+    "wild animal": [
+        [
+            "forest",
+            "life"
+        ]
+    ],
+    "wild boar": [
+        [
+            "forest",
+            "pig"
+        ],
+        [
+            "pig",
+            "wild animal"
+        ]
+    ],
+    "willy wonka": [
+        [
+            "engineer",
+            "sugar"
+        ]
+    ],
+    "wind": [
+        [
+            "air",
+            "energy"
+        ],
+        [
+            "air",
+            "pressure"
+        ]
+    ],
+    "wind turbine": [
+        [
+            "electricity",
+            "windmill"
+        ]
+    ],
+    "windmill": [
+        [
+            "house",
+            "wind"
+        ],
+        [
+            "wheel",
+            "wind"
+        ]
+    ],
+    "window": [
+        [
+            "glass",
+            "house"
+        ]
+    ],
+    "wine": [
+        [
+            "alcohol",
+            "fruit"
+        ]
+    ],
+    "wire": [
+        [
+            "electricity",
+            "metal"
+        ]
+    ],
+    "witch": [
+        [
+            "broom",
+            "human"
+        ],
+        [
+            "broom",
+            "wizard"
+        ]
+    ],
+    "wizard": [
+        [
+            "energy",
+            "human"
+        ]
+    ],
+    "wolf": [
+        [
+            "dog",
+            "forest"
+        ],
+        [
+            "dog",
+            "wild animal"
+        ],
+        [
+            "moon",
+            "wild animal"
+        ]
+    ],
+    "wood": [
+        [
+            "tool",
+            "tree"
+        ]
+    ],
+    "woodpecker": [
+        [
+            "bird",
+            "wood"
+        ]
+    ],
+    "wool": [
+        [
+            "scissors",
+            "sheep"
+        ],
+        [
+            "sheep",
+            "tool"
+        ]
+    ],
+    "wrapping paper": [
+        [
+            "gift",
+            "paper"
+        ]
+    ],
+    "x-ray": [
+        [
+            "bone",
+            "light"
+        ],
+        [
+            "light",
+            "skeleton"
+        ]
+    ],
+    "yak": [
+        [
+            "cow",
+            "mountain"
+        ]
+    ],
+    "yeti": [
+        [
+            "mountain range",
+            "story"
+        ],
+        [
+            "mountain",
+            "story"
+        ]
+    ],
+    "yoda": [
+        [
+            "jedi",
+            "swamp"
+        ]
+    ],
+    "yogurt": [
+        [
+            "bacteria",
+            "milk"
+        ]
+    ],
+    "zombie": [
+        [
+            "corpse",
+            "life"
+        ],
+        [
+            "human",
+            "zombie"
+        ]
+    ]
+}
