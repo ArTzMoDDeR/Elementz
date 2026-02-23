@@ -54,12 +54,18 @@ export function ElementBadge({ element, size = 'md', className = '', style }: El
         ...style,
       }}
     >
-      <div className={`${iconSize} flex-shrink-0 flex items-center justify-center`}>
-        {hasIcon ? (
+      <div className={`${iconSize} flex-shrink-0 flex items-center justify-center overflow-hidden rounded-md`}>
+        {element.imageUrl ? (
+          <img
+            src={element.imageUrl}
+            alt={element.name}
+            className="w-full h-full object-cover"
+          />
+        ) : hasIcon ? (
           ELEMENT_ICONS[element.name](element.color)
         ) : (
           <div
-            className="w-full h-full rounded-md flex items-center justify-center text-[9px] font-bold"
+            className="w-full h-full flex items-center justify-center text-[9px] font-bold"
             style={{
               backgroundColor: element.color,
               color: 'white',

@@ -16,10 +16,11 @@ export interface PlaygroundItem {
 
 // Parse once at module level - no async needed
 const parsed = parseRecipes(RAW_RECIPES)
-const ALL_ELEMENTS = parsed.elements
+let ALL_ELEMENTS = parsed.elements
 const RECIPE_MAP = buildRecipeMap(parsed.recipes)
 
 export function useGameStore() {
+  const [elements, setElements] = useState<Map<string, ElementDef>>(ALL_ELEMENTS)
   const [discovered, setDiscovered] = useState<Set<string>>(() => {
     if (typeof window === 'undefined') return new Set(BASE_ELEMENTS)
     try {
@@ -36,6 +37,24 @@ export function useGameStore() {
   const [playground, setPlayground] = useState<PlaygroundItem[]>([])
   const [newlyDiscovered, setNewlyDiscovered] = useState<string | null>(null)
   const idCounter = useRef(0)
+
+  // Load images from database
+  useEffect(() => {
+    fetch('/api/elements')
+      .then(res => res.json())
+      .then((dbElements: Array<{ name: string; image_url: string | null }>) => {
+        const updatedElements = new Map(ALL_ELEMENTS)
+        dbElements.forEach(dbEl => {
+          const existing = updatedElements.get(dbEl.name)
+          if (existing && dbEl.image_url) {
+            updatedElements.set(dbEl.name, { ...existing, imageUrl: dbEl.image_url })
+          }
+        })
+        setElements(updatedElements)
+        ALL_ELEMENTS = updatedElements // Update global ref for future instances
+      })
+      .catch(err => console.error('[v0] Error loading element images:', err))
+  }, [])
 
   // Save progress whenever discovered changes
   useEffect(() => {
@@ -104,12 +123,12 @@ export function useGameStore() {
   }, [])
 
   return {
-    elements: ALL_ELEMENTS,
+    elements,
     discovered,
     playground,
     newlyDiscovered,
     initialized: true,
-    totalElements: ALL_ELEMENTS.size,
+    totalElements: elements.size,
     addToPlayground,
     moveOnPlayground,
     removeFromPlayground,

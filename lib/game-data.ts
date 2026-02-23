@@ -3,6 +3,7 @@ export interface ElementDef {
   icon: string
   color: string
   category: string
+  imageUrl?: string | null
 }
 
 export interface Recipe {
