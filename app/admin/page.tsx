@@ -32,9 +32,16 @@ export default function AdminPanel() {
     try {
       const res = await fetch('/api/elements')
       const data = await res.json()
-      setElements(data)
+      
+      if (Array.isArray(data)) {
+        setElements(data)
+      } else {
+        console.error('[v0] Database not configured:', data.error)
+        setElements([])
+      }
     } catch (error) {
       console.error('[v0] Error fetching elements:', error)
+      setElements([])
     } finally {
       setLoading(false)
     }

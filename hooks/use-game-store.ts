@@ -40,31 +40,36 @@ export function useGameStore() {
 
   // Load images from database
   useEffect(() => {
-    console.log('[v0] Fetching element images from API...')
     fetch('/api/elements')
       .then(res => {
-        console.log('[v0] API response status:', res.status)
+        if (!res.ok) throw new Error(`API error: ${res.status}`)
         return res.json()
       })
-      .then((dbElements: Array<{ name: string; image_url: string | null }>) => {
-        console.log('[v0] Received', dbElements.length, 'elements from DB')
-        const withImages = dbElements.filter(e => e.image_url).length
-        console.log('[v0] Elements with images:', withImages)
+      .then((data) => {
+        // Check if response is an error object or array
+        if (!Array.isArray(data)) {
+          console.warn('[v0] Database not configured or error from API')
+          return
+        }
         
         const updatedElements = new Map(ALL_ELEMENTS)
         let updated = 0
-        dbElements.forEach(dbEl => {
+        data.forEach((dbEl: { name: string; image_url: string | null }) => {
           const existing = updatedElements.get(dbEl.name)
           if (existing && dbEl.image_url) {
             updatedElements.set(dbEl.name, { ...existing, imageUrl: dbEl.image_url })
             updated++
           }
         })
-        console.log('[v0] Updated', updated, 'elements with image URLs')
-        setElements(updatedElements)
-        ALL_ELEMENTS = updatedElements // Update global ref for future instances
+        
+        if (updated > 0) {
+          setElements(updatedElements)
+          ALL_ELEMENTS = updatedElements
+        }
       })
-      .catch(err => console.error('[v0] Error loading element images:', err))
+      .catch(() => {
+        // Silently fail if database not configured
+      })
   }, [])
 
   // Save progress whenever discovered changes

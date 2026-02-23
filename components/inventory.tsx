@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useCallback } from 'react'
 import { ElementBadge } from './element-badge'
 import type { ElementDef } from '@/lib/game-data'
-import { Search, X, ChevronUp, ChevronDown } from 'lucide-react'
+import { Search, X, ArrowUpAZ, Clock, Grid3x3 } from 'lucide-react'
 
 interface InventoryProps {
   elements: Map<string, ElementDef>
@@ -13,16 +13,11 @@ interface InventoryProps {
   playgroundRef?: React.RefObject<HTMLDivElement | null>
 }
 
-const SORT_OPTIONS = [
-  { value: 'name', label: 'Nom' },
-  { value: 'recent', label: 'Recent' },
-  { value: 'category', label: 'Categorie' },
-]
+type SortMode = 'name' | 'recent' | 'category'
 
 export function Inventory({ elements, discovered, totalElements, onAddToPlayground, playgroundRef }: InventoryProps) {
   const [search, setSearch] = useState('')
-  const [sort, setSort] = useState('name')
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [sort, setSort] = useState<SortMode>('name')
   const touchStartRef = useRef<{ element: string; startX: number; startY: number } | null>(null)
   const ghostRef = useRef<HTMLDivElement | null>(null)
 
@@ -41,7 +36,7 @@ export function Inventory({ elements, discovered, totalElements, onAddToPlaygrou
     } else if (sort === 'category') {
       els.sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name, 'fr'))
     }
-    // 'recent' keeps discovery order (default set order)
+    // 'recent' keeps discovery order (default)
 
     return els
   }, [elements, discovered, search, sort])
@@ -51,12 +46,10 @@ export function Inventory({ elements, discovered, totalElements, onAddToPlaygrou
     e.dataTransfer.effectAllowed = 'copy'
   }, [])
 
-  // Touch-based dragging for mobile
   const handleTouchStart = useCallback((e: React.TouchEvent, elementName: string) => {
     const touch = e.touches[0]
     touchStartRef.current = { element: elementName, startX: touch.clientX, startY: touch.clientY }
 
-    // Create ghost element
     const ghost = document.createElement('div')
     ghost.id = 'drag-ghost'
     ghost.style.cssText = `
@@ -68,7 +61,7 @@ export function Inventory({ elements, discovered, totalElements, onAddToPlaygrou
     if (el) {
       ghost.innerHTML = `<div style="
         background: ${el.color}18; border: 1.5px solid ${el.color}40;
-        padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 500;
+        padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;
         color: ${el.color}; white-space: nowrap;
       ">${el.name}</div>`
     }
@@ -90,11 +83,9 @@ export function Inventory({ elements, discovered, totalElements, onAddToPlaygrou
     const touch = e.changedTouches[0]
     const element = touchStartRef.current.element
 
-    // Remove ghost
     ghostRef.current.remove()
     ghostRef.current = null
 
-    // Check if dropped over playground
     if (playgroundRef?.current) {
       const rect = playgroundRef.current.getBoundingClientRect()
       if (
@@ -109,91 +100,102 @@ export function Inventory({ elements, discovered, totalElements, onAddToPlaygrou
   }, [onAddToPlayground, playgroundRef])
 
   return (
-    <div className={`flex flex-col border-t lg:border-t-0 lg:border-l border-border bg-card transition-all ${
-      isCollapsed ? 'h-12 lg:h-auto lg:w-12' : 'h-[40vh] lg:h-auto lg:w-72'
-    }`}>
+    <div className="h-[45vh] lg:h-full lg:w-80 flex flex-col border-t lg:border-t-0 lg:border-l border-border bg-card">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="flex items-center gap-2 text-sm font-semibold text-foreground"
-        >
-          {!isCollapsed && (
-            <span>{discovered.size} / {totalElements}</span>
+      <div className="px-4 py-3 border-b border-border bg-muted/20">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-semibold text-foreground">Inventaire</h2>
+          <span className="text-sm font-medium text-muted-foreground tabular-nums">
+            {discovered.size} / {totalElements}
+          </span>
+        </div>
+
+        {/* Search */}
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Rechercher un element..."
+            className="w-full h-10 pl-10 pr-10 bg-background border border-input rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-all"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 hover:bg-muted rounded-md p-1 transition-colors"
+            >
+              <X className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
           )}
-          <span className="lg:hidden">
-            {isCollapsed ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </span>
-          <span className="hidden lg:inline">
-            {isCollapsed ? <ChevronUp className="w-4 h-4 rotate-90" /> : <ChevronDown className="w-4 h-4 -rotate-90" />}
-          </span>
-        </button>
-        {!isCollapsed && (
-          <div className="flex items-center gap-1">
-            {SORT_OPTIONS.map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => setSort(opt.value)}
-                className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
-                  sort === opt.value
-                    ? 'bg-foreground text-background'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        )}
+        </div>
+
+        {/* Sort buttons */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setSort('name')}
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+              sort === 'name'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'bg-background text-muted-foreground hover:bg-muted hover:text-foreground border border-border'
+            }`}
+          >
+            <ArrowUpAZ className="w-4 h-4" />
+            <span>Nom</span>
+          </button>
+          <button
+            onClick={() => setSort('recent')}
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+              sort === 'recent'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'bg-background text-muted-foreground hover:bg-muted hover:text-foreground border border-border'
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+            <span>Recent</span>
+          </button>
+          <button
+            onClick={() => setSort('category')}
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+              sort === 'category'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'bg-background text-muted-foreground hover:bg-muted hover:text-foreground border border-border'
+            }`}
+          >
+            <Grid3x3 className="w-4 h-4" />
+            <span>Type</span>
+          </button>
+        </div>
       </div>
 
-      {!isCollapsed && (
-        <>
-          {/* Search */}
-          <div className="px-3 py-2 border-b border-border">
-            <div className="relative flex items-center">
-              <Search className="absolute left-2.5 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-              <input
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Rechercher..."
-                className="w-full h-8 pl-8 pr-8 bg-background border border-input rounded-md text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow"
+      {/* Element list */}
+      <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-thin p-3 space-y-2">
+        {discoveredElements.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-sm text-muted-foreground text-center px-6">
+              {search ? 'Aucun element trouve' : 'Combinez des elements pour en decouvrir de nouveaux'}
+            </p>
+          </div>
+        ) : (
+          discoveredElements.map(el => (
+            <div
+              key={el.name}
+              draggable
+              onDragStart={(e) => handleDragStart(e, el.name)}
+              onTouchStart={(e) => handleTouchStart(e, el.name)}
+              onTouchMove={(e) => handleTouchMove(e)}
+              onTouchEnd={(e) => handleTouchEnd(e)}
+              className="cursor-grab active:cursor-grabbing"
+            >
+              <ElementBadge 
+                element={el} 
+                size="md" 
+                className="w-full hover:bg-accent/50 transition-colors" 
               />
-              {search && (
-                <button
-                  onClick={() => setSearch('')}
-                  className="absolute right-2.5 hover:bg-muted rounded p-0.5 transition-colors"
-                >
-                  <X className="w-3 h-3 text-muted-foreground" />
-                </button>
-              )}
             </div>
-          </div>
-
-          {/* Element list */}
-          <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-thin p-2 gap-1.5 flex flex-row flex-wrap lg:flex-col lg:flex-nowrap content-start">
-            {discoveredElements.map(el => (
-              <div
-                key={el.name}
-                draggable
-                onDragStart={(e) => handleDragStart(e, el.name)}
-                onTouchStart={(e) => handleTouchStart(e, el.name)}
-                onTouchMove={(e) => handleTouchMove(e)}
-                onTouchEnd={(e) => handleTouchEnd(e)}
-                className="cursor-grab active:cursor-grabbing hover:opacity-80 transition-opacity shrink-0"
-              >
-                <ElementBadge element={el} size="sm" />
-              </div>
-            ))}
-            {discoveredElements.length === 0 && search && (
-              <p className="text-muted-foreground text-xs text-center py-4">
-                Aucun element trouve
-              </p>
-            )}
-          </div>
-        </>
-      )}
+          ))
+        )}
+      </div>
     </div>
   )
 }
