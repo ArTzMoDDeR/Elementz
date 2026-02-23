@@ -128,6 +128,33 @@ export function useGameStore() {
     return null
   }, [playground, discovered, generateId])
 
+  // Drop from inventory directly onto a playground item and try merge in one step
+  const dropAndMerge = useCallback((element: string, x: number, y: number, targetId: string): string | null => {
+    const target = playground.find(i => i.id === targetId)
+    if (!target) return null
+
+    const result = findRecipe(RECIPE_MAP, element, target.element)
+    if (result) {
+      const midX = (x + target.x) / 2
+      const midY = (y + target.y) / 2
+      const newId = generateId()
+
+      // Remove target, add result
+      setPlayground(prev => [
+        ...prev.filter(i => i.id !== targetId),
+        { id: newId, element: result, x: midX, y: midY }
+      ])
+
+      if (!discovered.has(result)) {
+        setDiscovered(prev => new Set([...prev, result]))
+        setNewlyDiscovered(result)
+        setTimeout(() => setNewlyDiscovered(null), 2500)
+      }
+      return result
+    }
+    return null
+  }, [playground, discovered, generateId])
+
   const resetProgress = useCallback(() => {
     setDiscovered(new Set(BASE_ELEMENTS))
     setPlayground([])
@@ -146,6 +173,7 @@ export function useGameStore() {
     removeFromPlayground,
     clearPlayground,
     tryMerge,
+    dropAndMerge,
     resetProgress,
   }
 }

@@ -20,6 +20,7 @@ export function AlchemyGame() {
     removeFromPlayground,
     clearPlayground,
     tryMerge,
+    dropAndMerge,
     resetProgress,
   } = useGameStore()
 
@@ -47,6 +48,7 @@ export function AlchemyGame() {
         onDrop={addToPlayground}
         onMove={moveOnPlayground}
         onMerge={tryMerge}
+        onDropAndMerge={dropAndMerge}
         onRemove={removeFromPlayground}
         onClear={clearPlayground}
         onReset={resetProgress}
