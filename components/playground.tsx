@@ -161,9 +161,10 @@ export function Playground(props: PlaygroundProps) {
         // Check for nearby element to merge with
         const nearest = findNearestItem(dragging.x, dragging.y)
         if (nearest) {
-          // Create element and merge
+          // Create element and immediately try merge
           const newId = onDrop(dragging.elementName, dragging.x, dragging.y)
-          setTimeout(() => {
+          // Use requestAnimationFrame to ensure state update before merge
+          requestAnimationFrame(() => {
             const result = onMerge(newId, nearest.id)
             if (result) {
               setMergeAnimation({
@@ -176,7 +177,7 @@ export function Playground(props: PlaygroundProps) {
               setShakeId(newId)
               setTimeout(() => setShakeId(null), 400)
             }
-          }, 16)
+          })
         } else {
           // Just drop
           onDrop(dragging.elementName, dragging.x, dragging.y)
@@ -421,7 +422,7 @@ export function Playground(props: PlaygroundProps) {
                 className="cursor-grab active:cursor-grabbing select-none"
                 onPointerDown={e => handlePointerDown(e, 'inventory', element.name)}
               >
-                <ElementBadge element={element} size="lg" className="w-full hover:opacity-80 transition-opacity" />
+                <ElementBadge element={element} size="lg" className="hover:opacity-80 transition-opacity" />
               </div>
             ))}
           </div>
