@@ -284,10 +284,10 @@ export function Playground({
         </button>
       )}
 
-      {/* INVENTORY PANEL */}
+      {/* INVENTORY PANEL - full height right on desktop, full width bottom on mobile */}
       <div
         ref={inventoryRef}
-        className="absolute bottom-3 right-3 w-72 max-h-[65vh] lg:w-80 bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-2xl flex flex-col"
+        className="absolute bottom-0 left-0 right-0 h-[45vh] lg:bottom-0 lg:left-auto lg:top-0 lg:right-0 lg:h-full lg:w-[280px] bg-card/95 backdrop-blur-xl border-t lg:border-t-0 lg:border-l border-border flex flex-col"
         style={{ zIndex: 100 }}
       >
         {/* Header */}
@@ -354,13 +354,13 @@ export function Playground({
           </div>
         </div>
 
-        {/* Element grid - exact same ElementBadge size as playground */}
+        {/* Element grid - same badges as playground */}
         <div
           className="flex-1 overflow-y-auto p-2 scrollbar-thin"
           style={{ touchAction: 'pan-y' }}
           onPointerDown={e => e.stopPropagation()}
         >
-          <div className="flex flex-wrap gap-1.5 content-start">
+          <div className="grid grid-cols-4 lg:grid-cols-3 gap-1.5">
             {discoveredElements.map(element => (
               <div
                 key={element.name}

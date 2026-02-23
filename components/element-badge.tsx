@@ -38,22 +38,21 @@ const ELEMENT_ICONS: Record<string, (color: string) => React.ReactNode> = {
 }
 
 export function ElementBadge({ element, size = 'md', className = '', style }: ElementBadgeProps) {
-  const iconSize = size === 'sm' ? 'w-5 h-5' : size === 'lg' ? 'w-10 h-10' : 'w-7 h-7'
-  const textSize = size === 'sm' ? 'text-[10px]' : size === 'lg' ? 'text-sm' : 'text-xs'
-  const padding = size === 'sm' ? 'px-2 py-1.5' : size === 'lg' ? 'px-3 py-2.5' : 'px-3 py-2'
+  const iconSize = size === 'sm' ? 'w-6 h-6' : size === 'lg' ? 'w-10 h-10' : 'w-8 h-8'
+  const textSize = size === 'sm' ? 'text-[9px]' : size === 'lg' ? 'text-sm' : 'text-[10px]'
 
   const hasIcon = ELEMENT_ICONS[element.name]
 
   return (
     <div
-      className={`flex items-center gap-1.5 rounded-lg select-none ${padding} ${className}`}
+      className={`flex flex-col items-center gap-1 rounded-xl select-none px-2 py-1.5 min-w-[60px] ${className}`}
       style={{
-        backgroundColor: `${element.color}18`,
-        border: `1.5px solid ${element.color}40`,
+        backgroundColor: `${element.color}15`,
+        border: `1.5px solid ${element.color}35`,
         ...style,
       }}
     >
-      <div className={`${iconSize} flex-shrink-0 flex items-center justify-center overflow-hidden rounded-md`}>
+      <div className={`${iconSize} flex-shrink-0 flex items-center justify-center overflow-hidden rounded-lg`}>
         {element.imageUrl ? (
           <img
             src={element.imageUrl}
@@ -64,18 +63,18 @@ export function ElementBadge({ element, size = 'md', className = '', style }: El
           ELEMENT_ICONS[element.name](element.color)
         ) : (
           <div
-            className="w-full h-full flex items-center justify-center text-[9px] font-bold"
+            className="w-full h-full flex items-center justify-center text-[10px] font-bold rounded-lg"
             style={{
               backgroundColor: element.color,
               color: 'white',
             }}
           >
-            {element.icon.charAt(0)}
+            {element.icon.charAt(0).toUpperCase()}
           </div>
         )}
       </div>
       <span
-        className={`${textSize} font-medium leading-tight`}
+        className={`${textSize} font-medium leading-none text-center max-w-[70px] truncate`}
         style={{ color: element.color }}
       >
         {element.name}
