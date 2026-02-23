@@ -79,10 +79,13 @@ export default function AdminPanel() {
 
   async function handleBulkUpload(files: FileList | File[]) {
     const fileArray = Array.from(files)
+    console.log(`[v0] Processing ${fileArray.length} files for bulk upload`)
+    console.log(`[v0] Available elements count:`, elements.length)
     
     for (const file of fileArray) {
       // Extract element name from filename (remove .jpg/.jpeg extension)
-      const fileName = file.name.replace(/\.(jpg|jpeg)$/i, '')
+      const fileName = file.name.replace(/\.(jpg|jpeg|png)$/i, '')
+      console.log(`[v0] Looking for element matching filename: "${fileName}"`)
       
       // Find matching element (case insensitive)
       const element = elements.find(el => 
@@ -90,9 +93,11 @@ export default function AdminPanel() {
       )
       
       if (element) {
+        console.log(`[v0] Found match! Element: "${element.name}", uploading...`)
         await handleFileUpload(element.name, file)
       } else {
         console.warn(`[v0] No element found for file: ${file.name}`)
+        console.log(`[v0] First 10 element names:`, elements.slice(0, 10).map(e => e.name))
       }
     }
   }
@@ -134,6 +139,27 @@ export default function AdminPanel() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">Chargement...</p>
+      </div>
+    )
+  }
+
+  if (elements.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-8">
+        <div className="max-w-md text-center">
+          <h2 className="text-2xl font-bold mb-2">Database non configurée</h2>
+          <p className="text-muted-foreground mb-4">
+            La table elements n'existe pas ou DATABASE_URL n'est pas configurée.
+          </p>
+          <div className="text-left bg-muted p-4 rounded-lg text-sm">
+            <p className="font-semibold mb-2">Pour configurer:</p>
+            <ol className="list-decimal list-inside space-y-1">
+              <li>Vérifie que DATABASE_URL est dans les variables d'environnement</li>
+              <li>Exécute le SQL dans /scripts/insert-elements.sql sur Neon</li>
+              <li>Redémarre l'application</li>
+            </ol>
+          </div>
+        </div>
       </div>
     )
   }
