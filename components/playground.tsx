@@ -11,7 +11,7 @@ const MERGE_DISTANCE = 80
 interface PlaygroundProps {
   items: PlaygroundItem[]
   elements: Map<string, ElementDef>
-  onDrop: (element: string, x: number, y: number) => void
+  onDrop: (element: string, x: number, y: number) => string
   onMove: (id: string, x: number, y: number) => void
   onMerge: (id1: string, id2: string) => string | null
   onRemove: (id: string) => void
@@ -87,24 +87,24 @@ export function Playground({ items, elements, onDrop, onMove, onMerge, onRemove,
     })
     
     if (droppedOnItem) {
-      // Create temporary item at drop position for merge
-      const tempId = `temp-${Date.now()}`
-      onDrop(element, pos.x - 45, pos.y - 18)
-      // Wait a frame then trigger merge
-      setTimeout(() => {
-        const newItem = items.find(i => i.id === tempId || i.element === element)
-        if (newItem) {
-          const result = onMerge(newItem.id, droppedOnItem.id)
-          if (result) {
-            setMergeAnimation({
-              x: (newItem.x + droppedOnItem.x) / 2,
-              y: (newItem.y + droppedOnItem.y) / 2,
-              element: result,
-            })
-            setTimeout(() => setMergeAnimation(null), 700)
-          }
+      // Create element and immediately try to merge
+      const newId = onDrop(element, pos.x - 45, pos.y - 18)
+      // Wait one frame for React state update
+      requestAnimationFrame(() => {
+        const result = onMerge(newId, droppedOnItem.id)
+        if (result) {
+          setMergeAnimation({
+            x: (pos.x - 45 + droppedOnItem.x) / 2,
+            y: (pos.y - 18 + droppedOnItem.y) / 2,
+            element: result,
+          })
+          setTimeout(() => setMergeAnimation(null), 700)
+        } else {
+          // Merge failed - shake both elements
+          setShakeId(newId)
+          setTimeout(() => setShakeId(null), 350)
         }
-      }, 50)
+      })
     } else {
       onDrop(element, pos.x - 45, pos.y - 18)
     }

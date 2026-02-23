@@ -82,7 +82,7 @@ export function useGameStore() {
     return `item-${Date.now()}-${idCounter.current}`
   }, [])
 
-  const addToPlayground = useCallback((element: string, x: number, y: number) => {
+  const addToPlayground = useCallback((element: string, x: number, y: number): string => {
     const id = generateId()
     setPlayground(prev => [...prev, { id, element, x, y }])
     return id
