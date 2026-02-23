@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Playground } from './playground'
 import { Inventory } from './inventory'
 import { useGameStore } from '@/hooks/use-game-store'
@@ -8,6 +8,7 @@ import { ElementBadge } from './element-badge'
 import { Sparkles } from 'lucide-react'
 
 export function AlchemyGame() {
+  const [mounted, setMounted] = useState(false)
   const {
     elements,
     discovered,
@@ -26,7 +27,12 @@ export function AlchemyGame() {
 
   const playgroundRef = useRef<HTMLDivElement>(null)
 
-  if (!initialized) {
+  // Fix hydration mismatch by only rendering after client mount
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted || !initialized) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
