@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Upload, Check, X, Search } from 'lucide-react'
+import { Upload, Check, Search, FileUp, Moon, Sun } from 'lucide-react'
 
 type Element = {
   id: number
@@ -17,9 +18,11 @@ type Element = {
 export default function AdminPanel() {
   const [elements, setElements] = useState<Element[]>([])
   const [loading, setLoading] = useState(true)
-  const [uploading, setUploading] = useState<string | null>(null)
+  const [uploading, setUploading] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'with' | 'without'>('without')
+  const [isDragging, setIsDragging] = useState(false)
+  const { theme, setTheme } = useTheme()
 
   useEffect(() => {
     fetchElements()
@@ -38,7 +41,7 @@ export default function AdminPanel() {
   }
 
   async function handleFileUpload(elementName: string, file: File) {
-    setUploading(elementName)
+    setUploading(prev => new Set(prev).add(elementName))
     try {
       const formData = new FormData()
       formData.append('file', file)
@@ -59,7 +62,50 @@ export default function AdminPanel() {
     } catch (error) {
       console.error('[v0] Error uploading:', error)
     } finally {
-      setUploading(null)
+      setUploading(prev => {
+        const next = new Set(prev)
+        next.delete(elementName)
+        return next
+      })
+    }
+  }
+
+  async function handleBulkUpload(files: FileList | File[]) {
+    const fileArray = Array.from(files)
+    
+    for (const file of fileArray) {
+      // Extract element name from filename (remove .jpg/.jpeg extension)
+      const fileName = file.name.replace(/\.(jpg|jpeg)$/i, '')
+      
+      // Find matching element (case insensitive)
+      const element = elements.find(el => 
+        el.name.toLowerCase() === fileName.toLowerCase()
+      )
+      
+      if (element) {
+        await handleFileUpload(element.name, file)
+      } else {
+        console.warn(`[v0] No element found for file: ${file.name}`)
+      }
+    }
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault()
+    setIsDragging(false)
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault()
+    setIsDragging(false)
+    
+    if (e.dataTransfer.files.length > 0) {
+      handleBulkUpload(e.dataTransfer.files)
     }
   }
 
@@ -86,13 +132,46 @@ export default function AdminPanel() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 lg:p-8">
+    <div 
+      className="min-h-screen bg-background p-4 lg:p-8"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Drag overlay */}
+      {isDragging && (
+        <div className="fixed inset-0 z-50 bg-primary/10 backdrop-blur-sm flex items-center justify-center pointer-events-none">
+          <div className="bg-card border-2 border-dashed border-primary rounded-2xl p-12 flex flex-col items-center gap-4">
+            <FileUp className="w-16 h-16 text-primary" />
+            <p className="text-xl font-semibold text-foreground">Deposez vos images ici</p>
+            <p className="text-sm text-muted-foreground">Format: [nom_element].jpg</p>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Panel d'administration</h1>
-          <p className="text-muted-foreground">
-            Upload rapide des images d'éléments (format: [nom_element].jpg)
-          </p>
+        <div className="mb-8 flex items-start justify-between">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold mb-2">Panel d'administration</h1>
+            <div className="flex flex-col gap-2">
+              <p className="text-muted-foreground">
+                Upload rapide des images d'éléments (format: [nom_element].jpg)
+              </p>
+              <div className="flex items-center gap-2 text-sm">
+                <FileUp className="w-4 h-4 text-muted-foreground" />
+                <span className="text-muted-foreground">
+                  Glissez-deposez plusieurs fichiers ou utilisez les boutons Upload individuels
+                </span>
+              </div>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          >
+            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </Button>
         </div>
 
         {/* Stats */}
@@ -114,7 +193,7 @@ export default function AdminPanel() {
         {/* Filters */}
         <div className="flex gap-3 mb-6 flex-col sm:flex-row">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <Input
               placeholder="Rechercher un élément..."
               value={search}
@@ -181,7 +260,7 @@ export default function AdminPanel() {
                     type="file"
                     accept=".jpg,.jpeg"
                     className="hidden"
-                    disabled={uploading === element.name}
+                    disabled={uploading.has(element.name)}
                     onChange={(e) => {
                       const file = e.target.files?.[0]
                       if (file) {
@@ -193,11 +272,11 @@ export default function AdminPanel() {
                     size="sm"
                     className="w-full"
                     variant={element.image_url ? 'outline' : 'default'}
-                    disabled={uploading === element.name}
+                    disabled={uploading.has(element.name)}
                     asChild
                   >
                     <span className="cursor-pointer">
-                      {uploading === element.name ? (
+                      {uploading.has(element.name) ? (
                         <span className="flex items-center gap-2">
                           <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
                           Upload...

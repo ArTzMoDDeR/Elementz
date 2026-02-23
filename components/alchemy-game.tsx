@@ -1,11 +1,12 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { useTheme } from 'next-themes'
 import { Playground } from './playground'
 import { Inventory } from './inventory'
 import { useGameStore } from '@/hooks/use-game-store'
 import { ElementBadge } from './element-badge'
-import { RotateCcw, Sparkles } from 'lucide-react'
+import { RotateCcw, Sparkles, Moon, Sun } from 'lucide-react'
 
 export function AlchemyGame() {
   const {
@@ -25,6 +26,7 @@ export function AlchemyGame() {
 
   const playgroundRef = useRef<HTMLDivElement>(null)
   const [showReset, setShowReset] = useState(false)
+  const { theme, setTheme } = useTheme()
 
   if (!initialized) {
     return (
@@ -49,6 +51,13 @@ export function AlchemyGame() {
           <span className="text-xs text-muted-foreground font-medium tabular-nums">
             {discovered.size}<span className="text-muted-foreground/50">/{totalElements}</span>
           </span>
+          <button
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+          </button>
           <div className="relative">
             <button
               onClick={() => setShowReset(!showReset)}
