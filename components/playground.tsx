@@ -139,9 +139,18 @@ export function Playground({
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!draggingId) return
+    e.preventDefault()
     const pos = getRelativePos(e.clientX, e.clientY)
-    const newX = pos.x - dragOffsetRef.current.x
-    const newY = pos.y - dragOffsetRef.current.y
+    let newX = pos.x - dragOffsetRef.current.x
+    let newY = pos.y - dragOffsetRef.current.y
+    
+    // Constrain to playground area (avoid going behind inventory on widescreen)
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect()
+      newX = Math.max(-50, Math.min(newX, rect.width - 40))
+      newY = Math.max(-50, Math.min(newY, rect.height - 30))
+    }
+    
     onMove(draggingId, newX, newY)
 
     const dragItem = items.find(i => i.id === draggingId)
@@ -154,7 +163,13 @@ export function Playground({
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (!draggingId) return
-    containerRef.current?.releasePointerCapture(e.pointerId)
+    
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (containerRef.current) {
+      containerRef.current.releasePointerCapture(e.pointerId)
+    }
     setNearMergeId(null)
 
     const dragItem = items.find(i => i.id === draggingId)
@@ -231,7 +246,7 @@ export function Playground({
             <div
               key={item.id}
               className={`absolute cursor-grab active:cursor-grabbing select-none ${
-                isDragging ? 'z-50' : 'z-10 hover:z-20'
+                isDragging ? 'z-[100]' : 'z-10 hover:z-20'
               } ${isShaking ? 'animate-shake' : ''}`}
               style={{
                 left: item.x,
@@ -282,7 +297,7 @@ export function Playground({
       </div>
 
       {/* Inventory overlay */}
-      <div className="absolute bottom-0 lg:relative lg:bottom-auto w-full lg:w-[420px] h-[50vh] lg:h-full flex flex-col bg-card/95 backdrop-blur-sm border-t lg:border-t-0 lg:border-l border-border z-40">
+      <div className="absolute bottom-0 lg:relative lg:bottom-auto w-full lg:w-[420px] h-[50vh] lg:h-full flex flex-col bg-card/95 backdrop-blur-sm border-t lg:border-t-0 lg:border-l border-border z-50">
         {/* Header */}
         <div className="flex-shrink-0 px-4 py-3 border-b border-border bg-muted/30">
           <div className="flex items-center justify-between mb-3">
