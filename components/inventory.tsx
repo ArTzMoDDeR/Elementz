@@ -76,6 +76,9 @@ export function Inventory({
     e.dataTransfer.effectAllowed = 'copy'
     e.dataTransfer.setData('text/element', element.name)
     
+    // Prevent page scroll on mobile during drag
+    document.body.style.overflow = 'hidden'
+    
     // Create custom drag preview matching the actual badge
     const dragTarget = e.currentTarget as HTMLElement
     const badge = dragTarget.querySelector('[data-element-badge]')
@@ -91,6 +94,11 @@ export function Inventory({
       
       setTimeout(() => document.body.removeChild(clone), 0)
     }
+  }
+  
+  const handleDragEnd = () => {
+    // Restore scroll after drag ends
+    document.body.style.overflow = ''
   }
 
   const handleDoubleClick = (element: ElementDef) => {
@@ -216,7 +224,7 @@ export function Inventory({
       </div>
 
       {/* Element list - 2 columns */}
-      <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-thin p-3">
+      <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-thin p-3" style={{ touchAction: 'pan-y' }}>
         {discoveredElements.length === 0 ? (
           <div className="flex items-center justify-center h-full text-center">
             <p className="text-sm text-muted-foreground">
@@ -230,6 +238,7 @@ export function Inventory({
                 key={element.name}
                 draggable
                 onDragStart={e => handleDragStart(e, element)}
+                onDragEnd={handleDragEnd}
                 onDoubleClick={() => handleDoubleClick(element)}
                 className="cursor-grab active:cursor-grabbing"
               >
