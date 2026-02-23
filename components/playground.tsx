@@ -40,6 +40,7 @@ export function Playground({
 }: PlaygroundProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [ghostDrag, setGhostDrag] = useState<{ element: string; x: number; y: number } | null>(null)
   const dragOffsetRef = useRef({ x: 0, y: 0 })
   const [mergeAnimation, setMergeAnimation] = useState<{ x: number; y: number; element: string } | null>(null)
   const [shakeId, setShakeId] = useState<string | null>(null)
@@ -100,18 +101,10 @@ export function Playground({
     e.stopPropagation()
 
     if (isInventoryItem) {
-      // Dragging from inventory - create new element at cursor
+      // Dragging from inventory - create ghost that follows cursor
       const pos = getRelativePos(e.clientX, e.clientY)
-      onDrop(element, pos.x - 45, pos.y - 18)
-      // Find the newly created item (last one) and start dragging it
-      setTimeout(() => {
-        const newItem = items[items.length - 1]
-        if (newItem) {
-          dragOffsetRef.current = { x: 45, y: 18 }
-          setDraggingId(newItem.id)
-          containerRef.current?.setPointerCapture(e.pointerId)
-        }
-      }, 0)
+      setGhostDrag({ element, x: pos.x - 45, y: pos.y - 18 })
+      containerRef.current?.setPointerCapture(e.pointerId)
     } else if (itemId) {
       // Dragging existing playground item
       const item = items.find(i => i.id === itemId)
@@ -121,7 +114,7 @@ export function Playground({
       setDraggingId(itemId)
       containerRef.current?.setPointerCapture(e.pointerId)
     }
-  }, [getRelativePos, onDrop, items])
+  }, [getRelativePos, items])
 
   const findNearestItem = useCallback((dragItem: PlaygroundItem) => {
     let closest: { item: PlaygroundItem; dist: number } | null = null
@@ -138,68 +131,91 @@ export function Playground({
   }, [items])
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!draggingId) return
+    if (!draggingId && !ghostDrag) return
     e.preventDefault()
     const pos = getRelativePos(e.clientX, e.clientY)
-    let newX = pos.x - dragOffsetRef.current.x
-    let newY = pos.y - dragOffsetRef.current.y
     
-    // Constrain to playground area (avoid going behind inventory on widescreen)
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect()
-      newX = Math.max(-50, Math.min(newX, rect.width - 40))
-      newY = Math.max(-50, Math.min(newY, rect.height - 30))
-    }
-    
-    onMove(draggingId, newX, newY)
+    if (ghostDrag) {
+      // Moving ghost from inventory
+      setGhostDrag({ ...ghostDrag, x: pos.x - 45, y: pos.y - 18 })
+    } else if (draggingId) {
+      // Moving existing playground item
+      let newX = pos.x - dragOffsetRef.current.x
+      let newY = pos.y - dragOffsetRef.current.y
+      
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect()
+        newX = Math.max(-50, Math.min(newX, rect.width - 40))
+        newY = Math.max(-50, Math.min(newY, rect.height - 30))
+      }
+      
+      onMove(draggingId, newX, newY)
 
-    const dragItem = items.find(i => i.id === draggingId)
-    if (dragItem) {
-      const updatedItem = { ...dragItem, x: newX, y: newY }
-      const near = findNearestItem(updatedItem)
-      setNearMergeId(near?.id || null)
+      const dragItem = items.find(i => i.id === draggingId)
+      if (dragItem) {
+        const updatedItem = { ...dragItem, x: newX, y: newY }
+        const near = findNearestItem(updatedItem)
+        setNearMergeId(near?.id || null)
+      }
     }
-  }, [draggingId, getRelativePos, onMove, items, findNearestItem])
+  }, [draggingId, ghostDrag, getRelativePos, onMove, items, findNearestItem])
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    if (!draggingId) return
-    
     e.preventDefault()
     e.stopPropagation()
     
     if (containerRef.current) {
       containerRef.current.releasePointerCapture(e.pointerId)
     }
-    setNearMergeId(null)
 
-    const dragItem = items.find(i => i.id === draggingId)
-    if (dragItem) {
-      const nearest = findNearestItem(dragItem)
-      if (nearest) {
-        const result = onMerge(draggingId, nearest.id)
-        if (result) {
-          setMergeAnimation({
-            x: (dragItem.x + nearest.x) / 2,
-            y: (dragItem.y + nearest.y) / 2,
-            element: result,
-          })
-          setTimeout(() => setMergeAnimation(null), 700)
+    if (ghostDrag) {
+      // Dropped ghost from inventory - check if on playground area
+      const inventoryEl = document.querySelector('[data-inventory]')
+      const dropTarget = document.elementFromPoint(e.clientX, e.clientY)
+      
+      // If dropped on inventory, cancel
+      if (inventoryEl && inventoryEl.contains(dropTarget)) {
+        setGhostDrag(null)
+        return
+      }
+      
+      // Create element on playground
+      onDrop(ghostDrag.element, ghostDrag.x, ghostDrag.y)
+      setGhostDrag(null)
+      return
+    }
+
+    if (draggingId) {
+      setNearMergeId(null)
+      const dragItem = items.find(i => i.id === draggingId)
+      
+      if (dragItem) {
+        const nearest = findNearestItem(dragItem)
+        if (nearest) {
+          const result = onMerge(draggingId, nearest.id)
+          if (result) {
+            setMergeAnimation({
+              x: (dragItem.x + nearest.x) / 2,
+              y: (dragItem.y + nearest.y) / 2,
+              element: result,
+            })
+            setTimeout(() => setMergeAnimation(null), 700)
+          } else {
+            setShakeId(draggingId)
+            setTimeout(() => setShakeId(null), 400)
+          }
         } else {
-          setShakeId(draggingId)
-          setTimeout(() => setShakeId(null), 400)
-        }
-      } else {
-        if (containerRef.current) {
-          const rect = containerRef.current.getBoundingClientRect()
-          if (dragItem.x < -60 || dragItem.y < -60 || dragItem.x > rect.width + 60 || dragItem.y > rect.height + 60) {
-            onRemove(draggingId)
+          if (containerRef.current) {
+            const rect = containerRef.current.getBoundingClientRect()
+            if (dragItem.x < -60 || dragItem.y < -60 || dragItem.x > rect.width + 60 || dragItem.y > rect.height + 60) {
+              onRemove(draggingId)
+            }
           }
         }
       }
+      setDraggingId(null)
     }
-
-    setDraggingId(null)
-  }, [draggingId, items, findNearestItem, onMerge, onRemove])
+  }, [draggingId, ghostDrag, items, findNearestItem, onMerge, onRemove, onDrop])
 
   const handleDoubleClick = useCallback((itemId: string) => {
     onRemove(itemId)
@@ -263,6 +279,20 @@ export function Playground({
           )
         })}
 
+        {/* Ghost element being dragged from inventory */}
+        {ghostDrag && elements.get(ghostDrag.element) && (
+          <div
+            className="absolute z-[100] pointer-events-none opacity-90"
+            style={{
+              left: ghostDrag.x,
+              top: ghostDrag.y,
+              transform: 'scale(1.05)',
+            }}
+          >
+            <ElementBadge element={elements.get(ghostDrag.element)!} size="lg" />
+          </div>
+        )}
+
         {/* Merge success animation */}
         {mergeAnimation && elements.get(mergeAnimation.element) && (
           <div
@@ -297,7 +327,7 @@ export function Playground({
       </div>
 
       {/* Inventory overlay */}
-      <div className="absolute bottom-0 lg:relative lg:bottom-auto w-full lg:w-[420px] h-[50vh] lg:h-full flex flex-col bg-card/95 backdrop-blur-sm border-t lg:border-t-0 lg:border-l border-border z-50">
+      <div data-inventory className="absolute bottom-0 lg:relative lg:bottom-auto w-full lg:w-[420px] h-[50vh] lg:h-full flex flex-col bg-card/95 backdrop-blur-sm border-t lg:border-t-0 lg:border-l border-border z-50">
         {/* Header */}
         <div className="flex-shrink-0 px-4 py-3 border-b border-border bg-muted/30">
           <div className="flex items-center justify-between mb-3">
