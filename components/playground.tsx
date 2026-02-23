@@ -1,32 +1,92 @@
 'use client'
 
-import { useRef, useCallback, useState } from 'react'
+import { useRef, useCallback, useState, useMemo } from 'react'
+import { useTheme } from 'next-themes'
 import { ElementBadge } from './element-badge'
 import type { PlaygroundItem } from '@/hooks/use-game-store'
 import type { ElementDef } from '@/lib/game-data'
-import { Trash2 } from 'lucide-react'
+import { Trash2, Search, X, ChevronUp, ChevronDown, Moon, Sun, RotateCcw } from 'lucide-react'
 
 const MERGE_DISTANCE = 80
 
 interface PlaygroundProps {
   items: PlaygroundItem[]
   elements: Map<string, ElementDef>
+  discovered: Set<string>
+  discoveredCount: number
+  totalCount: number
   onDrop: (element: string, x: number, y: number) => void
   onMove: (id: string, x: number, y: number) => void
   onMerge: (id1: string, id2: string) => string | null
   onRemove: (id: string) => void
   onClear: () => void
+  onReset: () => void
 }
 
-export function Playground({ items, elements, onDrop, onMove, onMerge, onRemove, onClear }: PlaygroundProps) {
+type SortType = 'name' | 'recent' | 'category'
+
+export function Playground({
+  items,
+  elements,
+  discovered,
+  discoveredCount,
+  totalCount,
+  onDrop,
+  onMove,
+  onMerge,
+  onRemove,
+  onClear,
+  onReset,
+}: PlaygroundProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
-  const [draggingFromInventory, setDraggingFromInventory] = useState<string | null>(null)
   const dragOffsetRef = useRef({ x: 0, y: 0 })
   const [mergeAnimation, setMergeAnimation] = useState<{ x: number; y: number; element: string } | null>(null)
   const [shakeId, setShakeId] = useState<string | null>(null)
   const [nearMergeId, setNearMergeId] = useState<string | null>(null)
-  const [hoveredItemId, setHoveredItemId] = useState<string | null>(null)
+  
+  // Inventory state
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState<SortType>('recent')
+  const [sortAsc, setSortAsc] = useState(false)
+  const [showReset, setShowReset] = useState(false)
+  const { theme, setTheme } = useTheme()
+
+  const discoveredElements = useMemo(() => {
+    const list = Array.from(discovered)
+      .map(name => elements.get(name))
+      .filter((el): el is ElementDef => el !== undefined)
+
+    const filtered = search
+      ? list.filter(el => el.name.toLowerCase().includes(search.toLowerCase()))
+      : list
+
+    const sorted = [...filtered].sort((a, b) => {
+      if (sortBy === 'name') {
+        return sortAsc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
+      } else if (sortBy === 'category') {
+        const catCompare = sortAsc
+          ? a.category.localeCompare(b.category)
+          : b.category.localeCompare(a.category)
+        return catCompare !== 0 ? catCompare : a.name.localeCompare(b.name)
+      } else {
+        return sortAsc
+          ? Array.from(discovered).indexOf(a.name) - Array.from(discovered).indexOf(b.name)
+          : Array.from(discovered).indexOf(b.name) - Array.from(discovered).indexOf(a.name)
+      }
+    })
+
+    return sorted
+  }, [elements, discovered, search, sortBy, sortAsc])
+
+  const handleSort = (type: SortType) => {
+    if (sortBy === type) {
+      setSortAsc(!sortAsc)
+    } else {
+      setSortBy(type)
+      setSortAsc(type === 'name')
+    }
+  }
 
   const getRelativePos = useCallback((clientX: number, clientY: number) => {
     if (!containerRef.current) return { x: 0, y: 0 }
@@ -34,96 +94,34 @@ export function Playground({ items, elements, onDrop, onMove, onMerge, onRemove,
     return { x: clientX - rect.left, y: clientY - rect.top }
   }, [])
 
-  // Drop from inventory
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'copy'
-    
-    // Track which element is being hovered during inventory drag
-    const elementName = e.dataTransfer.types.includes('text/element') 
-      ? draggingFromInventory
-      : null
-    
-    if (elementName) {
-      const pos = getRelativePos(e.clientX, e.clientY)
-      const hoveredItem = items.find(item => {
-        const dx = pos.x - item.x - 45
-        const dy = pos.y - item.y - 18
-        return Math.sqrt(dx * dx + dy * dy) < 60
-      })
-      setHoveredItemId(hoveredItem?.id || null)
-    }
-  }, [draggingFromInventory, getRelativePos, items])
-  
-  const handleDragEnter = useCallback((e: React.DragEvent) => {
-    const element = e.dataTransfer.types.includes('text/element')
-    if (element) {
-      // Store that we're dragging from inventory
-      setDraggingFromInventory(e.dataTransfer.getData('text/element') || 'dragging')
-    }
-  }, [])
-  
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    if (e.currentTarget === e.target) {
-      setDraggingFromInventory(null)
-      setHoveredItemId(null)
-    }
-  }, [])
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setDraggingFromInventory(null)
-    setHoveredItemId(null)
-    
-    const element = e.dataTransfer.getData('text/element')
-    if (!element) return
-    const pos = getRelativePos(e.clientX, e.clientY)
-    
-    // Check if dropped on existing element for instant merge
-    const droppedOnItem = items.find(item => {
-      const dx = pos.x - item.x - 45
-      const dy = pos.y - item.y - 18
-      return Math.sqrt(dx * dx + dy * dy) < 50
-    })
-    
-    if (droppedOnItem) {
-      // Create temporary item at drop position for merge
-      const tempId = `temp-${Date.now()}`
-      onDrop(element, pos.x - 45, pos.y - 18)
-      // Wait a frame then trigger merge
-      setTimeout(() => {
-        const newItem = items.find(i => i.id === tempId || i.element === element)
-        if (newItem) {
-          const result = onMerge(newItem.id, droppedOnItem.id)
-          if (result) {
-            setMergeAnimation({
-              x: (newItem.x + droppedOnItem.x) / 2,
-              y: (newItem.y + droppedOnItem.y) / 2,
-              element: result,
-            })
-            setTimeout(() => setMergeAnimation(null), 700)
-          }
-        }
-      }, 50)
-    } else {
-      onDrop(element, pos.x - 45, pos.y - 18)
-    }
-  }, [getRelativePos, onDrop, items, onMerge])
-
-  // Playground item dragging
-  const handleItemPointerDown = useCallback((e: React.PointerEvent, itemId: string) => {
+  // Unified drag system - works for both inventory and playground items
+  const handlePointerDown = useCallback((e: React.PointerEvent, element: string, isInventoryItem: boolean, itemId?: string) => {
     e.preventDefault()
     e.stopPropagation()
-    const item = items.find(i => i.id === itemId)
-    if (!item) return
 
-    const pos = getRelativePos(e.clientX, e.clientY)
-    dragOffsetRef.current = { x: pos.x - item.x, y: pos.y - item.y }
-    setDraggingId(itemId)
-
-    // Capture pointer on the container to not lose it
-    containerRef.current?.setPointerCapture(e.pointerId)
-  }, [items, getRelativePos])
+    if (isInventoryItem) {
+      // Dragging from inventory - create new element at cursor
+      const pos = getRelativePos(e.clientX, e.clientY)
+      onDrop(element, pos.x - 45, pos.y - 18)
+      // Find the newly created item (last one) and start dragging it
+      setTimeout(() => {
+        const newItem = items[items.length - 1]
+        if (newItem) {
+          dragOffsetRef.current = { x: 45, y: 18 }
+          setDraggingId(newItem.id)
+          containerRef.current?.setPointerCapture(e.pointerId)
+        }
+      }, 0)
+    } else if (itemId) {
+      // Dragging existing playground item
+      const item = items.find(i => i.id === itemId)
+      if (!item) return
+      const pos = getRelativePos(e.clientX, e.clientY)
+      dragOffsetRef.current = { x: pos.x - item.x, y: pos.y - item.y }
+      setDraggingId(itemId)
+      containerRef.current?.setPointerCapture(e.pointerId)
+    }
+  }, [getRelativePos, onDrop, items])
 
   const findNearestItem = useCallback((dragItem: PlaygroundItem) => {
     let closest: { item: PlaygroundItem; dist: number } | null = null
@@ -146,7 +144,6 @@ export function Playground({ items, elements, onDrop, onMove, onMerge, onRemove,
     const newY = pos.y - dragOffsetRef.current.y
     onMove(draggingId, newX, newY)
 
-    // Check proximity for visual hint
     const dragItem = items.find(i => i.id === draggingId)
     if (dragItem) {
       const updatedItem = { ...dragItem, x: newX, y: newY }
@@ -173,12 +170,10 @@ export function Playground({ items, elements, onDrop, onMove, onMerge, onRemove,
           })
           setTimeout(() => setMergeAnimation(null), 700)
         } else {
-          // Failed merge - shake
           setShakeId(draggingId)
           setTimeout(() => setShakeId(null), 400)
         }
       } else {
-        // If dragged far outside, remove
         if (containerRef.current) {
           const rect = containerRef.current.getBoundingClientRect()
           if (dragItem.x < -60 || dragItem.y < -60 || dragItem.x > rect.width + 60 || dragItem.y > rect.height + 60) {
@@ -191,103 +186,236 @@ export function Playground({ items, elements, onDrop, onMove, onMerge, onRemove,
     setDraggingId(null)
   }, [draggingId, items, findNearestItem, onMerge, onRemove])
 
-  // Double click to remove
   const handleDoubleClick = useCallback((itemId: string) => {
     onRemove(itemId)
   }, [onRemove])
 
   return (
-    <div
-      ref={containerRef}
-      className="relative flex-1 overflow-hidden"
-      style={{ touchAction: 'none' }}
-      onDragOver={handleDragOver}
-      onDragEnter={handleDragEnter}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-    >
-      {/* Dot grid background */}
-      <div className="absolute inset-0 opacity-[0.04]" style={{
-        backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
-        backgroundSize: '28px 28px',
-      }} />
+    <div className="relative h-full w-full overflow-hidden flex">
+      {/* Main playground area */}
+      <div
+        ref={containerRef}
+        className="flex-1 relative overflow-hidden"
+        style={{ touchAction: 'none' }}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+      >
+        {/* Dot grid background */}
+        <div className="absolute inset-0 opacity-[0.04]" style={{
+          backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
+          backgroundSize: '28px 28px',
+        }} />
 
-      {/* Empty state */}
-      {items.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-10 h-10 rounded-full border-2 border-dashed border-muted-foreground/20 flex items-center justify-center">
-              <span className="text-muted-foreground/30 text-lg">+</span>
+        {/* Empty state */}
+        {items.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-10 h-10 rounded-full border-2 border-dashed border-muted-foreground/20 flex items-center justify-center">
+                <span className="text-muted-foreground/30 text-lg">+</span>
+              </div>
+              <p className="text-muted-foreground/30 text-sm font-medium">
+                Glisse des elements ici
+              </p>
             </div>
-            <p className="text-muted-foreground/30 text-sm font-medium">
-              Glisse des elements ici
-            </p>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Playground items */}
-      {items.map(item => {
-        const el = elements.get(item.element)
-        if (!el) return null
-        const isDragging = draggingId === item.id
-        const isNearMerge = nearMergeId === item.id
-        const isHovered = hoveredItemId === item.id
-        const isShaking = shakeId === item.id
-        return (
+        {/* Playground items */}
+        {items.map(item => {
+          const el = elements.get(item.element)
+          if (!el) return null
+          const isDragging = draggingId === item.id
+          const isNearMerge = nearMergeId === item.id
+          const isShaking = shakeId === item.id
+          return (
+            <div
+              key={item.id}
+              className={`absolute cursor-grab active:cursor-grabbing select-none ${
+                isDragging ? 'z-50' : 'z-10 hover:z-20'
+              } ${isShaking ? 'animate-shake' : ''}`}
+              style={{
+                left: item.x,
+                top: item.y,
+                transform: isDragging ? 'scale(1.08)' : isNearMerge ? 'scale(1.05)' : 'scale(1)',
+                transition: isDragging ? 'transform 0.1s' : 'transform 0.15s, left 0.05s, top 0.05s',
+                filter: isNearMerge ? `drop-shadow(0 0 8px ${el.color}60)` : undefined,
+              }}
+              onPointerDown={(e) => handlePointerDown(e, el.name, false, item.id)}
+              onDoubleClick={() => handleDoubleClick(item.id)}
+            >
+              <ElementBadge element={el} size="lg" />
+            </div>
+          )
+        })}
+
+        {/* Merge success animation */}
+        {mergeAnimation && elements.get(mergeAnimation.element) && (
           <div
-            key={item.id}
-            className={`absolute cursor-grab active:cursor-grabbing select-none ${
-              isDragging ? 'z-50' : 'z-10 hover:z-20'
-            } ${isShaking ? 'animate-shake' : ''}`}
-            style={{
-              left: item.x,
-              top: item.y,
-              transform: isDragging ? 'scale(1.08)' : (isNearMerge || isHovered) ? 'scale(1.05)' : 'scale(1)',
-              transition: isDragging ? 'transform 0.1s' : 'transform 0.15s, left 0.05s, top 0.05s',
-              filter: (isNearMerge || isHovered) ? `drop-shadow(0 0 8px ${el.color}60)` : undefined,
-            }}
-            onPointerDown={(e) => handleItemPointerDown(e, item.id)}
-            onDoubleClick={() => handleDoubleClick(item.id)}
+            className="absolute z-50 pointer-events-none"
+            style={{ left: mergeAnimation.x, top: mergeAnimation.y }}
           >
-            <ElementBadge element={el} size="lg" />
+            <div className="relative animate-in zoom-in-0 fade-in duration-300">
+              <div
+                className="absolute -inset-4 rounded-full animate-ping opacity-15"
+                style={{ backgroundColor: elements.get(mergeAnimation.element)!.color }}
+              />
+              <div
+                className="absolute -inset-2 rounded-full opacity-10"
+                style={{ backgroundColor: elements.get(mergeAnimation.element)!.color }}
+              />
+              <ElementBadge element={elements.get(mergeAnimation.element)!} size="lg" />
+            </div>
           </div>
-        )
-      })}
+        )}
 
-      {/* Merge success animation */}
-      {mergeAnimation && elements.get(mergeAnimation.element) && (
-        <div
-          className="absolute z-50 pointer-events-none"
-          style={{ left: mergeAnimation.x, top: mergeAnimation.y }}
-        >
-          <div className="relative animate-in zoom-in-0 fade-in duration-300">
-            <div
-              className="absolute -inset-4 rounded-full animate-ping opacity-15"
-              style={{ backgroundColor: elements.get(mergeAnimation.element)!.color }}
+        {/* Clear button */}
+        {items.length > 0 && (
+          <button
+            onClick={onClear}
+            className="absolute bottom-4 right-4 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+              bg-muted/80 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors backdrop-blur-sm border border-border/50"
+          >
+            <Trash2 className="w-3 h-3" />
+            Vider
+          </button>
+        )}
+      </div>
+
+      {/* Inventory overlay */}
+      <div className="absolute bottom-0 lg:relative lg:bottom-auto w-full lg:w-[420px] h-[50vh] lg:h-full flex flex-col bg-card/95 backdrop-blur-sm border-t lg:border-t-0 lg:border-l border-border z-40">
+        {/* Header */}
+        <div className="flex-shrink-0 px-4 py-3 border-b border-border bg-muted/30">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-bold tabular-nums text-foreground">
+                {discoveredCount}
+              </span>
+              <span className="text-sm text-muted-foreground">/ {totalCount}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              >
+                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowReset(!showReset)}
+                  className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+                {showReset && (
+                  <>
+                    <div className="fixed inset-0 z-50" onClick={() => setShowReset(false)} />
+                    <div className="absolute right-0 top-full mt-1 z-50 bg-popover border border-border rounded-lg shadow-lg p-3 w-52">
+                      <p className="text-xs text-foreground mb-2">Reinitialiser ?</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            onReset()
+                            setShowReset(false)
+                          }}
+                          className="flex-1 px-2 py-1.5 bg-destructive text-destructive-foreground rounded text-xs font-medium"
+                        >
+                          Oui
+                        </button>
+                        <button
+                          onClick={() => setShowReset(false)}
+                          className="flex-1 px-2 py-1.5 bg-muted text-foreground rounded text-xs font-medium"
+                        >
+                          Non
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Search */}
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Rechercher..."
+              className="w-full h-10 pl-10 pr-10 bg-background border border-input rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
-            <div
-              className="absolute -inset-2 rounded-full opacity-10"
-              style={{ backgroundColor: elements.get(mergeAnimation.element)!.color }}
-            />
-            <ElementBadge element={elements.get(mergeAnimation.element)!} size="lg" />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 hover:bg-muted rounded p-1"
+              >
+                <X className="w-3.5 h-3.5 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+
+          {/* Sort */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleSort('name')}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                sortBy === 'name'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+            >
+              Nom
+              {sortBy === 'name' && (sortAsc ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+            </button>
+            <button
+              onClick={() => handleSort('recent')}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                sortBy === 'recent'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+            >
+              Recent
+              {sortBy === 'recent' && (sortAsc ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+            </button>
+            <button
+              onClick={() => handleSort('category')}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                sortBy === 'category'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+            >
+              Type
+              {sortBy === 'category' && (sortAsc ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+            </button>
           </div>
         </div>
-      )}
 
-      {/* Clear button */}
-      {items.length > 0 && (
-        <button
-          onClick={onClear}
-          className="absolute bottom-4 right-4 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-            bg-muted/80 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors backdrop-blur-sm border border-border/50"
-        >
-          <Trash2 className="w-3 h-3" />
-          Vider
-        </button>
-      )}
+        {/* Element list */}
+        <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-thin p-3" style={{ touchAction: 'pan-y' }}>
+          {discoveredElements.length === 0 ? (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-sm text-muted-foreground">
+                {search ? 'Aucun element' : 'Aucun decouvert'}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {discoveredElements.map(element => (
+                <div
+                  key={element.name}
+                  className="cursor-grab active:cursor-grabbing"
+                  onPointerDown={(e) => handlePointerDown(e, element.name, true)}
+                >
+                  <ElementBadge element={element} size="lg" className="hover:opacity-80 transition-opacity" />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

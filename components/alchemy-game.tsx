@@ -37,29 +37,19 @@ export function AlchemyGame() {
   }
 
   return (
-    <div className="h-screen flex flex-col lg:flex-row bg-background overflow-hidden">
-      {/* Playground area */}
-      <div ref={playgroundRef} className="flex-1 flex flex-col min-h-0">
-        <Playground
-          items={playground}
-          elements={elements}
-          onDrop={addToPlayground}
-          onMove={moveOnPlayground}
-          onMerge={tryMerge}
-          onRemove={removeFromPlayground}
-          onClear={clearPlayground}
-        />
-      </div>
-
-      {/* Inventory sidebar */}
-      <Inventory
+    <div className="h-screen bg-background overflow-hidden">
+      <Playground
+        items={playground}
         elements={elements}
         discovered={discovered}
         discoveredCount={discovered.size}
         totalCount={totalElements}
+        onDrop={addToPlayground}
+        onMove={moveOnPlayground}
+        onMerge={tryMerge}
+        onRemove={removeFromPlayground}
+        onClear={clearPlayground}
         onReset={resetProgress}
-        onAddToPlayground={addToPlayground}
-        playgroundRef={playgroundRef}
       />
 
       {/* New discovery popup */}
