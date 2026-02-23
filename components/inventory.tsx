@@ -14,9 +14,9 @@ interface InventoryProps {
 }
 
 const SORT_OPTIONS = [
-  { value: 'name', label: 'A-Z' },
+  { value: 'name', label: 'Nom' },
   { value: 'recent', label: 'Recent' },
-  { value: 'category', label: 'Type' },
+  { value: 'category', label: 'Categorie' },
 ]
 
 export function Inventory({ elements, discovered, totalElements, onAddToPlayground, playgroundRef }: InventoryProps) {

@@ -270,29 +270,26 @@ export default function AdminPanel() {
                   />
                   <Button
                     size="sm"
-                    className="w-full"
+                    className="w-full cursor-pointer"
                     variant={element.image_url ? 'outline' : 'default'}
                     disabled={uploading.has(element.name)}
-                    asChild
                   >
-                    <span className="cursor-pointer">
-                      {uploading.has(element.name) ? (
-                        <span className="flex items-center gap-2">
-                          <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                          Upload...
-                        </span>
-                      ) : element.image_url ? (
-                        <span className="flex items-center gap-2">
-                          <Check className="w-3 h-3" />
-                          Changer
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-2">
-                          <Upload className="w-3 h-3" />
-                          Upload
-                        </span>
-                      )}
-                    </span>
+                    {uploading.has(element.name) ? (
+                      <>
+                        <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        Upload...
+                      </>
+                    ) : element.image_url ? (
+                      <>
+                        <Check className="w-3 h-3" />
+                        Changer
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-3 h-3" />
+                        Upload
+                      </>
+                    )}
                   </Button>
                 </label>
               </div>
