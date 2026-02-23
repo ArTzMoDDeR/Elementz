@@ -40,11 +40,15 @@ export function Playground({
 }: PlaygroundProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const inventoryRef = useRef<HTMLDivElement>(null)
+  const inventoryScrollRef = useRef<HTMLDivElement>(null)
 
   const [dragging, setDragging] = useState<DragState | null>(null)
   const [nearMergeId, setNearMergeId] = useState<string | null>(null)
   const [mergeAnimation, setMergeAnimation] = useState<{ x: number; y: number; element: string } | null>(null)
   const [shakeId, setShakeId] = useState<string | null>(null)
+
+  // Touch: detect drag vs scroll
+  const pendingDragRef = useRef<{ elementName: string; pointerId: number; startX: number; startY: number; timeout: ReturnType<typeof setTimeout> } | null>(null)
 
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<SortType>('recent')
@@ -72,7 +76,66 @@ export function Playground({
     return nearest?.item || null
   }, [items])
 
-  // === POINTER DOWN ===
+  // Cancel pending drag (scroll won)
+  const cancelPendingDrag = useCallback(() => {
+    if (pendingDragRef.current) {
+      clearTimeout(pendingDragRef.current.timeout)
+      pendingDragRef.current = null
+    }
+  }, [])
+
+  // Start drag from inventory after hold delay
+  const startInventoryDrag = useCallback((elementName: string, pointerId: number, clientX: number, clientY: number) => {
+    const pos = getRelativePos(clientX, clientY)
+    setDragging({
+      source: 'inventory',
+      elementName,
+      x: pos.x - 40,
+      y: pos.y - 40,
+      offsetX: 40,
+      offsetY: 40,
+    })
+    containerRef.current?.setPointerCapture(pointerId)
+    // Disable scroll on the inventory list while dragging
+    if (inventoryScrollRef.current) {
+      inventoryScrollRef.current.style.overflow = 'hidden'
+      inventoryScrollRef.current.style.touchAction = 'none'
+    }
+    pendingDragRef.current = null
+  }, [getRelativePos])
+
+  // Inventory item pointer down: start a pending drag with 150ms hold delay
+  const handleInventoryPointerDown = useCallback((e: React.PointerEvent, elementName: string) => {
+    e.stopPropagation()
+    const startX = e.clientX
+    const startY = e.clientY
+    const pointerId = e.pointerId
+
+    const timeout = setTimeout(() => {
+      startInventoryDrag(elementName, pointerId, startX, startY)
+    }, 150)
+
+    pendingDragRef.current = { elementName, pointerId, startX, startY, timeout }
+  }, [startInventoryDrag])
+
+  // Inventory scroll area pointer move: if we moved too much vertically before hold, cancel drag (it's a scroll)
+  const handleInventoryPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!pendingDragRef.current) return
+    const dy = Math.abs(e.clientY - pendingDragRef.current.startY)
+    const dx = Math.abs(e.clientX - pendingDragRef.current.startX)
+    // If moved > 8px vertically, it's a scroll -> cancel drag
+    if (dy > 8 && dy > dx) {
+      cancelPendingDrag()
+    }
+    // If moved > 8px horizontally or drag already started, start drag immediately
+    if (dx > 8 && dx >= dy && pendingDragRef.current) {
+      const pd = pendingDragRef.current
+      clearTimeout(pd.timeout)
+      startInventoryDrag(pd.elementName, pd.pointerId, e.clientX, e.clientY)
+    }
+  }, [cancelPendingDrag, startInventoryDrag])
+
+  // === POINTER DOWN (playground items only now) ===
   const handlePointerDown = useCallback((e: React.PointerEvent, source: 'inventory' | 'playground', elementName: string, itemId?: string) => {
     e.preventDefault()
     e.stopPropagation()
@@ -90,17 +153,8 @@ export function Playground({
         offsetX: pos.x - item.x,
         offsetY: pos.y - item.y,
       })
-    } else {
-      setDragging({
-        source: 'inventory',
-        elementName,
-        x: pos.x - 50,
-        y: pos.y - 18,
-        offsetX: 50,
-        offsetY: 18,
-      })
+      containerRef.current?.setPointerCapture(e.pointerId)
     }
-    containerRef.current?.setPointerCapture(e.pointerId)
   }, [getRelativePos, items])
 
   // === POINTER MOVE ===
@@ -177,7 +231,13 @@ export function Playground({
 
     setDragging(null)
     setNearMergeId(null)
-  }, [dragging, findNearestItem, onDrop, onMerge, onDropAndMerge])
+    cancelPendingDrag()
+    // Restore scroll on inventory
+    if (inventoryScrollRef.current) {
+      inventoryScrollRef.current.style.overflow = ''
+      inventoryScrollRef.current.style.touchAction = ''
+    }
+  }, [dragging, findNearestItem, onDrop, onMerge, onDropAndMerge, cancelPendingDrag])
 
   // === INVENTORY SORT ===
   const discoveredElements = Array.from(discovered)
@@ -356,19 +416,20 @@ export function Playground({
 
         {/* Element grid - same badges as playground */}
         <div
+          ref={inventoryScrollRef}
           className="flex-1 overflow-y-auto p-2 scrollbar-thin"
           style={{ touchAction: 'pan-y' }}
           onPointerDown={e => e.stopPropagation()}
+          onPointerMove={handleInventoryPointerMove}
+          onPointerUp={cancelPendingDrag}
+          onPointerCancel={cancelPendingDrag}
         >
           <div className="grid grid-cols-4 gap-2">
             {discoveredElements.map(element => (
               <div
                 key={element.name}
                 className="cursor-grab active:cursor-grabbing select-none"
-                onPointerDown={e => {
-                  e.stopPropagation()
-                  handlePointerDown(e, 'inventory', element.name)
-                }}
+                onPointerDown={e => handleInventoryPointerDown(e, element.name)}
               >
                 <ElementBadge element={element} size="md" />
               </div>
