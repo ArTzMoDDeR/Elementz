@@ -43,8 +43,37 @@ export function Playground({ items, elements, onDrop, onMove, onMerge, onRemove,
     const element = e.dataTransfer.getData('text/element')
     if (!element) return
     const pos = getRelativePos(e.clientX, e.clientY)
-    onDrop(element, pos.x - 45, pos.y - 18)
-  }, [getRelativePos, onDrop])
+    
+    // Check if dropped on existing element for instant merge
+    const droppedOnItem = items.find(item => {
+      const dx = pos.x - item.x - 45
+      const dy = pos.y - item.y - 18
+      return Math.sqrt(dx * dx + dy * dy) < 50
+    })
+    
+    if (droppedOnItem) {
+      // Create temporary item at drop position for merge
+      const tempId = `temp-${Date.now()}`
+      onDrop(element, pos.x - 45, pos.y - 18)
+      // Wait a frame then trigger merge
+      setTimeout(() => {
+        const newItem = items.find(i => i.id === tempId || i.element === element)
+        if (newItem) {
+          const result = onMerge(newItem.id, droppedOnItem.id)
+          if (result) {
+            setMergeAnimation({
+              x: (newItem.x + droppedOnItem.x) / 2,
+              y: (newItem.y + droppedOnItem.y) / 2,
+              element: result,
+            })
+            setTimeout(() => setMergeAnimation(null), 700)
+          }
+        }
+      }, 50)
+    } else {
+      onDrop(element, pos.x - 45, pos.y - 18)
+    }
+  }, [getRelativePos, onDrop, items, onMerge])
 
   // Playground item dragging
   const handleItemPointerDown = useCallback((e: React.PointerEvent, itemId: string) => {

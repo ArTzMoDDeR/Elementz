@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, RefObject } from 'react'
+import { useState, useMemo, RefObject, useRef, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import { ElementBadge } from './element-badge'
 import type { ElementDef } from '@/lib/game-data'
@@ -32,6 +32,7 @@ export function Inventory({
   const [sortAsc, setSortAsc] = useState(false)
   const [showReset, setShowReset] = useState(false)
   const { theme, setTheme } = useTheme()
+  const dragPreviewRef = useRef<HTMLDivElement>(null)
 
   const discoveredElements = useMemo(() => {
     const list = Array.from(discovered)
@@ -75,6 +76,16 @@ export function Inventory({
   const handleDragStart = (e: React.DragEvent, element: ElementDef) => {
     e.dataTransfer.effectAllowed = 'copy'
     e.dataTransfer.setData('text/element', element.name)
+    
+    // Create custom drag preview matching playground style
+    if (dragPreviewRef.current) {
+      const preview = dragPreviewRef.current.cloneNode(true) as HTMLElement
+      preview.style.position = 'absolute'
+      preview.style.top = '-9999px'
+      document.body.appendChild(preview)
+      e.dataTransfer.setDragImage(preview, 45, 18)
+      setTimeout(() => document.body.removeChild(preview), 0)
+    }
   }
 
   const handleDoubleClick = (element: ElementDef) => {
@@ -86,7 +97,14 @@ export function Inventory({
   }
 
   return (
-    <div className="flex-shrink-0 w-full lg:w-96 h-[50vh] lg:h-full flex flex-col bg-card border-t lg:border-t-0 lg:border-l border-border">
+    <div className="flex-shrink-0 w-full lg:w-[420px] h-[50vh] lg:h-full flex flex-col bg-card border-t lg:border-t-0 lg:border-l border-border">
+      {/* Hidden drag preview template */}
+      <div ref={dragPreviewRef} className="hidden">
+        <div className="px-3 py-2 rounded-lg bg-card border-2 border-primary/50 shadow-lg">
+          <span className="text-xs font-medium">Element</span>
+        </div>
+      </div>
+
       {/* Header with counter and controls */}
       <div className="flex-shrink-0 px-4 py-3 border-b border-border bg-muted/30">
         <div className="flex items-center justify-between mb-3">
@@ -199,7 +217,7 @@ export function Inventory({
         </div>
       </div>
 
-      {/* Element list */}
+      {/* Element list - 2 columns */}
       <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-thin p-3">
         {discoveredElements.length === 0 ? (
           <div className="flex items-center justify-center h-full text-center">
@@ -208,7 +226,7 @@ export function Inventory({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {discoveredElements.map(element => (
               <div
                 key={element.name}
@@ -217,7 +235,7 @@ export function Inventory({
                 onDoubleClick={() => handleDoubleClick(element)}
                 className="cursor-grab active:cursor-grabbing"
               >
-                <ElementBadge element={element} size="md" className="hover:opacity-80 transition-opacity" />
+                <ElementBadge element={element} size="lg" className="hover:opacity-80 transition-opacity" />
               </div>
             ))}
           </div>

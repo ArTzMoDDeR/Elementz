@@ -4,7 +4,7 @@ import { type ElementDef } from '@/lib/game-data'
 
 interface ElementBadgeProps {
   element: ElementDef
-  size?: 'sm' | 'md'
+  size?: 'sm' | 'md' | 'lg'
   className?: string
   style?: React.CSSProperties
 }
@@ -38,10 +38,9 @@ const ELEMENT_ICONS: Record<string, (color: string) => React.ReactNode> = {
 }
 
 export function ElementBadge({ element, size = 'md', className = '', style }: ElementBadgeProps) {
-  const isSmall = size === 'sm'
-  const iconSize = isSmall ? 'w-5 h-5' : 'w-7 h-7'
-  const textSize = isSmall ? 'text-[10px]' : 'text-xs'
-  const padding = isSmall ? 'px-2 py-1.5' : 'px-3 py-2'
+  const iconSize = size === 'sm' ? 'w-5 h-5' : size === 'lg' ? 'w-10 h-10' : 'w-7 h-7'
+  const textSize = size === 'sm' ? 'text-[10px]' : size === 'lg' ? 'text-sm' : 'text-xs'
+  const padding = size === 'sm' ? 'px-2 py-1.5' : size === 'lg' ? 'px-3 py-2.5' : 'px-3 py-2'
 
   const hasIcon = ELEMENT_ICONS[element.name]
 
