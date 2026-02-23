@@ -37,22 +37,37 @@ const ELEMENT_ICONS: Record<string, (color: string) => React.ReactNode> = {
   ),
 }
 
-export function ElementBadge({ element, size = 'md', className = '', style }: ElementBadgeProps) {
-  const iconSize = size === 'sm' ? 'w-6 h-6' : size === 'lg' ? 'w-10 h-10' : 'w-8 h-8'
-  const textSize = size === 'sm' ? 'text-[9px]' : size === 'lg' ? 'text-sm' : 'text-[10px]'
+const SQUARE_SIZE = {
+  sm: 'w-14 h-14',
+  md: 'w-[72px] h-[72px]',
+  lg: 'w-20 h-20',
+}
 
+const ICON_SIZE = {
+  sm: 'w-6 h-6',
+  md: 'w-7 h-7',
+  lg: 'w-9 h-9',
+}
+
+const TEXT_SIZE = {
+  sm: 'text-[8px]',
+  md: 'text-[9px]',
+  lg: 'text-[11px]',
+}
+
+export function ElementBadge({ element, size = 'md', className = '', style }: ElementBadgeProps) {
   const hasIcon = ELEMENT_ICONS[element.name]
 
   return (
     <div
-      className={`flex flex-col items-center gap-1 rounded-xl select-none px-2 py-1.5 min-w-[60px] ${className}`}
+      className={`${SQUARE_SIZE[size]} flex flex-col items-center justify-center gap-0.5 rounded-xl select-none ${className}`}
       style={{
         backgroundColor: `${element.color}15`,
         border: `1.5px solid ${element.color}35`,
         ...style,
       }}
     >
-      <div className={`${iconSize} flex-shrink-0 flex items-center justify-center overflow-hidden rounded-lg`}>
+      <div className={`${ICON_SIZE[size]} flex-shrink-0 flex items-center justify-center overflow-hidden rounded-lg`}>
         {element.imageUrl ? (
           <img
             src={element.imageUrl}
@@ -74,7 +89,7 @@ export function ElementBadge({ element, size = 'md', className = '', style }: El
         )}
       </div>
       <span
-        className={`${textSize} font-medium leading-none text-center max-w-[70px] truncate`}
+        className={`${TEXT_SIZE[size]} font-medium leading-none text-center w-full truncate px-1`}
         style={{ color: element.color }}
       >
         {element.name}
