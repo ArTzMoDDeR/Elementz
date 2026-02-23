@@ -1,113 +1,144 @@
 'use client'
 
-import { useState, useMemo, useRef, useCallback } from 'react'
+import { useState, useMemo, RefObject } from 'react'
+import { useTheme } from 'next-themes'
 import { ElementBadge } from './element-badge'
 import type { ElementDef } from '@/lib/game-data'
-import { Search, X, ArrowUpAZ, Clock, Grid3x3 } from 'lucide-react'
+import { Search, X, ChevronUp, ChevronDown, Moon, Sun, RotateCcw } from 'lucide-react'
 
 interface InventoryProps {
   elements: Map<string, ElementDef>
   discovered: Set<string>
-  totalElements: number
-  onAddToPlayground: (element: string, x: number, y: number) => void
-  playgroundRef?: React.RefObject<HTMLDivElement | null>
+  discoveredCount: number
+  totalCount: number
+  onReset: () => void
+  onAddToPlayground: (element: ElementDef, x: number, y: number) => void
+  playgroundRef: RefObject<HTMLDivElement>
 }
 
-type SortMode = 'name' | 'recent' | 'category'
+type SortType = 'name' | 'recent' | 'category'
 
-export function Inventory({ elements, discovered, totalElements, onAddToPlayground, playgroundRef }: InventoryProps) {
+export function Inventory({
+  elements,
+  discovered,
+  discoveredCount,
+  totalCount,
+  onReset,
+  onAddToPlayground,
+  playgroundRef,
+}: InventoryProps) {
   const [search, setSearch] = useState('')
-  const [sort, setSort] = useState<SortMode>('name')
-  const touchStartRef = useRef<{ element: string; startX: number; startY: number } | null>(null)
-  const ghostRef = useRef<HTMLDivElement | null>(null)
+  const [sortBy, setSortBy] = useState<SortType>('recent')
+  const [sortAsc, setSortAsc] = useState(false)
+  const [showReset, setShowReset] = useState(false)
+  const { theme, setTheme } = useTheme()
 
   const discoveredElements = useMemo(() => {
-    let els = [...discovered]
+    const list = Array.from(discovered)
       .map(name => elements.get(name))
-      .filter((e): e is ElementDef => !!e)
+      .filter((el): el is ElementDef => el !== undefined)
 
-    if (search) {
-      const q = search.toLowerCase()
-      els = els.filter(e => e.name.toLowerCase().includes(q))
-    }
+    // Filter by search
+    const filtered = search
+      ? list.filter(el => el.name.toLowerCase().includes(search.toLowerCase()))
+      : list
 
-    if (sort === 'name') {
-      els.sort((a, b) => a.name.localeCompare(b.name, 'fr'))
-    } else if (sort === 'category') {
-      els.sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name, 'fr'))
-    }
-    // 'recent' keeps discovery order (default)
-
-    return els
-  }, [elements, discovered, search, sort])
-
-  const handleDragStart = useCallback((e: React.DragEvent, elementName: string) => {
-    e.dataTransfer.setData('text/element', elementName)
-    e.dataTransfer.effectAllowed = 'copy'
-  }, [])
-
-  const handleTouchStart = useCallback((e: React.TouchEvent, elementName: string) => {
-    const touch = e.touches[0]
-    touchStartRef.current = { element: elementName, startX: touch.clientX, startY: touch.clientY }
-
-    const ghost = document.createElement('div')
-    ghost.id = 'drag-ghost'
-    ghost.style.cssText = `
-      position: fixed; z-index: 9999; pointer-events: none; opacity: 0.9;
-      transform: translate(-50%, -50%);
-      left: ${touch.clientX}px; top: ${touch.clientY}px;
-    `
-    const el = elements.get(elementName)
-    if (el) {
-      ghost.innerHTML = `<div style="
-        background: ${el.color}18; border: 1.5px solid ${el.color}40;
-        padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;
-        color: ${el.color}; white-space: nowrap;
-      ">${el.name}</div>`
-    }
-    document.body.appendChild(ghost)
-    ghostRef.current = ghost
-  }, [elements])
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!ghostRef.current) return
-    e.preventDefault()
-    const touch = e.touches[0]
-    ghostRef.current.style.left = `${touch.clientX}px`
-    ghostRef.current.style.top = `${touch.clientY}px`
-  }, [])
-
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (!touchStartRef.current || !ghostRef.current) return
-
-    const touch = e.changedTouches[0]
-    const element = touchStartRef.current.element
-
-    ghostRef.current.remove()
-    ghostRef.current = null
-
-    if (playgroundRef?.current) {
-      const rect = playgroundRef.current.getBoundingClientRect()
-      if (
-        touch.clientX >= rect.left && touch.clientX <= rect.right &&
-        touch.clientY >= rect.top && touch.clientY <= rect.bottom
-      ) {
-        onAddToPlayground(element, touch.clientX - rect.left - 40, touch.clientY - rect.top - 20)
+    // Sort
+    const sorted = [...filtered].sort((a, b) => {
+      if (sortBy === 'name') {
+        return sortAsc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
+      } else if (sortBy === 'category') {
+        const catCompare = sortAsc
+          ? a.category.localeCompare(b.category)
+          : b.category.localeCompare(a.category)
+        return catCompare !== 0 ? catCompare : a.name.localeCompare(b.name)
+      } else {
+        // recent: reverse discovery order (most recent first when sortAsc=false)
+        return sortAsc
+          ? Array.from(discovered).indexOf(a.name) - Array.from(discovered).indexOf(b.name)
+          : Array.from(discovered).indexOf(b.name) - Array.from(discovered).indexOf(a.name)
       }
-    }
+    })
 
-    touchStartRef.current = null
-  }, [onAddToPlayground, playgroundRef])
+    return sorted
+  }, [elements, discovered, search, sortBy, sortAsc])
+
+  const handleSort = (type: SortType) => {
+    if (sortBy === type) {
+      setSortAsc(!sortAsc)
+    } else {
+      setSortBy(type)
+      setSortAsc(type === 'name') // A-Z by default for name
+    }
+  }
+
+  const handleDragStart = (e: React.DragEvent, element: ElementDef) => {
+    e.dataTransfer.effectAllowed = 'copy'
+    e.dataTransfer.setData('element', element.name)
+  }
+
+  const handleDoubleClick = (element: ElementDef) => {
+    const playgroundEl = playgroundRef.current
+    if (playgroundEl) {
+      const rect = playgroundEl.getBoundingClientRect()
+      onAddToPlayground(element, rect.width / 2, rect.height / 2)
+    }
+  }
 
   return (
-    <div className="h-[45vh] lg:h-full lg:w-80 flex flex-col border-t lg:border-t-0 lg:border-l border-border bg-card">
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-border bg-muted/20">
+    <div className="flex-shrink-0 w-full lg:w-96 h-[50vh] lg:h-full flex flex-col bg-card border-t lg:border-t-0 lg:border-l border-border">
+      {/* Header with counter and controls */}
+      <div className="flex-shrink-0 px-4 py-3 border-b border-border bg-muted/30">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-semibold text-foreground">Inventaire</h2>
-          <span className="text-sm font-medium text-muted-foreground tabular-nums">
-            {discovered.size} / {totalElements}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-bold tabular-nums text-foreground">
+              {discoveredCount}
+            </span>
+            <span className="text-sm text-muted-foreground">/ {totalCount}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowReset(!showReset)}
+                className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                aria-label="Reset"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+              {showReset && (
+                <>
+                  <div className="fixed inset-0 z-50" onClick={() => setShowReset(false)} />
+                  <div className="absolute right-0 top-full mt-1 z-50 bg-popover border border-border rounded-lg shadow-lg p-3 w-52">
+                    <p className="text-xs text-foreground mb-2">Reinitialiser la progression ?</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          onReset()
+                          setShowReset(false)
+                        }}
+                        className="flex-1 px-2 py-1.5 bg-destructive text-destructive-foreground rounded text-xs font-medium hover:opacity-90"
+                      >
+                        Oui
+                      </button>
+                      <button
+                        onClick={() => setShowReset(false)}
+                        className="flex-1 px-2 py-1.5 bg-muted text-foreground rounded text-xs font-medium hover:opacity-90"
+                      >
+                        Non
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Search */}
@@ -117,13 +148,13 @@ export function Inventory({ elements, discovered, totalElements, onAddToPlaygrou
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Rechercher un element..."
-            className="w-full h-10 pl-10 pr-10 bg-background border border-input rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-all"
+            placeholder="Rechercher..."
+            className="w-full h-10 pl-10 pr-10 bg-background border border-input rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-shadow"
           />
           {search && (
             <button
               onClick={() => setSearch('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 hover:bg-muted rounded-md p-1 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 hover:bg-muted rounded p-1 transition-colors"
             >
               <X className="w-3.5 h-3.5 text-muted-foreground" />
             </button>
@@ -133,67 +164,63 @@ export function Inventory({ elements, discovered, totalElements, onAddToPlaygrou
         {/* Sort buttons */}
         <div className="flex gap-2">
           <button
-            onClick={() => setSort('name')}
-            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-              sort === 'name'
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'bg-background text-muted-foreground hover:bg-muted hover:text-foreground border border-border'
+            onClick={() => handleSort('name')}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+              sortBy === 'name'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
             }`}
           >
-            <ArrowUpAZ className="w-4 h-4" />
-            <span>Nom</span>
+            Nom
+            {sortBy === 'name' && (sortAsc ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
           </button>
           <button
-            onClick={() => setSort('recent')}
-            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-              sort === 'recent'
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'bg-background text-muted-foreground hover:bg-muted hover:text-foreground border border-border'
+            onClick={() => handleSort('recent')}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+              sortBy === 'recent'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
             }`}
           >
-            <Clock className="w-4 h-4" />
-            <span>Recent</span>
+            Recent
+            {sortBy === 'recent' && (sortAsc ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
           </button>
           <button
-            onClick={() => setSort('category')}
-            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-              sort === 'category'
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'bg-background text-muted-foreground hover:bg-muted hover:text-foreground border border-border'
+            onClick={() => handleSort('category')}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+              sortBy === 'category'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
             }`}
           >
-            <Grid3x3 className="w-4 h-4" />
-            <span>Type</span>
+            Type
+            {sortBy === 'category' && (sortAsc ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
           </button>
         </div>
       </div>
 
       {/* Element list */}
-      <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-thin p-3 space-y-2">
+      <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-thin p-3">
         {discoveredElements.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-sm text-muted-foreground text-center px-6">
-              {search ? 'Aucun element trouve' : 'Combinez des elements pour en decouvrir de nouveaux'}
+          <div className="flex items-center justify-center h-full text-center">
+            <p className="text-sm text-muted-foreground">
+              {search ? 'Aucun element trouve' : 'Aucun element decouvert'}
             </p>
           </div>
         ) : (
-          discoveredElements.map(el => (
-            <div
-              key={el.name}
-              draggable
-              onDragStart={(e) => handleDragStart(e, el.name)}
-              onTouchStart={(e) => handleTouchStart(e, el.name)}
-              onTouchMove={(e) => handleTouchMove(e)}
-              onTouchEnd={(e) => handleTouchEnd(e)}
-              className="cursor-grab active:cursor-grabbing"
-            >
-              <ElementBadge 
-                element={el} 
-                size="md" 
-                className="w-full hover:bg-accent/50 transition-colors" 
-              />
-            </div>
-          ))
+          <div className="grid grid-cols-1 gap-2">
+            {discoveredElements.map(element => (
+              <div
+                key={element.name}
+                draggable
+                onDragStart={e => handleDragStart(e, element)}
+                onDoubleClick={() => handleDoubleClick(element)}
+                className="cursor-grab active:cursor-grabbing"
+              >
+                <ElementBadge element={element} size="md" className="hover:opacity-80 transition-opacity" />
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>
