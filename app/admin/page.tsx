@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Upload, Check, Search, FileUp, Moon, Sun } from 'lucide-react'
+import { Upload, Check, Search, FileUp, Moon, Sun, Edit2, X } from 'lucide-react'
 
 type Element = {
   id: number
@@ -22,6 +22,8 @@ export default function AdminPanel() {
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'with' | 'without'>('without')
   const [isDragging, setIsDragging] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editingName, setEditingName] = useState('')
   const { theme, setTheme } = useTheme()
 
   useEffect(() => {
@@ -92,6 +94,37 @@ export default function AdminPanel() {
       if (element) {
         await handleFileUpload(element.name, file)
       }
+    }
+  }
+
+  async function handleRename(oldName: string, newName: string) {
+    if (!newName.trim() || newName.trim() === oldName) {
+      setEditingId(null)
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/elements/${encodeURIComponent(oldName)}/rename`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newName: newName.trim() }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        setElements((prev) =>
+          prev.map((el) =>
+            el.name === oldName ? { ...el, name: data.element.name } : el
+          )
+        )
+        setEditingId(null)
+      } else {
+        const error = await res.json()
+        alert(error.error || 'Rename failed')
+      }
+    } catch (error) {
+      console.error('[v0] Error renaming:', error)
+      alert('Rename failed')
     }
   }
 
@@ -257,7 +290,7 @@ export default function AdminPanel() {
           {filteredElements.map((element) => (
             <div
               key={element.id}
-              className="bg-card rounded-lg border p-3 flex flex-col gap-2"
+              className="group bg-card rounded-lg border p-3 flex flex-col gap-2"
             >
               <div className="aspect-square bg-muted rounded-md flex items-center justify-center overflow-hidden">
                 {element.image_url ? (
@@ -273,51 +306,98 @@ export default function AdminPanel() {
                 )}
               </div>
               <div className="flex-1 min-h-0">
-                <p className="text-sm font-medium truncate" title={element.name}>
-                  {element.name}
-                </p>
+                {editingId === element.id ? (
+                  <div className="flex items-center gap-1">
+                    <Input
+                      value={editingName}
+                      onChange={(e) => setEditingName(e.target.value)}
+                      className="h-7 text-xs"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleRename(element.name, editingName)
+                        } else if (e.key === 'Escape') {
+                          setEditingId(null)
+                        }
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0"
+                      onClick={() => handleRename(element.name, editingName)}
+                    >
+                      <Check className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0"
+                      onClick={() => setEditingId(null)}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1">
+                    <p className="text-sm font-medium truncate flex-1" title={element.name}>
+                      {element.name}
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => {
+                        setEditingId(element.id)
+                        setEditingName(element.name)
+                      }}
+                    >
+                      <Edit2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground capitalize">
                   {element.category}
                 </p>
               </div>
               <div>
-                <label className="block">
-                  <input
-                    type="file"
-                    accept=".jpg,.jpeg"
-                    className="hidden"
-                    disabled={uploading.has(element.name)}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) {
-                        handleFileUpload(element.name, file)
-                      }
-                    }}
-                  />
-                  <Button
-                    size="sm"
-                    className="w-full cursor-pointer"
-                    variant={element.image_url ? 'outline' : 'default'}
-                    disabled={uploading.has(element.name)}
-                  >
-                    {uploading.has(element.name) ? (
-                      <>
-                        <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        Upload...
-                      </>
-                    ) : element.image_url ? (
-                      <>
-                        <Check className="w-3 h-3" />
-                        Changer
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-3 h-3" />
-                        Upload
-                      </>
-                    )}
-                  </Button>
-                </label>
+                <input
+                  type="file"
+                  id={`upload-${element.id}`}
+                  accept=".jpg,.jpeg,.png"
+                  className="hidden"
+                  disabled={uploading.has(element.name)}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) {
+                      handleFileUpload(element.name, file)
+                    }
+                  }}
+                />
+                <Button
+                  size="sm"
+                  className="w-full"
+                  variant={element.image_url ? 'outline' : 'default'}
+                  disabled={uploading.has(element.name)}
+                  onClick={() => document.getElementById(`upload-${element.id}`)?.click()}
+                >
+                  {uploading.has(element.name) ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      Upload...
+                    </>
+                  ) : element.image_url ? (
+                    <>
+                      <Check className="w-3 h-3" />
+                      Changer
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-3 h-3" />
+                      Upload
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
           ))}
