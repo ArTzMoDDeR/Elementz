@@ -74,7 +74,7 @@ export function Inventory({
 
   const handleDragStart = (e: React.DragEvent, element: ElementDef) => {
     e.dataTransfer.effectAllowed = 'copy'
-    e.dataTransfer.setData('element', element.name)
+    e.dataTransfer.setData('text/element', element.name)
   }
 
   const handleDoubleClick = (element: ElementDef) => {

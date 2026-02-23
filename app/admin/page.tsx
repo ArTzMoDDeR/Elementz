@@ -79,13 +79,10 @@ export default function AdminPanel() {
 
   async function handleBulkUpload(files: FileList | File[]) {
     const fileArray = Array.from(files)
-    console.log(`[v0] Processing ${fileArray.length} files for bulk upload`)
-    console.log(`[v0] Available elements count:`, elements.length)
     
     for (const file of fileArray) {
-      // Extract element name from filename (remove .jpg/.jpeg extension)
+      // Extract element name from filename (remove .jpg/.jpeg/.png extension)
       const fileName = file.name.replace(/\.(jpg|jpeg|png)$/i, '')
-      console.log(`[v0] Looking for element matching filename: "${fileName}"`)
       
       // Find matching element (case insensitive)
       const element = elements.find(el => 
@@ -93,11 +90,7 @@ export default function AdminPanel() {
       )
       
       if (element) {
-        console.log(`[v0] Found match! Element: "${element.name}", uploading...`)
         await handleFileUpload(element.name, file)
-      } else {
-        console.warn(`[v0] No element found for file: ${file.name}`)
-        console.log(`[v0] First 10 element names:`, elements.slice(0, 10).map(e => e.name))
       }
     }
   }

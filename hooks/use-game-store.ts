@@ -46,11 +46,7 @@ export function useGameStore() {
         return res.json()
       })
       .then((data) => {
-        // Check if response is an error object or array
-        if (!Array.isArray(data)) {
-          console.warn('[v0] Database not configured or error from API')
-          return
-        }
+        if (!Array.isArray(data)) return
         
         const updatedElements = new Map(ALL_ELEMENTS)
         let updated = 0
