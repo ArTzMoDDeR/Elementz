@@ -4,26 +4,32 @@ import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Upload, Check, Search, FileUp, Moon, Sun, Edit2, X } from 'lucide-react'
+import { Upload, Check, Search, FileUp, Moon, Sun, ChevronDown, ChevronUp } from 'lucide-react'
 
 type Element = {
+  number: number
+  name_english: string
+  name_french: string
+  img: string | null
+}
+
+type Recipe = {
   id: number
-  name: string
-  category: string
-  image_url: string | null
-  created_at: string
-  updated_at: string
+  ingredient1_number: number
+  ingredient1_name: string
+  ingredient2_number: number
+  ingredient2_name: string
 }
 
 export default function AdminPanel() {
   const [elements, setElements] = useState<Element[]>([])
   const [loading, setLoading] = useState(true)
-  const [uploading, setUploading] = useState<Set<string>>(new Set())
+  const [uploading, setUploading] = useState<Set<number>>(new Set())
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'with' | 'without'>('without')
   const [isDragging, setIsDragging] = useState(false)
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const [editingName, setEditingName] = useState('')
+  const [expandedElement, setExpandedElement] = useState<number | null>(null)
+  const [recipes, setRecipes] = useState<Record<number, Recipe[]>>({})
   const { theme, setTheme } = useTheme()
 
   useEffect(() => {
@@ -49,13 +55,34 @@ export default function AdminPanel() {
     }
   }
 
-  async function handleFileUpload(elementName: string, file: File) {
-    setUploading(prev => new Set(prev).add(elementName))
+  async function fetchRecipes(elementNumber: number) {
+    if (recipes[elementNumber]) return // Already loaded
+
+    try {
+      const res = await fetch(`/api/elements/${elementNumber}/recipes`)
+      const data = await res.json()
+      setRecipes(prev => ({ ...prev, [elementNumber]: data }))
+    } catch (error) {
+      console.error('[v0] Error fetching recipes:', error)
+    }
+  }
+
+  function toggleExpand(elementNumber: number) {
+    if (expandedElement === elementNumber) {
+      setExpandedElement(null)
+    } else {
+      setExpandedElement(elementNumber)
+      fetchRecipes(elementNumber)
+    }
+  }
+
+  async function handleFileUpload(elementNumber: number, file: File) {
+    setUploading(prev => new Set(prev).add(elementNumber))
     try {
       const formData = new FormData()
       formData.append('file', file)
 
-      const res = await fetch(`/api/elements/${encodeURIComponent(elementName)}/image`, {
+      const res = await fetch(`/api/elements/${elementNumber}/image`, {
         method: 'POST',
         body: formData,
       })
@@ -64,7 +91,7 @@ export default function AdminPanel() {
         const data = await res.json()
         setElements((prev) =>
           prev.map((el) =>
-            el.name === elementName ? { ...el, image_url: data.url } : el
+            el.number === elementNumber ? { ...el, img: data.url } : el
           )
         )
       }
@@ -73,7 +100,7 @@ export default function AdminPanel() {
     } finally {
       setUploading(prev => {
         const next = new Set(prev)
-        next.delete(elementName)
+        next.delete(elementNumber)
         return next
       })
     }
@@ -83,48 +110,19 @@ export default function AdminPanel() {
     const fileArray = Array.from(files)
     
     for (const file of fileArray) {
-      // Extract element name from filename (remove .jpg/.jpeg/.png extension)
+      // Extract element number or name from filename
       const fileName = file.name.replace(/\.(jpg|jpeg|png)$/i, '')
       
-      // Find matching element (case insensitive)
+      // Try to match by number first, then by name
       const element = elements.find(el => 
-        el.name.toLowerCase() === fileName.toLowerCase()
+        el.number.toString() === fileName ||
+        el.name_french.toLowerCase() === fileName.toLowerCase() ||
+        el.name_english.toLowerCase() === fileName.toLowerCase()
       )
       
       if (element) {
-        await handleFileUpload(element.name, file)
+        await handleFileUpload(element.number, file)
       }
-    }
-  }
-
-  async function handleRename(oldName: string, newName: string) {
-    if (!newName.trim() || newName.trim() === oldName) {
-      setEditingId(null)
-      return
-    }
-
-    try {
-      const res = await fetch(`/api/elements/${encodeURIComponent(oldName)}/rename`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newName: newName.trim() }),
-      })
-
-      if (res.ok) {
-        const data = await res.json()
-        setElements((prev) =>
-          prev.map((el) =>
-            el.name === oldName ? { ...el, name: data.element.name } : el
-          )
-        )
-        setEditingId(null)
-      } else {
-        const error = await res.json()
-        alert(error.error || 'Rename failed')
-      }
-    } catch (error) {
-      console.error('[v0] Error renaming:', error)
-      alert('Rename failed')
     }
   }
 
@@ -148,17 +146,21 @@ export default function AdminPanel() {
   }
 
   const filteredElements = elements.filter((el) => {
-    const matchesSearch = el.name.toLowerCase().includes(search.toLowerCase())
+    const matchesSearch = 
+      el.name_french.toLowerCase().includes(search.toLowerCase()) ||
+      el.name_english.toLowerCase().includes(search.toLowerCase()) ||
+      el.number.toString().includes(search)
+    
     if (filterStatus === 'all') return matchesSearch
-    if (filterStatus === 'with') return matchesSearch && el.image_url
-    if (filterStatus === 'without') return matchesSearch && !el.image_url
+    if (filterStatus === 'with') return matchesSearch && el.img
+    if (filterStatus === 'without') return matchesSearch && !el.img
     return matchesSearch
   })
 
   const stats = {
     total: elements.length,
-    withImage: elements.filter((el) => el.image_url).length,
-    withoutImage: elements.filter((el) => !el.image_url).length,
+    withImage: elements.filter((el) => el.img).length,
+    withoutImage: elements.filter((el) => !el.img).length,
   }
 
   if (loading) {
@@ -181,7 +183,8 @@ export default function AdminPanel() {
             <p className="font-semibold mb-2">Pour configurer:</p>
             <ol className="list-decimal list-inside space-y-1">
               <li>Vérifie que DATABASE_URL est dans les variables d'environnement</li>
-              <li>Exécute le SQL dans /scripts/insert-elements.sql sur Neon</li>
+              <li>Exécute le SQL dans /scripts/001-rebuild-schema.sql sur Neon</li>
+              <li>Exécute le SQL dans /scripts/002-insert-base-elements.sql</li>
               <li>Redémarre l'application</li>
             </ol>
           </div>
@@ -202,8 +205,8 @@ export default function AdminPanel() {
         <div className="fixed inset-0 z-50 bg-primary/10 backdrop-blur-sm flex items-center justify-center pointer-events-none">
           <div className="bg-card border-2 border-dashed border-primary rounded-2xl p-12 flex flex-col items-center gap-4">
             <FileUp className="w-16 h-16 text-primary" />
-            <p className="text-xl font-semibold text-foreground">Deposez vos images ici</p>
-            <p className="text-sm text-muted-foreground">Format: [nom_element].jpg</p>
+            <p className="text-xl font-semibold text-foreground">Déposez vos images ici</p>
+            <p className="text-sm text-muted-foreground">Format: [numéro ou nom].jpg</p>
           </div>
         </div>
       )}
@@ -214,12 +217,12 @@ export default function AdminPanel() {
             <h1 className="text-3xl font-bold mb-2">Panel d'administration</h1>
             <div className="flex flex-col gap-2">
               <p className="text-muted-foreground">
-                Upload rapide des images d'éléments (format: [nom_element].jpg)
+                Gestion des éléments et recettes (format: [numéro ou nom].jpg)
               </p>
               <div className="flex items-center gap-2 text-sm">
                 <FileUp className="w-4 h-4 text-muted-foreground" />
                 <span className="text-muted-foreground">
-                  Glissez-deposez plusieurs fichiers ou utilisez les boutons Upload individuels
+                  Glissez-déposez plusieurs fichiers ou utilisez les boutons Upload individuels
                 </span>
               </div>
             </div>
@@ -254,7 +257,7 @@ export default function AdminPanel() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <Input
-              placeholder="Rechercher un élément..."
+              placeholder="Rechercher par numéro ou nom..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10"
@@ -286,119 +289,134 @@ export default function AdminPanel() {
         </div>
 
         {/* Elements Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filteredElements.map((element) => (
             <div
-              key={element.id}
-              className="group bg-card rounded-lg border p-3 flex flex-col gap-2"
+              key={element.number}
+              className="bg-card rounded-lg border overflow-hidden"
             >
-              <div className="aspect-square bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                {element.image_url ? (
-                  <img
-                    src={element.image_url}
-                    alt={element.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-2xl text-muted-foreground">
-                    {element.name.charAt(0).toUpperCase()}
-                  </span>
-                )}
-              </div>
-              <div className="flex-1 min-h-0">
-                {editingId === element.id ? (
-                  <div className="flex items-center gap-1">
-                    <Input
-                      value={editingName}
-                      onChange={(e) => setEditingName(e.target.value)}
-                      className="h-7 text-xs"
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleRename(element.name, editingName)
-                        } else if (e.key === 'Escape') {
-                          setEditingId(null)
-                        }
-                      }}
+              <div className="p-3 flex flex-col gap-2">
+                {/* Image */}
+                <div className="aspect-square bg-muted rounded-md flex items-center justify-center overflow-hidden">
+                  {element.img ? (
+                    <img
+                      src={element.img}
+                      alt={element.name_french}
+                      className="w-full h-full object-cover"
                     />
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 w-7 p-0"
-                      onClick={() => handleRename(element.name, editingName)}
-                    >
-                      <Check className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 w-7 p-0"
-                      onClick={() => setEditingId(null)}
-                    >
-                      <X className="w-3 h-3" />
-                    </Button>
+                  ) : (
+                    <span className="text-3xl text-muted-foreground font-bold">
+                      #{element.number}
+                    </span>
+                  )}
+                </div>
+
+                {/* Info */}
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-muted-foreground font-mono">#{element.number}</span>
                   </div>
-                ) : (
-                  <div className="flex items-center gap-1">
-                    <p className="text-sm font-medium truncate flex-1" title={element.name}>
-                      {element.name}
-                    </p>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => {
-                        setEditingId(element.id)
-                        setEditingName(element.name)
-                      }}
-                    >
-                      <Edit2 className="w-3 h-3" />
-                    </Button>
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground capitalize">
-                  {element.category}
-                </p>
-              </div>
-              <div>
-                <input
-                  type="file"
-                  id={`upload-${element.id}`}
-                  accept=".jpg,.jpeg,.png"
-                  className="hidden"
-                  disabled={uploading.has(element.name)}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (file) {
-                      handleFileUpload(element.name, file)
-                    }
-                  }}
-                />
+                  <p className="text-sm font-semibold truncate" title={element.name_french}>
+                    {element.name_french}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate" title={element.name_english}>
+                    {element.name_english}
+                  </p>
+                </div>
+
+                {/* Upload button */}
+                <div>
+                  <input
+                    type="file"
+                    id={`upload-${element.number}`}
+                    accept=".jpg,.jpeg,.png"
+                    className="hidden"
+                    disabled={uploading.has(element.number)}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        handleFileUpload(element.number, file)
+                      }
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    variant={element.img ? 'outline' : 'default'}
+                    disabled={uploading.has(element.number)}
+                    onClick={() => document.getElementById(`upload-${element.number}`)?.click()}
+                  >
+                    {uploading.has(element.number) ? (
+                      <>
+                        <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        Upload...
+                      </>
+                    ) : element.img ? (
+                      <>
+                        <Check className="w-3 h-3" />
+                        Changer
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-3 h-3" />
+                        Upload
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {/* Recipes toggle */}
                 <Button
                   size="sm"
+                  variant="ghost"
                   className="w-full"
-                  variant={element.image_url ? 'outline' : 'default'}
-                  disabled={uploading.has(element.name)}
-                  onClick={() => document.getElementById(`upload-${element.id}`)?.click()}
+                  onClick={() => toggleExpand(element.number)}
                 >
-                  {uploading.has(element.name) ? (
+                  {expandedElement === element.number ? (
                     <>
-                      <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      Upload...
-                    </>
-                  ) : element.image_url ? (
-                    <>
-                      <Check className="w-3 h-3" />
-                      Changer
+                      <ChevronUp className="w-3 h-3 mr-1" />
+                      Masquer recettes
                     </>
                   ) : (
                     <>
-                      <Upload className="w-3 h-3" />
-                      Upload
+                      <ChevronDown className="w-3 h-3 mr-1" />
+                      Voir recettes
                     </>
                   )}
                 </Button>
               </div>
+
+              {/* Recipes list */}
+              {expandedElement === element.number && (
+                <div className="border-t p-3 bg-muted/30">
+                  {recipes[element.number] ? (
+                    recipes[element.number].length > 0 ? (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-muted-foreground mb-2">
+                          Recettes pour créer cet élément:
+                        </p>
+                        {recipes[element.number].map((recipe) => (
+                          <div key={recipe.id} className="text-xs bg-card rounded px-2 py-1.5 flex items-center gap-1">
+                            <span className="font-mono text-muted-foreground">#{recipe.ingredient1_number}</span>
+                            <span className="font-medium">{recipe.ingredient1_name}</span>
+                            <span className="text-muted-foreground">+</span>
+                            <span className="font-mono text-muted-foreground">#{recipe.ingredient2_number}</span>
+                            <span className="font-medium">{recipe.ingredient2_name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground text-center">
+                        Aucune recette
+                      </p>
+                    )
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center">
+                      Chargement...
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>

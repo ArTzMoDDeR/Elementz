@@ -8,7 +8,11 @@ export async function GET() {
     }
     
     const sql = neon(process.env.DATABASE_URL)
-    const elements = await sql`SELECT * FROM elements ORDER BY name`
+    const elements = await sql`
+      SELECT number, name_english, name_french, img 
+      FROM elements 
+      ORDER BY number
+    `
     return NextResponse.json(elements)
   } catch (error) {
     console.error('[v0] Error fetching elements:', error)
