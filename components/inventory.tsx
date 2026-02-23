@@ -12,7 +12,7 @@ interface InventoryProps {
   discoveredCount: number
   totalCount: number
   onReset: () => void
-  onAddToPlayground: (element: ElementDef, x: number, y: number) => void
+  onAddToPlayground: (element: string, x: number, y: number) => string
   playgroundRef: RefObject<HTMLDivElement>
 }
 
@@ -97,7 +97,7 @@ export function Inventory({
     const playgroundEl = playgroundRef.current
     if (playgroundEl) {
       const rect = playgroundEl.getBoundingClientRect()
-      onAddToPlayground(element, rect.width / 2, rect.height / 2)
+      onAddToPlayground(element.name, rect.width / 2, rect.height / 2)
     }
   }
 
