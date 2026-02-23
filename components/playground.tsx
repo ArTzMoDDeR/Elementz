@@ -21,10 +21,12 @@ interface PlaygroundProps {
 export function Playground({ items, elements, onDrop, onMove, onMerge, onRemove, onClear }: PlaygroundProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [draggingFromInventory, setDraggingFromInventory] = useState<string | null>(null)
   const dragOffsetRef = useRef({ x: 0, y: 0 })
   const [mergeAnimation, setMergeAnimation] = useState<{ x: number; y: number; element: string } | null>(null)
   const [shakeId, setShakeId] = useState<string | null>(null)
   const [nearMergeId, setNearMergeId] = useState<string | null>(null)
+  const [hoveredItemId, setHoveredItemId] = useState<string | null>(null)
 
   const getRelativePos = useCallback((clientX: number, clientY: number) => {
     if (!containerRef.current) return { x: 0, y: 0 }
@@ -36,10 +38,43 @@ export function Playground({ items, elements, onDrop, onMove, onMerge, onRemove,
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'copy'
+    
+    // Track which element is being hovered during inventory drag
+    const elementName = e.dataTransfer.types.includes('text/element') 
+      ? draggingFromInventory
+      : null
+    
+    if (elementName) {
+      const pos = getRelativePos(e.clientX, e.clientY)
+      const hoveredItem = items.find(item => {
+        const dx = pos.x - item.x - 45
+        const dy = pos.y - item.y - 18
+        return Math.sqrt(dx * dx + dy * dy) < 60
+      })
+      setHoveredItemId(hoveredItem?.id || null)
+    }
+  }, [draggingFromInventory, getRelativePos, items])
+  
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    const element = e.dataTransfer.types.includes('text/element')
+    if (element) {
+      // Store that we're dragging from inventory
+      setDraggingFromInventory(e.dataTransfer.getData('text/element') || 'dragging')
+    }
+  }, [])
+  
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    if (e.currentTarget === e.target) {
+      setDraggingFromInventory(null)
+      setHoveredItemId(null)
+    }
   }, [])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
+    setDraggingFromInventory(null)
+    setHoveredItemId(null)
+    
     const element = e.dataTransfer.getData('text/element')
     if (!element) return
     const pos = getRelativePos(e.clientX, e.clientY)
@@ -167,6 +202,8 @@ export function Playground({ items, elements, onDrop, onMove, onMerge, onRemove,
       className="relative flex-1 overflow-hidden"
       style={{ touchAction: 'none' }}
       onDragOver={handleDragOver}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -197,6 +234,7 @@ export function Playground({ items, elements, onDrop, onMove, onMerge, onRemove,
         if (!el) return null
         const isDragging = draggingId === item.id
         const isNearMerge = nearMergeId === item.id
+        const isHovered = hoveredItemId === item.id
         const isShaking = shakeId === item.id
         return (
           <div
@@ -207,9 +245,9 @@ export function Playground({ items, elements, onDrop, onMove, onMerge, onRemove,
             style={{
               left: item.x,
               top: item.y,
-              transform: isDragging ? 'scale(1.08)' : isNearMerge ? 'scale(1.05)' : 'scale(1)',
+              transform: isDragging ? 'scale(1.08)' : (isNearMerge || isHovered) ? 'scale(1.05)' : 'scale(1)',
               transition: isDragging ? 'transform 0.1s' : 'transform 0.15s, left 0.05s, top 0.05s',
-              filter: isNearMerge ? `drop-shadow(0 0 8px ${el.color}60)` : undefined,
+              filter: (isNearMerge || isHovered) ? `drop-shadow(0 0 8px ${el.color}60)` : undefined,
             }}
             onPointerDown={(e) => handleItemPointerDown(e, item.id)}
             onDoubleClick={() => handleDoubleClick(item.id)}
