@@ -45,21 +45,29 @@ export function useGameStore() {
         if (!res.ok) throw new Error(`API error: ${res.status}`)
         return res.json()
       })
-      .then((data) => {
+      .then((data: Array<{ name_french: string; name_english: string; img: string | null }>) => {
         if (!Array.isArray(data)) return
         
         const updatedElements = new Map(ALL_ELEMENTS)
         let updated = 0
-        data.forEach((dbEl: { name: string; image_url: string | null }) => {
-          const existing = updatedElements.get(dbEl.name)
-          if (existing && dbEl.image_url) {
-            updatedElements.set(dbEl.name, { ...existing, imageUrl: dbEl.image_url })
+
+        data.forEach((dbEl) => {
+          if (!dbEl.img) return
+          // Try matching by name_french first, then name_english
+          const key = updatedElements.has(dbEl.name_french)
+            ? dbEl.name_french
+            : updatedElements.has(dbEl.name_english)
+              ? dbEl.name_english
+              : null
+          if (key) {
+            const existing = updatedElements.get(key)!
+            updatedElements.set(key, { ...existing, imageUrl: dbEl.img })
             updated++
           }
         })
         
         if (updated > 0) {
-          setElements(updatedElements)
+          setElements(new Map(updatedElements))
           ALL_ELEMENTS = updatedElements
         }
       })
