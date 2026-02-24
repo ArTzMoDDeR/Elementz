@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   Upload, Check, Search, FileUp, Moon, Sun,
-  ChevronDown, ChevronUp, Pencil, Plus, X, Trash2, Save,
+  ChevronDown, ChevronUp, Pencil, Plus, X, Trash2, Save, Hash, ArrowDownAZ,
 } from 'lucide-react'
 
 type Element = {
@@ -395,6 +395,7 @@ export default function AdminPanel() {
   const [uploading, setUploading] = useState<Set<number>>(new Set())
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'with' | 'without' | 'no-recipe'>('all')
+  const [sortBy, setSortBy] = useState<'number' | 'alpha'>('number')
   const [isDragging, setIsDragging] = useState(false)
   const [editingElement, setEditingElement] = useState<Element | null>(null)
   const [showAdd, setShowAdd] = useState(false)
@@ -453,7 +454,11 @@ export default function AdminPanel() {
     if (filterStatus === 'without') return !el.img
     if (filterStatus === 'no-recipe') return (el.recipe_count ?? 0) === 0
     return true
-  })
+  }).sort((a, b) =>
+    sortBy === 'alpha'
+      ? a.name_french.localeCompare(b.name_french, 'fr')
+      : a.number - b.number
+  )
 
   const stats = {
     total: elements.length,
@@ -544,7 +549,7 @@ export default function AdminPanel() {
           ))}
         </div>
 
-        {/* Filters */}
+        {/* Filters + Sort */}
         <div className="flex gap-3 mb-6 flex-col sm:flex-row">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -555,7 +560,23 @@ export default function AdminPanel() {
               className="pl-10"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            {/* Sort toggle */}
+            <div className="flex items-center bg-muted rounded-lg p-1 gap-1">
+              <button
+                onClick={() => setSortBy('number')}
+                className={`flex items-center gap-1.5 px-3 h-7 rounded-md text-sm font-medium transition-colors ${sortBy === 'number' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                <Hash className="w-3.5 h-3.5" /> N°
+              </button>
+              <button
+                onClick={() => setSortBy('alpha')}
+                className={`flex items-center gap-1.5 px-3 h-7 rounded-md text-sm font-medium transition-colors ${sortBy === 'alpha' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                <ArrowDownAZ className="w-3.5 h-3.5" /> A-Z
+              </button>
+            </div>
+            {/* Filter buttons */}
             {(['all', 'with', 'without', 'no-recipe'] as const).map(f => (
               <Button key={f} size="sm" variant={filterStatus === f ? 'default' : 'outline'} onClick={() => setFilterStatus(f)}>
                 {f === 'all' ? `Tous (${stats.total})`
