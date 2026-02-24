@@ -12,21 +12,22 @@ export interface Recipe {
   result: string
 }
 
+// Unified palette — 4 cohesive accent colors mapped to element worlds
 const CATEGORY_COLORS: Record<string, string> = {
-  base: '#3B82F6',
-  nature: '#22C55E',
-  animal: '#F97316',
-  food: '#EF4444',
-  tech: '#8B5CF6',
-  building: '#6B7280',
-  person: '#EAB308',
-  mythical: '#A855F7',
-  space: '#1E3A5F',
-  weather: '#06B6D4',
-  material: '#78716C',
-  tool: '#EA580C',
-  vehicle: '#14B8A6',
-  concept: '#EC4899',
+  base:     '#38BDF8', // sky blue
+  weather:  '#38BDF8', // sky blue
+  space:    '#818CF8', // indigo
+  mythical: '#818CF8', // indigo
+  concept:  '#818CF8', // indigo
+  nature:   '#34D399', // emerald
+  animal:   '#34D399', // emerald
+  food:     '#FB923C', // orange
+  material: '#94A3B8', // slate
+  building: '#94A3B8', // slate
+  tool:     '#94A3B8', // slate
+  vehicle:  '#94A3B8', // slate
+  tech:     '#C084FC', // purple
+  person:   '#FB923C', // orange
 }
 
 function categorize(name: string): string {
