@@ -63,38 +63,48 @@ export function ElementBadge({ element, size = 'md', fluid = false, className = 
 
   return (
     <div
-      className={`${sizeClass} flex flex-col items-center justify-center gap-1 rounded-xl select-none p-1.5 ${className}`}
+      className={`${sizeClass} flex flex-col items-center justify-between rounded-xl select-none overflow-hidden ${className}`}
       style={{
-        backgroundColor: `${element.color}15`,
-        border: `1.5px solid ${element.color}35`,
+        backgroundColor: `${element.color}12`,
+        border: `1.5px solid ${element.color}30`,
         ...style,
       }}
     >
-      <div className={`${ICON_RATIO[size]} flex-shrink-0 flex items-center justify-center overflow-hidden rounded-lg`}>
-        {element.imageUrl ? (
-          <img
-            src={element.imageUrl}
-            alt={element.name}
-            draggable={false}
-            className="w-full h-full object-cover pointer-events-none"
-          />
-        ) : hasIcon ? (
-          ELEMENT_ICONS[element.name](element.color)
-        ) : (
-          <div
-            className="w-full h-full flex items-center justify-center text-[10px] font-bold rounded-lg"
-            style={{ backgroundColor: element.color, color: 'white' }}
-          >
-            {element.icon.charAt(0).toUpperCase()}
-          </div>
-        )}
+      {/* Icon area — takes most of the space */}
+      <div className="flex-1 w-full flex items-center justify-center p-2">
+        <div className={`${ICON_RATIO[size]} flex items-center justify-center overflow-hidden rounded-lg`}>
+          {element.imageUrl ? (
+            <img
+              src={element.imageUrl}
+              alt={element.name}
+              draggable={false}
+              className="w-full h-full object-cover pointer-events-none"
+            />
+          ) : hasIcon ? (
+            ELEMENT_ICONS[element.name](element.color)
+          ) : (
+            <div
+              className="w-full h-full flex items-center justify-center font-bold rounded-lg"
+              style={{ backgroundColor: element.color, color: 'white', fontSize: '60%' }}
+            >
+              {element.name.charAt(0).toUpperCase()}
+            </div>
+          )}
+        </div>
       </div>
-      <span
-        className={`${TEXT_SIZE[size]} font-medium leading-tight text-center w-full line-clamp-2 px-0.5`}
-        style={{ color: element.color }}
+
+      {/* Label — dark frosted strip at the bottom */}
+      <div
+        className="w-full px-1 py-1 flex items-center justify-center"
+        style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
       >
-        {element.name}
-      </span>
+        <span
+          className={`${TEXT_SIZE[size]} font-semibold leading-tight text-center w-full line-clamp-2`}
+          style={{ color: '#fff' }}
+        >
+          {element.name}
+        </span>
+      </div>
     </div>
   )
 }
