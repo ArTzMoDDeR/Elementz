@@ -36,9 +36,9 @@ const ELEMENT_ICONS: Record<string, (color: string) => React.ReactNode> = {
 }
 
 const FIXED_SIZE = {
-  sm: 'w-16 h-16',
+  sm: 'w-14 h-14',
   md: 'w-20 h-20',
-  lg: 'w-24 h-24',
+  lg: 'w-28 h-28',
 }
 
 // Icon takes 70% of the badge, label strip is fixed height

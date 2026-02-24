@@ -320,7 +320,7 @@ export function Playground({
             onPointerDown={e => handlePointerDown(e, item.element, item.id)}
             onDoubleClick={() => onRemove(item.id)}
           >
-            <ElementBadge element={el} size="md" />
+                <ElementBadge element={el} size="lg" />
           </div>
         )
       })}
@@ -331,7 +331,7 @@ export function Playground({
           className="absolute pointer-events-none"
           style={{ left: dragging.x, top: dragging.y, zIndex: 9999, transform: 'scale(1.05)', opacity: 0.9 }}
         >
-          <ElementBadge element={elements.get(dragging.elementName)!} size="md" />
+              <ElementBadge element={elements.get(dragging.elementName)!} size="lg" />
         </div>
       )}
 
@@ -346,7 +346,7 @@ export function Playground({
               className="absolute -inset-3 rounded-full animate-ping"
               style={{ backgroundColor: elements.get(mergeAnimation.element)!.color, opacity: 0.2 }}
             />
-            <ElementBadge element={elements.get(mergeAnimation.element)!} size="md" />
+              <ElementBadge element={elements.get(mergeAnimation.element)!} size="lg" />
           </div>
         </div>
       )}
@@ -365,7 +365,7 @@ export function Playground({
       {/* INVENTORY PANEL */}
       <div
         ref={inventoryRef}
-        className="absolute bottom-0 left-0 right-0 h-[45vh] lg:bottom-0 lg:left-auto lg:top-0 lg:right-0 lg:h-full lg:w-[400px] bg-card/95 backdrop-blur-xl border-t lg:border-t-0 lg:border-l border-border flex flex-col"
+        className="absolute bottom-0 left-0 right-0 h-[45vh] md:bottom-0 md:left-auto md:top-0 md:right-0 md:h-full md:w-[300px] lg:w-[400px] bg-card/95 backdrop-blur-xl border-t md:border-t-0 md:border-l border-border flex flex-col"
         style={{ zIndex: 100 }}
       >
         {/* Header */}
