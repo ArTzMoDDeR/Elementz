@@ -26,6 +26,63 @@ type Recipe = {
 }
 
 // ─── Edit Modal ──────────────────────────────────────────────────────────────
+function ElementCard({ element, uploading, onEdit, onUpload }: {
+  element: Element
+  uploading: Set<number>
+  onEdit: (el: Element) => void
+  onUpload: (number: number, file: File) => void
+}) {
+  return (
+    <div className="bg-card rounded-xl border border-border overflow-hidden group flex flex-col">
+      <div className="aspect-square bg-muted relative flex items-center justify-center overflow-hidden">
+        {element.img
+          ? <img src={element.img} alt={element.name_french} className="w-full h-full object-contain p-1" />
+          : <span className="text-2xl font-bold text-muted-foreground/40">#{element.number}</span>
+        }
+        <button
+          className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100"
+          onClick={() => onEdit(element)}
+        >
+          <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-full p-2">
+            <Pencil className="w-4 h-4 text-white" />
+          </div>
+        </button>
+      </div>
+      <div className="p-2 flex flex-col gap-1.5 flex-1">
+        <div>
+          <div className="flex items-center gap-1 flex-wrap">
+            <p className="text-[10px] text-muted-foreground font-mono">#{element.number}</p>
+            {(element.recipe_count ?? 0) === 0 && (
+              <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-amber-500/15 text-amber-500 border border-amber-500/25 leading-none">
+                0 combo
+              </span>
+            )}
+          </div>
+          <p className="text-xs font-semibold leading-tight truncate" title={element.name_french}>{element.name_french}</p>
+          {element.name_english && (
+            <p className="text-[10px] text-muted-foreground truncate">{element.name_english}</p>
+          )}
+        </div>
+        <div className="flex gap-1 mt-auto">
+          <label className="flex-1 cursor-pointer">
+            <input type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) onUpload(element.number, f) }} />
+            <div className={`h-7 flex items-center justify-center gap-1 rounded-md text-[10px] font-medium border transition-colors ${element.img ? 'border-border text-muted-foreground hover:bg-muted' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}>
+              {uploading.has(element.number)
+                ? <div className="w-2.5 h-2.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                : element.img ? <><Check className="w-2.5 h-2.5" />OK</> : <><Upload className="w-2.5 h-2.5" />Upload</>
+              }
+            </div>
+          </label>
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 flex-shrink-0" onClick={() => onEdit(element)}>
+            <Pencil className="w-3 h-3" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function EditModal({
   element,
   elements,
@@ -589,63 +646,37 @@ export default function AdminPanel() {
         </div>
 
         {/* Grid */}
+        {sortBy === 'alpha' ? (
+          // Grouped by first letter with section headers
+          (() => {
+            const groups = filteredElements.reduce<Record<string, typeof filteredElements>>((acc, el) => {
+              const letter = el.name_french[0].toUpperCase()
+              if (!acc[letter]) acc[letter] = []
+              acc[letter].push(el)
+              return acc
+            }, {})
+            return Object.entries(groups).map(([letter, els]) => (
+              <div key={letter} className="mb-6">
+                <div className="flex items-baseline gap-2 mb-3 pb-2 border-b border-border">
+                  <span className="text-xl font-bold">{letter}</span>
+                  <span className="text-xs text-muted-foreground">{els.length} élément{els.length > 1 ? 's' : ''}</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                  {els.map(element => (
+                    <ElementCard key={element.number} element={element} uploading={uploading} onEdit={setEditingElement} onUpload={handleFileUpload} />
+                  ))}
+                </div>
+              </div>
+            ))
+          })()
+        ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
           {filteredElements.map(element => (
-            <div key={element.number} className="bg-card rounded-xl border border-border overflow-hidden group flex flex-col">
-              {/* Image */}
-              <div className="aspect-square bg-muted relative flex items-center justify-center overflow-hidden">
-                {element.img
-                  ? <img src={element.img} alt={element.name_french} className="w-full h-full object-contain p-1" />
-                  : <span className="text-2xl font-bold text-muted-foreground/40">#{element.number}</span>
-                }
-                {/* Edit overlay */}
-                <button
-                  className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100"
-                  onClick={() => setEditingElement(element)}
-                >
-                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-full p-2">
-                    <Pencil className="w-4 h-4 text-white" />
-                  </div>
-                </button>
-              </div>
-
-              {/* Info + actions */}
-              <div className="p-2 flex flex-col gap-1.5 flex-1">
-                <div>
-                  <div className="flex items-center gap-1 flex-wrap">
-                    <p className="text-[10px] text-muted-foreground font-mono">#{element.number}</p>
-                    {(element.recipe_count ?? 0) === 0 && (
-                      <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-amber-500/15 text-amber-500 border border-amber-500/25 leading-none">
-                        0 combinaison
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs font-semibold leading-tight truncate" title={element.name_french}>{element.name_french}</p>
-                  {element.name_english && (
-                    <p className="text-[10px] text-muted-foreground truncate">{element.name_english}</p>
-                  )}
-                </div>
-                <div className="flex gap-1 mt-auto">
-                  {/* Upload */}
-                  <label className="flex-1 cursor-pointer">
-                    <input type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden"
-                      onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(element.number, f) }} />
-                    <div className={`h-7 flex items-center justify-center gap-1 rounded-md text-[10px] font-medium border transition-colors ${element.img ? 'border-border text-muted-foreground hover:bg-muted' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}>
-                      {uploading.has(element.number)
-                        ? <div className="w-2.5 h-2.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        : element.img ? <><Check className="w-2.5 h-2.5" />OK</> : <><Upload className="w-2.5 h-2.5" />Upload</>
-                      }
-                    </div>
-                  </label>
-                  {/* Edit */}
-                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 flex-shrink-0" onClick={() => setEditingElement(element)}>
-                    <Pencil className="w-3 h-3" />
-                  </Button>
-                </div>
-              </div>
-            </div>
+            <ElementCard key={element.number} element={element} uploading={uploading} onEdit={setEditingElement} onUpload={handleFileUpload} />
           ))}
         </div>
+        )}
+
 
         {filteredElements.length === 0 && (
           <div className="text-center py-16">
