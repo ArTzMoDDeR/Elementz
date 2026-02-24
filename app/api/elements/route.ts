@@ -16,16 +16,22 @@ export async function POST(request: NextRequest) {
   try {
     if (!process.env.DATABASE_URL) return NextResponse.json({ error: 'No DB' }, { status: 500 })
     const body = await request.json()
+    const nameFr = (body.name_french ?? '').trim()
+    const nameEn = (body.name_english ?? body.name_french ?? '').trim()
+    if (!nameFr) return NextResponse.json({ error: 'name_french required' }, { status: 400 })
+
     const sql = neon(process.env.DATABASE_URL)
-    const [{ max }] = await sql`SELECT MAX(number) as max FROM elements`
-    const nextNumber = (max ?? 0) + 1
+    const maxResult = await sql`SELECT COALESCE(MAX(number), 0) as max FROM elements`
+    const nextNumber = Number(maxResult[0].max) + 1
+
     const [el] = await sql`
       INSERT INTO elements (number, name_french, name_english)
-      VALUES (${nextNumber}, ${body.name_french}, ${body.name_english ?? ''})
+      VALUES (${nextNumber}, ${nameFr}, ${nameEn})
       RETURNING *
     `
     return NextResponse.json(el)
   } catch (error) {
+    console.error('[v0] POST /api/elements error:', error)
     return NextResponse.json({ error: 'Create failed' }, { status: 500 })
   }
 }
