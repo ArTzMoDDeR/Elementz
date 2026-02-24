@@ -60,7 +60,7 @@ export function ElementBadge({ element, size = 'md', className = '', style }: El
 
   return (
     <div
-      className={`${SQUARE_SIZE[size]} flex flex-col items-center justify-center gap-1 rounded-xl select-none ${className}`}
+      className={`${SQUARE_SIZE[size]} flex flex-col items-center justify-center gap-1 rounded-xl select-none p-1 ${className}`}
       style={{
         backgroundColor: `${element.color}15`,
         border: `1.5px solid ${element.color}35`,
@@ -72,24 +72,22 @@ export function ElementBadge({ element, size = 'md', className = '', style }: El
           <img
             src={element.imageUrl}
             alt={element.name}
-            className="w-full h-full object-cover"
+            draggable={false}
+            className="w-full h-full object-cover pointer-events-none"
           />
         ) : hasIcon ? (
           ELEMENT_ICONS[element.name](element.color)
         ) : (
           <div
             className="w-full h-full flex items-center justify-center text-[10px] font-bold rounded-lg"
-            style={{
-              backgroundColor: element.color,
-              color: 'white',
-            }}
+            style={{ backgroundColor: element.color, color: 'white' }}
           >
             {element.icon.charAt(0).toUpperCase()}
           </div>
         )}
       </div>
       <span
-        className={`${TEXT_SIZE[size]} font-medium leading-none text-center w-full truncate px-1`}
+        className={`${TEXT_SIZE[size]} font-medium leading-tight text-center w-full line-clamp-2 px-0.5`}
         style={{ color: element.color }}
       >
         {element.name}

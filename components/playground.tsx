@@ -414,21 +414,26 @@ export function Playground({
           </div>
         </div>
 
-        {/* Element grid - same badges as playground */}
+        {/* Element grid */}
         <div
           ref={inventoryScrollRef}
-          className="flex-1 overflow-y-auto p-2 scrollbar-thin"
-          style={{ touchAction: 'pan-y' }}
+          className="flex-1 overflow-y-scroll overscroll-contain p-2"
+          style={{
+            touchAction: 'pan-y',
+            // Always show scrollbar so users can scroll via it on mobile
+            scrollbarWidth: 'thin',
+            scrollbarGutter: 'stable',
+          }}
           onPointerDown={e => e.stopPropagation()}
           onPointerMove={handleInventoryPointerMove}
           onPointerUp={cancelPendingDrag}
           onPointerCancel={cancelPendingDrag}
         >
-          <div className="grid grid-cols-4 lg:grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-4 lg:grid-cols-3 gap-2">
             {discoveredElements.map(element => (
               <div
                 key={element.name}
-                className="cursor-grab active:cursor-grabbing select-none"
+                className="cursor-grab active:cursor-grabbing select-none flex justify-center"
                 onPointerDown={e => handleInventoryPointerDown(e, element.name)}
               >
                 <ElementBadge element={element} size="md" />
