@@ -115,15 +115,18 @@ export function Playground({
     const pd = pendingDragRef.current
     if (!pd || pd.committed) return
     const dx = Math.abs(e.clientX - pd.startX)
-    const dy = Math.abs(e.clientY - pd.startY)
+    const rawDy = e.clientY - pd.startY // positive = down, negative = up
+    const dy = Math.abs(rawDy)
     const moved = Math.sqrt(dx * dx + dy * dy)
-    if (moved < 6) return // not enough movement yet
+    if (moved < 6) return
 
-    if (dy > dx) {
-      // Vertical — it's a scroll, cancel drag intent
+    // Dragging UP from inventory = drag intent (inventory is at bottom)
+    // Dragging DOWN = scroll intent
+    if (rawDy > 0 && dy > dx) {
+      // Moving down — it's a scroll, cancel drag
       pendingDragRef.current = null
     } else {
-      // Horizontal or diagonal — commit to drag immediately
+      // Moving up or horizontally — commit to drag
       pd.committed = true
       commitInventoryDrag(pd.elementName, pd.pointerId, e.clientX, e.clientY)
     }
@@ -160,11 +163,13 @@ export function Playground({
       const dy = Math.abs(e.clientY - pd.startY)
       const moved = Math.sqrt(dx * dx + dy * dy)
       if (moved >= 6) {
-        if (dy > dx) {
-          // Vertical scroll — cancel intent
+        const rawDy = e.clientY - pd.startY
+        const absDy = Math.abs(rawDy)
+        if (rawDy > 0 && absDy > dx) {
+          // Moving down = scroll intent, cancel drag
           pendingDragRef.current = null
         } else {
-          // Horizontal — commit to drag
+          // Moving up or horizontally = drag intent
           pd.committed = true
           commitInventoryDrag(pd.elementName, pd.pointerId, e.clientX, e.clientY)
         }
@@ -441,7 +446,7 @@ export function Playground({
           onPointerUp={cancelPendingDrag}
           onPointerCancel={cancelPendingDrag}
         >
-          <div className="grid grid-cols-4 lg:grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {discoveredElements.map(element => (
               <div
                 key={element.name}
