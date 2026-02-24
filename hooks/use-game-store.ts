@@ -19,7 +19,8 @@ export interface PlaygroundItem {
   y: number
 }
 
-type RecipeMap = Map<string, string>
+// RecipeMap: key = "a|b", value = array of result names (supports multi-result combos)
+type RecipeMap = Map<string, string[]>
 
 type RecipeRow = {
   ingredient1: string
@@ -31,19 +32,24 @@ type RecipeRow = {
 }
 
 function buildRecipeMap(recipes: RecipeRow[], lang: Lang): RecipeMap {
-  const map = new Map<string, string>()
+  const map = new Map<string, string[]>()
+  const add = (key: string, val: string) => {
+    const arr = map.get(key)
+    if (arr) { if (!arr.includes(val)) arr.push(val) }
+    else map.set(key, [val])
+  }
   for (const r of recipes) {
     const a = lang === 'en' ? (r.ingredient1_en || r.ingredient1) : r.ingredient1
     const b = lang === 'en' ? (r.ingredient2_en || r.ingredient2) : r.ingredient2
     const res = lang === 'en' ? (r.result_en || r.result) : r.result
-    map.set(`${a}|${b}`, res)
-    map.set(`${b}|${a}`, res)
+    add(`${a}|${b}`, res)
+    add(`${b}|${a}`, res)
   }
   return map
 }
 
-function findRecipe(map: RecipeMap, a: string, b: string): string | null {
-  return map.get(`${a}|${b}`) || null
+function findRecipes(map: RecipeMap, a: string, b: string): string[] {
+  return map.get(`${a}|${b}`) || []
 }
 
 function getColor(name: string): string {
@@ -210,41 +216,74 @@ export function useGameStore() {
     const item1 = playground.find(i => i.id === id1)
     const item2 = playground.find(i => i.id === id2)
     if (!item1 || !item2) return null
-    const result = findRecipe(recipeMap, item1.element, item2.element)
-    if (result) {
-      const newId = generateId()
-      setPlayground(prev => [
-        ...prev.filter(i => i.id !== id1 && i.id !== id2),
-        { id: newId, element: result, x: (item1.x + item2.x) / 2, y: (item1.y + item2.y) / 2 }
-      ])
-      if (!discovered.has(result)) {
-        setDiscovered(prev => new Set([...prev, result]))
-        setNewlyDiscovered(result)
-        setTimeout(() => setNewlyDiscovered(null), 2500)
+    const results = findRecipes(recipeMap, item1.element, item2.element)
+    if (results.length === 0) return null
+
+    const cx = (item1.x + item2.x) / 2
+    const cy = (item1.y + item2.y) / 2
+    const spread = 60
+
+    // Remove the two source items, add all results
+    setPlayground(prev => {
+      const filtered = prev.filter(i => i.id !== id1 && i.id !== id2)
+      const newItems = results.map((res, idx) => {
+        const angle = (idx / results.length) * Math.PI * 2
+        const x = results.length > 1 ? cx + Math.cos(angle) * spread : cx
+        const y = results.length > 1 ? cy + Math.sin(angle) * spread : cy
+        return { id: generateId(), element: res, x, y }
+      })
+      return [...filtered, ...newItems]
+    })
+
+    let firstNew: string | null = null
+    results.forEach(res => {
+      if (!discovered.has(res)) {
+        setDiscovered(prev => new Set([...prev, res]))
+        if (!firstNew) {
+          firstNew = res
+          setNewlyDiscovered(res)
+          setTimeout(() => setNewlyDiscovered(null), 2500)
+        }
       }
-      return result
-    }
-    return null
+    })
+
+    return results[0]
   }, [playground, discovered, recipeMap, generateId])
 
   const dropAndMerge = useCallback((element: string, x: number, y: number, targetId: string): string | null => {
     const target = playground.find(i => i.id === targetId)
     if (!target) return null
-    const result = findRecipe(recipeMap, element, target.element)
-    if (result) {
-      const newId = generateId()
-      setPlayground(prev => [
-        ...prev.filter(i => i.id !== targetId),
-        { id: newId, element: result, x: (x + target.x) / 2, y: (y + target.y) / 2 }
-      ])
-      if (!discovered.has(result)) {
-        setDiscovered(prev => new Set([...prev, result]))
-        setNewlyDiscovered(result)
-        setTimeout(() => setNewlyDiscovered(null), 2500)
+    const results = findRecipes(recipeMap, element, target.element)
+    if (results.length === 0) return null
+
+    const cx = (x + target.x) / 2
+    const cy = (y + target.y) / 2
+    const spread = 60
+
+    setPlayground(prev => {
+      const filtered = prev.filter(i => i.id !== targetId)
+      const newItems = results.map((res, idx) => {
+        const angle = (idx / results.length) * Math.PI * 2
+        const px = results.length > 1 ? cx + Math.cos(angle) * spread : cx
+        const py = results.length > 1 ? cy + Math.sin(angle) * spread : cy
+        return { id: generateId(), element: res, x: px, y: py }
+      })
+      return [...filtered, ...newItems]
+    })
+
+    let firstNew: string | null = null
+    results.forEach(res => {
+      if (!discovered.has(res)) {
+        setDiscovered(prev => new Set([...prev, res]))
+        if (!firstNew) {
+          firstNew = res
+          setNewlyDiscovered(res)
+          setTimeout(() => setNewlyDiscovered(null), 2500)
+        }
       }
-      return result
-    }
-    return null
+    })
+
+    return results[0]
   }, [playground, discovered, recipeMap, generateId])
 
   const resetProgress = useCallback(() => {
