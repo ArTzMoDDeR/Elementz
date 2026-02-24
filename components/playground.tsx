@@ -47,8 +47,8 @@ export function Playground({
   const [mergeAnimation, setMergeAnimation] = useState<{ x: number; y: number; element: string } | null>(null)
   const [shakeId, setShakeId] = useState<string | null>(null)
 
-  // Touch: detect drag vs scroll
-  const pendingDragRef = useRef<{ elementName: string; pointerId: number; startX: number; startY: number; timeout: ReturnType<typeof setTimeout> } | null>(null)
+  // Track intent before committing to drag vs scroll
+  const pendingDragRef = useRef<{ elementName: string; pointerId: number; startX: number; startY: number; committed: boolean } | null>(null)
 
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<SortType>('recent')
@@ -76,16 +76,11 @@ export function Playground({
     return nearest?.item || null
   }, [items])
 
-  // Cancel pending drag (scroll won)
   const cancelPendingDrag = useCallback(() => {
-    if (pendingDragRef.current) {
-      clearTimeout(pendingDragRef.current.timeout)
-      pendingDragRef.current = null
-    }
+    pendingDragRef.current = null
   }, [])
 
-  // Start drag from inventory after hold delay
-  const startInventoryDrag = useCallback((elementName: string, pointerId: number, clientX: number, clientY: number) => {
+  const commitInventoryDrag = useCallback((elementName: string, pointerId: number, clientX: number, clientY: number) => {
     const pos = getRelativePos(clientX, clientY)
     setDragging({
       source: 'inventory',
@@ -96,7 +91,6 @@ export function Playground({
       offsetY: 40,
     })
     containerRef.current?.setPointerCapture(pointerId)
-    // Disable scroll on the inventory list while dragging
     if (inventoryScrollRef.current) {
       inventoryScrollRef.current.style.overflow = 'hidden'
       inventoryScrollRef.current.style.touchAction = 'none'
@@ -104,36 +98,36 @@ export function Playground({
     pendingDragRef.current = null
   }, [getRelativePos])
 
-  // Inventory item pointer down: start a pending drag with 150ms hold delay
+  // Pointer down on inventory item — record intent, don't commit yet
   const handleInventoryPointerDown = useCallback((e: React.PointerEvent, elementName: string) => {
     e.stopPropagation()
-    const startX = e.clientX
-    const startY = e.clientY
-    const pointerId = e.pointerId
+    pendingDragRef.current = {
+      elementName,
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      committed: false,
+    }
+  }, [])
 
-    const timeout = setTimeout(() => {
-      startInventoryDrag(elementName, pointerId, startX, startY)
-    }, 150)
-
-    pendingDragRef.current = { elementName, pointerId, startX, startY, timeout }
-  }, [startInventoryDrag])
-
-  // Inventory scroll area pointer move: if we moved too much vertically before hold, cancel drag (it's a scroll)
+  // Pointer move on scroll container — decide drag vs scroll based on direction
   const handleInventoryPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!pendingDragRef.current) return
-    const dy = Math.abs(e.clientY - pendingDragRef.current.startY)
-    const dx = Math.abs(e.clientX - pendingDragRef.current.startX)
-    // If moved > 8px vertically, it's a scroll -> cancel drag
-    if (dy > 8 && dy > dx) {
-      cancelPendingDrag()
+    const pd = pendingDragRef.current
+    if (!pd || pd.committed) return
+    const dx = Math.abs(e.clientX - pd.startX)
+    const dy = Math.abs(e.clientY - pd.startY)
+    const moved = Math.sqrt(dx * dx + dy * dy)
+    if (moved < 6) return // not enough movement yet
+
+    if (dy > dx) {
+      // Vertical — it's a scroll, cancel drag intent
+      pendingDragRef.current = null
+    } else {
+      // Horizontal or diagonal — commit to drag immediately
+      pd.committed = true
+      commitInventoryDrag(pd.elementName, pd.pointerId, e.clientX, e.clientY)
     }
-    // If moved > 8px horizontally or drag already started, start drag immediately
-    if (dx > 8 && dx >= dy && pendingDragRef.current) {
-      const pd = pendingDragRef.current
-      clearTimeout(pd.timeout)
-      startInventoryDrag(pd.elementName, pd.pointerId, e.clientX, e.clientY)
-    }
-  }, [cancelPendingDrag, startInventoryDrag])
+  }, [commitInventoryDrag])
 
   // === POINTER DOWN (playground items only now) ===
   const handlePointerDown = useCallback((e: React.PointerEvent, source: 'inventory' | 'playground', elementName: string, itemId?: string) => {
@@ -157,8 +151,27 @@ export function Playground({
     }
   }, [getRelativePos, items])
 
-  // === POINTER MOVE ===
+  // === POINTER MOVE (container-level — handles both pending and active drag) ===
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    // Check pending inventory drag intent first
+    const pd = pendingDragRef.current
+    if (pd && !pd.committed) {
+      const dx = Math.abs(e.clientX - pd.startX)
+      const dy = Math.abs(e.clientY - pd.startY)
+      const moved = Math.sqrt(dx * dx + dy * dy)
+      if (moved >= 6) {
+        if (dy > dx) {
+          // Vertical scroll — cancel intent
+          pendingDragRef.current = null
+        } else {
+          // Horizontal — commit to drag
+          pd.committed = true
+          commitInventoryDrag(pd.elementName, pd.pointerId, e.clientX, e.clientY)
+        }
+      }
+      return
+    }
+
     if (!dragging) return
     e.preventDefault()
     const pos = getRelativePos(e.clientX, e.clientY)
@@ -173,7 +186,7 @@ export function Playground({
       setDragging(prev => prev ? { ...prev, x: newX, y: newY } : null)
       setNearMergeId(findNearestItem(newX, newY)?.id || null)
     }
-  }, [dragging, getRelativePos, onMove, findNearestItem])
+  }, [dragging, getRelativePos, onMove, findNearestItem, commitInventoryDrag])
 
   // === POINTER UP ===
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
@@ -425,7 +438,6 @@ export function Playground({
             scrollbarGutter: 'stable',
           }}
           onPointerDown={e => e.stopPropagation()}
-          onPointerMove={handleInventoryPointerMove}
           onPointerUp={cancelPendingDrag}
           onPointerCancel={cancelPendingDrag}
         >
