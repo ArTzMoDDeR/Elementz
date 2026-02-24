@@ -443,7 +443,7 @@ export function Playground({
                   className="cursor-grab active:cursor-grabbing select-none"
                   onPointerDown={e => handleInventoryPointerDown(e, element.name)}
                 >
-                  <ElementBadge element={element} size="md" />
+                  <ElementBadge element={element} size="md" fluid />
                 </div>
               ))}
             </div>

@@ -5,6 +5,7 @@ import { type ElementDef } from '@/lib/game-data'
 interface ElementBadgeProps {
   element: ElementDef
   size?: 'sm' | 'md' | 'lg'
+  fluid?: boolean  // true = w-full aspect-square (inventory grid), false = fixed px size (playground)
   className?: string
   style?: React.CSSProperties
 }
@@ -37,6 +38,13 @@ const ELEMENT_ICONS: Record<string, (color: string) => React.ReactNode> = {
   ),
 }
 
+// Fixed px sizes for playground items
+const FIXED_SIZE = {
+  sm: 'w-16 h-16',
+  md: 'w-20 h-20',
+  lg: 'w-24 h-24',
+}
+
 const ICON_RATIO = {
   sm: 'w-[45%] h-[45%]',
   md: 'w-[50%] h-[50%]',
@@ -49,12 +57,13 @@ const TEXT_SIZE = {
   lg: 'text-sm',
 }
 
-export function ElementBadge({ element, size = 'md', className = '', style }: ElementBadgeProps) {
+export function ElementBadge({ element, size = 'md', fluid = false, className = '', style }: ElementBadgeProps) {
   const hasIcon = ELEMENT_ICONS[element.name]
+  const sizeClass = fluid ? 'w-full aspect-square' : FIXED_SIZE[size]
 
   return (
     <div
-      className={`w-full aspect-square flex flex-col items-center justify-center gap-1 rounded-xl select-none p-1.5 ${className}`}
+      className={`${sizeClass} flex flex-col items-center justify-center gap-1 rounded-xl select-none p-1.5 ${className}`}
       style={{
         backgroundColor: `${element.color}15`,
         border: `1.5px solid ${element.color}35`,
