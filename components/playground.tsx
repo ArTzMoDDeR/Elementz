@@ -20,6 +20,7 @@ interface PlaygroundProps {
   onRemove: (id: string) => void
   onClear: () => void
   onReset: () => void
+  onUnlockAll: () => void
 }
 
 type SortType = 'name' | 'recent'
@@ -118,7 +119,8 @@ function useCustomScrollbar(
 // ============================================================
 export function Playground({
   items, elements, discovered, discoveredCount, totalCount,
-  onDrop, onMove, onMerge, onDropAndMerge, onRemove, onClear, onReset,
+  onDrop, onMove, onMerge, onDropAndMerge, onRemove, onClear,   onReset,
+  onUnlockAll,
 }: PlaygroundProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const inventoryRef = useRef<HTMLDivElement>(null)
@@ -426,6 +428,18 @@ export function Playground({
               </Button>
             ))}
           </div>
+        </div>
+
+        {/* Unlock all button (dev) */}
+        <div className="px-3 pb-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full h-7 text-[10px] text-muted-foreground border-dashed"
+            onClick={onUnlockAll}
+          >
+            Tout débloquer (test)
+          </Button>
         </div>
 
         {/* Scroll area + custom scrollbar */}

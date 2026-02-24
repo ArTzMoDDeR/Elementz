@@ -23,6 +23,7 @@ export function AlchemyGame() {
     tryMerge,
     dropAndMerge,
     resetProgress,
+    unlockAll,
   } = useGameStore()
 
   const playgroundRef = useRef<HTMLDivElement>(null)
@@ -58,6 +59,7 @@ export function AlchemyGame() {
         onRemove={removeFromPlayground}
         onClear={clearPlayground}
         onReset={resetProgress}
+        onUnlockAll={unlockAll}
       />
 
       {/* New discovery popup */}

@@ -220,6 +220,12 @@ export function useGameStore() {
     try { localStorage.removeItem(STORAGE_KEY) } catch {}
   }, [])
 
+  const unlockAll = useCallback(() => {
+    const all = new Set<string>(elements.keys())
+    setDiscovered(all)
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...all])) } catch {}
+  }, [elements])
+
   return {
     elements,
     discovered,
@@ -234,6 +240,7 @@ export function useGameStore() {
     tryMerge,
     dropAndMerge,
     resetProgress,
+    unlockAll,
   }
 }
 
