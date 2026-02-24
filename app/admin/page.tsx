@@ -43,11 +43,12 @@ function EditModal({
   const [img, setImg] = useState(element.img)
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [loadingRecipes, setLoadingRecipes] = useState(true)
-  const [newIng1, setNewIng1] = useState('')
-  const [newIng2, setNewIng2] = useState('')
+  const [selected, setSelected] = useState<[Element | null, Element | null]>([null, null])
+  const [recipeSearch, setRecipeSearch] = useState('')
   const [addingRecipe, setAddingRecipe] = useState(false)
   const [deletingRecipe, setDeletingRecipe] = useState<number | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const recipeSearchRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     fetch(`/api/elements/${element.number}/recipes`)
@@ -80,15 +81,20 @@ function EditModal({
     setUploading(false)
   }
 
+  function selectIngredient(el: Element) {
+    setSelected(prev => {
+      if (!prev[0]) return [el, null]
+      if (!prev[1]) return [prev[0], el]
+      return [el, null] // reset and start over
+    })
+  }
+
+  function removeSelected(slot: 0 | 1) {
+    setSelected(prev => slot === 0 ? [prev[1], null] : [prev[0], null])
+  }
+
   async function addRecipe() {
-    const ing1 = elements.find(e =>
-      e.number.toString() === newIng1 ||
-      e.name_french.toLowerCase() === newIng1.toLowerCase()
-    )
-    const ing2 = elements.find(e =>
-      e.number.toString() === newIng2 ||
-      e.name_french.toLowerCase() === newIng2.toLowerCase()
-    )
+    const [ing1, ing2] = selected
     if (!ing1 || !ing2) return
     setAddingRecipe(true)
     const res = await fetch(`/api/elements/${element.number}/recipes`, {
@@ -97,11 +103,10 @@ function EditModal({
       body: JSON.stringify({ ingredient1_number: ing1.number, ingredient2_number: ing2.number }),
     })
     if (res.ok) {
-      // Refresh recipes
       const data = await fetch(`/api/elements/${element.number}/recipes`).then(r => r.json())
       setRecipes(Array.isArray(data) ? data : [])
-      setNewIng1('')
-      setNewIng2('')
+      setSelected([null, null])
+      setRecipeSearch('')
     }
     setAddingRecipe(false)
   }
@@ -113,31 +118,34 @@ function EditModal({
     setDeletingRecipe(null)
   }
 
-  // Autocomplete suggestions
-  const suggestions1 = newIng1.length >= 2
+  const filteredForRecipe = recipeSearch.length >= 1
     ? elements.filter(e =>
-        e.name_french.toLowerCase().includes(newIng1.toLowerCase()) ||
-        e.number.toString().startsWith(newIng1)
-      ).slice(0, 5)
-    : []
-  const suggestions2 = newIng2.length >= 2
-    ? elements.filter(e =>
-        e.name_french.toLowerCase().includes(newIng2.toLowerCase()) ||
-        e.number.toString().startsWith(newIng2)
-      ).slice(0, 5)
-    : []
+        e.name_french.toLowerCase().includes(recipeSearch.toLowerCase()) ||
+        e.number.toString().includes(recipeSearch)
+      ).slice(0, 30)
+    : elements.slice(0, 30)
+
+  const slotsFull = selected[0] !== null && selected[1] !== null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="bg-card border border-border rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl"
+        className="bg-card border border-border rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-border sticky top-0 bg-card z-10">
-          <div>
-            <span className="text-xs text-muted-foreground font-mono">#{element.number}</span>
-            <h2 className="text-lg font-bold">{element.name_french}</h2>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-muted border border-border overflow-hidden flex-shrink-0 flex items-center justify-center">
+              {img
+                ? <img src={img} alt="" className="w-full h-full object-contain" />
+                : <span className="text-xs text-muted-foreground font-mono">#{element.number}</span>
+              }
+            </div>
+            <div>
+              <span className="text-xs text-muted-foreground font-mono">#{element.number}</span>
+              <h2 className="text-lg font-bold leading-none">{element.name_french}</h2>
+            </div>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}><X className="w-4 h-4" /></Button>
         </div>
@@ -145,37 +153,42 @@ function EditModal({
         <div className="p-5 space-y-6">
           {/* Image */}
           <div>
-            <p className="text-sm font-semibold mb-2">Image</p>
-            <div className="flex gap-3 items-center">
-              <div className="w-20 h-20 rounded-xl bg-muted border border-border flex items-center justify-center overflow-hidden flex-shrink-0">
+            <p className="text-sm font-semibold mb-3">Image</p>
+            <div className="flex gap-4 items-center">
+              <div className="w-24 h-24 rounded-xl bg-muted border border-border flex items-center justify-center overflow-hidden flex-shrink-0">
                 {img
                   ? <img src={img} alt="" className="w-full h-full object-contain" />
-                  : <span className="text-2xl text-muted-foreground font-bold">#{element.number}</span>
+                  : <span className="text-3xl text-muted-foreground font-bold">?</span>
                 }
               </div>
-              <input ref={fileRef} type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden"
-                onChange={e => { const f = e.target.files?.[0]; if (f) uploadImage(f) }} />
-              <Button variant="outline" size="sm" disabled={uploading} onClick={() => fileRef.current?.click()}>
-                {uploading ? <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Upload className="w-3 h-3 mr-1" />}
-                {img ? 'Changer' : 'Uploader'}
-              </Button>
+              <div className="space-y-2">
+                <input ref={fileRef} type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) uploadImage(f) }} />
+                <Button variant="outline" size="sm" disabled={uploading} onClick={() => fileRef.current?.click()}>
+                  {uploading ? <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" /> : <Upload className="w-3 h-3 mr-2" />}
+                  {img ? 'Changer l\'image' : 'Uploader une image'}
+                </Button>
+                {img && <p className="text-xs text-muted-foreground break-all">{img.split('/').pop()}</p>}
+              </div>
             </div>
           </div>
 
           {/* Names */}
           <div className="space-y-3">
             <p className="text-sm font-semibold">Noms</p>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Français</label>
-              <Input value={nameFr} onChange={e => setNameFr(e.target.value)} />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Anglais</label>
-              <Input value={nameEn} onChange={e => setNameEn(e.target.value)} />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Français</label>
+                <Input value={nameFr} onChange={e => setNameFr(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Anglais</label>
+                <Input value={nameEn} onChange={e => setNameEn(e.target.value)} placeholder="(optionnel)" />
+              </div>
             </div>
             <Button onClick={save} disabled={saving} className="w-full">
               {saving ? <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" /> : <Save className="w-3 h-3 mr-2" />}
-              Sauvegarder
+              Sauvegarder les noms
             </Button>
           </div>
 
@@ -183,83 +196,138 @@ function EditModal({
           <div>
             <p className="text-sm font-semibold mb-3">Combinaisons pour créer cet élément</p>
 
+            {/* Existing recipes */}
             {loadingRecipes ? (
-              <p className="text-xs text-muted-foreground">Chargement...</p>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                Chargement...
+              </div>
             ) : recipes.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic">Aucune combinaison enregistrée</p>
+              <p className="text-xs text-muted-foreground italic py-2">Aucune combinaison enregistrée</p>
             ) : (
-              <div className="space-y-1.5 mb-4">
-                {recipes.map(r => (
-                  <div key={r.id} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2 text-sm">
-                    <span className="font-medium">{r.ingredient1_name}</span>
-                    <span className="text-muted-foreground">+</span>
-                    <span className="font-medium">{r.ingredient2_name}</span>
-                    <Button
-                      variant="ghost" size="icon"
-                      className="ml-auto h-6 w-6 text-muted-foreground hover:text-destructive"
-                      disabled={deletingRecipe === r.id}
-                      onClick={() => deleteRecipe(r.id)}
-                    >
-                      {deletingRecipe === r.id
-                        ? <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        : <Trash2 className="w-3 h-3" />}
-                    </Button>
-                  </div>
-                ))}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {recipes.map(r => {
+                  const el1 = elements.find(e => e.number === r.ingredient1_number)
+                  const el2 = elements.find(e => e.number === r.ingredient2_number)
+                  return (
+                    <div key={r.id} className="flex items-center gap-1.5 bg-muted/60 border border-border rounded-lg px-2 py-1.5 text-sm group">
+                      {el1?.img && <img src={el1.img} className="w-4 h-4 object-contain flex-shrink-0" alt="" />}
+                      <span className="font-medium">{r.ingredient1_name}</span>
+                      <span className="text-muted-foreground text-xs">+</span>
+                      {el2?.img && <img src={el2.img} className="w-4 h-4 object-contain flex-shrink-0" alt="" />}
+                      <span className="font-medium">{r.ingredient2_name}</span>
+                      <button
+                        className="ml-1 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+                        disabled={deletingRecipe === r.id}
+                        onClick={() => deleteRecipe(r.id)}
+                      >
+                        {deletingRecipe === r.id
+                          ? <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          : <X className="w-3 h-3" />}
+                      </button>
+                    </div>
+                  )
+                })}
               </div>
             )}
 
-            {/* Add recipe */}
-            <div className="bg-muted/30 rounded-xl p-3 space-y-2">
-              <p className="text-xs font-semibold text-muted-foreground">Ajouter une combinaison</p>
-              <div className="relative">
-                <Input
-                  placeholder="Ingrédient 1 (nom ou #)"
-                  value={newIng1}
-                  onChange={e => setNewIng1(e.target.value)}
-                  className="text-sm h-8"
-                />
-                {suggestions1.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 z-20 bg-popover border border-border rounded-lg shadow-lg mt-0.5 overflow-hidden">
-                    {suggestions1.map(e => (
-                      <button key={e.number}
-                        className="w-full text-left px-3 py-1.5 text-sm hover:bg-muted flex gap-2"
-                        onClick={() => setNewIng1(e.name_french)}>
-                        <span className="text-muted-foreground font-mono text-xs">#{e.number}</span>
-                        <span>{e.name_french}</span>
-                      </button>
-                    ))}
+            {/* Add recipe — ingredient picker */}
+            <div className="border border-border rounded-xl overflow-hidden">
+              {/* Slots */}
+              <div className="p-3 bg-muted/20 border-b border-border">
+                <p className="text-xs font-semibold text-muted-foreground mb-2">
+                  {!selected[0] ? 'Sélectionne le 1er ingrédient ci-dessous' : !selected[1] ? 'Sélectionne le 2ème ingrédient' : 'Prêt à ajouter'}
+                </p>
+                <div className="flex items-center gap-2">
+                  {/* Slot 1 */}
+                  <div className={`flex-1 flex items-center gap-2 rounded-lg px-3 h-10 border transition-colors ${selected[0] ? 'bg-background border-border' : 'border-dashed border-muted-foreground/40 bg-muted/30'}`}>
+                    {selected[0] ? (
+                      <>
+                        {selected[0].img && <img src={selected[0].img} className="w-5 h-5 object-contain flex-shrink-0" alt="" />}
+                        <span className="text-sm font-medium flex-1 truncate">{selected[0].name_french}</span>
+                        <button onClick={() => removeSelected(0)} className="text-muted-foreground hover:text-foreground flex-shrink-0">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Ingrédient 1</span>
+                    )}
                   </div>
+                  <span className="text-muted-foreground font-bold text-sm">+</span>
+                  {/* Slot 2 */}
+                  <div className={`flex-1 flex items-center gap-2 rounded-lg px-3 h-10 border transition-colors ${selected[1] ? 'bg-background border-border' : 'border-dashed border-muted-foreground/40 bg-muted/30'}`}>
+                    {selected[1] ? (
+                      <>
+                        {selected[1].img && <img src={selected[1].img} className="w-5 h-5 object-contain flex-shrink-0" alt="" />}
+                        <span className="text-sm font-medium flex-1 truncate">{selected[1].name_french}</span>
+                        <button onClick={() => removeSelected(1)} className="text-muted-foreground hover:text-foreground flex-shrink-0">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Ingrédient 2</span>
+                    )}
+                  </div>
+                  {/* Add button */}
+                  <Button
+                    size="sm"
+                    disabled={!slotsFull || addingRecipe}
+                    onClick={addRecipe}
+                    className="flex-shrink-0"
+                  >
+                    {addingRecipe
+                      ? <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      : <Plus className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Search + grid */}
+              <div className="p-3">
+                <div className="relative mb-3">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                  <input
+                    ref={recipeSearchRef}
+                    type="text"
+                    placeholder="Rechercher un élément..."
+                    value={recipeSearch}
+                    onChange={e => setRecipeSearch(e.target.value)}
+                    className="w-full h-8 pl-8 pr-3 bg-muted/40 border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                  {recipeSearch && (
+                    <button onClick={() => setRecipeSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-5 sm:grid-cols-6 gap-1.5 max-h-48 overflow-y-auto pr-1">
+                  {filteredForRecipe.map(el => {
+                    const isSelected = selected[0]?.number === el.number || selected[1]?.number === el.number
+                    return (
+                      <button
+                        key={el.number}
+                        onClick={() => selectIngredient(el)}
+                        className={`flex flex-col items-center gap-1 p-1.5 rounded-lg border transition-all text-center ${
+                          isSelected
+                            ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                            : 'border-border bg-muted/20 hover:bg-muted/60 hover:border-muted-foreground/40'
+                        }`}
+                      >
+                        <div className="w-8 h-8 flex items-center justify-center">
+                          {el.img
+                            ? <img src={el.img} alt="" className="w-full h-full object-contain" />
+                            : <div className="w-full h-full rounded bg-muted flex items-center justify-center text-[9px] font-bold text-muted-foreground">#{el.number}</div>
+                          }
+                        </div>
+                        <span className="text-[9px] leading-tight line-clamp-2 w-full">{el.name_french}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+                {filteredForRecipe.length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-4">Aucun résultat</p>
                 )}
               </div>
-              <div className="relative">
-                <Input
-                  placeholder="Ingrédient 2 (nom ou #)"
-                  value={newIng2}
-                  onChange={e => setNewIng2(e.target.value)}
-                  className="text-sm h-8"
-                />
-                {suggestions2.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 z-20 bg-popover border border-border rounded-lg shadow-lg mt-0.5 overflow-hidden">
-                    {suggestions2.map(e => (
-                      <button key={e.number}
-                        className="w-full text-left px-3 py-1.5 text-sm hover:bg-muted flex gap-2"
-                        onClick={() => setNewIng2(e.name_french)}>
-                        <span className="text-muted-foreground font-mono text-xs">#{e.number}</span>
-                        <span>{e.name_french}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <Button
-                size="sm" variant="outline" className="w-full"
-                disabled={addingRecipe || !newIng1 || !newIng2}
-                onClick={addRecipe}
-              >
-                {addingRecipe ? <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" /> : <Plus className="w-3 h-3 mr-2" />}
-                Ajouter
-              </Button>
             </div>
           </div>
         </div>
