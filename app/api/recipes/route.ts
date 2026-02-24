@@ -12,9 +12,9 @@ export async function GET() {
         e2.name_french AS ingredient2,
         e3.name_french AS result
       FROM recipes r
-      JOIN elements e1 ON e1.number = r.ingredient1_id
-      JOIN elements e2 ON e2.number = r.ingredient2_id
-      JOIN elements e3 ON e3.number = r.result_id
+      JOIN elements e1 ON e1.number = r.ingredient1_number
+      JOIN elements e2 ON e2.number = r.ingredient2_number
+      JOIN elements e3 ON e3.number = r.result_number
     `
     return NextResponse.json(rows)
   } catch {

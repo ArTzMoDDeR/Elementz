@@ -371,9 +371,8 @@ export function Playground({
         {/* Header */}
         <div className="flex-shrink-0 p-3 border-b border-border">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold tabular-nums">
-              <span suppressHydrationWarning>{discoveredCount}</span>
-              <span className="text-muted-foreground" suppressHydrationWarning>/{totalCount}</span>
+            <span className="text-xs font-bold tabular-nums" suppressHydrationWarning>
+              {discoveredCount}<span className="text-muted-foreground">/{totalCount}</span>
             </span>
             <div className="flex items-center gap-1">
               {/* Lang switcher */}
