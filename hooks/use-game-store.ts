@@ -3,12 +3,18 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { type ElementDef } from '@/lib/game-data'
 
-const STORAGE_KEY = 'alchemy-discovered-v2'
-const BASE_ELEMENTS = ['eau', 'feu', 'terre', 'air']
+const STORAGE_KEY = 'alchemy-discovered-v3'
+const LANG_KEY = 'alchemy-lang'
+
+// Base element names in both languages — must match DB exactly
+const BASE_ELEMENTS_FR = ['eau', 'feu', 'terre', 'air']
+const BASE_ELEMENTS_EN = ['water', 'fire', 'earth', 'air']
+
+export type Lang = 'fr' | 'en'
 
 export interface PlaygroundItem {
   id: string
-  element: string
+  element: string  // always the key (name in current lang)
   x: number
   y: number
 }
@@ -28,20 +34,49 @@ function findRecipe(map: RecipeMap, a: string, b: string): string | null {
   return map.get(`${a}|${b}`) || null
 }
 
-function makeElement(name: string, img?: string | null): ElementDef {
-  const colors: Record<string, string> = {
-    eau: '#3B82F6', feu: '#EF4444', terre: '#A16207', air: '#06B6D4',
+function getColor(name: string): string {
+  const n = name.toLowerCase()
+  const colorMap: Record<string, string> = {
+    eau: '#3B82F6', water: '#3B82F6',
+    feu: '#EF4444', fire: '#EF4444',
+    terre: '#A16207', earth: '#A16207',
+    air: '#06B6D4',
   }
-  return {
-    name,
-    icon: name.substring(0, 2).toUpperCase(),
-    color: colors[name.toLowerCase()] || '#8B5CF6',
-    category: 'base',
-    imageUrl: img ?? null,
+  if (colorMap[n]) return colorMap[n]
+  const hash = Array.from(name).reduce((acc, c) => acc + c.charCodeAt(0), 0)
+  const colors = ['#6366F1','#8B5CF6','#EC4899','#14B8A6','#F97316','#22C55E','#EAB308','#06B6D4','#F43F5E','#84CC16']
+  return colors[hash % colors.length]
+}
+
+function buildElementMap(
+  rows: Array<{ number: number; name_french: string; name_english: string; img: string | null }>,
+  lang: Lang
+): Map<string, ElementDef> {
+  const map = new Map<string, ElementDef>()
+  for (const row of rows) {
+    const name = lang === 'fr' ? (row.name_french || row.name_english) : (row.name_english || row.name_french)
+    if (!name) continue
+    map.set(name, {
+      name,
+      icon: name.substring(0, 2).toUpperCase(),
+      color: getColor(name),
+      category: 'base',
+      imageUrl: row.img ?? null,
+    })
   }
+  return map
+}
+
+function buildRecipeMapFromRows(
+  rows: Array<{ ingredient1: string; ingredient2: string; result: string }>,
+): RecipeMap {
+  return buildRecipeMap(rows)
 }
 
 export function useGameStore() {
+  const [lang, setLangState] = useState<Lang>('fr')
+  const [dbRows, setDbRows] = useState<Array<{ number: number; name_french: string; name_english: string; img: string | null }>>([])
+  const [dbRecipesFr, setDbRecipesFr] = useState<Array<{ ingredient1: string; ingredient2: string; result: string }>>([])
   const [elements, setElements] = useState<Map<string, ElementDef>>(new Map())
   const [recipeMap, setRecipeMap] = useState<RecipeMap>(new Map())
   const [discovered, setDiscovered] = useState<Set<string>>(new Set())
@@ -51,99 +86,108 @@ export function useGameStore() {
   const [totalDbCount, setTotalDbCount] = useState(0)
   const idCounter = useRef(0)
 
-  // Load everything from DB
+  // Load lang from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(LANG_KEY) as Lang | null
+      if (saved === 'fr' || saved === 'en') setLangState(saved)
+    } catch {}
+  }, [])
+
+  // Load everything from DB once
   useEffect(() => {
     Promise.all([
       fetch('/api/elements').then(r => r.json()),
       fetch('/api/recipes').then(r => r.json()).catch(() => []),
     ]).then(([elementsData, recipesData]) => {
-      // Build elements map from DB
-      const elMap = new Map<string, ElementDef>()
-      if (Array.isArray(elementsData)) {
-        elementsData.forEach((el: { name_french: string; name_english: string; img: string | null; number: number }) => {
-          const name = el.name_french || el.name_english
-          elMap.set(name, {
-            name,
-            icon: name.substring(0, 2).toUpperCase(),
-            color: getColor(name),
-            category: 'base',
-            imageUrl: el.img ?? null,
-          })
-        })
-      }
+      const rows: Array<{ number: number; name_french: string; name_english: string; img: string | null }> =
+        Array.isArray(elementsData) ? elementsData : []
 
-      // Fallback: ensure base elements always exist
-      BASE_ELEMENTS.forEach(base => {
-        if (!elMap.has(base)) {
-          elMap.set(base, makeElement(base))
-        }
-      })
+      setDbRows(rows)
+      setTotalDbCount(rows.length)
 
-      setTotalDbCount(elMap.size)
+      const recipes: Array<{ ingredient1: string; ingredient2: string; result: string }> =
+        Array.isArray(recipesData) ? recipesData : []
+      setDbRecipesFr(recipes)
+
+      // Build initial element map (fr by default)
+      const savedLang = (() => {
+        try { return (localStorage.getItem(LANG_KEY) as Lang | null) || 'fr' } catch { return 'fr' }
+      })()
+      const elMap = buildElementMap(rows, savedLang)
       setElements(elMap)
+      setRecipeMap(buildRecipeMapFromRows(recipes))
 
-      // Build recipe map
-      if (Array.isArray(recipesData) && recipesData.length > 0) {
-        setRecipeMap(buildRecipeMap(recipesData))
-      } else {
-        // Fallback: load from local recipes
-        import('@/lib/game-data').then(({ parseRecipes, buildRecipeMap: bRM }) => {
-          import('@/lib/recipes-raw').then(({ RAW_RECIPES }) => {
-            const parsed = parseRecipes(RAW_RECIPES)
-            const localRM = bRM(parsed.recipes)
-            setRecipeMap(localRM)
-            // Also fill in missing elements from local data
-            setElements(prev => {
-              const merged = new Map(prev)
-              parsed.elements.forEach((el, name) => {
-                if (!merged.has(name)) merged.set(name, el)
-              })
-              return merged
-            })
-          })
-        })
-      }
-
-      // Load saved progress
+      // Load discovered progress
+      const baseElements = savedLang === 'fr' ? BASE_ELEMENTS_FR : BASE_ELEMENTS_EN
       const savedDisc = (() => {
         try {
           const saved = localStorage.getItem(STORAGE_KEY)
-          if (saved) {
-            const arr = JSON.parse(saved) as string[]
-            return new Set(arr)
-          }
+          if (saved) return new Set(JSON.parse(saved) as string[])
         } catch {}
         return new Set<string>()
       })()
 
-      // Only keep discovered elements that exist in the DB
-      const validDisc = new Set<string>(BASE_ELEMENTS)
-      savedDisc.forEach(name => {
-        if (elMap.has(name)) validDisc.add(name)
-      })
-
+      const validDisc = new Set<string>(baseElements.filter(b => elMap.has(b)))
+      savedDisc.forEach(name => { if (elMap.has(name)) validDisc.add(name) })
       setDiscovered(validDisc)
       setInitialized(true)
     }).catch(() => {
-      // Fallback to local data
-      import('@/lib/game-data').then(({ parseRecipes, buildRecipeMap: bRM }) => {
-        import('@/lib/recipes-raw').then(({ RAW_RECIPES }) => {
-          const parsed = parseRecipes(RAW_RECIPES)
-          setElements(parsed.elements)
-          setRecipeMap(bRM(parsed.recipes))
-          setDiscovered(new Set(BASE_ELEMENTS))
-          setInitialized(true)
-        })
-      })
+      setDiscovered(new Set(BASE_ELEMENTS_FR))
+      setInitialized(true)
     })
   }, [])
 
-  // Save progress
+  // Rebuild elements + recipes when lang changes (after initial load)
+  const setLang = useCallback((newLang: Lang) => {
+    if (dbRows.length === 0) return
+    setLangState(newLang)
+    try { localStorage.setItem(LANG_KEY, newLang) } catch {}
+
+    const newElMap = buildElementMap(dbRows, newLang)
+    setElements(newElMap)
+
+    // Translate discovered set: map old names to new names via number
+    const frToEn = new Map<string, string>()
+    const enToFr = new Map<string, string>()
+    for (const row of dbRows) {
+      if (row.name_french && row.name_english) {
+        frToEn.set(row.name_french, row.name_english)
+        enToFr.set(row.name_english, row.name_french)
+      }
+    }
+    const translate = newLang === 'en' ? frToEn : enToFr
+    setDiscovered(prev => {
+      const translated = new Set<string>()
+      prev.forEach(name => {
+        const newName = translate.get(name) || name
+        if (newElMap.has(newName)) translated.add(newName)
+      })
+      return translated
+    })
+    setPlayground(prev => prev.map(item => {
+      const newName = translate.get(item.element) || item.element
+      return { ...item, element: newElMap.has(newName) ? newName : item.element }
+    }))
+
+    // Rebuild recipe map with new lang
+    // Recipes in DB are stored in FR — translate keys for EN
+    if (newLang === 'en') {
+      const translatedRecipes = dbRecipesFr.map(r => ({
+        ingredient1: frToEn.get(r.ingredient1) || r.ingredient1,
+        ingredient2: frToEn.get(r.ingredient2) || r.ingredient2,
+        result: frToEn.get(r.result) || r.result,
+      }))
+      setRecipeMap(buildRecipeMapFromRows(translatedRecipes))
+    } else {
+      setRecipeMap(buildRecipeMapFromRows(dbRecipesFr))
+    }
+  }, [dbRows, dbRecipesFr])
+
+  // Save discovered progress
   useEffect(() => {
     if (initialized && discovered.size > 0) {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify([...discovered]))
-      } catch {}
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...discovered])) } catch {}
     }
   }, [discovered, initialized])
 
@@ -166,23 +210,18 @@ export function useGameStore() {
     setPlayground(prev => prev.filter(item => item.id !== id))
   }, [])
 
-  const clearPlayground = useCallback(() => {
-    setPlayground([])
-  }, [])
+  const clearPlayground = useCallback(() => setPlayground([]), [])
 
   const tryMerge = useCallback((id1: string, id2: string): string | null => {
     const item1 = playground.find(i => i.id === id1)
     const item2 = playground.find(i => i.id === id2)
     if (!item1 || !item2) return null
-
     const result = findRecipe(recipeMap, item1.element, item2.element)
     if (result) {
-      const midX = (item1.x + item2.x) / 2
-      const midY = (item1.y + item2.y) / 2
       const newId = generateId()
       setPlayground(prev => [
         ...prev.filter(i => i.id !== id1 && i.id !== id2),
-        { id: newId, element: result, x: midX, y: midY }
+        { id: newId, element: result, x: (item1.x + item2.x) / 2, y: (item1.y + item2.y) / 2 }
       ])
       if (!discovered.has(result)) {
         setDiscovered(prev => new Set([...prev, result]))
@@ -215,10 +254,12 @@ export function useGameStore() {
   }, [playground, discovered, recipeMap, generateId])
 
   const resetProgress = useCallback(() => {
-    setDiscovered(new Set(BASE_ELEMENTS))
+    const baseEls = lang === 'fr' ? BASE_ELEMENTS_FR : BASE_ELEMENTS_EN
+    const validBase = new Set(baseEls.filter(b => elements.has(b)))
+    setDiscovered(validBase)
     setPlayground([])
     try { localStorage.removeItem(STORAGE_KEY) } catch {}
-  }, [])
+  }, [lang, elements])
 
   const unlockAll = useCallback(() => {
     const all = new Set<string>(elements.keys())
@@ -227,12 +268,14 @@ export function useGameStore() {
   }, [elements])
 
   return {
+    lang,
+    setLang,
     elements,
     discovered,
     playground,
     newlyDiscovered,
     initialized,
-    totalElements: totalDbCount || elements.size,
+    totalElements: totalDbCount,
     addToPlayground,
     moveOnPlayground,
     removeFromPlayground,
@@ -242,15 +285,4 @@ export function useGameStore() {
     resetProgress,
     unlockAll,
   }
-}
-
-function getColor(name: string): string {
-  const n = name.toLowerCase()
-  const map: Record<string, string> = {
-    eau: '#3B82F6', feu: '#EF4444', terre: '#A16207', air: '#06B6D4',
-  }
-  if (map[n]) return map[n]
-  const hash = Array.from(name).reduce((acc, c) => acc + c.charCodeAt(0), 0)
-  const colors = ['#6366F1','#8B5CF6','#EC4899','#14B8A6','#F97316','#22C55E','#EAB308','#06B6D4']
-  return colors[hash % colors.length]
 }

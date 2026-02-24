@@ -13,6 +13,8 @@ interface PlaygroundProps {
   discovered: Set<string>
   discoveredCount: number
   totalCount: number
+  lang: 'fr' | 'en'
+  onSetLang: (l: 'fr' | 'en') => void
   onDrop: (element: string, x: number, y: number) => string
   onMove: (id: string, x: number, y: number) => void
   onMerge: (id1: string, id2: string) => string | null
@@ -119,7 +121,8 @@ function useCustomScrollbar(
 // ============================================================
 export function Playground({
   items, elements, discovered, discoveredCount, totalCount,
-  onDrop, onMove, onMerge, onDropAndMerge, onRemove, onClear,   onReset,
+  lang, onSetLang,
+  onDrop, onMove, onMerge, onDropAndMerge, onRemove, onClear, onReset,
   onUnlockAll,
 }: PlaygroundProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -355,7 +358,7 @@ export function Playground({
           className="absolute top-4 left-4 z-[101] flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground text-xs font-medium backdrop-blur transition-colors"
         >
           <Trash2 className="w-3.5 h-3.5" />
-          Vider
+          {lang === 'fr' ? 'Vider' : 'Clear'}
         </button>
       )}
 
@@ -372,6 +375,17 @@ export function Playground({
               {discoveredCount}<span className="text-muted-foreground">/{totalCount}</span>
             </span>
             <div className="flex items-center gap-1">
+              {/* Lang switcher */}
+              <div className="flex items-center bg-muted rounded-md p-0.5 h-7">
+                <button
+                  className={`px-1.5 h-6 text-[10px] font-semibold rounded transition-colors ${lang === 'fr' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                  onClick={() => onSetLang('fr')}
+                >FR</button>
+                <button
+                  className={`px-1.5 h-6 text-[10px] font-semibold rounded transition-colors ${lang === 'en' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                  onClick={() => onSetLang('en')}
+                >EN</button>
+              </div>
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
                 {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
               </Button>
@@ -383,10 +397,14 @@ export function Playground({
                   <>
                     <div className="fixed inset-0 z-[200]" onClick={() => setShowReset(false)} />
                     <div className="absolute right-0 top-full mt-2 z-[201] bg-popover border border-border rounded-lg shadow-xl p-3 w-44">
-                      <p className="text-xs mb-2">Reinitialiser ?</p>
+                      <p className="text-xs mb-2">{lang === 'fr' ? 'Réinitialiser ?' : 'Reset progress?'}</p>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="destructive" className="flex-1" onClick={() => { onReset(); setShowReset(false) }}>Oui</Button>
-                        <Button size="sm" variant="outline" className="flex-1" onClick={() => setShowReset(false)}>Non</Button>
+                        <Button size="sm" variant="destructive" className="flex-1" onClick={() => { onReset(); setShowReset(false) }}>
+                          {lang === 'fr' ? 'Oui' : 'Yes'}
+                        </Button>
+                        <Button size="sm" variant="outline" className="flex-1" onClick={() => setShowReset(false)}>
+                          {lang === 'fr' ? 'Non' : 'No'}
+                        </Button>
                       </div>
                     </div>
                   </>
@@ -402,7 +420,7 @@ export function Playground({
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Rechercher..."
+              placeholder={lang === 'fr' ? 'Rechercher...' : 'Search...'}
               className="w-full h-8 pl-8 pr-8 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
               style={{ fontSize: '16px' }}
             />
@@ -423,7 +441,7 @@ export function Playground({
                 className="flex-1 h-7 text-[10px] gap-1 px-2"
                 onClick={() => toggleSort(type)}
               >
-                {type === 'name' ? 'Nom' : 'Récent'}
+                {type === 'name' ? (lang === 'fr' ? 'Nom' : 'Name') : (lang === 'fr' ? 'Récent' : 'Recent')}
                 {sortBy === type && <ArrowUpDown className={`w-2.5 h-2.5 transition-transform ${sortReverse ? 'rotate-180' : ''}`} />}
               </Button>
             ))}
@@ -438,7 +456,7 @@ export function Playground({
             className="w-full h-7 text-[10px] text-muted-foreground border-dashed"
             onClick={onUnlockAll}
           >
-            Tout débloquer (test)
+            {lang === 'fr' ? 'Tout débloquer (test)' : 'Unlock all (test)'}
           </Button>
         </div>
 
