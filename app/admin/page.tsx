@@ -287,7 +287,9 @@ function AddModal({ onClose, onAdded }: { onClose: () => void; onAdded: (el: Ele
       const el = await res.json()
       onAdded(el)
     } else {
-      setError('Erreur lors de la création')
+      const err = await res.json().catch(() => ({}))
+      console.error('[v0] create element error:', err)
+      setError(`Erreur: ${err.detail || err.error || res.status}`)
     }
     setSaving(false)
   }
