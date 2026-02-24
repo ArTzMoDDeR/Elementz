@@ -21,11 +21,23 @@ export interface PlaygroundItem {
 
 type RecipeMap = Map<string, string>
 
-function buildRecipeMap(recipes: Array<{ ingredient1: string; ingredient2: string; result: string }>): RecipeMap {
+type RecipeRow = {
+  ingredient1: string
+  ingredient2: string
+  result: string
+  ingredient1_en?: string
+  ingredient2_en?: string
+  result_en?: string
+}
+
+function buildRecipeMap(recipes: RecipeRow[], lang: Lang): RecipeMap {
   const map = new Map<string, string>()
   for (const r of recipes) {
-    map.set(`${r.ingredient1}|${r.ingredient2}`, r.result)
-    map.set(`${r.ingredient2}|${r.ingredient1}`, r.result)
+    const a = lang === 'en' ? (r.ingredient1_en || r.ingredient1) : r.ingredient1
+    const b = lang === 'en' ? (r.ingredient2_en || r.ingredient2) : r.ingredient2
+    const res = lang === 'en' ? (r.result_en || r.result) : r.result
+    map.set(`${a}|${b}`, res)
+    map.set(`${b}|${a}`, res)
   }
   return map
 }
@@ -67,16 +79,11 @@ function buildElementMap(
   return map
 }
 
-function buildRecipeMapFromRows(
-  rows: Array<{ ingredient1: string; ingredient2: string; result: string }>,
-): RecipeMap {
-  return buildRecipeMap(rows)
-}
 
 export function useGameStore() {
   const [lang, setLangState] = useState<Lang>('fr')
   const [dbRows, setDbRows] = useState<Array<{ number: number; name_french: string; name_english: string; img: string | null }>>([])
-  const [dbRecipesFr, setDbRecipesFr] = useState<Array<{ ingredient1: string; ingredient2: string; result: string }>>([])
+  const [dbRecipes, setDbRecipes] = useState<RecipeRow[]>([])
   const [elements, setElements] = useState<Map<string, ElementDef>>(new Map())
   const [recipeMap, setRecipeMap] = useState<RecipeMap>(new Map())
   const [discovered, setDiscovered] = useState<Set<string>>(new Set())
@@ -106,17 +113,16 @@ export function useGameStore() {
       setDbRows(rows)
       setTotalDbCount(rows.length)
 
-      const recipes: Array<{ ingredient1: string; ingredient2: string; result: string }> =
-        Array.isArray(recipesData) ? recipesData : []
-      setDbRecipesFr(recipes)
+      const recipes: RecipeRow[] = Array.isArray(recipesData) ? recipesData : []
+      setDbRecipes(recipes)
 
-      // Build initial element map (fr by default)
+      // Build initial element map using saved lang
       const savedLang = (() => {
         try { return (localStorage.getItem(LANG_KEY) as Lang | null) || 'fr' } catch { return 'fr' }
       })()
       const elMap = buildElementMap(rows, savedLang)
       setElements(elMap)
-      setRecipeMap(buildRecipeMapFromRows(recipes))
+      setRecipeMap(buildRecipeMap(recipes, savedLang))
 
       // Load discovered progress
       const baseElements = savedLang === 'fr' ? BASE_ELEMENTS_FR : BASE_ELEMENTS_EN
@@ -138,7 +144,7 @@ export function useGameStore() {
     })
   }, [])
 
-  // Rebuild elements + recipes when lang changes (after initial load)
+  // Rebuild elements + recipes when lang changes
   const setLang = useCallback((newLang: Lang) => {
     if (dbRows.length === 0) return
     setLangState(newLang)
@@ -146,8 +152,9 @@ export function useGameStore() {
 
     const newElMap = buildElementMap(dbRows, newLang)
     setElements(newElMap)
+    setRecipeMap(buildRecipeMap(dbRecipes, newLang))
 
-    // Translate discovered set: map old names to new names via number
+    // Translate discovered names and playground items
     const frToEn = new Map<string, string>()
     const enToFr = new Map<string, string>()
     for (const row of dbRows) {
@@ -169,20 +176,7 @@ export function useGameStore() {
       const newName = translate.get(item.element) || item.element
       return { ...item, element: newElMap.has(newName) ? newName : item.element }
     }))
-
-    // Rebuild recipe map with new lang
-    // Recipes in DB are stored in FR — translate keys for EN
-    if (newLang === 'en') {
-      const translatedRecipes = dbRecipesFr.map(r => ({
-        ingredient1: frToEn.get(r.ingredient1) || r.ingredient1,
-        ingredient2: frToEn.get(r.ingredient2) || r.ingredient2,
-        result: frToEn.get(r.result) || r.result,
-      }))
-      setRecipeMap(buildRecipeMapFromRows(translatedRecipes))
-    } else {
-      setRecipeMap(buildRecipeMapFromRows(dbRecipesFr))
-    }
-  }, [dbRows, dbRecipesFr])
+  }, [dbRows, dbRecipes])
 
   // Save discovered progress
   useEffect(() => {
