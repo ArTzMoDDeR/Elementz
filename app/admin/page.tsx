@@ -26,7 +26,7 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState<Set<number>>(new Set())
   const [search, setSearch] = useState('')
-  const [filterStatus, setFilterStatus] = useState<'all' | 'with' | 'without'>('without')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'with' | 'without'>('all')
   const [isDragging, setIsDragging] = useState(false)
   const [expandedElement, setExpandedElement] = useState<number | null>(null)
   const [recipes, setRecipes] = useState<Record<number, Recipe[]>>({})
