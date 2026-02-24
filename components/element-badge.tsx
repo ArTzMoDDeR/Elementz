@@ -37,21 +37,15 @@ const ELEMENT_ICONS: Record<string, (color: string) => React.ReactNode> = {
   ),
 }
 
-const SQUARE_SIZE = {
-  sm: 'w-16 h-16',
-  md: 'w-24 h-24',
-  lg: 'w-28 h-28',
-}
-
-const ICON_SIZE = {
-  sm: 'w-7 h-7',
-  md: 'w-12 h-12',
-  lg: 'w-14 h-14',
+const ICON_RATIO = {
+  sm: 'w-[45%] h-[45%]',
+  md: 'w-[50%] h-[50%]',
+  lg: 'w-[50%] h-[50%]',
 }
 
 const TEXT_SIZE = {
   sm: 'text-[9px]',
-  md: 'text-xs',
+  md: 'text-[11px]',
   lg: 'text-sm',
 }
 
@@ -60,14 +54,14 @@ export function ElementBadge({ element, size = 'md', className = '', style }: El
 
   return (
     <div
-      className={`${SQUARE_SIZE[size]} flex flex-col items-center justify-center gap-1 rounded-xl select-none p-1 ${className}`}
+      className={`w-full aspect-square flex flex-col items-center justify-center gap-1 rounded-xl select-none p-1.5 ${className}`}
       style={{
         backgroundColor: `${element.color}15`,
         border: `1.5px solid ${element.color}35`,
         ...style,
       }}
     >
-      <div className={`${ICON_SIZE[size]} flex-shrink-0 flex items-center justify-center overflow-hidden rounded-lg`}>
+      <div className={`${ICON_RATIO[size]} flex-shrink-0 flex items-center justify-center overflow-hidden rounded-lg`}>
         {element.imageUrl ? (
           <img
             src={element.imageUrl}

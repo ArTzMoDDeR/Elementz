@@ -440,7 +440,7 @@ export function Playground({
               {discoveredElements.map(element => (
                 <div
                   key={element.name}
-                  className="cursor-grab active:cursor-grabbing select-none flex justify-center"
+                  className="cursor-grab active:cursor-grabbing select-none"
                   onPointerDown={e => handleInventoryPointerDown(e, element.name)}
                 >
                   <ElementBadge element={element} size="md" />
