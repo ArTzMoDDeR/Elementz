@@ -106,18 +106,25 @@ export default function AdminPanel() {
     }
   }
 
+  function normalizeForMatch(str: string) {
+    return str.toLowerCase()
+      .replace(/-/g, ' ')       // tirets -> espaces
+      .replace(/\s+/g, ' ')     // espaces multiples -> un seul
+      .trim()
+  }
+
   async function handleBulkUpload(files: FileList | File[]) {
     const fileArray = Array.from(files)
     
     for (const file of fileArray) {
-      // Extract element number or name from filename
-      const fileName = file.name.replace(/\.(jpg|jpeg|png)$/i, '')
+      const fileName = file.name.replace(/\.(jpg|jpeg|png|webp)$/i, '')
+      const fileNorm = normalizeForMatch(fileName)
       
-      // Try to match by number first, then by name
+      // Match par numéro, ou par nom FR/EN normalisé (espaces = tirets)
       const element = elements.find(el => 
         el.number.toString() === fileName ||
-        el.name_french.toLowerCase() === fileName.toLowerCase() ||
-        el.name_english.toLowerCase() === fileName.toLowerCase()
+        normalizeForMatch(el.name_french) === fileNorm ||
+        normalizeForMatch(el.name_english) === fileNorm
       )
       
       if (element) {
