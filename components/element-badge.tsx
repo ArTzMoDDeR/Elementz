@@ -5,57 +5,59 @@ import { type ElementDef } from '@/lib/game-data'
 interface ElementBadgeProps {
   element: ElementDef
   size?: 'sm' | 'md' | 'lg'
-  fluid?: boolean  // true = w-full aspect-square (inventory grid), false = fixed px size (playground)
+  fluid?: boolean
   className?: string
   style?: React.CSSProperties
 }
 
-// SVG icon paths for common elements (simple, recognizable shapes)
 const ELEMENT_ICONS: Record<string, (color: string) => React.ReactNode> = {
-  'eau': (c) => (
+  'eau': (_c) => (
     <svg viewBox="0 0 24 24" fill="none" className="w-full h-full">
-      <path d="M12 2C12 2 5 10 5 15a7 7 0 0014 0c0-5-7-13-7-13z" fill={c} opacity="0.9"/>
+      <path d="M12 2C12 2 5 10 5 15a7 7 0 0014 0c0-5-7-13-7-13z" fill="rgba(255,255,255,0.7)"/>
     </svg>
   ),
-  'feu': (c) => (
+  'feu': (_c) => (
     <svg viewBox="0 0 24 24" fill="none" className="w-full h-full">
-      <path d="M12 2c0 0-6 6-6 12a6 6 0 0012 0c0-3-1.5-5-3-7 0 2-1 3-3 3s-2-2 0-8z" fill={c} opacity="0.9"/>
+      <path d="M12 2c0 0-6 6-6 12a6 6 0 0012 0c0-3-1.5-5-3-7 0 2-1 3-3 3s-2-2 0-8z" fill="rgba(255,255,255,0.7)"/>
     </svg>
   ),
-  'terre': (c) => (
+  'terre': (_c) => (
     <svg viewBox="0 0 24 24" fill="none" className="w-full h-full">
-      <circle cx="12" cy="12" r="10" fill={c} opacity="0.9"/>
-      <path d="M7 8c2-1 4 0 5 2s3 2 5 0" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" fill="none"/>
-      <path d="M5 14c3-1 5 1 7 0s4-1 7 1" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" fill="none"/>
+      <circle cx="12" cy="12" r="10" fill="rgba(255,255,255,0.7)"/>
     </svg>
   ),
-  'air': (c) => (
+  'air': (_c) => (
     <svg viewBox="0 0 24 24" fill="none" className="w-full h-full">
-      <path d="M4 8h12a3 3 0 100-3" stroke={c} strokeWidth="2" strokeLinecap="round" fill="none"/>
-      <path d="M4 12h14a3 3 0 110 3H4" stroke={c} strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.7"/>
-      <path d="M4 16h8a2 2 0 110 2" stroke={c} strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.5"/>
+      <path d="M4 8h12a3 3 0 100-3" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M4 12h14a3 3 0 110 3H4" stroke="rgba(255,255,255,0.5)" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M4 16h8a2 2 0 110 2" stroke="rgba(255,255,255,0.3)" strokeWidth="2" strokeLinecap="round"/>
     </svg>
   ),
 }
 
-// Fixed px sizes for playground items
 const FIXED_SIZE = {
   sm: 'w-16 h-16',
   md: 'w-20 h-20',
   lg: 'w-24 h-24',
 }
 
+// Icon takes 70% of the badge, label strip is fixed height
 const ICON_RATIO = {
-  sm: 'w-[45%] h-[45%]',
-  md: 'w-[50%] h-[50%]',
-  lg: 'w-[50%] h-[50%]',
+  sm: 'w-[65%] h-[65%]',
+  md: 'w-[70%] h-[70%]',
+  lg: 'w-[72%] h-[72%]',
 }
 
-const TEXT_SIZE = {
+const LABEL_SIZE = {
   sm: 'text-[9px]',
   md: 'text-[11px]',
-  lg: 'text-sm',
+  lg: 'text-xs',
 }
+
+// Single neutral background for all badges
+const BADGE_BG = 'rgba(255,255,255,0.06)'
+const BADGE_BORDER = 'rgba(255,255,255,0.12)'
+const LABEL_BG = 'rgba(0,0,0,0.55)'
 
 export function ElementBadge({ element, size = 'md', fluid = false, className = '', style }: ElementBadgeProps) {
   const hasIcon = ELEMENT_ICONS[element.name]
@@ -65,28 +67,27 @@ export function ElementBadge({ element, size = 'md', fluid = false, className = 
     <div
       className={`${sizeClass} flex flex-col items-center justify-between rounded-xl select-none overflow-hidden ${className}`}
       style={{
-        backgroundColor: `${element.color}10`,
-        border: `1px solid ${element.color}25`,
+        backgroundColor: BADGE_BG,
+        border: `1px solid ${BADGE_BORDER}`,
         ...style,
       }}
     >
-      {/* Icon area — takes most of the space */}
-      {/* Icon / image area */}
-      <div className="flex-1 w-full flex items-center justify-center px-2 pt-2 pb-1">
+      {/* Image / icon — fills most of the badge */}
+      <div className="flex-1 w-full flex items-center justify-center p-1.5">
         <div className={`${ICON_RATIO[size]} flex items-center justify-center`}>
           {element.imageUrl ? (
             <img
               src={element.imageUrl}
               alt={element.name}
               draggable={false}
-              className="w-full h-full object-contain pointer-events-none drop-shadow-sm"
+              className="w-full h-full object-contain pointer-events-none"
             />
           ) : hasIcon ? (
             ELEMENT_ICONS[element.name](element.color)
           ) : (
             <div
-              className="w-full h-full flex items-center justify-center font-bold rounded-lg"
-              style={{ backgroundColor: element.color, color: 'white', fontSize: '60%' }}
+              className="w-[80%] h-[80%] flex items-center justify-center font-bold rounded-lg text-white"
+              style={{ backgroundColor: 'rgba(255,255,255,0.15)', fontSize: '120%' }}
             >
               {element.name.charAt(0).toUpperCase()}
             </div>
@@ -94,13 +95,20 @@ export function ElementBadge({ element, size = 'md', fluid = false, className = 
         </div>
       </div>
 
-      {/* Label strip */}
+      {/* Label — shrinks font if name is long via fitText approach */}
       <div
-        className="w-full px-1.5 py-1 flex items-center justify-center"
-        style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+        className="w-full px-1 py-[3px] flex items-center justify-center shrink-0"
+        style={{ backgroundColor: LABEL_BG }}
       >
         <span
-          className={`${TEXT_SIZE[size]} font-semibold leading-tight text-center w-full line-clamp-2 text-white`}
+          className={`${LABEL_SIZE[size]} font-semibold leading-tight text-center text-white w-full`}
+          style={{
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            wordBreak: 'break-word',
+          }}
         >
           {element.name}
         </span>
