@@ -5,7 +5,14 @@ export async function GET() {
   try {
     if (!process.env.DATABASE_URL) return NextResponse.json({ error: 'No DB' }, { status: 500 })
     const sql = neon(process.env.DATABASE_URL)
-    const elements = await sql`SELECT number, name_english, name_french, img FROM elements ORDER BY number`
+    const elements = await sql`
+      SELECT e.number, e.name_english, e.name_french, e.img,
+        COUNT(r.id)::int AS recipe_count
+      FROM elements e
+      LEFT JOIN recipes r ON r.result_number = e.number
+      GROUP BY e.number, e.name_english, e.name_french, e.img
+      ORDER BY e.number
+    `
     return NextResponse.json(elements)
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch elements' }, { status: 500 })

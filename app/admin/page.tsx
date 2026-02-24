@@ -14,6 +14,7 @@ type Element = {
   name_english: string
   name_french: string
   img: string | null
+  recipe_count?: number
 }
 
 type Recipe = {
@@ -393,7 +394,7 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState<Set<number>>(new Set())
   const [search, setSearch] = useState('')
-  const [filterStatus, setFilterStatus] = useState<'all' | 'with' | 'without'>('all')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'with' | 'without' | 'no-recipe'>('all')
   const [isDragging, setIsDragging] = useState(false)
   const [editingElement, setEditingElement] = useState<Element | null>(null)
   const [showAdd, setShowAdd] = useState(false)
@@ -450,6 +451,7 @@ export default function AdminPanel() {
     if (!matches) return false
     if (filterStatus === 'with') return !!el.img
     if (filterStatus === 'without') return !el.img
+    if (filterStatus === 'no-recipe') return (el.recipe_count ?? 0) === 0
     return true
   })
 
@@ -457,6 +459,7 @@ export default function AdminPanel() {
     total: elements.length,
     withImage: elements.filter(el => el.img).length,
     withoutImage: elements.filter(el => !el.img).length,
+    noRecipe: elements.filter(el => (el.recipe_count ?? 0) === 0).length,
   }
 
   if (loading) return (
@@ -553,9 +556,12 @@ export default function AdminPanel() {
             />
           </div>
           <div className="flex gap-2">
-            {(['all', 'with', 'without'] as const).map(f => (
+            {(['all', 'with', 'without', 'no-recipe'] as const).map(f => (
               <Button key={f} size="sm" variant={filterStatus === f ? 'default' : 'outline'} onClick={() => setFilterStatus(f)}>
-                {f === 'all' ? 'Tous' : f === 'with' ? 'Avec image' : 'Sans image'}
+                {f === 'all' ? `Tous (${stats.total})`
+                  : f === 'with' ? `Avec image (${stats.withImage})`
+                  : f === 'without' ? `Sans image (${stats.withoutImage})`
+                  : `Sans combinaison (${stats.noRecipe})`}
               </Button>
             ))}
           </div>
@@ -585,7 +591,14 @@ export default function AdminPanel() {
               {/* Info + actions */}
               <div className="p-2 flex flex-col gap-1.5 flex-1">
                 <div>
-                  <p className="text-[10px] text-muted-foreground font-mono">#{element.number}</p>
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <p className="text-[10px] text-muted-foreground font-mono">#{element.number}</p>
+                    {(element.recipe_count ?? 0) === 0 && (
+                      <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-amber-500/15 text-amber-500 border border-amber-500/25 leading-none">
+                        0 combinaison
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs font-semibold leading-tight truncate" title={element.name_french}>{element.name_french}</p>
                   {element.name_english && (
                     <p className="text-[10px] text-muted-foreground truncate">{element.name_english}</p>
