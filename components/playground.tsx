@@ -401,7 +401,8 @@ export function Playground({
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Rechercher..."
-              className="w-full h-8 pl-8 pr-8 bg-background border border-input rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full h-8 pl-8 pr-8 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+              style={{ fontSize: '16px' }}
             />
             {search && (
               <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2">
@@ -435,7 +436,7 @@ export function Playground({
             className="flex-1 overflow-y-scroll p-2"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', touchAction: 'none' }}
           >
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-3">
               {discoveredElements.map(element => (
                 <div
                   key={element.name}
@@ -451,12 +452,12 @@ export function Playground({
           {/* Custom scrollbar track */}
           <div
             ref={scrollTrackRef}
-            className="w-3 flex-shrink-0 bg-muted/30 relative my-2 mr-1.5 rounded-full"
+            className="w-4 lg:w-3 flex-shrink-0 bg-muted/30 relative my-2 mr-1.5 rounded-full"
           >
             {/* Thumb */}
             <div
               ref={scrollThumbRef}
-              className="absolute w-full rounded-full bg-muted-foreground/40 hover:bg-muted-foreground/60 active:bg-muted-foreground/80 cursor-grab active:cursor-grabbing transition-colors"
+              className="absolute w-full rounded-full bg-muted-foreground/50 hover:bg-muted-foreground/70 active:bg-muted-foreground/90 cursor-grab active:cursor-grabbing transition-colors"
               style={{ touchAction: 'none' }}
             />
           </div>
