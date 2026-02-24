@@ -6,16 +6,11 @@ export async function GET(
   context: { params: Promise<{ number: string }> }
 ) {
   try {
-    if (!process.env.DATABASE_URL) {
-      return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
-    }
-
+    if (!process.env.DATABASE_URL) return NextResponse.json({ error: 'No DB' }, { status: 500 })
     const params = await context.params
     const elementNumber = parseInt(params.number)
-    
     const sql = neon(process.env.DATABASE_URL)
-    
-    // Get recipes that create this element
+
     const recipes = await sql`
       SELECT 
         r.id,
@@ -29,10 +24,30 @@ export async function GET(
       WHERE r.result_number = ${elementNumber}
       ORDER BY r.id
     `
-
     return NextResponse.json(recipes)
   } catch (error) {
-    console.error('[v0] Error fetching recipes:', error)
-    return NextResponse.json({ error: 'Failed to fetch recipes' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+  }
+}
+
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ number: string }> }
+) {
+  try {
+    if (!process.env.DATABASE_URL) return NextResponse.json({ error: 'No DB' }, { status: 500 })
+    const params = await context.params
+    const resultNumber = parseInt(params.number)
+    const body = await request.json()
+    const sql = neon(process.env.DATABASE_URL)
+
+    const [recipe] = await sql`
+      INSERT INTO recipes (ingredient1_number, ingredient2_number, result_number)
+      VALUES (${body.ingredient1_number}, ${body.ingredient2_number}, ${resultNumber})
+      RETURNING id
+    `
+    return NextResponse.json({ success: true, id: recipe.id })
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to add recipe' }, { status: 500 })
   }
 }
