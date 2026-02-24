@@ -22,7 +22,7 @@ interface PlaygroundProps {
   onReset: () => void
 }
 
-type SortType = 'name' | 'recent' | 'category'
+type SortType = 'name' | 'recent'
 
 interface DragState {
   source: 'inventory' | 'playground'
@@ -258,19 +258,26 @@ export function Playground({
   }, [dragging, findNearestItem, onDrop, onMerge, onDropAndMerge, cancelPendingDrag])
 
   // === INVENTORY SORT ===
-  const discoveredElements = Array.from(discovered)
+  // Keep insertion order from discovered Set for 'recent'
+  const discoveredOrder = Array.from(discovered)
+  const discoveredElements = discoveredOrder
     .map(name => elements.get(name))
     .filter((el): el is ElementDef => el !== undefined)
     .filter(el => el.name.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
-      let cmp = 0
-      if (sortBy === 'name') cmp = a.name.localeCompare(b.name)
-      else if (sortBy === 'category') cmp = a.category.localeCompare(b.category)
+      if (sortBy === 'name') {
+        const cmp = a.name.localeCompare(b.name, 'fr')
+        return sortReverse ? -cmp : cmp
+      }
+      // 'recent': use insertion order (last discovered = last in array)
+      const ia = discoveredOrder.indexOf(a.name)
+      const ib = discoveredOrder.indexOf(b.name)
+      const cmp = ib - ia // most recent first by default
       return sortReverse ? -cmp : cmp
     })
 
   const toggleSort = (type: SortType) => {
-    if (sortBy === type) setSortReverse(!sortReverse)
+    if (sortBy === type) setSortReverse(prev => !prev)
     else { setSortBy(type); setSortReverse(false) }
   }
 
@@ -417,7 +424,7 @@ export function Playground({
 
           {/* Sort */}
           <div className="flex gap-1.5">
-            {(['name', 'recent', 'category'] as const).map(type => (
+            {(['name', 'recent'] as const).map(type => (
               <Button
                 key={type}
                 variant={sortBy === type ? 'default' : 'outline'}
@@ -425,7 +432,7 @@ export function Playground({
                 className="flex-1 h-7 text-[10px] gap-1 px-2"
                 onClick={() => toggleSort(type)}
               >
-                {type === 'name' ? 'Nom' : type === 'recent' ? 'Recent' : 'Type'}
+                {type === 'name' ? 'Nom' : 'Récent'}
                 {sortBy === type && <ArrowUpDown className={`w-2.5 h-2.5 transition-transform ${sortReverse ? 'rotate-180' : ''}`} />}
               </Button>
             ))}

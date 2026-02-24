@@ -48,6 +48,7 @@ export function useGameStore() {
   const [playground, setPlayground] = useState<PlaygroundItem[]>([])
   const [newlyDiscovered, setNewlyDiscovered] = useState<string | null>(null)
   const [initialized, setInitialized] = useState(false)
+  const [totalDbCount, setTotalDbCount] = useState(0)
   const idCounter = useRef(0)
 
   // Load everything from DB
@@ -78,6 +79,7 @@ export function useGameStore() {
         }
       })
 
+      setTotalDbCount(elMap.size)
       setElements(elMap)
 
       // Build recipe map
@@ -224,7 +226,7 @@ export function useGameStore() {
     playground,
     newlyDiscovered,
     initialized,
-    totalElements: elements.size,
+    totalElements: totalDbCount || elements.size,
     addToPlayground,
     moveOnPlayground,
     removeFromPlayground,
