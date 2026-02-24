@@ -1,9 +1,9 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { ElementBadge } from './element-badge'
-import { Sparkles, RotateCcw, Moon, Sun, Search, X, ArrowUpDown, Trash2 } from 'lucide-react'
+import { Sparkles, RotateCcw, Moon, Sun, Search, X, ArrowUpDown, Trash2, GripVertical } from 'lucide-react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import { Button } from './ui/button'
 
@@ -34,6 +34,88 @@ interface DragState {
   offsetY: number
 }
 
+// ============================================================
+// Custom scrollbar hook
+// ============================================================
+function useCustomScrollbar(
+  scrollRef: React.RefObject<HTMLDivElement>,
+  trackRef: React.RefObject<HTMLDivElement>,
+  thumbRef: React.RefObject<HTMLDivElement>,
+) {
+  const isDraggingThumb = useRef(false)
+  const thumbDragStart = useRef({ y: 0, scrollTop: 0 })
+
+  const updateThumb = useCallback(() => {
+    const scroll = scrollRef.current
+    const track = trackRef.current
+    const thumb = thumbRef.current
+    if (!scroll || !track || !thumb) return
+    const ratio = scroll.clientHeight / scroll.scrollHeight
+    if (ratio >= 1) {
+      thumb.style.display = 'none'
+      return
+    }
+    thumb.style.display = 'block'
+    const thumbH = Math.max(32, track.clientHeight * ratio)
+    const maxScroll = scroll.scrollHeight - scroll.clientHeight
+    const maxThumbTop = track.clientHeight - thumbH
+    const thumbTop = maxScroll > 0 ? (scroll.scrollTop / maxScroll) * maxThumbTop : 0
+    thumb.style.height = `${thumbH}px`
+    thumb.style.transform = `translateY(${thumbTop}px)`
+  }, [scrollRef, trackRef, thumbRef])
+
+  useEffect(() => {
+    const scroll = scrollRef.current
+    const thumb = thumbRef.current
+    if (!scroll || !thumb) return
+
+    scroll.addEventListener('scroll', updateThumb, { passive: true })
+    const ro = new ResizeObserver(updateThumb)
+    ro.observe(scroll)
+    updateThumb()
+
+    const onThumbPointerDown = (e: PointerEvent) => {
+      e.stopPropagation()
+      e.preventDefault()
+      isDraggingThumb.current = true
+      thumbDragStart.current = { y: e.clientY, scrollTop: scroll.scrollTop }
+      thumb.setPointerCapture(e.pointerId)
+    }
+
+    const onThumbPointerMove = (e: PointerEvent) => {
+      if (!isDraggingThumb.current) return
+      e.stopPropagation()
+      const track = trackRef.current
+      if (!track) return
+      const ratio = scroll.scrollHeight / track.clientHeight
+      const delta = (e.clientY - thumbDragStart.current.y) * ratio
+      scroll.scrollTop = thumbDragStart.current.scrollTop + delta
+    }
+
+    const onThumbPointerUp = (e: PointerEvent) => {
+      e.stopPropagation()
+      isDraggingThumb.current = false
+    }
+
+    thumb.addEventListener('pointerdown', onThumbPointerDown)
+    thumb.addEventListener('pointermove', onThumbPointerMove)
+    thumb.addEventListener('pointerup', onThumbPointerUp)
+    thumb.addEventListener('pointercancel', onThumbPointerUp)
+
+    return () => {
+      scroll.removeEventListener('scroll', updateThumb)
+      ro.disconnect()
+      thumb.removeEventListener('pointerdown', onThumbPointerDown)
+      thumb.removeEventListener('pointermove', onThumbPointerMove)
+      thumb.removeEventListener('pointerup', onThumbPointerUp)
+      thumb.removeEventListener('pointercancel', onThumbPointerUp)
+    }
+  }, [updateThumb, scrollRef, trackRef, thumbRef])
+}
+
+// ============================================================
+// Playground component
+// ============================================================
 export function Playground({
   items, elements, discovered, discoveredCount, totalCount,
   onDrop, onMove, onMerge, onDropAndMerge, onRemove, onClear, onReset,
@@ -41,20 +123,20 @@ export function Playground({
   const containerRef = useRef<HTMLDivElement>(null)
   const inventoryRef = useRef<HTMLDivElement>(null)
   const inventoryScrollRef = useRef<HTMLDivElement>(null)
+  const scrollTrackRef = useRef<HTMLDivElement>(null)
+  const scrollThumbRef = useRef<HTMLDivElement>(null)
 
   const [dragging, setDragging] = useState<DragState | null>(null)
   const [nearMergeId, setNearMergeId] = useState<string | null>(null)
   const [mergeAnimation, setMergeAnimation] = useState<{ x: number; y: number; element: string } | null>(null)
   const [shakeId, setShakeId] = useState<string | null>(null)
-
-  // Track intent before committing to drag vs scroll
-  const pendingDragRef = useRef<{ elementName: string; pointerId: number; startX: number; startY: number; committed: boolean } | null>(null)
-
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<SortType>('recent')
   const [sortReverse, setSortReverse] = useState(false)
   const [showReset, setShowReset] = useState(false)
   const { theme, setTheme } = useTheme()
+
+  useCustomScrollbar(inventoryScrollRef, scrollTrackRef, scrollThumbRef)
 
   const getRelativePos = useCallback((clientX: number, clientY: number) => {
     if (!containerRef.current) return { x: 0, y: 0 }
@@ -66,22 +148,17 @@ export function Playground({
     let nearest: { item: PlaygroundItem; dist: number } | null = null
     items.forEach(item => {
       if (item.id === excludeId) return
-      const dx = x - item.x
-      const dy = y - item.y
-      const dist = Math.sqrt(dx * dx + dy * dy)
-      if (dist < 80 && (!nearest || dist < nearest.dist)) {
-        nearest = { item, dist }
-      }
+      const dist = Math.sqrt((x - item.x) ** 2 + (y - item.y) ** 2)
+      if (dist < 80 && (!nearest || dist < nearest.dist)) nearest = { item, dist }
     })
     return nearest?.item || null
   }, [items])
 
-  const cancelPendingDrag = useCallback(() => {
-    pendingDragRef.current = null
-  }, [])
-
-  const commitInventoryDrag = useCallback((elementName: string, pointerId: number, clientX: number, clientY: number) => {
-    const pos = getRelativePos(clientX, clientY)
+  // === INVENTORY DRAG — immediate capture, no delay, no direction detection ===
+  const handleInventoryPointerDown = useCallback((e: React.PointerEvent, elementName: string) => {
+    e.stopPropagation()
+    e.preventDefault()
+    const pos = getRelativePos(e.clientX, e.clientY)
     setDragging({
       source: 'inventory',
       elementName,
@@ -90,93 +167,30 @@ export function Playground({
       offsetX: 40,
       offsetY: 40,
     })
-    containerRef.current?.setPointerCapture(pointerId)
-    if (inventoryScrollRef.current) {
-      inventoryScrollRef.current.style.overflow = 'hidden'
-      inventoryScrollRef.current.style.touchAction = 'none'
-    }
-    pendingDragRef.current = null
+    containerRef.current?.setPointerCapture(e.pointerId)
   }, [getRelativePos])
 
-  // Pointer down on inventory item — record intent, don't commit yet
-  const handleInventoryPointerDown = useCallback((e: React.PointerEvent, elementName: string) => {
-    e.stopPropagation()
-    pendingDragRef.current = {
-      elementName,
-      pointerId: e.pointerId,
-      startX: e.clientX,
-      startY: e.clientY,
-      committed: false,
-    }
-  }, [])
-
-  // Pointer move on scroll container — decide drag vs scroll based on direction
-  const handleInventoryPointerMove = useCallback((e: React.PointerEvent) => {
-    const pd = pendingDragRef.current
-    if (!pd || pd.committed) return
-    const dx = Math.abs(e.clientX - pd.startX)
-    const rawDy = e.clientY - pd.startY // positive = down, negative = up
-    const dy = Math.abs(rawDy)
-    const moved = Math.sqrt(dx * dx + dy * dy)
-    if (moved < 6) return
-
-    // Dragging UP from inventory = drag intent (inventory is at bottom)
-    // Dragging DOWN = scroll intent
-    if (rawDy > 0 && dy > dx) {
-      // Moving down — it's a scroll, cancel drag
-      pendingDragRef.current = null
-    } else {
-      // Moving up or horizontally — commit to drag
-      pd.committed = true
-      commitInventoryDrag(pd.elementName, pd.pointerId, e.clientX, e.clientY)
-    }
-  }, [commitInventoryDrag])
-
-  // === POINTER DOWN (playground items only now) ===
-  const handlePointerDown = useCallback((e: React.PointerEvent, source: 'inventory' | 'playground', elementName: string, itemId?: string) => {
+  // === PLAYGROUND ITEM DRAG ===
+  const handlePointerDown = useCallback((e: React.PointerEvent, elementName: string, itemId: string) => {
     e.preventDefault()
     e.stopPropagation()
+    const item = items.find(i => i.id === itemId)
+    if (!item) return
     const pos = getRelativePos(e.clientX, e.clientY)
-
-    if (source === 'playground' && itemId) {
-      const item = items.find(i => i.id === itemId)
-      if (!item) return
-      setDragging({
-        source: 'playground',
-        elementName,
-        itemId,
-        x: item.x,
-        y: item.y,
-        offsetX: pos.x - item.x,
-        offsetY: pos.y - item.y,
-      })
-      containerRef.current?.setPointerCapture(e.pointerId)
-    }
+    setDragging({
+      source: 'playground',
+      elementName,
+      itemId,
+      x: item.x,
+      y: item.y,
+      offsetX: pos.x - item.x,
+      offsetY: pos.y - item.y,
+    })
+    containerRef.current?.setPointerCapture(e.pointerId)
   }, [getRelativePos, items])
 
-  // === POINTER MOVE (container-level — handles both pending and active drag) ===
+  // === POINTER MOVE ===
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    // Check pending inventory drag intent first
-    const pd = pendingDragRef.current
-    if (pd && !pd.committed) {
-      const dx = Math.abs(e.clientX - pd.startX)
-      const dy = Math.abs(e.clientY - pd.startY)
-      const moved = Math.sqrt(dx * dx + dy * dy)
-      if (moved >= 6) {
-        const rawDy = e.clientY - pd.startY
-        const absDy = Math.abs(rawDy)
-        if (rawDy > 0 && absDy > dx) {
-          // Moving down = scroll intent, cancel drag
-          pendingDragRef.current = null
-        } else {
-          // Moving up or horizontally = drag intent
-          pd.committed = true
-          commitInventoryDrag(pd.elementName, pd.pointerId, e.clientX, e.clientY)
-        }
-      }
-      return
-    }
-
     if (!dragging) return
     e.preventDefault()
     const pos = getRelativePos(e.clientX, e.clientY)
@@ -191,17 +205,16 @@ export function Playground({
       setDragging(prev => prev ? { ...prev, x: newX, y: newY } : null)
       setNearMergeId(findNearestItem(newX, newY)?.id || null)
     }
-  }, [dragging, getRelativePos, onMove, findNearestItem, commitInventoryDrag])
+  }, [dragging, getRelativePos, onMove, findNearestItem])
 
   // === POINTER UP ===
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (!dragging) return
     e.preventDefault()
-    e.stopPropagation()
     containerRef.current?.releasePointerCapture(e.pointerId)
 
-    const dropPoint = document.elementFromPoint(e.clientX, e.clientY)
-    const droppedOnInventory = inventoryRef.current?.contains(dropPoint)
+    const dropTarget = document.elementFromPoint(e.clientX, e.clientY)
+    const droppedOnInventory = inventoryRef.current?.contains(dropTarget)
 
     if (dragging.source === 'inventory') {
       if (droppedOnInventory) {
@@ -209,16 +222,11 @@ export function Playground({
         setNearMergeId(null)
         return
       }
-
       const nearest = findNearestItem(dragging.x, dragging.y)
       if (nearest) {
         const result = onDropAndMerge(dragging.elementName, dragging.x, dragging.y, nearest.id)
         if (result) {
-          setMergeAnimation({
-            x: (dragging.x + nearest.x) / 2,
-            y: (dragging.y + nearest.y) / 2,
-            element: result,
-          })
+          setMergeAnimation({ x: (dragging.x + nearest.x) / 2, y: (dragging.y + nearest.y) / 2, element: result })
           setTimeout(() => setMergeAnimation(null), 700)
         } else {
           const newId = onDrop(dragging.elementName, dragging.x, dragging.y)
@@ -228,17 +236,12 @@ export function Playground({
       } else {
         onDrop(dragging.elementName, dragging.x, dragging.y)
       }
-
     } else if (dragging.source === 'playground' && dragging.itemId) {
       const nearest = findNearestItem(dragging.x, dragging.y, dragging.itemId)
       if (nearest) {
         const result = onMerge(dragging.itemId, nearest.id)
         if (result) {
-          setMergeAnimation({
-            x: (dragging.x + nearest.x) / 2,
-            y: (dragging.y + nearest.y) / 2,
-            element: result,
-          })
+          setMergeAnimation({ x: (dragging.x + nearest.x) / 2, y: (dragging.y + nearest.y) / 2, element: result })
           setTimeout(() => setMergeAnimation(null), 700)
         } else {
           setShakeId(dragging.itemId)
@@ -249,16 +252,9 @@ export function Playground({
 
     setDragging(null)
     setNearMergeId(null)
-    cancelPendingDrag()
-    // Restore scroll on inventory
-    if (inventoryScrollRef.current) {
-      inventoryScrollRef.current.style.overflow = ''
-      inventoryScrollRef.current.style.touchAction = ''
-    }
-  }, [dragging, findNearestItem, onDrop, onMerge, onDropAndMerge, cancelPendingDrag])
+  }, [dragging, findNearestItem, onDrop, onMerge, onDropAndMerge])
 
-  // === INVENTORY SORT ===
-  // Keep insertion order from discovered Set for 'recent'
+  // === SORT ===
   const discoveredOrder = Array.from(discovered)
   const discoveredElements = discoveredOrder
     .map(name => elements.get(name))
@@ -269,10 +265,9 @@ export function Playground({
         const cmp = a.name.localeCompare(b.name, 'fr')
         return sortReverse ? -cmp : cmp
       }
-      // 'recent': use insertion order (last discovered = last in array)
       const ia = discoveredOrder.indexOf(a.name)
       const ib = discoveredOrder.indexOf(b.name)
-      const cmp = ib - ia // most recent first by default
+      const cmp = ib - ia
       return sortReverse ? -cmp : cmp
     })
 
@@ -291,7 +286,7 @@ export function Playground({
     >
       {/* Dot grid */}
       <div
-        className="absolute inset-0 opacity-[0.03]"
+        className="absolute inset-0 opacity-[0.03] pointer-events-none"
         style={{
           backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
           backgroundSize: '24px 24px',
@@ -305,7 +300,6 @@ export function Playground({
         const isDragging = dragging?.source === 'playground' && dragging.itemId === item.id
         const isNear = nearMergeId === item.id
         const isShaking = shakeId === item.id
-
         return (
           <div
             key={item.id}
@@ -318,7 +312,7 @@ export function Playground({
               transition: isDragging ? 'none' : 'transform 0.15s',
               filter: isNear ? `drop-shadow(0 0 10px ${el.color}80)` : undefined,
             }}
-            onPointerDown={e => handlePointerDown(e, 'playground', item.element, item.id)}
+            onPointerDown={e => handlePointerDown(e, item.element, item.id)}
             onDoubleClick={() => onRemove(item.id)}
           >
             <ElementBadge element={el} size="md" />
@@ -330,13 +324,7 @@ export function Playground({
       {dragging?.source === 'inventory' && elements.get(dragging.elementName) && (
         <div
           className="absolute pointer-events-none"
-          style={{
-            left: dragging.x,
-            top: dragging.y,
-            zIndex: 9999,
-            transform: 'scale(1.05)',
-            opacity: 0.9,
-          }}
+          style={{ left: dragging.x, top: dragging.y, zIndex: 9999, transform: 'scale(1.05)', opacity: 0.9 }}
         >
           <ElementBadge element={elements.get(dragging.elementName)!} size="md" />
         </div>
@@ -369,7 +357,7 @@ export function Playground({
         </button>
       )}
 
-      {/* INVENTORY PANEL - full height right on desktop, full width bottom on mobile */}
+      {/* INVENTORY PANEL */}
       <div
         ref={inventoryRef}
         className="absolute bottom-0 left-0 right-0 h-[45vh] lg:bottom-0 lg:left-auto lg:top-0 lg:right-0 lg:h-full lg:w-[400px] bg-card/95 backdrop-blur-xl border-t lg:border-t-0 lg:border-l border-border flex flex-col"
@@ -407,7 +395,7 @@ export function Playground({
 
           {/* Search */}
           <div className="relative mb-2">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
             <input
               type="text"
               value={search}
@@ -439,30 +427,38 @@ export function Playground({
           </div>
         </div>
 
-        {/* Element grid */}
-        <div
-          ref={inventoryScrollRef}
-          className="flex-1 overflow-y-scroll overscroll-contain p-2"
-          style={{
-            touchAction: 'pan-y',
-            // Always show scrollbar so users can scroll via it on mobile
-            scrollbarWidth: 'thin',
-            scrollbarGutter: 'stable',
-          }}
-          onPointerDown={e => e.stopPropagation()}
-          onPointerUp={cancelPendingDrag}
-          onPointerCancel={cancelPendingDrag}
-        >
-          <div className="grid grid-cols-3 gap-2">
-            {discoveredElements.map(element => (
-              <div
-                key={element.name}
-                className="cursor-grab active:cursor-grabbing select-none flex justify-center"
-                onPointerDown={e => handleInventoryPointerDown(e, element.name)}
-              >
-                <ElementBadge element={element} size="md" />
-              </div>
-            ))}
+        {/* Scroll area + custom scrollbar */}
+        <div className="flex-1 flex min-h-0 overflow-hidden">
+          {/* Grid (no native scrollbar, no touch-action) */}
+          <div
+            ref={inventoryScrollRef}
+            className="flex-1 overflow-y-scroll p-2"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', touchAction: 'none' }}
+          >
+            <div className="grid grid-cols-3 gap-2">
+              {discoveredElements.map(element => (
+                <div
+                  key={element.name}
+                  className="cursor-grab active:cursor-grabbing select-none flex justify-center"
+                  onPointerDown={e => handleInventoryPointerDown(e, element.name)}
+                >
+                  <ElementBadge element={element} size="md" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Custom scrollbar track */}
+          <div
+            ref={scrollTrackRef}
+            className="w-3 flex-shrink-0 bg-muted/30 relative my-2 mr-1.5 rounded-full"
+          >
+            {/* Thumb */}
+            <div
+              ref={scrollThumbRef}
+              className="absolute w-full rounded-full bg-muted-foreground/40 hover:bg-muted-foreground/60 active:bg-muted-foreground/80 cursor-grab active:cursor-grabbing transition-colors"
+              style={{ touchAction: 'none' }}
+            />
           </div>
         </div>
       </div>
