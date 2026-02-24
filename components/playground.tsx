@@ -6,7 +6,6 @@ import { ElementBadge } from './element-badge'
 import { Sparkles, RotateCcw, Moon, Sun, Search, X, ArrowUpDown, Trash2, GripVertical } from 'lucide-react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import { Button } from './ui/button'
-import { useIsMobile } from '@/hooks/use-mobile'
 
 interface PlaygroundProps {
   items: PlaygroundItem[]
@@ -141,8 +140,6 @@ export function Playground({
   const [sortReverse, setSortReverse] = useState(false)
   const [showReset, setShowReset] = useState(false)
   const { theme, setTheme } = useTheme()
-  const isMobile = useIsMobile()
-  const playgroundSize = isMobile ? 'sm' as const : 'lg' as const
 
   useCustomScrollbar(inventoryScrollRef, scrollTrackRef, scrollThumbRef)
 
@@ -323,7 +320,7 @@ export function Playground({
             onPointerDown={e => handlePointerDown(e, item.element, item.id)}
             onDoubleClick={() => onRemove(item.id)}
           >
-                <ElementBadge element={el} size={playgroundSize} />
+                <ElementBadge element={el} size="lg" />
           </div>
         )
       })}
@@ -334,7 +331,7 @@ export function Playground({
           className="absolute pointer-events-none"
           style={{ left: dragging.x, top: dragging.y, zIndex: 9999, transform: 'scale(1.05)', opacity: 0.9 }}
         >
-              <ElementBadge element={elements.get(dragging.elementName)!} size={playgroundSize} />
+              <ElementBadge element={elements.get(dragging.elementName)!} size="lg" />
         </div>
       )}
 
@@ -349,7 +346,7 @@ export function Playground({
               className="absolute -inset-3 rounded-full animate-ping"
               style={{ backgroundColor: elements.get(mergeAnimation.element)!.color, opacity: 0.2 }}
             />
-              <ElementBadge element={elements.get(mergeAnimation.element)!} size={playgroundSize} />
+              <ElementBadge element={elements.get(mergeAnimation.element)!} size="lg" />
           </div>
         </div>
       )}

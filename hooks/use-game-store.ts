@@ -110,18 +110,14 @@ export function useGameStore() {
   // Load everything from DB once
   useEffect(() => {
     Promise.all([
-      fetch('/api/elements').then(r => { console.log('[v0] elements status:', r.status); return r.json() }),
-      fetch('/api/recipes').then(r => { console.log('[v0] recipes status:', r.status); return r.json() }).catch(() => []),
+      fetch('/api/elements').then(r => r.json()),
+      fetch('/api/recipes').then(r => r.json()).catch(() => []),
     ]).then(([elementsData, recipesData]) => {
-      console.log('[v0] elementsData type:', typeof elementsData, 'isArray:', Array.isArray(elementsData), 'length:', Array.isArray(elementsData) ? elementsData.length : 'N/A')
-      console.log('[v0] recipesData type:', typeof recipesData, 'isArray:', Array.isArray(recipesData), 'length:', Array.isArray(recipesData) ? recipesData.length : 'N/A')
-      
       const rows: Array<{ number: number; name_french: string; name_english: string; img: string | null }> =
         Array.isArray(elementsData) ? elementsData : []
 
       setDbRows(rows)
       setTotalDbCount(rows.length)
-      console.log('[v0] totalDbCount set to:', rows.length)
 
       const recipes: RecipeRow[] = Array.isArray(recipesData) ? recipesData : []
       setDbRecipes(recipes)
@@ -147,10 +143,8 @@ export function useGameStore() {
       const validDisc = new Set<string>(baseElements.filter(b => elMap.has(b)))
       savedDisc.forEach(name => { if (elMap.has(name)) validDisc.add(name) })
       setDiscovered(validDisc)
-      console.log('[v0] discovered set to size:', validDisc.size, 'elMap size:', elMap.size)
       setInitialized(true)
-    }).catch((err) => {
-      console.error('[v0] init CATCH:', err)
+    }).catch(() => {
       setDiscovered(new Set(BASE_ELEMENTS_FR))
       setInitialized(true)
     })
