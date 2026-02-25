@@ -99,6 +99,7 @@ export function useGameStore() {
   const [newlyDiscovered, setNewlyDiscovered] = useState<string | null>(null)
   const [initialized, setInitialized] = useState(false)
   const [totalDbCount, setTotalDbCount] = useState(0)
+  const [lastUnlockTime, setLastUnlockTime] = useState(Date.now())
   const idCounter = useRef(0)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -279,6 +280,7 @@ export function useGameStore() {
         if (!firstNew) {
           firstNew = res
           setNewlyDiscovered(res)
+          setLastUnlockTime(Date.now())
           setTimeout(() => setNewlyDiscovered(null), 2500)
         }
       }
@@ -315,6 +317,7 @@ export function useGameStore() {
         if (!firstNew) {
           firstNew = res
           setNewlyDiscovered(res)
+          setLastUnlockTime(Date.now())
           setTimeout(() => setNewlyDiscovered(null), 2500)
         }
       }
@@ -342,10 +345,12 @@ export function useGameStore() {
     setLang,
     elements,
     discovered,
+    recipeMap,
     playground,
     newlyDiscovered,
     initialized,
     totalElements: totalDbCount,
+    lastUnlockTime,
     addToPlayground,
     moveOnPlayground,
     removeFromPlayground,

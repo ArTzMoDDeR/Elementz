@@ -3,9 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { signOut } from 'next-auth/react'
 import { ElementBadge } from './element-badge'
-import { RotateCcw, Search, X, ArrowUpDown, Trash2, LogOut, LogIn } from 'lucide-react'
+import { Lightbulb, Search, X, ArrowUpDown, Trash2, LogOut, LogIn } from 'lucide-react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
-import { Button } from './ui/button'
 import Link from 'next/link'
 
 interface PlaygroundProps {
@@ -24,6 +23,9 @@ interface PlaygroundProps {
   onReset: () => void
   onUnlockAll: () => void
   sessionUser?: { name?: string | null; image?: string | null } | null
+  hintsEnabled?: boolean
+  onToggleHints?: () => void
+  onRequestHint?: () => void
 }
 
 type SortType = 'name' | 'recent'
@@ -124,7 +126,7 @@ export function Playground({
   items, elements, discovered, totalElements,
   lang, onSetLang,
   onDrop, onMove, onMerge, onDropAndMerge, onRemove, onClear, onReset,
-  onUnlockAll, sessionUser,
+  onUnlockAll, sessionUser, hintsEnabled, onToggleHints, onRequestHint,
 }: PlaygroundProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const inventoryRef = useRef<HTMLDivElement>(null)
@@ -137,9 +139,8 @@ export function Playground({
   const [mergeAnimation, setMergeAnimation] = useState<{ x: number; y: number } | null>(null)
   const [shakeId, setShakeId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState<SortType>('recent')
+  const [sortBy, setSortBy] = useState<SortType>('name')
   const [sortReverse, setSortReverse] = useState(false)
-  const [showReset, setShowReset] = useState(false)
 
 
   useCustomScrollbar(inventoryScrollRef, scrollTrackRef, scrollThumbRef)
@@ -417,27 +418,18 @@ export function Playground({
               >EN</button>
             </div>
 
-            {/* Reset */}
-            <div className="relative flex-shrink-0">
-              <button
-                onClick={() => setShowReset(!showReset)}
-                className="flex items-center justify-center w-10 h-10 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-              </button>
-              {showReset && (
-                <>
-                  <div className="fixed inset-0 z-[200]" onClick={() => setShowReset(false)} />
-                  <div className="absolute right-0 top-full mt-2 z-[201] bg-popover border border-border rounded-xl shadow-xl p-3 w-44">
-                    <p className="text-xs mb-2">{lang === 'fr' ? 'Réinitialiser ?' : 'Reset progress?'}</p>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="destructive" className="flex-1" onClick={() => { onReset(); setShowReset(false) }}>{lang === 'fr' ? 'Oui' : 'Yes'}</Button>
-                      <Button size="sm" variant="outline" className="flex-1" onClick={() => setShowReset(false)}>{lang === 'fr' ? 'Non' : 'No'}</Button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
+            {/* Hint toggle */}
+            <button
+              onClick={onToggleHints}
+              title={hintsEnabled ? (lang === 'fr' ? 'Désactiver les hints' : 'Disable hints') : (lang === 'fr' ? 'Activer les hints' : 'Enable hints')}
+              className={`flex items-center justify-center w-10 h-10 rounded-xl border transition-colors flex-shrink-0 ${
+                hintsEnabled
+                  ? 'bg-amber-500/15 border-amber-500/40 text-amber-400 hover:bg-amber-500/25'
+                  : 'bg-muted/50 border-border text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              <Lightbulb className="w-4 h-4" />
+            </button>
 
 
           </div>
