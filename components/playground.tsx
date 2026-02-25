@@ -266,7 +266,10 @@ export function Playground({
   const discoveredElements = discoveredOrder
     .map(name => elements.get(name))
     .filter((el): el is ElementDef => el !== undefined)
-    .filter(el => el.name.toLowerCase().includes(search.toLowerCase()))
+    .filter(el => {
+      const n = (s: string) => s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '')
+      return n(el.name).includes(n(search))
+    })
     .sort((a, b) => {
       if (sortBy === 'name') {
         const cmp = a.name.localeCompare(b.name, 'fr')

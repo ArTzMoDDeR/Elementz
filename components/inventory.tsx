@@ -39,8 +39,9 @@ export function Inventory({
       .filter((el): el is ElementDef => el !== undefined)
 
     // Filter by search
+    const n = (s: string) => s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '')
     const filtered = search
-      ? list.filter(el => el.name.toLowerCase().includes(search.toLowerCase()))
+      ? list.filter(el => n(el.name).includes(n(search)))
       : list
 
     // Sort
