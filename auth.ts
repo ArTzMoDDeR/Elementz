@@ -14,9 +14,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   session: { strategy: 'jwt' },
   callbacks: {
     async jwt({ token, user }) {
-      // Only hit DB on first sign-in (when `user` is present)
+      const sql = neon(process.env.DATABASE_URL!)
       if (user?.email) {
-        const sql = neon(process.env.DATABASE_URL!)
+        // First sign-in: upsert user and read is_admin
         const rows = await sql`
           INSERT INTO users (id, name, email, image)
           VALUES (gen_random_uuid()::text, ${user.name ?? ''}, ${user.email}, ${user.image ?? null})
@@ -27,6 +27,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           token.userId = rows[0].id as string
           token.isAdmin = rows[0].is_admin === 1
         }
+      } else if (token.userId) {
+        // Subsequent requests: always re-read is_admin so DB changes take effect immediately
+        const rows = await sql`SELECT is_admin FROM users WHERE id = ${token.userId as string}`
+        if (rows[0]) token.isAdmin = rows[0].is_admin === 1
       }
       return token
     },
