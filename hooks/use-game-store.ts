@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { useSession } from 'next-auth/react'
 import { type ElementDef } from '@/lib/game-data'
 
 const STORAGE_KEY = 'alchemy-discovered-v3'
@@ -87,6 +88,7 @@ function buildElementMap(
 
 
 export function useGameStore() {
+  const { data: session, status: sessionStatus } = useSession()
   const [lang, setLangState] = useState<Lang>('fr')
   const [dbRows, setDbRows] = useState<Array<{ number: number; name_french: string; name_english: string; img: string | null }>>([])
   const [dbRecipes, setDbRecipes] = useState<RecipeRow[]>([])
@@ -98,6 +100,7 @@ export function useGameStore() {
   const [initialized, setInitialized] = useState(false)
   const [totalDbCount, setTotalDbCount] = useState(0)
   const idCounter = useRef(0)
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Load lang from localStorage
   useEffect(() => {
@@ -107,12 +110,15 @@ export function useGameStore() {
     } catch {}
   }, [])
 
-  // Load everything from DB once
+  // Load everything from DB once (wait for session to be resolved)
   useEffect(() => {
+    if (sessionStatus === 'loading') return
+
     Promise.all([
       fetch('/api/elements').then(r => r.json()),
       fetch('/api/recipes').then(r => r.json()).catch(() => []),
-    ]).then(([elementsData, recipesData]) => {
+      session?.user?.id ? fetch('/api/progress').then(r => r.json()).catch(() => null) : Promise.resolve(null),
+    ]).then(([elementsData, recipesData, progressData]) => {
       const rows: Array<{ number: number; name_french: string; name_english: string; img: string | null }> =
         Array.isArray(elementsData) ? elementsData : []
 
@@ -122,7 +128,6 @@ export function useGameStore() {
       const recipes: RecipeRow[] = Array.isArray(recipesData) ? recipesData : []
       setDbRecipes(recipes)
 
-      // Build initial element map using saved lang
       const savedLang = (() => {
         try { return (localStorage.getItem(LANG_KEY) as Lang | null) || 'fr' } catch { return 'fr' }
       })()
@@ -130,25 +135,31 @@ export function useGameStore() {
       setElements(elMap)
       setRecipeMap(buildRecipeMap(recipes, savedLang))
 
-      // Load discovered progress
+      // Priority: server progress (if logged in) > localStorage > base elements
       const baseElements = savedLang === 'fr' ? BASE_ELEMENTS_FR : BASE_ELEMENTS_EN
-      const savedDisc = (() => {
+      const validDisc = new Set<string>(baseElements.filter(b => elMap.has(b)))
+
+      if (progressData?.discovered && Array.isArray(progressData.discovered) && progressData.discovered.length > 0) {
+        // Logged-in: use server progress
+        progressData.discovered.forEach((name: string) => { if (elMap.has(name)) validDisc.add(name) })
+      } else {
+        // Guest: use localStorage
         try {
           const saved = localStorage.getItem(STORAGE_KEY)
-          if (saved) return new Set(JSON.parse(saved) as string[])
+          if (saved) {
+            const parsed = JSON.parse(saved) as string[]
+            parsed.forEach(name => { if (elMap.has(name)) validDisc.add(name) })
+          }
         } catch {}
-        return new Set<string>()
-      })()
+      }
 
-      const validDisc = new Set<string>(baseElements.filter(b => elMap.has(b)))
-      savedDisc.forEach(name => { if (elMap.has(name)) validDisc.add(name) })
       setDiscovered(validDisc)
       setInitialized(true)
     }).catch(() => {
       setDiscovered(new Set(BASE_ELEMENTS_FR))
       setInitialized(true)
     })
-  }, [])
+  }, [sessionStatus, session?.user?.id])
 
   // Rebuild elements + recipes when lang changes
   const setLang = useCallback((newLang: Lang) => {
@@ -184,12 +195,22 @@ export function useGameStore() {
     }))
   }, [dbRows, dbRecipes])
 
-  // Save discovered progress
+  // Save discovered progress — localStorage always, server if logged in (debounced)
   useEffect(() => {
-    if (initialized && discovered.size > 0) {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...discovered])) } catch {}
+    if (!initialized || discovered.size === 0) return
+    const arr = [...discovered]
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)) } catch {}
+    if (session?.user?.id) {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+      saveTimeoutRef.current = setTimeout(() => {
+        fetch('/api/progress', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ discovered: arr }),
+        }).catch(() => {})
+      }, 1500)
     }
-  }, [discovered, initialized])
+  }, [discovered, initialized, session?.user?.id])
 
   const generateId = useCallback(() => {
     idCounter.current += 1
