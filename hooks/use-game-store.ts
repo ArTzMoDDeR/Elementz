@@ -89,7 +89,7 @@ function buildElementMap(
 
 export function useGameStore() {
   const { data: session, status: sessionStatus } = useSession()
-  const [lang, setLangState] = useState<Lang>('fr')
+  const [lang, setLangState] = useState<Lang>('en')
   const [dbRows, setDbRows] = useState<Array<{ number: number; name_french: string; name_english: string; img: string | null }>>([])
   const [dbRecipes, setDbRecipes] = useState<RecipeRow[]>([])
   const [elements, setElements] = useState<Map<string, ElementDef>>(new Map())
@@ -102,13 +102,23 @@ export function useGameStore() {
   const idCounter = useRef(0)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Load lang from localStorage
+  // Load lang — DB takes priority if logged in, else localStorage, else 'en'
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(LANG_KEY) as Lang | null
-      if (saved === 'fr' || saved === 'en') setLangState(saved)
-    } catch {}
-  }, [])
+    if (sessionStatus === 'loading') return
+    if (session?.user?.id) {
+      fetch('/api/lang')
+        .then(r => r.json())
+        .then(({ lang: serverLang }) => {
+          if (serverLang === 'fr' || serverLang === 'en') setLangState(serverLang)
+        })
+        .catch(() => {})
+    } else {
+      try {
+        const saved = localStorage.getItem(LANG_KEY) as Lang | null
+        if (saved === 'fr' || saved === 'en') setLangState(saved)
+      } catch {}
+    }
+  }, [sessionStatus, session?.user?.id])
 
   // Load everything from DB once (wait for session to be resolved)
   useEffect(() => {
@@ -129,7 +139,7 @@ export function useGameStore() {
       setDbRecipes(recipes)
 
       const savedLang = (() => {
-        try { return (localStorage.getItem(LANG_KEY) as Lang | null) || 'fr' } catch { return 'fr' }
+        try { return (localStorage.getItem(LANG_KEY) as Lang | null) || 'en' } catch { return 'en' }
       })()
       const elMap = buildElementMap(rows, savedLang)
       setElements(elMap)
@@ -156,7 +166,7 @@ export function useGameStore() {
       setDiscovered(validDisc)
       setInitialized(true)
     }).catch(() => {
-      setDiscovered(new Set(BASE_ELEMENTS_FR))
+      setDiscovered(new Set(BASE_ELEMENTS_EN))
       setInitialized(true)
     })
   }, [sessionStatus, session?.user?.id])
@@ -166,6 +176,13 @@ export function useGameStore() {
     if (dbRows.length === 0) return
     setLangState(newLang)
     try { localStorage.setItem(LANG_KEY, newLang) } catch {}
+    if (session?.user?.id) {
+      fetch('/api/lang', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lang: newLang }),
+      }).catch(() => {})
+    }
 
     const newElMap = buildElementMap(dbRows, newLang)
     setElements(newElMap)
