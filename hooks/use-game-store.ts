@@ -281,7 +281,7 @@ export function useGameStore() {
           firstNew = res
           setNewlyDiscovered(res)
           setLastUnlockTime(Date.now())
-          setTimeout(() => setNewlyDiscovered(null), 2500)
+          setTimeout(() => setNewlyDiscovered(null), 3000)
         }
       }
     })
@@ -318,7 +318,7 @@ export function useGameStore() {
           firstNew = res
           setNewlyDiscovered(res)
           setLastUnlockTime(Date.now())
-          setTimeout(() => setNewlyDiscovered(null), 2500)
+          setTimeout(() => setNewlyDiscovered(null), 3000)
         }
       }
     })
