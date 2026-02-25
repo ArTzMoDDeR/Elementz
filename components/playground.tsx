@@ -132,7 +132,7 @@ export function Playground({
 
   const [dragging, setDragging] = useState<DragState | null>(null)
   const [nearMergeId, setNearMergeId] = useState<string | null>(null)
-  const [mergeAnimation, setMergeAnimation] = useState<{ x: number; y: number; element: string } | null>(null)
+  const [mergeAnimation, setMergeAnimation] = useState<{ x: number; y: number } | null>(null)
   const [shakeId, setShakeId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<SortType>('recent')
@@ -230,8 +230,8 @@ export function Playground({
       if (nearest) {
         const result = onDropAndMerge(dragging.elementName, dragging.x, dragging.y, nearest.id)
         if (result) {
-          setMergeAnimation({ x: (dragging.x + nearest.x) / 2, y: (dragging.y + nearest.y) / 2, element: result })
-          setTimeout(() => setMergeAnimation(null), 700)
+          setMergeAnimation({ x: (dragging.x + nearest.x) / 2, y: (dragging.y + nearest.y) / 2 })
+          setTimeout(() => setMergeAnimation(null), 600)
         } else {
           const newId = onDrop(dragging.elementName, dragging.x, dragging.y)
           setShakeId(newId)
@@ -245,8 +245,8 @@ export function Playground({
       if (nearest) {
         const result = onMerge(dragging.itemId, nearest.id)
         if (result) {
-          setMergeAnimation({ x: (dragging.x + nearest.x) / 2, y: (dragging.y + nearest.y) / 2, element: result })
-          setTimeout(() => setMergeAnimation(null), 700)
+          setMergeAnimation({ x: (dragging.x + nearest.x) / 2, y: (dragging.y + nearest.y) / 2 })
+          setTimeout(() => setMergeAnimation(null), 600)
         } else {
           setShakeId(dragging.itemId)
           setTimeout(() => setShakeId(null), 400)
@@ -334,18 +334,15 @@ export function Playground({
         </div>
       )}
 
-      {/* MERGE ANIMATION */}
-      {mergeAnimation && elements.get(mergeAnimation.element) && (
+      {/* MERGE ANIMATION — flash ring only, no badge duplicate */}
+      {mergeAnimation && (
         <div
-          className="absolute pointer-events-none animate-in zoom-in fade-in duration-500"
-          style={{ left: mergeAnimation.x, top: mergeAnimation.y, zIndex: 250 }}
+          className="absolute pointer-events-none"
+          style={{ left: mergeAnimation.x, top: mergeAnimation.y, zIndex: 250, transform: 'translate(-50%, -50%)' }}
         >
-          <div className="relative">
-            <div
-              className="absolute -inset-3 rounded-full animate-ping"
-              style={{ backgroundColor: elements.get(mergeAnimation.element)!.color, opacity: 0.2 }}
-            />
-              <ElementBadge element={elements.get(mergeAnimation.element)!} size="lg" />
+          <div className="relative flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full animate-ping" style={{ backgroundColor: 'white', opacity: 0.15 }} />
+            <div className="absolute w-10 h-10 rounded-full animate-ping" style={{ backgroundColor: 'white', opacity: 0.25, animationDelay: '80ms' }} />
           </div>
         </div>
       )}
