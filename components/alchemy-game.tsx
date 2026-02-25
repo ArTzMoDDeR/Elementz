@@ -90,28 +90,31 @@ export function AlchemyGame() {
         )}
 
         {/* Hint */}
-        {hintVisible && currentHint && hintLabel && (
-          <div
-            className="animate-in slide-in-from-left-4 fade-in duration-200 pointer-events-auto cursor-pointer"
-            onClick={dismissHint}
-          >
-            <div className="flex items-center gap-2.5 pl-3 pr-2.5 py-2.5 bg-card border border-border rounded-xl shadow-lg backdrop-blur-sm max-w-[280px]">
-              <Lightbulb className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-              <span className="text-xs text-muted-foreground flex-1 leading-snug">
-                {hintLabel} <span className="font-semibold text-foreground">{currentHint.result}</span>
-              </span>
-              {elements.get(currentHint.result) && (
-                <ElementBadge element={elements.get(currentHint.result)!} size="sm" />
-              )}
-              <button
-                onClick={e => { e.stopPropagation(); dismissHint() }}
-                className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 ml-0.5"
-              >
-                <X className="w-3 h-3" />
-              </button>
+        {hintVisible && currentHint && hintLabel && (() => {
+          const el = elements.get(currentHint.result)
+          return (
+            <div
+              className="animate-in slide-in-from-left-4 fade-in duration-200 pointer-events-auto cursor-pointer"
+              onClick={dismissHint}
+            >
+              <div className="flex items-center gap-2.5 pl-3 pr-2.5 py-2.5 bg-card border border-border rounded-xl shadow-lg backdrop-blur-sm">
+                <Lightbulb className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                <span className="text-xs text-muted-foreground leading-snug">
+                  {hintLabel} <span className="font-semibold text-foreground">{currentHint.result}</span>
+                </span>
+                {el?.imageUrl && (
+                  <img src={el.imageUrl} alt={el.name} className="w-6 h-6 object-contain flex-shrink-0" />
+                )}
+                <button
+                  onClick={e => { e.stopPropagation(); dismissHint() }}
+                  className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )
+        })()}
       </div>
     </div>
   )

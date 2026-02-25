@@ -291,32 +291,6 @@ export function Playground({
       onPointerUp={handlePointerUp}
       style={{ touchAction: 'none' }}
     >
-      {/* Top-left: login / logout */}
-      <div className="absolute top-3 left-3 z-[101]">
-        {sessionUser ? (
-          <div className="flex items-center gap-1 h-9 px-2 rounded-xl bg-card/80 border border-border/60 backdrop-blur-sm">
-            {sessionUser.image && (
-              <img src={sessionUser.image} alt="" className="w-6 h-6 rounded-full" referrerPolicy="no-referrer" />
-            )}
-            <button
-              onClick={() => signOut({ callbackUrl: '/login' })}
-              className="flex items-center justify-center w-6 h-6 text-muted-foreground hover:text-foreground transition-colors"
-              title="Se déconnecter"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ) : (
-          <Link
-            href="/login"
-            className="flex items-center gap-1.5 px-3 h-9 rounded-xl bg-card/80 border border-border/60 backdrop-blur-sm hover:bg-card text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
-          >
-            <LogIn className="w-3.5 h-3.5" />
-            Login
-          </Link>
-        )}
-      </div>
-
       {/* Dot grid — more visible */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -387,33 +361,61 @@ export function Playground({
         {/* Header */}
         <div className="flex-shrink-0 px-3 pt-3 pb-3 border-b border-border flex flex-col gap-2.5">
 
-          {/* Row 1: logo + title + counter + spacer + actions */}
-          <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="Elementz" className="w-7 h-7 rounded-full flex-shrink-0" />
-            <span className="font-bold text-sm tracking-tight flex-shrink-0">Elementz</span>
-            <span className="text-xs tabular-nums text-muted-foreground flex-shrink-0" suppressHydrationWarning>
-              {discovered.size}<span className="opacity-50">/{totalElements}</span>
+          {/* Row 1: logo + title + counter — centré */}
+          <div className="flex items-center justify-center gap-2">
+            <img src="/logo.png" alt="Elementz" className="w-6 h-6 rounded-full flex-shrink-0" />
+            <span className="font-bold text-sm tracking-tight">Elementz</span>
+            <span className="text-xs tabular-nums text-muted-foreground" suppressHydrationWarning>
+              {discovered.size}<span className="opacity-40">/{totalElements}</span>
             </span>
+          </div>
+
+          {/* Row 2: login, vider, FR/EN, hint */}
+          <div className="flex items-center gap-2">
+            {/* Login / avatar+logout */}
+            {sessionUser ? (
+              <div className="flex items-center gap-1.5 h-9 px-2.5 rounded-xl bg-muted/50 border border-border flex-shrink-0">
+                {sessionUser.image && (
+                  <img src={sessionUser.image} alt="" className="w-5 h-5 rounded-full" referrerPolicy="no-referrer" />
+                )}
+                <button
+                  onClick={() => signOut({ callbackUrl: '/login' })}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  title="Sign out"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="flex items-center gap-1.5 h-9 px-2.5 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground text-xs font-medium transition-colors flex-shrink-0"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                Login
+              </Link>
+            )}
+
             <div className="flex-1" />
 
             {/* Clear */}
             <button
               onClick={onClear}
               disabled={items.length === 0}
-              className="flex items-center gap-1.5 px-3 h-10 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground text-sm font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
+              className="flex items-center gap-1.5 px-2.5 h-9 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground text-xs font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
             >
               <Trash2 className="w-3.5 h-3.5" />
               {lang === 'fr' ? 'Vider' : 'Clear'}
             </button>
 
             {/* Lang switcher */}
-            <div className="flex items-center bg-muted/50 border border-border rounded-xl p-1 h-10 gap-0.5 flex-shrink-0">
+            <div className="flex items-center bg-muted/50 border border-border rounded-xl p-1 h-9 gap-0.5 flex-shrink-0">
               <button
-                className={`px-2.5 h-full text-xs font-semibold rounded-lg transition-colors ${lang === 'fr' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`px-2 h-full text-xs font-semibold rounded-lg transition-colors ${lang === 'fr' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
                 onClick={() => onSetLang('fr')}
               >FR</button>
               <button
-                className={`px-2.5 h-full text-xs font-semibold rounded-lg transition-colors ${lang === 'en' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`px-2 h-full text-xs font-semibold rounded-lg transition-colors ${lang === 'en' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
                 onClick={() => onSetLang('en')}
               >EN</button>
             </div>
@@ -422,45 +424,41 @@ export function Playground({
             <button
               onClick={onToggleHints}
               title={hintsEnabled ? (lang === 'fr' ? 'Désactiver les hints' : 'Disable hints') : (lang === 'fr' ? 'Activer les hints' : 'Enable hints')}
-              className={`flex items-center justify-center w-10 h-10 rounded-xl border transition-colors flex-shrink-0 ${
+              className={`flex items-center justify-center w-9 h-9 rounded-xl border transition-colors flex-shrink-0 ${
                 hintsEnabled
                   ? 'bg-amber-500/15 border-amber-500/40 text-amber-400 hover:bg-amber-500/25'
                   : 'bg-muted/50 border-border text-muted-foreground hover:bg-muted hover:text-foreground'
               }`}
             >
-              <Lightbulb className="w-4 h-4" />
+              <Lightbulb className="w-3.5 h-3.5" />
             </button>
-
-
           </div>
 
-          {/* Row 2: Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder={lang === 'fr' ? 'Rechercher...' : 'Search...'}
-              className="w-full h-10 pl-10 pr-10 bg-muted/50 border border-input rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:bg-background transition-colors"
-              style={{ fontSize: '16px' }}
-            />
-            {search && (
-              <button
-                onClick={() => setSearch('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-muted-foreground/20 hover:bg-muted-foreground/30 transition-colors"
-              >
-                <X className="w-3 h-3 text-muted-foreground" />
-              </button>
-            )}
-          </div>
-
-          {/* Row 3: Sort buttons */}
-          <div className="flex gap-2">
+          {/* Row 3: search + Nom + Récent sur la même ligne */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder={lang === 'fr' ? 'Rechercher...' : 'Search...'}
+                className="w-full h-9 pl-9 pr-8 bg-muted/50 border border-input rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-ring focus:bg-background transition-colors"
+                style={{ fontSize: '16px' }}
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center rounded-full bg-muted-foreground/20 hover:bg-muted-foreground/30 transition-colors"
+                >
+                  <X className="w-2.5 h-2.5 text-muted-foreground" />
+                </button>
+              )}
+            </div>
             {(['name', 'recent'] as const).map(type => (
               <button
                 key={type}
-                className={`flex-1 h-10 rounded-xl text-sm font-medium flex items-center justify-center gap-1.5 border transition-colors ${
+                className={`h-9 px-3 rounded-xl text-xs font-medium flex items-center gap-1 border transition-colors flex-shrink-0 ${
                   sortBy === type
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-muted/50 text-muted-foreground border-border hover:text-foreground hover:bg-muted'
@@ -468,7 +466,7 @@ export function Playground({
                 onClick={() => toggleSort(type)}
               >
                 {type === 'name' ? (lang === 'fr' ? 'Nom' : 'Name') : (lang === 'fr' ? 'Récent' : 'Recent')}
-                {sortBy === type && <ArrowUpDown className={`w-3.5 h-3.5 transition-transform ${sortReverse ? 'rotate-180' : ''}`} />}
+                {sortBy === type && <ArrowUpDown className={`w-3 h-3 transition-transform ${sortReverse ? 'rotate-180' : ''}`} />}
               </button>
             ))}
           </div>
