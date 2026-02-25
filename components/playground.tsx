@@ -290,6 +290,32 @@ export function Playground({
       onPointerUp={handlePointerUp}
       style={{ touchAction: 'none' }}
     >
+      {/* Top-left: login / logout */}
+      <div className="absolute top-3 left-3 z-[101]">
+        {sessionUser ? (
+          <div className="flex items-center gap-1 h-9 px-2 rounded-xl bg-card/80 border border-border/60 backdrop-blur-sm">
+            {sessionUser.image && (
+              <img src={sessionUser.image} alt="" className="w-6 h-6 rounded-full" referrerPolicy="no-referrer" />
+            )}
+            <button
+              onClick={() => signOut({ callbackUrl: '/login' })}
+              className="flex items-center justify-center w-6 h-6 text-muted-foreground hover:text-foreground transition-colors"
+              title="Se déconnecter"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <Link
+            href="/login"
+            className="flex items-center gap-1.5 px-3 h-9 rounded-xl bg-card/80 border border-border/60 backdrop-blur-sm hover:bg-card text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            Login
+          </Link>
+        )}
+      </div>
+
       {/* Dot grid — more visible */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -413,29 +439,7 @@ export function Playground({
               )}
             </div>
 
-            {/* User: avatar + logout OR login */}
-            {sessionUser ? (
-              <div className="flex items-center gap-1 h-10 px-2 rounded-xl bg-muted/50 border border-border flex-shrink-0">
-                {sessionUser.image && (
-                  <img src={sessionUser.image} alt="" className="w-6 h-6 rounded-full" referrerPolicy="no-referrer" />
-                )}
-                <button
-                  onClick={() => signOut({ callbackUrl: '/login' })}
-                  className="flex items-center justify-center w-6 h-6 text-muted-foreground hover:text-foreground transition-colors"
-                  title="Se déconnecter"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ) : (
-              <Link
-                href="/login"
-                className="flex items-center gap-1.5 px-3 h-10 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground text-sm font-medium transition-colors flex-shrink-0"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                Login
-              </Link>
-            )}
+
           </div>
 
           {/* Row 2: Search */}
