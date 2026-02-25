@@ -1,12 +1,11 @@
 'use client'
 
 import { useRef, useState, useEffect } from 'react'
-import { useSession, signOut } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 import { Playground } from './playground'
 import { useGameStore } from '@/hooks/use-game-store'
 import { ElementBadge } from './element-badge'
-import { Sparkles, LogOut, LogIn, Trash2 } from 'lucide-react'
-import Link from 'next/link'
+import { Sparkles } from 'lucide-react'
 
 export function AlchemyGame() {
   const [mounted, setMounted] = useState(false)
@@ -49,6 +48,7 @@ export function AlchemyGame() {
         items={playground}
         elements={elements}
         discovered={discovered}
+        totalElements={totalElements}
         lang={lang}
         onSetLang={setLang}
         onDrop={addToPlayground}
@@ -59,51 +59,8 @@ export function AlchemyGame() {
         onClear={clearPlayground}
         onReset={resetProgress}
         onUnlockAll={unlockAll}
+        sessionUser={session?.user ?? null}
       />
-
-      {/* Top-left fixed cluster: user widget + HUD (counter + clear) */}
-      <div className="fixed top-3 left-3 z-[102] flex flex-col items-start gap-2 pointer-events-none">
-        {/* User row */}
-        <div className="pointer-events-auto">
-          {session?.user ? (
-            <div className="flex items-center gap-2 px-2.5 py-1.5 bg-card/80 border border-border/60 rounded-xl backdrop-blur-sm">
-              {session.user.image && (
-                <img src={session.user.image} alt="" className="w-6 h-6 rounded-full flex-shrink-0" referrerPolicy="no-referrer" />
-              )}
-              <span className="text-xs text-muted-foreground max-w-[100px] truncate hidden sm:block">{session.user.name}</span>
-              <button
-                onClick={() => signOut({ callbackUrl: '/login' })}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-                title="Se déconnecter"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ) : (
-            <Link
-              href="/login"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-card/80 border border-border/60 rounded-xl backdrop-blur-sm text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Se connecter</span>
-            </Link>
-          )}
-        </div>
-        {/* HUD row: counter + clear */}
-        <div className="pointer-events-auto flex items-center gap-2">
-          <span className="text-xs font-semibold tabular-nums px-2.5 py-1.5 rounded-lg bg-card/80 border border-border/60 backdrop-blur-sm text-muted-foreground" suppressHydrationWarning>
-            {discovered.size}<span className="opacity-50">/{totalElements}</span>
-          </span>
-          <button
-            onClick={clearPlayground}
-            disabled={playground.length === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card/80 border border-border/60 hover:bg-card text-muted-foreground hover:text-foreground text-xs font-medium backdrop-blur-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            {lang === 'fr' ? 'Vider' : 'Clear'}
-          </button>
-        </div>
-      </div>
 
       {newlyDiscovered && elements.get(newlyDiscovered) && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-top-4 fade-in duration-300">
