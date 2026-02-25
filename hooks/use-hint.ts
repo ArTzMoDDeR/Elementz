@@ -42,6 +42,9 @@ export function useHint(
   const [hintsEnabled, setHintsEnabled] = useState(true)
   const [currentHint, setCurrentHint] = useState<HintResult | null>(null)
   const [hintVisible, setHintVisible] = useState(false)
+  // Track the lastUnlockTime at which the current hint was generated
+  // so switching lang doesn't generate a new hint
+  const hintGeneratedAtRef = useRef<number | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const HINT_DELAY = 2 * 60 * 1000 // 2 minutes
 
@@ -54,19 +57,24 @@ export function useHint(
     const remaining = Math.max(0, HINT_DELAY - elapsed)
 
     timerRef.current = setTimeout(() => {
+      // Only show a new auto-hint if we haven't already shown one for this unlock period
+      if (hintGeneratedAtRef.current === lastUnlockTime) return
       const hint = findHint(discovered, recipeMap)
       if (hint) {
+        hintGeneratedAtRef.current = lastUnlockTime
         setCurrentHint(hint)
         setHintVisible(true)
       }
     }, remaining)
 
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [lastUnlockTime, hintsEnabled, discovered, recipeMap])
+  }, [lastUnlockTime, hintsEnabled]) // deliberately NOT depending on discovered/recipeMap to avoid re-triggering on lang switch
 
   const dismissHint = useCallback(() => setHintVisible(false), [])
 
   const requestHint = useCallback(() => {
+    // Manual request: pick a new random hint but don't update hintGeneratedAtRef
+    // so the auto-timer still respects the 2min window
     const hint = findHint(discovered, recipeMap)
     if (hint) {
       setCurrentHint(hint)
@@ -74,17 +82,19 @@ export function useHint(
     }
   }, [discovered, recipeMap])
 
-  const hintText = currentHint
+  // Text is derived from currentHint + lang — switching lang just retranslates, doesn't generate a new hint
+  const hintLabel = currentHint
     ? lang === 'fr'
-      ? `Essayez de créer "${currentHint.result}"`
-      : `Try to create "${currentHint.result}"`
+      ? 'Essayez de créer'
+      : 'Try to create'
     : null
 
   return {
     hintsEnabled,
     setHintsEnabled,
     hintVisible,
-    hintText,
+    currentHint,
+    hintLabel,
     dismissHint,
     requestHint,
   }
