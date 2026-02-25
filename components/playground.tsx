@@ -1,9 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useTheme } from 'next-themes'
 import { ElementBadge } from './element-badge'
-import { Sparkles, RotateCcw, Moon, Sun, Search, X, ArrowUpDown, Trash2, GripVertical } from 'lucide-react'
+import { RotateCcw, Search, X, ArrowUpDown, Trash2 } from 'lucide-react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import { Button } from './ui/button'
 
@@ -139,7 +138,7 @@ export function Playground({
   const [sortBy, setSortBy] = useState<SortType>('recent')
   const [sortReverse, setSortReverse] = useState(false)
   const [showReset, setShowReset] = useState(false)
-  const { theme, setTheme } = useTheme()
+
 
   useCustomScrollbar(inventoryScrollRef, scrollTrackRef, scrollThumbRef)
 
@@ -289,12 +288,12 @@ export function Playground({
       onPointerUp={handlePointerUp}
       style={{ touchAction: 'none' }}
     >
-      {/* Dot grid */}
+      {/* Dot grid — more visible */}
       <div
-        className="absolute inset-0 opacity-[0.03] pointer-events-none"
+        className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
-          backgroundSize: '24px 24px',
+          backgroundImage: 'radial-gradient(circle, oklch(0.6 0.01 250 / 0.18) 1.5px, transparent 1.5px)',
+          backgroundSize: '28px 28px',
         }}
       />
 
@@ -351,16 +350,20 @@ export function Playground({
         </div>
       )}
 
-      {/* CLEAR */}
-      {items.length > 0 && (
+      {/* BOTTOM-RIGHT HUD: clear + counter */}
+      <div className="absolute bottom-[calc(45vh+12px)] md:bottom-4 right-4 z-[101] flex items-center gap-2">
+        <span className="text-xs font-semibold tabular-nums px-2.5 py-1.5 rounded-lg bg-card/80 border border-border/60 backdrop-blur-sm text-muted-foreground" suppressHydrationWarning>
+          {discoveredCount}<span className="opacity-50">/{totalCount}</span>
+        </span>
         <button
           onClick={onClear}
-          className="absolute top-4 left-4 z-[101] flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground text-xs font-medium backdrop-blur transition-colors"
+          disabled={items.length === 0}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card/80 border border-border/60 hover:bg-card text-muted-foreground hover:text-foreground text-xs font-medium backdrop-blur-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <Trash2 className="w-3.5 h-3.5" />
           {lang === 'fr' ? 'Vider' : 'Clear'}
         </button>
-      )}
+      </div>
 
       {/* INVENTORY PANEL */}
       <div
@@ -370,10 +373,7 @@ export function Playground({
       >
         {/* Header */}
         <div className="flex-shrink-0 p-3 border-b border-border">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold tabular-nums" suppressHydrationWarning>
-              {discoveredCount}<span className="text-muted-foreground">/{totalCount}</span>
-            </span>
+          <div className="flex items-center justify-end mb-2">
             <div className="flex items-center gap-1">
               {/* Lang switcher */}
               <div className="flex items-center bg-muted rounded-md p-0.5 h-7">
@@ -386,9 +386,7 @@ export function Playground({
                   onClick={() => onSetLang('en')}
                 >EN</button>
               </div>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-                {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-              </Button>
+
               <div className="relative">
                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowReset(!showReset)}>
                   <RotateCcw className="w-3.5 h-3.5" />
@@ -414,51 +412,46 @@ export function Playground({
           </div>
 
           {/* Search */}
-          <div className="relative mb-2">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+          <div className="relative mb-2.5">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder={lang === 'fr' ? 'Rechercher...' : 'Search...'}
-              className="w-full h-8 pl-8 pr-8 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full h-10 pl-10 pr-10 bg-muted/50 border border-input rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:bg-background transition-colors"
               style={{ fontSize: '16px' }}
             />
             {search && (
-              <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2">
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-muted-foreground/20 hover:bg-muted-foreground/30 transition-colors"
+              >
                 <X className="w-3 h-3 text-muted-foreground" />
               </button>
             )}
           </div>
 
           {/* Sort */}
-          <div className="flex gap-1.5">
+          <div className="flex gap-2">
             {(['name', 'recent'] as const).map(type => (
-              <Button
+              <button
                 key={type}
-                variant={sortBy === type ? 'default' : 'outline'}
-                size="sm"
-                className="flex-1 h-7 text-[10px] gap-1 px-2"
+                className={`flex-1 h-10 rounded-xl text-sm font-medium flex items-center justify-center gap-1.5 border transition-colors ${
+                  sortBy === type
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-muted/50 text-muted-foreground border-border hover:text-foreground hover:bg-muted'
+                }`}
                 onClick={() => toggleSort(type)}
               >
                 {type === 'name' ? (lang === 'fr' ? 'Nom' : 'Name') : (lang === 'fr' ? 'Récent' : 'Recent')}
-                {sortBy === type && <ArrowUpDown className={`w-2.5 h-2.5 transition-transform ${sortReverse ? 'rotate-180' : ''}`} />}
-              </Button>
+                {sortBy === type && <ArrowUpDown className={`w-3.5 h-3.5 transition-transform ${sortReverse ? 'rotate-180' : ''}`} />}
+              </button>
             ))}
           </div>
         </div>
 
-        {/* Unlock all button (dev) */}
-        <div className="px-3 pb-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full h-7 text-[10px] text-muted-foreground border-dashed"
-            onClick={onUnlockAll}
-          >
-            {lang === 'fr' ? 'Tout débloquer (test)' : 'Unlock all (test)'}
-          </Button>
-        </div>
+
 
         {/* Scroll area + custom scrollbar */}
         <div className="flex-1 flex min-h-0 overflow-hidden">
