@@ -19,10 +19,16 @@ export async function POST(req: NextRequest) {
   if (!Array.isArray(discovered)) return NextResponse.json({ error: 'Invalid' }, { status: 400 })
 
   const sql = neon(process.env.DATABASE_URL!)
+  // Always UNION with existing — never remove elements already unlocked
   await sql`
     INSERT INTO user_progress (user_id, discovered, updated_at)
     VALUES (${session.user.id}, ${discovered}, NOW())
-    ON CONFLICT (user_id) DO UPDATE SET discovered = EXCLUDED.discovered, updated_at = NOW()
+    ON CONFLICT (user_id) DO UPDATE
+      SET discovered = (
+        SELECT array_agg(DISTINCT elem)
+        FROM unnest(user_progress.discovered || EXCLUDED.discovered) AS elem
+      ),
+      updated_at = NOW()
   `
   return NextResponse.json({ ok: true })
 }

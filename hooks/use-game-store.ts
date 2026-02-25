@@ -149,19 +149,18 @@ export function useGameStore() {
       const baseElements = savedLang === 'fr' ? BASE_ELEMENTS_FR : BASE_ELEMENTS_EN
       const validDisc = new Set<string>(baseElements.filter(b => elMap.has(b)))
 
-      if (progressData?.discovered && Array.isArray(progressData.discovered) && progressData.discovered.length > 0) {
-        // Logged-in: use server progress
+      // Always merge server + localStorage — union, never subtract
+      if (progressData?.discovered && Array.isArray(progressData.discovered)) {
         progressData.discovered.forEach((name: string) => { if (elMap.has(name)) validDisc.add(name) })
-      } else {
-        // Guest: use localStorage
-        try {
-          const saved = localStorage.getItem(STORAGE_KEY)
-          if (saved) {
-            const parsed = JSON.parse(saved) as string[]
-            parsed.forEach(name => { if (elMap.has(name)) validDisc.add(name) })
-          }
-        } catch {}
       }
+      // Also merge localStorage on top (handles offline discoveries)
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY)
+        if (saved) {
+          const parsed = JSON.parse(saved) as string[]
+          parsed.forEach(name => { if (elMap.has(name)) validDisc.add(name) })
+        }
+      } catch {}
 
       setDiscovered(validDisc)
       setInitialized(true)
