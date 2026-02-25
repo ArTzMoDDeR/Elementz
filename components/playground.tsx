@@ -10,8 +10,6 @@ interface PlaygroundProps {
   items: PlaygroundItem[]
   elements: Map<string, ElementDef>
   discovered: Set<string>
-  discoveredCount: number
-  totalCount: number
   lang: 'fr' | 'en'
   onSetLang: (l: 'fr' | 'en') => void
   onDrop: (element: string, x: number, y: number) => string
@@ -119,7 +117,7 @@ function useCustomScrollbar(
 // Playground component
 // ============================================================
 export function Playground({
-  items, elements, discovered, discoveredCount, totalCount,
+  items, elements, discovered,
   lang, onSetLang,
   onDrop, onMove, onMerge, onDropAndMerge, onRemove, onClear, onReset,
   onUnlockAll,
@@ -347,25 +345,12 @@ export function Playground({
         </div>
       )}
 
-      {/* BOTTOM-RIGHT HUD: clear + counter */}
-      <div className="absolute bottom-[calc(45vh+12px)] md:bottom-4 right-4 z-[101] flex items-center gap-2">
-        <span className="text-xs font-semibold tabular-nums px-2.5 py-1.5 rounded-lg bg-card/80 border border-border/60 backdrop-blur-sm text-muted-foreground" suppressHydrationWarning>
-          {discoveredCount}<span className="opacity-50">/{totalCount}</span>
-        </span>
-        <button
-          onClick={onClear}
-          disabled={items.length === 0}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card/80 border border-border/60 hover:bg-card text-muted-foreground hover:text-foreground text-xs font-medium backdrop-blur-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-          {lang === 'fr' ? 'Vider' : 'Clear'}
-        </button>
-      </div>
+
 
       {/* INVENTORY PANEL */}
       <div
         ref={inventoryRef}
-        className="absolute bottom-0 left-0 right-0 h-[45vh] md:bottom-0 md:left-auto md:top-0 md:right-0 md:h-full md:w-[300px] lg:w-[400px] bg-card/95 backdrop-blur-xl border-t md:border-t-0 md:border-l border-border flex flex-col"
+        className="absolute bottom-0 left-0 right-0 h-[55vh] md:bottom-0 md:left-auto md:top-0 md:right-0 md:h-full md:w-[300px] lg:w-[400px] bg-card/95 backdrop-blur-xl border-t md:border-t-0 md:border-l border-border flex flex-col"
         style={{ zIndex: 100 }}
       >
         {/* Header */}
@@ -471,12 +456,11 @@ export function Playground({
             </div>
           </div>
 
-          {/* Custom scrollbar track */}
+          {/* Custom scrollbar — mobile only (left side for thumb reachability) */}
           <div
             ref={scrollTrackRef}
-            className="w-4 lg:w-3 flex-shrink-0 bg-muted/30 relative my-2 mr-1.5 rounded-full"
+            className="md:hidden w-4 flex-shrink-0 bg-muted/30 relative my-2 ml-1.5 rounded-full order-first"
           >
-            {/* Thumb */}
             <div
               ref={scrollThumbRef}
               className="absolute w-full rounded-full bg-muted-foreground/50 hover:bg-muted-foreground/70 active:bg-muted-foreground/90 cursor-grab active:cursor-grabbing transition-colors"
