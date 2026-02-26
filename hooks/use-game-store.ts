@@ -276,7 +276,13 @@ export function useGameStore() {
   }, [generateId])
 
   const moveOnPlayground = useCallback((id: string, x: number, y: number) => {
-    setPlayground(prev => prev.map(item => item.id === id ? { ...item, x, y } : item))
+    setPlayground(prev => {
+      const others = prev.filter(item => item.id !== id)
+      const target = prev.find(item => item.id === id)
+      if (!target) return prev
+      // Move dragged item to end of array so it renders on top (last = highest paint order)
+      return [...others, { ...target, x, y }]
+    })
   }, [])
 
   const removeFromPlayground = useCallback((id: string) => {
