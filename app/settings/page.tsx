@@ -9,11 +9,13 @@ import Link from 'next/link'
 const LANG_KEY = 'elementz_lang'
 const HINTS_KEY = 'elementz_hints'
 
-function saveSetting(key: string, value: unknown) {
+function saveSetting(key: string, value: string | boolean) {
   try {
-    localStorage.setItem(key, JSON.stringify(value))
-    // Dispatch StorageEvent manually so same-tab listeners (useGameStore, useHint) react
-    window.dispatchEvent(new StorageEvent('storage', { key, newValue: JSON.stringify(value) }))
+    // Store raw string for lang (not JSON-stringified) to match what game store expects
+    const stored = typeof value === 'boolean' ? JSON.stringify(value) : value
+    localStorage.setItem(key, stored)
+    // Dispatch StorageEvent manually so same-tab listeners react immediately
+    window.dispatchEvent(new StorageEvent('storage', { key, newValue: stored }))
   } catch {}
 }
 
@@ -27,8 +29,8 @@ export default function SettingsPage() {
   useEffect(() => {
     setMounted(true)
     try {
-      const l = localStorage.getItem(LANG_KEY)
-      if (l === 'fr' || l === 'en') setLangState(l)
+      const loadedLang = localStorage.getItem(LANG_KEY)
+      if (loadedLang === 'fr' || loadedLang === 'en') setLangState(loadedLang)
       const h = localStorage.getItem(HINTS_KEY)
       if (h !== null) setHintsState(JSON.parse(h) as boolean)
     } catch {}
@@ -64,7 +66,7 @@ export default function SettingsPage() {
           {t('Paramètres', 'Settings')}
         </span>
         <button
-          onClick={() => router.push('/')}
+          onClick={() => router.back()}
           className="w-8 h-8 flex items-center justify-center rounded-xl bg-muted/50 border border-border text-muted-foreground hover:text-foreground transition-colors"
         >
           <X className="w-4 h-4" />
