@@ -617,16 +617,17 @@ export function Playground({
         {/* Footer — desktop: always visible / mobile: only rendered when expanded past 50% */}
         {(!isMobile || footerOpacity > 0) && (
         <div
-          className="flex-shrink-0 border-t border-border px-3 pt-3 pb-3 md:pb-3"
+          className="flex-shrink-0 border-t border-border px-3 pt-2.5 pb-2.5"
           style={{
-            paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom, 0px) + 24px)' : undefined,
+            paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom, 0px) + 14px)' : undefined,
             opacity: footerOpacity,
             pointerEvents: footerOpacity < 0.1 ? 'none' : 'auto',
           }}
         >
-          <div className="flex items-center justify-between gap-2">
-            {/* Left: profile avatar (logged in) or login link + leaderboard */}
-            <div className="flex-1 flex justify-start gap-2">
+          <div className="flex items-center justify-between gap-1.5">
+
+            {/* Left group: profile/login + leaderboard */}
+            <div className="flex items-center gap-1.5">
               {sessionUser ? (
                 <AvatarButton
                   sessionUser={sessionUser}
@@ -653,21 +654,19 @@ export function Playground({
             </div>
 
             {/* Center: lang switcher */}
-            <div className="flex-1 flex justify-center">
-              <div className="flex items-center bg-muted/50 border border-border rounded-xl p-1 h-10 gap-0.5">
-                <button
-                  className={`px-2.5 h-full text-xs font-semibold rounded-lg transition-colors ${lang === 'fr' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                  onClick={() => onSetLang('fr')}
-                >FR</button>
-                <button
-                  className={`px-2.5 h-full text-xs font-semibold rounded-lg transition-colors ${lang === 'en' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                  onClick={() => onSetLang('en')}
-                >EN</button>
-              </div>
+            <div className="flex items-center bg-muted/50 border border-border rounded-xl p-1 h-10 gap-0.5">
+              <button
+                className={`px-2.5 h-full text-xs font-semibold rounded-lg transition-colors ${lang === 'fr' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => onSetLang('fr')}
+              >FR</button>
+              <button
+                className={`px-2.5 h-full text-xs font-semibold rounded-lg transition-colors ${lang === 'en' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => onSetLang('en')}
+              >EN</button>
             </div>
 
-            {/* Right: hint + clear + help */}
-            <div className="flex-1 flex justify-end gap-2">
+            {/* Right group: hints + clear + help */}
+            <div className="flex items-center gap-1.5">
               <button
                 onClick={onToggleHints}
                 title={hintsEnabled ? (lang === 'fr' ? 'Désactiver les hints' : 'Disable hints') : (lang === 'fr' ? 'Activer les hints' : 'Enable hints')}
@@ -695,6 +694,7 @@ export function Playground({
                 <HelpCircle className="w-3.5 h-3.5" />
               </button>
             </div>
+
           </div>
         </div>
         )}
