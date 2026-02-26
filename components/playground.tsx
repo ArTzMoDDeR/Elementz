@@ -161,7 +161,7 @@ function ScrollButton({ dir, scrollRef }: { dir: 'up' | 'down'; scrollRef: React
       onPointerUp={stop}
       onPointerLeave={stop}
       onPointerCancel={stop}
-      className="md:hidden flex-1 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground active:text-foreground hover:bg-muted/40 transition-colors flex-shrink-0 select-none touch-none"
+      className="md:hidden flex-1 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground active:text-foreground hover:bg-muted/40 transition-colors flex-shrink-0 select-none touch-none"
     >
       {dir === 'up' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
     </button>
@@ -190,6 +190,31 @@ export function Playground({
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<SortType>('name')
   const [sortReverse, setSortReverse] = useState(false)
+
+  // Inventory resize — mobile only
+  const [inventoryHeight, setInventoryHeight] = useState<number | null>(null) // null = default 55vh
+  const dragHandleRef = useRef<{ startY: number; startH: number } | null>(null)
+
+  const handleDragHandlePointerDown = useCallback((e: React.PointerEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    const currentH = inventoryRef.current?.getBoundingClientRect().height ?? window.innerHeight * 0.55
+    dragHandleRef.current = { startY: e.clientY, startH: currentH }
+
+    const onMove = (ev: PointerEvent) => {
+      if (!dragHandleRef.current) return
+      const delta = dragHandleRef.current.startY - ev.clientY // drag up = bigger
+      const newH = Math.max(120, Math.min(window.innerHeight * 0.92, dragHandleRef.current.startH + delta))
+      setInventoryHeight(newH)
+    }
+    const onUp = () => {
+      dragHandleRef.current = null
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }, [])
 
   const getRelativePos = useCallback((clientX: number, clientY: number) => {
     if (!containerRef.current) return { x: 0, y: 0 }
@@ -404,9 +429,19 @@ export function Playground({
       {/* INVENTORY PANEL */}
       <div
         ref={inventoryRef}
-        className="absolute bottom-0 left-0 right-0 h-[55vh] md:bottom-0 md:left-auto md:top-0 md:right-0 md:h-full md:w-[300px] lg:w-[400px] bg-card/95 backdrop-blur-xl border-t md:border-t-0 md:border-l border-border flex flex-col"
-        style={{ zIndex: 100 }}
+        className="absolute bottom-0 left-0 right-0 md:bottom-0 md:left-auto md:top-0 md:right-0 md:h-full md:w-[300px] lg:w-[400px] bg-card/95 backdrop-blur-xl border-t md:border-t-0 md:border-l border-border flex flex-col"
+        style={{
+          zIndex: 100,
+          height: isMobile ? (inventoryHeight != null ? `${inventoryHeight}px` : '55vh') : undefined,
+        }}
       >
+        {/* Drag handle — mobile only */}
+        <div
+          className="md:hidden flex-shrink-0 flex items-center justify-center h-5 cursor-row-resize touch-none select-none"
+          onPointerDown={handleDragHandlePointerDown}
+        >
+          <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+        </div>
         {/* Header */}
         <div className="flex-shrink-0 px-3 pt-3 pb-3 border-b border-border flex flex-col gap-2.5">
 
@@ -551,8 +586,8 @@ export function Playground({
             </div>
           </div>
 
-          {/* Bottom spacer — mobile only, same height as scroll buttons row for margin feel */}
-          <div className="md:hidden h-8 flex-shrink-0" />
+          {/* Bottom spacer — mobile only */}
+          <div className="md:hidden h-11 flex-shrink-0" />
         </div>
       </div>
     </div>
