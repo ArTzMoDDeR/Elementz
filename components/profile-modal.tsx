@@ -188,8 +188,6 @@ export function ProfileModal({ lang, sessionUser, elements, onClose }: ProfileMo
                     <Pencil className="w-3 h-3" />
                   </button>
                 </div>
-              )}
-              <p className="text-xs text-muted-foreground truncate mt-0.5">{sessionUser.email}</p>
             </div>
           </div>
 

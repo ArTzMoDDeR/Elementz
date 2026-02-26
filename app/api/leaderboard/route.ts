@@ -7,6 +7,7 @@ export async function GET() {
     SELECT
       user_id,
       username,
+      avatar,
       array_length(discovered, 1) AS count,
       updated_at
     FROM user_progress
