@@ -32,9 +32,12 @@ export async function GET(
       JOIN elements er ON r.result_number      = er.number
       WHERE r.ingredient1_number = ${elementNumber}
          OR r.ingredient2_number = ${elementNumber}
-      ORDER BY other_name
     `
-    return NextResponse.json(produces)
+    // Sort with localeCompare so accented letters (é, è, â…) stay in correct alphabetical order
+    const sorted = [...produces].sort((a, b) =>
+      (a.other_name as string).localeCompare(b.other_name as string, 'fr', { sensitivity: 'base' })
+    )
+    return NextResponse.json(sorted)
   } catch {
     return NextResponse.json({ error: 'Failed' }, { status: 500 })
   }
