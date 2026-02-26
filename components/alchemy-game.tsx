@@ -38,6 +38,18 @@ export function AlchemyGame() {
     lang,
   )
 
+  // Toast when hints toggled
+  const [hintsToast, setHintsToast] = useState<boolean | null>(null)
+  const hintsToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleToggleHints = () => {
+    const next = !hintsEnabled
+    setHintsEnabled(() => next)
+    if (hintsToastTimer.current) clearTimeout(hintsToastTimer.current)
+    setHintsToast(next)
+    hintsToastTimer.current = setTimeout(() => setHintsToast(null), 2000)
+  }
+
   useEffect(() => { setMounted(true) }, [])
 
   if (!mounted || !initialized) {
@@ -89,12 +101,26 @@ export function AlchemyGame() {
         onUnlockAll={unlockAll}
         sessionUser={session?.user ?? null}
         hintsEnabled={hintsEnabled}
-        onToggleHints={() => setHintsEnabled(h => !h)}
+        onToggleHints={handleToggleHints}
         onRequestHint={requestHint}
       />
 
       {/* Notification stack — top left */}
       <div className="fixed top-3 left-3 z-50 flex flex-col gap-2 pointer-events-none">
+
+        {/* Hints toggled */}
+        {hintsToast !== null && (
+          <div className="animate-in slide-in-from-left-4 fade-in duration-200 pointer-events-auto">
+            <div className="flex items-center gap-2.5 pl-3 pr-3 py-2.5 bg-card border border-border rounded-xl shadow-lg backdrop-blur-sm">
+              <Lightbulb className={`w-3.5 h-3.5 flex-shrink-0 ${hintsToast ? 'text-amber-400' : 'text-muted-foreground'}`} />
+              <span className="text-xs text-muted-foreground leading-snug">
+                {lang === 'fr'
+                  ? hintsToast ? 'Indices activés' : 'Indices désactivés'
+                  : hintsToast ? 'Hints enabled' : 'Hints disabled'}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* New element */}
         {newlyDiscovered && (() => {
