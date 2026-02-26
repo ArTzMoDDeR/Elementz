@@ -521,7 +521,7 @@ export function Playground({
             className="flex-1 overflow-y-scroll p-2"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', touchAction: 'none' }}
           >
-            <div className="grid grid-cols-4 md:grid-cols-3 gap-2 md:gap-3 justify-items-center">
+            <div className="grid grid-cols-4 md:grid-cols-3 gap-2 md:gap-3 justify-items-center pb-5 md:pb-0">
               {discoveredElements.map(element => (
                 <div
                   key={element.name}
@@ -533,9 +533,6 @@ export function Playground({
               ))}
             </div>
           </div>
-
-          {/* Bottom spacer — mobile only */}
-          <div className="md:hidden h-11 flex-shrink-0" />
         </div>
 
         {/* Footer — desktop: always visible / mobile: fades in when expanded */}
