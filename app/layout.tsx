@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
 import { SessionProvider } from '@/components/session-provider'
 import { ServiceWorkerRegistrar } from '@/components/service-worker-registrar'
+import { IOSInstallPrompt } from '@/components/ios-install-prompt'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
@@ -97,6 +98,7 @@ export default function RootLayout({
             {children}
             <Analytics />
             <ServiceWorkerRegistrar />
+            <IOSInstallPrompt />
           </ThemeProvider>
         </SessionProvider>
       </body>
