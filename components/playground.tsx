@@ -617,8 +617,9 @@ export function Playground({
         {/* Footer — desktop: always visible / mobile: only rendered when expanded past 50% */}
         {(!isMobile || footerOpacity > 0) && (
         <div
-          className="flex-shrink-0 border-t border-border px-3 py-3"
+          className="flex-shrink-0 border-t border-border px-3 pt-3 pb-3 md:pb-3"
           style={{
+            paddingBottom: isMobile ? 'max(12px, env(safe-area-inset-bottom, 20px))' : undefined,
             opacity: footerOpacity,
             pointerEvents: footerOpacity < 0.1 ? 'none' : 'auto',
           }}
