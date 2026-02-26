@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { ElementBadge } from './element-badge'
-import { Settings, Search, X, ArrowUpDown, Trash2, LogOut, LogIn, ChevronUp, ChevronDown } from 'lucide-react'
+import { Settings, Search, X, ArrowUpDown, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import Link from 'next/link'
 
@@ -421,43 +421,19 @@ export function Playground({
             </span>
           </div>
 
-          {/* Row 2: login, vider, FR/EN, hint */}
+          {/* Row 2: clear (icon), spacer, settings */}
           <div className="flex items-center gap-2">
-            {/* Login / avatar+logout */}
-            {sessionUser ? (
-              <div className="flex items-center gap-1.5 h-9 px-2.5 rounded-xl bg-muted/50 border border-border flex-shrink-0">
-                {sessionUser.image && (
-                  <img src={sessionUser.image} alt="" className="w-5 h-5 rounded-full" referrerPolicy="no-referrer" />
-                )}
-                <button
-                  onClick={() => signOut({ callbackUrl: '/login' })}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                  title="Sign out"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ) : (
-              <Link
-                href="/login"
-                className="flex items-center gap-1.5 h-9 px-2.5 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground text-xs font-medium transition-colors flex-shrink-0"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                Login
-              </Link>
-            )}
-
-            <div className="flex-1" />
-
-            {/* Clear */}
+            {/* Clear — icon only, left */}
             <button
               onClick={onClear}
               disabled={items.length === 0}
-              className="flex items-center gap-1.5 px-2.5 h-9 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground text-xs font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
+              className="flex items-center justify-center w-9 h-9 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
+              title={lang === 'fr' ? 'Vider' : 'Clear'}
             >
               <Trash2 className="w-3.5 h-3.5" />
-              {lang === 'fr' ? 'Vider' : 'Clear'}
             </button>
+
+            <div className="flex-1" />
 
             {/* Settings */}
             <button
