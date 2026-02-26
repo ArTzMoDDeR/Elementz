@@ -195,15 +195,12 @@ export function Playground({
   const [inventoryHeight, setInventoryHeight] = useState<number | null>(null) // null = default 55vh
   const dragHandleRef = useRef<{ startY: number; startH: number } | null>(null)
 
-  // Footer opacity: only show on mobile when inventory >= 50% screen height, fade in to 92%
+  // Footer: show on mobile only when inventory >= 25% screen height, no fade
   const footerOpacity = (() => {
     if (!isMobile) return 1
     const screenH = typeof window !== 'undefined' ? window.innerHeight : 800
-    const maxH = screenH * 0.92
-    const fadeStart = screenH * 0.50
     const h = inventoryHeight ?? screenH * 0.55
-    if (h <= fadeStart) return 0
-    return Math.min(1, (h - fadeStart) / (maxH - fadeStart))
+    return h >= screenH * 0.25 ? 1 : 0
   })()
 
   const handleDragHandlePointerDown = useCallback((e: React.PointerEvent) => {
