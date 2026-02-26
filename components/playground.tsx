@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { signOut } from 'next-auth/react'
 import { ElementBadge } from './element-badge'
-import { Settings, Search, X, ArrowUpDown, Trash2, ChevronUp, ChevronDown, Lightbulb, LogIn, LogOut } from 'lucide-react'
+import { Settings, Search, X, ArrowUpDown, Trash2, ChevronUp, ChevronDown, Lightbulb, LogIn, LogOut, HelpCircle } from 'lucide-react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import Link from 'next/link'
+import { HelpModal } from './help-modal'
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false)
@@ -190,6 +191,7 @@ export function Playground({
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<SortType>('name')
   const [sortReverse, setSortReverse] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
 
   // Inventory resize — mobile only
   const [inventoryHeight, setInventoryHeight] = useState<number | null>(null) // null = default 55vh
@@ -584,7 +586,7 @@ export function Playground({
               </div>
             </div>
 
-            {/* Right: hint + clear */}
+            {/* Right: hint + clear + help */}
             <div className="flex-1 flex justify-end gap-2">
               <button
                 onClick={onToggleHints}
@@ -605,11 +607,27 @@ export function Playground({
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
+              <button
+                onClick={() => setHelpOpen(true)}
+                className="flex items-center justify-center w-9 h-9 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                title={lang === 'fr' ? 'Aide' : 'Help'}
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         </div>
         )}
       </div>
+
+      {/* Help modal */}
+      {helpOpen && (
+        <HelpModal
+          lang={lang}
+          onSetLang={onSetLang}
+          onClose={() => setHelpOpen(false)}
+        />
+      )}
     </div>
   )
 }
