@@ -5,14 +5,18 @@ export async function GET() {
   const sql = neon(process.env.DATABASE_URL!)
   const rows = await sql`
     SELECT
-      user_id,
-      username,
-      avatar,
-      array_length(discovered, 1) AS count,
-      updated_at
-    FROM user_progress
-    WHERE discovered IS NOT NULL
-      AND (show_in_leaderboard IS NULL OR show_in_leaderboard = TRUE)
+      up.user_id,
+      up.username,
+      up.avatar,
+      e.img AS avatar_img,
+      array_length(up.discovered, 1) AS count,
+      up.updated_at
+    FROM user_progress up
+    LEFT JOIN elements e
+      ON up.avatar IS NOT NULL
+      AND (e.name_french = up.avatar OR e.name_english = up.avatar)
+    WHERE up.discovered IS NOT NULL
+      AND (up.show_in_leaderboard IS NULL OR up.show_in_leaderboard = TRUE)
     ORDER BY count DESC
     LIMIT 50
   `
