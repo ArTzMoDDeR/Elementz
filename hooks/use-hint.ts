@@ -33,13 +33,28 @@ function findHint(discovered: Set<string>, recipeMap: RecipeMap): HintResult | n
   return candidates[Math.floor(Math.random() * candidates.length)]
 }
 
+const HINTS_KEY = 'elementz_hints'
+
 export function useHint(
   discovered: Set<string>,
   recipeMap: RecipeMap,
   lastUnlockTime: number,
   lang: 'fr' | 'en',
 ) {
-  const [hintsEnabled, setHintsEnabled] = useState(true)
+  const [hintsEnabled, setHintsEnabled] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(HINTS_KEY) ?? 'true') as boolean } catch { return true }
+  })
+
+  // Sync hints toggle from /settings page
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key === HINTS_KEY && e.newValue !== null) {
+        try { setHintsEnabled(JSON.parse(e.newValue) as boolean) } catch {}
+      }
+    }
+    window.addEventListener('storage', handler)
+    return () => window.removeEventListener('storage', handler)
+  }, [])
   const [currentHint, setCurrentHint] = useState<HintResult | null>(null)
   const [hintVisible, setHintVisible] = useState(false)
   // Track the lastUnlockTime at which the current hint was generated

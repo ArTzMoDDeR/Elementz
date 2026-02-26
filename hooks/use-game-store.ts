@@ -121,6 +121,17 @@ export function useGameStore() {
     }
   }, [sessionStatus, session?.user?.id])
 
+  // Listen for settings changes from /settings page (storage event = cross-tab/modal sync)
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key === LANG_KEY && (e.newValue === 'fr' || e.newValue === 'en')) {
+        setLangState(e.newValue as Lang)
+      }
+    }
+    window.addEventListener('storage', handler)
+    return () => window.removeEventListener('storage', handler)
+  }, [])
+
   // Load everything from DB once (wait for session to be resolved)
   useEffect(() => {
     if (sessionStatus === 'loading') return

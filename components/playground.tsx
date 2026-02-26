@@ -1,9 +1,10 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { ElementBadge } from './element-badge'
-import { Lightbulb, Search, X, ArrowUpDown, Trash2, LogOut, LogIn } from 'lucide-react'
+import { Settings, Search, X, ArrowUpDown, Trash2, LogOut, LogIn, ChevronUp, ChevronDown } from 'lucide-react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import Link from 'next/link'
 
@@ -132,6 +133,43 @@ function useCustomScrollbar(
 }
 
 // ============================================================
+// Smart scroll button (accelerates the longer you hold)
+// ============================================================
+function ScrollButton({ dir, scrollRef }: { dir: 'up' | 'down'; scrollRef: React.RefObject<HTMLDivElement | null> }) {
+  const rafRef = useRef<number | null>(null)
+  const startTimeRef = useRef<number>(0)
+
+  const scroll = (ts: number) => {
+    if (!scrollRef.current) return
+    const elapsed = ts - startTimeRef.current
+    // Start at 3px/frame, ramp to 18px/frame over 1.5s
+    const speed = Math.min(3 + (elapsed / 1500) * 15, 18)
+    scrollRef.current.scrollTop += dir === 'down' ? speed : -speed
+    rafRef.current = requestAnimationFrame(scroll)
+  }
+
+  const start = () => {
+    startTimeRef.current = performance.now()
+    rafRef.current = requestAnimationFrame(scroll)
+  }
+  const stop = () => {
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
+  }
+
+  return (
+    <button
+      onPointerDown={start}
+      onPointerUp={stop}
+      onPointerLeave={stop}
+      onPointerCancel={stop}
+      className="md:hidden w-full h-8 flex items-center justify-center text-muted-foreground hover:text-foreground active:text-foreground hover:bg-muted/40 transition-colors flex-shrink-0 select-none touch-none"
+    >
+      {dir === 'up' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+    </button>
+  )
+}
+
+// ============================================================
 // Playground component
 // ============================================================
 export function Playground({
@@ -143,21 +181,17 @@ export function Playground({
   const containerRef = useRef<HTMLDivElement>(null)
   const inventoryRef = useRef<HTMLDivElement>(null)
   const inventoryScrollRef = useRef<HTMLDivElement>(null)
-  const scrollTrackRef = useRef<HTMLDivElement>(null)
-  const scrollThumbRef = useRef<HTMLDivElement>(null)
 
   const [dragging, setDragging] = useState<DragState | null>(null)
   const [nearMergeId, setNearMergeId] = useState<string | null>(null)
   const [mergeAnimation, setMergeAnimation] = useState<{ x: number; y: number } | null>(null)
   const [shakeId, setShakeId] = useState<string | null>(null)
+  const router = useRouter()
   const isMobile = useIsMobile()
   const playgroundBadgeSize = isMobile ? 'sm' : 'lg'
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<SortType>('name')
   const [sortReverse, setSortReverse] = useState(false)
-
-
-  useCustomScrollbar(inventoryScrollRef, scrollTrackRef, scrollThumbRef)
 
   const getRelativePos = useCallback((clientX: number, clientY: number) => {
     if (!containerRef.current) return { x: 0, y: 0 }
@@ -425,29 +459,13 @@ export function Playground({
               {lang === 'fr' ? 'Vider' : 'Clear'}
             </button>
 
-            {/* Lang switcher */}
-            <div className="flex items-center bg-muted/50 border border-border rounded-xl p-1 h-9 gap-0.5 flex-shrink-0">
-              <button
-                className={`px-2 h-full text-xs font-semibold rounded-lg transition-colors ${lang === 'fr' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                onClick={() => onSetLang('fr')}
-              >FR</button>
-              <button
-                className={`px-2 h-full text-xs font-semibold rounded-lg transition-colors ${lang === 'en' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                onClick={() => onSetLang('en')}
-              >EN</button>
-            </div>
-
-            {/* Hint toggle */}
+            {/* Settings */}
             <button
-              onClick={onToggleHints}
-              title={hintsEnabled ? (lang === 'fr' ? 'Désactiver les hints' : 'Disable hints') : (lang === 'fr' ? 'Activer les hints' : 'Enable hints')}
-              className={`flex items-center justify-center w-9 h-9 rounded-xl border transition-colors flex-shrink-0 ${
-                hintsEnabled
-                  ? 'bg-amber-500/15 border-amber-500/40 text-amber-400 hover:bg-amber-500/25'
-                  : 'bg-muted/50 border-border text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`}
+              onClick={() => router.push('/settings')}
+              className="flex items-center justify-center w-9 h-9 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+              title="Settings"
             >
-              <Lightbulb className="w-3.5 h-3.5" />
+              <Settings className="w-3.5 h-3.5" />
             </button>
           </div>
 
@@ -491,15 +509,19 @@ export function Playground({
 
 
 
-        {/* Scroll area + custom scrollbar */}
-        <div className="flex-1 flex min-h-0 overflow-hidden">
-          {/* Grid (no native scrollbar, no touch-action) */}
+        {/* Scroll area + scroll buttons */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+
+          {/* Up button — mobile only */}
+          <ScrollButton dir="up" scrollRef={inventoryScrollRef} />
+
+          {/* Grid */}
           <div
             ref={inventoryScrollRef}
             className="flex-1 overflow-y-scroll p-2"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', touchAction: 'none' }}
           >
-            <div className="grid grid-cols-4 md:grid-cols-3 gap-2 md:gap-3">
+            <div className="grid grid-cols-4 md:grid-cols-3 gap-2 md:gap-3 justify-items-center">
               {discoveredElements.map(element => (
                 <div
                   key={element.name}
@@ -512,17 +534,8 @@ export function Playground({
             </div>
           </div>
 
-          {/* Custom scrollbar — mobile only (left side for thumb reachability) */}
-          <div
-            ref={scrollTrackRef}
-            className="md:hidden w-4 flex-shrink-0 bg-muted/30 relative my-2 ml-1.5 rounded-full order-first"
-          >
-            <div
-              ref={scrollThumbRef}
-              className="absolute w-full rounded-full bg-muted-foreground/50 hover:bg-muted-foreground/70 active:bg-muted-foreground/90 cursor-grab active:cursor-grabbing transition-colors"
-              style={{ touchAction: 'none' }}
-            />
-          </div>
+          {/* Down button — mobile only */}
+          <ScrollButton dir="down" scrollRef={inventoryScrollRef} />
         </div>
       </div>
     </div>
