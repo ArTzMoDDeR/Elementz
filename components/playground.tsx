@@ -152,6 +152,7 @@ export function Playground({
   const [shakeId, setShakeId] = useState<string | null>(null)
   const isMobile = useIsMobile()
   const playgroundBadgeSize = isMobile ? 'xs' : 'lg'
+  const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<SortType>('name')
   const [sortReverse, setSortReverse] = useState(false)
 
