@@ -1,7 +1,7 @@
 {
   "name": "Elementz",
   "short_name": "Elementz",
-  "description": "Combine les éléments pour en découvrir de nouveaux !",
+  "description": "Merge 2 elements to create a new one, endlessly",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#09090b",
@@ -9,16 +9,22 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/logo.png",
+      "src": "/apple-icon.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/logo.png",
+      "src": "/apple-icon.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

@@ -18,19 +18,69 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 }
 
+const BASE_URL = 'https://elementz.fun'
+
 export const metadata: Metadata = {
-  title: 'Elementz',
-  description: 'Combine les éléments pour en découvrir de nouveaux !',
-  generator: 'v0.app',
+  metadataBase: new URL(BASE_URL),
+  title: {
+    default: 'Elementz',
+    template: '%s | Elementz',
+  },
+  description: 'Merge 2 elements to create a new one, endlessly. A free browser game with hundreds of combinations to discover.',
+  keywords: ['elementz', 'element game', 'merge game', 'alchemy game', 'combination game', 'little alchemy', 'puzzle game'],
+  authors: [{ name: 'Eugène Garcia', url: 'https://eugenegarcia.life' }],
+  creator: 'Eugène Garcia',
+  generator: 'Next.js',
   manifest: '/manifest.json',
+  alternates: {
+    canonical: BASE_URL,
+  },
+  openGraph: {
+    type: 'website',
+    url: BASE_URL,
+    title: 'Elementz',
+    description: 'Merge 2 elements to create a new one, endlessly',
+    siteName: 'Elementz',
+    images: [
+      {
+        url: '/opengraph.png',
+        width: 1200,
+        height: 630,
+        alt: 'Elementz — Merge 2 elements to create a new one, endlessly',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Elementz',
+    description: 'Merge 2 elements to create a new one, endlessly',
+    images: ['/opengraph.png'],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'Elementz',
+    startupImage: '/opengraph.png',
   },
   icons: {
-    icon: '/logo.png',
-    apple: '/apple-icon.png',
+    icon: [
+      { url: '/apple-icon.png', sizes: '192x192', type: 'image/png' },
+      { url: '/apple-icon.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+    shortcut: '/apple-icon.png',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
 }
 
