@@ -180,18 +180,21 @@ export function useGameStore() {
           const resolved = anyNameToCurrentLang.get(name) ?? name
           if (elMap.has(resolved)) validDisc.add(resolved)
         })
+        // Logged-in: overwrite localStorage with server state so next logout starts fresh
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...validDisc])) } catch {}
+      } else {
+        // Not logged in: merge localStorage
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY)
+          if (saved) {
+            const parsed = JSON.parse(saved) as string[]
+            parsed.forEach(name => {
+              const resolved = anyNameToCurrentLang.get(name) ?? name
+              if (elMap.has(resolved)) validDisc.add(resolved)
+            })
+          }
+        } catch {}
       }
-      // Also merge localStorage (handles offline discoveries), same translation
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY)
-        if (saved) {
-          const parsed = JSON.parse(saved) as string[]
-          parsed.forEach(name => {
-            const resolved = anyNameToCurrentLang.get(name) ?? name
-            if (elMap.has(resolved)) validDisc.add(resolved)
-          })
-        }
-      } catch {}
 
       setDiscovered(validDisc)
       setInitialized(true)
