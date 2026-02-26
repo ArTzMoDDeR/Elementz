@@ -350,7 +350,7 @@ export function Playground({
           className="absolute pointer-events-none"
           style={{ left: dragging.x, top: dragging.y, zIndex: 9999, transform: 'scale(1.05)', opacity: 0.9 }}
         >
-              <ElementBadge element={elements.get(dragging.elementName)!} size="lg" />
+              <ElementBadge element={elements.get(dragging.elementName)!} size={playgroundBadgeSize} />
         </div>
       )}
 
