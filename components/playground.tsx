@@ -161,7 +161,7 @@ function ScrollButton({ dir, scrollRef }: { dir: 'up' | 'down'; scrollRef: React
       onPointerUp={stop}
       onPointerLeave={stop}
       onPointerCancel={stop}
-      className="md:hidden w-full h-8 flex items-center justify-center text-muted-foreground hover:text-foreground active:text-foreground hover:bg-muted/40 transition-colors flex-shrink-0 select-none touch-none"
+      className="md:hidden flex-1 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground active:text-foreground hover:bg-muted/40 transition-colors flex-shrink-0 select-none touch-none"
     >
       {dir === 'up' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
     </button>
@@ -526,8 +526,11 @@ export function Playground({
         {/* Scroll area + scroll buttons */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
-          {/* Up button — mobile only */}
-          <ScrollButton dir="up" scrollRef={inventoryScrollRef} />
+          {/* Up + Down buttons side by side — mobile only */}
+          <div className="md:hidden flex flex-shrink-0 border-b border-border">
+            <ScrollButton dir="up" scrollRef={inventoryScrollRef} />
+            <ScrollButton dir="down" scrollRef={inventoryScrollRef} />
+          </div>
 
           {/* Grid */}
           <div
@@ -548,8 +551,8 @@ export function Playground({
             </div>
           </div>
 
-          {/* Down button — mobile only */}
-          <ScrollButton dir="down" scrollRef={inventoryScrollRef} />
+          {/* Bottom spacer — mobile only, same height as scroll buttons row for margin feel */}
+          <div className="md:hidden h-8 flex-shrink-0" />
         </div>
       </div>
     </div>
