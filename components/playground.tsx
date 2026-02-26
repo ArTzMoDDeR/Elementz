@@ -383,7 +383,7 @@ export function Playground({
       />
 
       {/* PLAYGROUND ITEMS */}
-      {items.map(item => {
+      {items.map((item, index) => {
         const el = elements.get(item.element)
         if (!el) return null
         const isDragging = dragging?.source === 'playground' && dragging.itemId === item.id
@@ -396,7 +396,7 @@ export function Playground({
             style={{
               left: item.x,
               top: item.y,
-              zIndex: isDragging ? 200 : 10,
+              zIndex: isDragging ? 1000 : 10 + index,
               transform: isDragging ? 'scale(1.08)' : isNear ? 'scale(1.05)' : 'scale(1)',
               transition: isDragging ? 'none' : 'transform 0.15s',
               filter: isNear ? `drop-shadow(0 0 10px ${el.color}80)` : undefined,
