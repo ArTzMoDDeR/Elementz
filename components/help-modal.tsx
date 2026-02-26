@@ -90,12 +90,16 @@ const SLIDES: {
             ? 'Glisse un élément sur un autre pour les combiner et découvrir de nouveaux éléments.'
             : 'Drag one element onto another to combine them and discover new ones.'}
         </p>
-        <DragCombineIllustration />
-        <p className="text-xs text-muted-foreground/60 text-center">
-          {lang === 'fr'
-            ? 'Double-tape pour retirer un élément du plateau'
-            : 'Double-tap to remove an element from the board'}
-        </p>
+        <div className="rounded-xl overflow-hidden border border-border bg-muted/30">
+          <video
+            src="/tutohelp.webm"
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-auto block"
+          />
+        </div>
       </div>
     ),
   },
