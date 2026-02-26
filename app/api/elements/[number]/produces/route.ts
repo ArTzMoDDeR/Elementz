@@ -32,7 +32,7 @@ export async function GET(
       JOIN elements er ON r.result_number      = er.number
       WHERE r.ingredient1_number = ${elementNumber}
          OR r.ingredient2_number = ${elementNumber}
-      ORDER BY er.number
+      ORDER BY other_name
     `
     return NextResponse.json(produces)
   } catch {
