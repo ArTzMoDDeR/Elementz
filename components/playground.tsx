@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { signOut } from 'next-auth/react'
 import { ElementBadge } from './element-badge'
-import { Settings, Search, X, ArrowUpDown, Trash2, ChevronUp, ChevronDown, Lightbulb, LogIn, LogOut, HelpCircle } from 'lucide-react'
+import { Settings, Search, X, ArrowUpDown, Trash2, ChevronUp, ChevronDown, Lightbulb, LogIn, LogOut, HelpCircle, Trophy } from 'lucide-react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import Link from 'next/link'
 import { HelpModal } from './help-modal'
+import { LeaderboardModal } from './leaderboard-modal'
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false)
@@ -192,6 +193,7 @@ export function Playground({
   const [sortBy, setSortBy] = useState<SortType>('name')
   const [sortReverse, setSortReverse] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false)
 
   // Inventory resize — mobile only
   const [inventoryHeight, setInventoryHeight] = useState<number | null>(null) // null = default 55vh
@@ -421,7 +423,7 @@ export function Playground({
         </div>
       )}
 
-      {/* MERGE ANIMATION — flash ring only, no badge duplicate */}
+      {/* MERGE ANIMATION ��� flash ring only, no badge duplicate */}
       {mergeAnimation && (
         <div
           className="absolute pointer-events-none"
@@ -545,8 +547,8 @@ export function Playground({
           }}
         >
           <div className="flex items-center justify-between gap-2">
-            {/* Login / avatar+logout */}
-            <div className="flex-1 flex justify-start">
+            {/* Left: login/logout + leaderboard */}
+            <div className="flex-1 flex justify-start gap-2">
               {sessionUser ? (
                 <div className="flex items-center gap-2 h-9 px-2.5 rounded-xl bg-muted/50 border border-border">
                   {sessionUser.image && (
@@ -570,6 +572,13 @@ export function Playground({
                   Login
                 </Link>
               )}
+              <button
+                onClick={() => setLeaderboardOpen(true)}
+                className="flex items-center justify-center w-9 h-9 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                title={lang === 'fr' ? 'Classement' : 'Leaderboard'}
+              >
+                <Trophy className="w-3.5 h-3.5" />
+              </button>
             </div>
 
             {/* Center: lang switcher */}
@@ -626,6 +635,13 @@ export function Playground({
           lang={lang}
           onSetLang={onSetLang}
           onClose={() => setHelpOpen(false)}
+        />
+      )}
+
+      {leaderboardOpen && (
+        <LeaderboardModal
+          lang={lang}
+          onClose={() => setLeaderboardOpen(false)}
         />
       )}
     </div>
