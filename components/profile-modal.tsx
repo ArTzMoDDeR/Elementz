@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { X, LogOut, Pencil, Check, Trophy } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import type { ElementDef } from '@/lib/game-data'
+import { ElementBadge } from './element-badge'
 
 type Lang = 'fr' | 'en'
 
@@ -180,7 +181,7 @@ export function ProfileModal({ lang, sessionUser, elements, onClose }: ProfileMo
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 {t('Choisir un avatar', 'Choose an avatar')}
               </p>
-              <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto pr-1">
+              <div className="grid grid-cols-5 gap-2 max-h-64 overflow-y-auto pr-1">
                 {profile.discovered.map(key => {
                   const el = elements.get(key)
                   if (!el) return null
@@ -190,13 +191,13 @@ export function ProfileModal({ lang, sessionUser, elements, onClose }: ProfileMo
                       key={key}
                       onClick={() => saveAvatar(key)}
                       title={el.name}
-                      className={`aspect-square rounded-xl flex items-center justify-center text-xl transition-colors border ${
+                      className={`rounded-xl transition-all ${
                         isSelected
-                          ? 'bg-foreground/10 border-foreground/40'
-                          : 'bg-muted/40 border-border hover:border-foreground/20 hover:bg-muted/60'
+                          ? 'ring-2 ring-foreground/60 scale-95'
+                          : 'opacity-80 hover:opacity-100 hover:scale-95'
                       }`}
                     >
-                      {el.icon}
+                      <ElementBadge element={el} size="xs" />
                     </button>
                   )
                 })}

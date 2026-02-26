@@ -212,7 +212,7 @@ function AvatarButton({
   return (
     <button
       onClick={onClick}
-      className="w-9 h-9 rounded-xl bg-muted border border-border hover:border-foreground/30 transition-colors flex-shrink-0 flex items-center justify-center"
+      className="w-10 h-10 rounded-xl bg-muted border border-border hover:border-foreground/30 transition-colors flex-shrink-0 flex items-center justify-center"
       title={lang === 'fr' ? 'Profil' : 'Profile'}
     >
       {el ? (
@@ -614,7 +614,7 @@ export function Playground({
               ) : (
                 <Link
                   href="/login"
-                  className="flex items-center gap-1.5 h-9 px-2.5 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground text-xs font-medium transition-colors"
+                  className="flex items-center gap-1.5 h-10 px-3 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground text-xs font-medium transition-colors"
                 >
                   <LogIn className="w-3.5 h-3.5" />
                   Login
@@ -622,7 +622,7 @@ export function Playground({
               )}
               <button
                 onClick={() => setLeaderboardOpen(true)}
-                className="flex items-center justify-center w-9 h-9 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                className="flex items-center justify-center w-10 h-10 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                 title={lang === 'fr' ? 'Classement' : 'Leaderboard'}
               >
                 <Trophy className="w-3.5 h-3.5" />
@@ -631,7 +631,7 @@ export function Playground({
 
             {/* Center: lang switcher */}
             <div className="flex-1 flex justify-center">
-              <div className="flex items-center bg-muted/50 border border-border rounded-xl p-1 h-9 gap-0.5">
+              <div className="flex items-center bg-muted/50 border border-border rounded-xl p-1 h-10 gap-0.5">
                 <button
                   className={`px-2.5 h-full text-xs font-semibold rounded-lg transition-colors ${lang === 'fr' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
                   onClick={() => onSetLang('fr')}
@@ -648,7 +648,7 @@ export function Playground({
               <button
                 onClick={onToggleHints}
                 title={hintsEnabled ? (lang === 'fr' ? 'Désactiver les hints' : 'Disable hints') : (lang === 'fr' ? 'Activer les hints' : 'Enable hints')}
-                className={`flex items-center justify-center w-9 h-9 rounded-xl border transition-colors ${
+                className={`flex items-center justify-center w-10 h-10 rounded-xl border transition-colors ${
                   hintsEnabled
                     ? 'bg-amber-500/15 border-amber-500/40 text-amber-400 hover:bg-amber-500/25'
                     : 'bg-muted/50 border-border text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -659,14 +659,14 @@ export function Playground({
               <button
                 onClick={onClear}
                 disabled={items.length === 0}
-                className="flex items-center justify-center w-9 h-9 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="flex items-center justify-center w-10 h-10 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 title={lang === 'fr' ? 'Vider' : 'Clear'}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setHelpOpen(true)}
-                className="flex items-center justify-center w-9 h-9 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                className="flex items-center justify-center w-10 h-10 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                 title={lang === 'fr' ? 'Aide' : 'Help'}
               >
                 <HelpCircle className="w-3.5 h-3.5" />
