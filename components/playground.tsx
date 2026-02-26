@@ -171,7 +171,29 @@ function ScrollButton({ dir, scrollRef }: { dir: 'up' | 'down'; scrollRef: React
 }
 
 // ============================================================
-// AvatarButton — shows element emoji avatar (not Google photo)
+// ElementIcon — renders only the image/svg of an element, no label
+// ============================================================
+const ELEMENT_SVGS: Record<string, React.ReactNode> = {
+  'eau':   <svg viewBox="0 0 24 24" fill="none" className="w-full h-full"><path d="M12 2C12 2 5 10 5 15a7 7 0 0014 0c0-5-7-13-7-13z" fill="rgba(255,255,255,0.75)"/></svg>,
+  'water': <svg viewBox="0 0 24 24" fill="none" className="w-full h-full"><path d="M12 2C12 2 5 10 5 15a7 7 0 0014 0c0-5-7-13-7-13z" fill="rgba(255,255,255,0.75)"/></svg>,
+  'feu':   <svg viewBox="0 0 24 24" fill="none" className="w-full h-full"><path d="M12 2c0 0-6 6-6 12a6 6 0 0012 0c0-3-1.5-5-3-7 0 2-1 3-3 3s-2-2 0-8z" fill="rgba(255,255,255,0.75)"/></svg>,
+  'fire':  <svg viewBox="0 0 24 24" fill="none" className="w-full h-full"><path d="M12 2c0 0-6 6-6 12a6 6 0 0012 0c0-3-1.5-5-3-7 0 2-1 3-3 3s-2-2 0-8z" fill="rgba(255,255,255,0.75)"/></svg>,
+  'terre': <svg viewBox="0 0 24 24" fill="none" className="w-full h-full"><circle cx="12" cy="12" r="10" fill="rgba(255,255,255,0.75)"/></svg>,
+  'earth': <svg viewBox="0 0 24 24" fill="none" className="w-full h-full"><circle cx="12" cy="12" r="10" fill="rgba(255,255,255,0.75)"/></svg>,
+  'air':   <svg viewBox="0 0 24 24" fill="none" className="w-full h-full"><path d="M4 8h12a3 3 0 100-3" stroke="rgba(255,255,255,0.75)" strokeWidth="2" strokeLinecap="round"/><path d="M4 12h14a3 3 0 110 3H4" stroke="rgba(255,255,255,0.55)" strokeWidth="2" strokeLinecap="round"/><path d="M4 16h8a2 2 0 110 2" stroke="rgba(255,255,255,0.35)" strokeWidth="2" strokeLinecap="round"/></svg>,
+}
+
+function ElementIcon({ element, className = 'w-full h-full' }: { element: ElementDef; className?: string }) {
+  if (element.imageUrl) {
+    return <img src={element.imageUrl} alt={element.name} draggable={false} className={`${className} object-contain pointer-events-none`} />
+  }
+  const svg = ELEMENT_SVGS[element.name]
+  if (svg) return <div className={className}>{svg}</div>
+  return <span className="text-sm font-bold text-white/70">{element.name[0].toUpperCase()}</span>
+}
+
+// ============================================================
+// AvatarButton — shows element image avatar (not Google photo)
 // ============================================================
 const STARTING_FR = ['eau', 'feu', 'terre', 'air']
 const STARTING_EN = ['water', 'fire', 'earth', 'air']
@@ -212,11 +234,11 @@ function AvatarButton({
   return (
     <button
       onClick={onClick}
-      className="w-10 h-10 rounded-xl bg-muted border border-border hover:border-foreground/30 transition-colors flex-shrink-0 flex items-center justify-center"
+      className="w-10 h-10 rounded-xl bg-muted border border-border hover:border-foreground/30 transition-colors flex-shrink-0 flex items-center justify-center overflow-hidden p-1.5"
       title={lang === 'fr' ? 'Profil' : 'Profile'}
     >
       {el ? (
-        <span className="text-xl leading-none">{el.icon}</span>
+        <ElementIcon element={el} className="w-full h-full object-contain" />
       ) : (
         <span className="text-xs font-bold text-muted-foreground">{sessionUser.name?.[0]?.toUpperCase() ?? '?'}</span>
       )}

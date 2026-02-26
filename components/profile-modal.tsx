@@ -4,7 +4,26 @@ import { useEffect, useState, useRef } from 'react'
 import { X, LogOut, Pencil, Check, Trophy } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import type { ElementDef } from '@/lib/game-data'
-import { ElementBadge } from './element-badge'
+
+// Renders only the image/svg of an element, no label
+const ELEMENT_SVGS: Record<string, React.ReactNode> = {
+  'eau':   <svg viewBox="0 0 24 24" fill="none" className="w-full h-full"><path d="M12 2C12 2 5 10 5 15a7 7 0 0014 0c0-5-7-13-7-13z" fill="rgba(255,255,255,0.75)"/></svg>,
+  'water': <svg viewBox="0 0 24 24" fill="none" className="w-full h-full"><path d="M12 2C12 2 5 10 5 15a7 7 0 0014 0c0-5-7-13-7-13z" fill="rgba(255,255,255,0.75)"/></svg>,
+  'feu':   <svg viewBox="0 0 24 24" fill="none" className="w-full h-full"><path d="M12 2c0 0-6 6-6 12a6 6 0 0012 0c0-3-1.5-5-3-7 0 2-1 3-3 3s-2-2 0-8z" fill="rgba(255,255,255,0.75)"/></svg>,
+  'fire':  <svg viewBox="0 0 24 24" fill="none" className="w-full h-full"><path d="M12 2c0 0-6 6-6 12a6 6 0 0012 0c0-3-1.5-5-3-7 0 2-1 3-3 3s-2-2 0-8z" fill="rgba(255,255,255,0.75)"/></svg>,
+  'terre': <svg viewBox="0 0 24 24" fill="none" className="w-full h-full"><circle cx="12" cy="12" r="10" fill="rgba(255,255,255,0.75)"/></svg>,
+  'earth': <svg viewBox="0 0 24 24" fill="none" className="w-full h-full"><circle cx="12" cy="12" r="10" fill="rgba(255,255,255,0.75)"/></svg>,
+  'air':   <svg viewBox="0 0 24 24" fill="none" className="w-full h-full"><path d="M4 8h12a3 3 0 100-3" stroke="rgba(255,255,255,0.75)" strokeWidth="2" strokeLinecap="round"/><path d="M4 12h14a3 3 0 110 3H4" stroke="rgba(255,255,255,0.55)" strokeWidth="2" strokeLinecap="round"/><path d="M4 16h8a2 2 0 110 2" stroke="rgba(255,255,255,0.35)" strokeWidth="2" strokeLinecap="round"/></svg>,
+}
+
+function ElementIcon({ element, className = 'w-full h-full' }: { element: ElementDef; className?: string }) {
+  if (element.imageUrl) {
+    return <img src={element.imageUrl} alt={element.name} draggable={false} className={`${className} object-contain pointer-events-none`} />
+  }
+  const svg = ELEMENT_SVGS[element.name]
+  if (svg) return <div className={className}>{svg}</div>
+  return <span className="text-sm font-bold text-white/70">{element.name[0].toUpperCase()}</span>
+}
 
 type Lang = 'fr' | 'en'
 
@@ -123,11 +142,10 @@ export function ProfileModal({ lang, sessionUser, elements, onClose }: ProfileMo
             {/* Avatar button */}
             <button
               onClick={() => setPickingAvatar(true)}
-              className="relative w-14 h-14 rounded-2xl bg-muted border border-border flex items-center justify-center flex-shrink-0 overflow-hidden hover:border-foreground/30 transition-colors group"
-              title={t('Changer l\'avatar', 'Change avatar')}
+              className="relative w-14 h-14 rounded-2xl bg-muted border border-border flex items-center justify-center flex-shrink-0 overflow-hidden hover:border-foreground/30 transition-colors group p-2"
             >
               {avatarEl ? (
-                <span className="text-3xl leading-none">{avatarEl.icon}</span>
+                <ElementIcon element={avatarEl} className="w-full h-full" />
               ) : (
                 <span className="text-2xl font-bold text-muted-foreground">{displayName[0]?.toUpperCase()}</span>
               )}
@@ -191,13 +209,14 @@ export function ProfileModal({ lang, sessionUser, elements, onClose }: ProfileMo
                       key={key}
                       onClick={() => saveAvatar(key)}
                       title={el.name}
-                      className={`rounded-xl transition-all ${
+                      className={`aspect-square rounded-xl p-2 flex items-center justify-center transition-all border ${
                         isSelected
-                          ? 'ring-2 ring-foreground/60 scale-95'
-                          : 'opacity-80 hover:opacity-100 hover:scale-95'
+                          ? 'bg-foreground/10 border-foreground/50 ring-2 ring-foreground/30'
+                          : 'bg-muted/40 border-border hover:bg-muted/70 hover:border-foreground/20'
                       }`}
+                      style={{ backgroundColor: `${el.color}18` }}
                     >
-                      <ElementBadge element={el} size="xs" />
+                      <ElementIcon element={el} className="w-full h-full" />
                     </button>
                   )
                 })}
