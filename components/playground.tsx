@@ -711,6 +711,7 @@ export function Playground({
       {leaderboardOpen && (
         <LeaderboardModal
           lang={lang}
+          elements={elements}
           onClose={() => setLeaderboardOpen(false)}
         />
       )}
