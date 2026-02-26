@@ -7,6 +7,18 @@ import { Lightbulb, Search, X, ArrowUpDown, Trash2, LogOut, LogIn } from 'lucide
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import Link from 'next/link'
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    setIsMobile(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+  return isMobile
+}
+
 interface PlaygroundProps {
   items: PlaygroundItem[]
   elements: Map<string, ElementDef>
@@ -138,7 +150,8 @@ export function Playground({
   const [nearMergeId, setNearMergeId] = useState<string | null>(null)
   const [mergeAnimation, setMergeAnimation] = useState<{ x: number; y: number } | null>(null)
   const [shakeId, setShakeId] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
+  const isMobile = useIsMobile()
+  const playgroundBadgeSize = isMobile ? 'xs' : 'lg'
   const [sortBy, setSortBy] = useState<SortType>('name')
   const [sortReverse, setSortReverse] = useState(false)
 
@@ -325,7 +338,7 @@ export function Playground({
             onPointerDown={e => handlePointerDown(e, item.element, item.id)}
             onDoubleClick={() => onRemove(item.id)}
           >
-                <ElementBadge element={el} size="lg" />
+                <ElementBadge element={el} size={playgroundBadgeSize} />
           </div>
         )
       })}

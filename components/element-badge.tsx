@@ -4,7 +4,7 @@ import { type ElementDef } from '@/lib/game-data'
 
 interface ElementBadgeProps {
   element: ElementDef
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'xs' | 'sm' | 'md' | 'lg'
   fluid?: boolean
   className?: string
   style?: React.CSSProperties
@@ -36,19 +36,21 @@ const ELEMENT_ICONS: Record<string, (color: string) => React.ReactNode> = {
 }
 
 const FIXED_SIZE = {
+  xs: 'w-12 h-12',
   sm: 'w-14 h-14',
   md: 'w-20 h-20',
   lg: 'w-28 h-28',
 }
 
-// Icon takes 70% of the badge, label strip is fixed height
 const ICON_RATIO = {
+  xs: 'w-[65%] h-[65%]',
   sm: 'w-[65%] h-[65%]',
   md: 'w-[70%] h-[70%]',
   lg: 'w-[72%] h-[72%]',
 }
 
 const LABEL_SIZE = {
+  xs: 'text-[8px]',
   sm: 'text-[9px]',
   md: 'text-[11px]',
   lg: 'text-xs',
