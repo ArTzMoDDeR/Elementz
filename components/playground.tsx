@@ -1,13 +1,13 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { signOut } from 'next-auth/react'
 import { ElementBadge } from './element-badge'
-import { Settings, Search, X, ArrowUpDown, Trash2, ChevronUp, ChevronDown, Lightbulb, LogIn, LogOut, HelpCircle, Trophy } from 'lucide-react'
+import { Settings, Search, X, ArrowUpDown, Trash2, ChevronUp, ChevronDown, Lightbulb, LogIn, HelpCircle, Trophy } from 'lucide-react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import Link from 'next/link'
 import { HelpModal } from './help-modal'
 import { LeaderboardModal } from './leaderboard-modal'
+import { ProfileModal } from './profile-modal'
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false)
@@ -194,6 +194,7 @@ export function Playground({
   const [sortReverse, setSortReverse] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
 
   // Inventory resize — mobile only
   const [inventoryHeight, setInventoryHeight] = useState<number | null>(null) // null = default 55vh
@@ -547,22 +548,22 @@ export function Playground({
           }}
         >
           <div className="flex items-center justify-between gap-2">
-            {/* Left: login/logout + leaderboard */}
+            {/* Left: profile avatar (logged in) or login link + leaderboard */}
             <div className="flex-1 flex justify-start gap-2">
               {sessionUser ? (
-                <div className="flex items-center gap-2 h-9 px-2.5 rounded-xl bg-muted/50 border border-border">
-                  {sessionUser.image && (
-                    <img src={sessionUser.image} alt="" className="w-5 h-5 rounded-full" referrerPolicy="no-referrer" />
+                <button
+                  onClick={() => setProfileOpen(true)}
+                  className="w-9 h-9 rounded-xl overflow-hidden border border-border hover:border-foreground/30 transition-colors flex-shrink-0"
+                  title={lang === 'fr' ? 'Profil' : 'Profile'}
+                >
+                  {sessionUser.image ? (
+                    <img src={sessionUser.image} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-full h-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
+                      {sessionUser.name?.[0]?.toUpperCase() ?? '?'}
+                    </div>
                   )}
-                  <span className="text-xs text-muted-foreground hidden md:inline truncate max-w-[80px]">{sessionUser.name?.split(' ')[0]}</span>
-                  <button
-                    onClick={() => signOut({ callbackUrl: '/login' })}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                    title="Sign out"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                </button>
               ) : (
                 <Link
                   href="/login"
@@ -642,6 +643,14 @@ export function Playground({
         <LeaderboardModal
           lang={lang}
           onClose={() => setLeaderboardOpen(false)}
+        />
+      )}
+
+      {profileOpen && sessionUser && (
+        <ProfileModal
+          lang={lang}
+          sessionUser={sessionUser}
+          onClose={() => setProfileOpen(false)}
         />
       )}
     </div>
