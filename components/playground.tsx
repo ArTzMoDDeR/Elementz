@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { ElementBadge } from './element-badge'
 import { Settings, Search, X, ArrowUpDown, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
@@ -186,7 +185,6 @@ export function Playground({
   const [nearMergeId, setNearMergeId] = useState<string | null>(null)
   const [mergeAnimation, setMergeAnimation] = useState<{ x: number; y: number } | null>(null)
   const [shakeId, setShakeId] = useState<string | null>(null)
-  const router = useRouter()
   const isMobile = useIsMobile()
   const playgroundBadgeSize = isMobile ? 'sm' : 'lg'
   const [search, setSearch] = useState('')
@@ -436,13 +434,13 @@ export function Playground({
             <div className="flex-1" />
 
             {/* Settings */}
-            <button
-              onClick={() => router.push('/settings')}
+            <Link
+              href="/settings"
               className="flex items-center justify-center w-9 h-9 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
               title="Settings"
             >
               <Settings className="w-3.5 h-3.5" />
-            </button>
+            </Link>
           </div>
 
           {/* Row 3: search + Nom + Récent sur la même ligne */}

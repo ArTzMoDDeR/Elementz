@@ -121,11 +121,14 @@ export function useGameStore() {
     }
   }, [sessionStatus, session?.user?.id])
 
-  // Listen for settings changes from /settings page (storage event = cross-tab/modal sync)
+  // Stable ref to setLang so the StorageEvent listener can call it without stale closure
+  const setLangRef = useRef<((l: Lang) => void) | null>(null)
+
+  // Listen for lang changes from /settings page — calls setLang so elements + recipeMap rebuild
   useEffect(() => {
     const handler = (e: StorageEvent) => {
       if (e.key === LANG_KEY && (e.newValue === 'fr' || e.newValue === 'en')) {
-        setLangState(e.newValue as Lang)
+        setLangRef.current?.(e.newValue as Lang)
       }
     }
     window.addEventListener('storage', handler)
@@ -183,8 +186,7 @@ export function useGameStore() {
   }, [sessionStatus, session?.user?.id])
 
   // Rebuild elements + recipes when lang changes
-  const setLang = useCallback((newLang: Lang) => {
-    if (dbRows.length === 0) return
+  const setLang = useCallback((newLang: Lang) => {    if (dbRows.length === 0) return
     setLangState(newLang)
     try { localStorage.setItem(LANG_KEY, newLang) } catch {}
     if (session?.user?.id) {
@@ -222,6 +224,9 @@ export function useGameStore() {
       return { ...item, element: newElMap.has(newName) ? newName : item.element }
     }))
   }, [dbRows, dbRecipes])
+
+  // Keep ref in sync so the StorageEvent listener always has the latest setLang
+  useEffect(() => { setLangRef.current = setLang }, [setLang])
 
   // Save discovered progress — localStorage always, server if logged in (debounced)
   useEffect(() => {
