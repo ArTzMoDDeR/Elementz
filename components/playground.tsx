@@ -435,13 +435,15 @@ export function Playground({
           height: isMobile ? (inventoryHeight != null ? `${inventoryHeight}px` : '55vh') : undefined,
         }}
       >
-        {/* Drag handle — mobile only */}
-        <div
-          className="md:hidden flex-shrink-0 flex items-center justify-center h-5 cursor-row-resize touch-none select-none"
-          onPointerDown={handleDragHandlePointerDown}
-        >
-          <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
-        </div>
+        {/* Drag handle — mobile only, rendered via isMobile to avoid SSR/hydration mismatch */}
+        {isMobile && (
+          <div
+            className="flex-shrink-0 flex items-center justify-center h-6 cursor-row-resize touch-none select-none active:bg-muted/30 transition-colors"
+            onPointerDown={handleDragHandlePointerDown}
+          >
+            <div className="w-12 h-1.5 rounded-full bg-muted-foreground/40" />
+          </div>
+        )}
         {/* Header */}
         <div className="flex-shrink-0 px-3 pt-3 pb-3 border-b border-border flex flex-col gap-2.5">
 
