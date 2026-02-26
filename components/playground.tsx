@@ -151,7 +151,7 @@ export function Playground({
   const [mergeAnimation, setMergeAnimation] = useState<{ x: number; y: number } | null>(null)
   const [shakeId, setShakeId] = useState<string | null>(null)
   const isMobile = useIsMobile()
-  const playgroundBadgeSize = isMobile ? 'xs' : 'lg'
+  const playgroundBadgeSize = isMobile ? 'sm' : 'lg'
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<SortType>('name')
   const [sortReverse, setSortReverse] = useState(false)
@@ -499,14 +499,14 @@ export function Playground({
             className="flex-1 overflow-y-scroll p-2"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', touchAction: 'none' }}
           >
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 md:grid-cols-3 gap-2 md:gap-3">
               {discoveredElements.map(element => (
                 <div
                   key={element.name}
                   className="cursor-grab active:cursor-grabbing select-none"
                   onPointerDown={e => handleInventoryPointerDown(e, element.name)}
                 >
-                  <ElementBadge element={element} size="md" fluid />
+                  <ElementBadge element={element} size={isMobile ? 'sm' : 'md'} fluid />
                 </div>
               ))}
             </div>
