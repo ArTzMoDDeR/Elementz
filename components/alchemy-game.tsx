@@ -99,7 +99,7 @@ export function AlchemyGame() {
         onClear={clearPlayground}
         onReset={resetProgress}
         onUnlockAll={unlockAll}
-        sessionUser={session?.user ?? null}
+        sessionUser={session?.user ? { name: session.user.name, email: session.user.email, image: session.user.image } : null}
         hintsEnabled={hintsEnabled}
         onToggleHints={handleToggleHints}
         onRequestHint={requestHint}

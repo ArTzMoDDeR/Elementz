@@ -36,7 +36,7 @@ interface PlaygroundProps {
   onClear: () => void
   onReset: () => void
   onUnlockAll: () => void
-  sessionUser?: { name?: string | null; image?: string | null } | null
+  sessionUser?: { name?: string | null; email?: string | null; image?: string | null } | null
   hintsEnabled?: boolean
   onToggleHints?: () => void
   onRequestHint?: () => void
@@ -166,6 +166,60 @@ function ScrollButton({ dir, scrollRef }: { dir: 'up' | 'down'; scrollRef: React
       className="md:hidden flex-1 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground active:text-foreground hover:bg-muted/40 transition-colors flex-shrink-0 select-none touch-none"
     >
       {dir === 'up' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+    </button>
+  )
+}
+
+// ============================================================
+// AvatarButton — shows element emoji avatar (not Google photo)
+// ============================================================
+const STARTING_FR = ['eau', 'feu', 'terre', 'air']
+const STARTING_EN = ['water', 'fire', 'earth', 'air']
+
+function hashStr(s: string) {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0
+  return h
+}
+
+function AvatarButton({
+  sessionUser, elements, onClick, lang,
+}: {
+  sessionUser: { name?: string | null; email?: string | null; image?: string | null }
+  elements: Map<string, ElementDef>
+  onClick: () => void
+  lang: 'fr' | 'en'
+}) {
+  const [avatarKey, setAvatarKey] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/profile')
+      .then(r => r.json())
+      .then(d => {
+        if (d.avatar) { setAvatarKey(d.avatar); return }
+        const starting = lang === 'fr' ? STARTING_FR : STARTING_EN
+        const fallback = starting[Math.abs(hashStr(sessionUser.email ?? 'x')) % 4]
+        setAvatarKey(fallback)
+      })
+      .catch(() => {
+        const starting = lang === 'fr' ? STARTING_FR : STARTING_EN
+        setAvatarKey(starting[0])
+      })
+  }, [lang, sessionUser.email])
+
+  const el = avatarKey ? elements.get(avatarKey) : null
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-9 h-9 rounded-xl bg-muted border border-border hover:border-foreground/30 transition-colors flex-shrink-0 flex items-center justify-center"
+      title={lang === 'fr' ? 'Profil' : 'Profile'}
+    >
+      {el ? (
+        <span className="text-xl leading-none">{el.icon}</span>
+      ) : (
+        <span className="text-xs font-bold text-muted-foreground">{sessionUser.name?.[0]?.toUpperCase() ?? '?'}</span>
+      )}
     </button>
   )
 }
@@ -551,19 +605,12 @@ export function Playground({
             {/* Left: profile avatar (logged in) or login link + leaderboard */}
             <div className="flex-1 flex justify-start gap-2">
               {sessionUser ? (
-                <button
+                <AvatarButton
+                  sessionUser={sessionUser}
+                  elements={elements}
                   onClick={() => setProfileOpen(true)}
-                  className="w-9 h-9 rounded-xl overflow-hidden border border-border hover:border-foreground/30 transition-colors flex-shrink-0"
-                  title={lang === 'fr' ? 'Profil' : 'Profile'}
-                >
-                  {sessionUser.image ? (
-                    <img src={sessionUser.image} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                  ) : (
-                    <div className="w-full h-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
-                      {sessionUser.name?.[0]?.toUpperCase() ?? '?'}
-                    </div>
-                  )}
-                </button>
+                  lang={lang}
+                />
               ) : (
                 <Link
                   href="/login"
@@ -650,6 +697,7 @@ export function Playground({
         <ProfileModal
           lang={lang}
           sessionUser={sessionUser}
+          elements={elements}
           onClose={() => setProfileOpen(false)}
         />
       )}

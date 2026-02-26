@@ -3,12 +3,18 @@
 import { useEffect, useState, useRef } from 'react'
 import { X, LogOut, Pencil, Check, Trophy } from 'lucide-react'
 import { signOut } from 'next-auth/react'
+import type { ElementDef } from '@/lib/game-data'
 
 type Lang = 'fr' | 'en'
+
+// Starting 4 elements (both langs) used as default avatars
+const STARTING_ELEMENTS_FR = ['eau', 'feu', 'terre', 'air']
+const STARTING_ELEMENTS_EN = ['water', 'fire', 'earth', 'air']
 
 interface ProfileModalProps {
   lang: Lang
   sessionUser: { name?: string | null; email?: string | null; image?: string | null }
+  elements: Map<string, ElementDef>
   onClose: () => void
 }
 
@@ -16,14 +22,17 @@ interface ProfileData {
   username: string | null
   show_in_leaderboard: boolean
   discovered_count: number
+  avatar: string | null
+  discovered: string[]
 }
 
-export function ProfileModal({ lang, sessionUser, onClose }: ProfileModalProps) {
+export function ProfileModal({ lang, sessionUser, elements, onClose }: ProfileModalProps) {
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState('')
   const [nameError, setNameError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [pickingAvatar, setPickingAvatar] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
@@ -38,6 +47,13 @@ export function ProfileModal({ lang, sessionUser, onClose }: ProfileModalProps) 
   }, [])
 
   const displayName = profile?.username || sessionUser.name?.split(' ')[0] || 'Player'
+
+  // Determine avatar element key to display
+  const startingElements = lang === 'fr' ? STARTING_ELEMENTS_FR : STARTING_ELEMENTS_EN
+  const avatarKey = profile?.avatar
+    ?? startingElements[Math.abs(hashStr(sessionUser.email ?? 'x')) % 4]
+
+  const avatarEl = elements.get(avatarKey)
 
   const saveName = async () => {
     if (!profile) return
@@ -69,11 +85,21 @@ export function ProfileModal({ lang, sessionUser, onClose }: ProfileModalProps) 
     })
   }
 
+  const saveAvatar = async (key: string) => {
+    setProfile(p => p ? { ...p, avatar: key } : p)
+    setPickingAvatar(false)
+    await fetch('/api/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ avatar: key }),
+    })
+  }
+
   return (
     <>
       <div
         className="fixed inset-0 z-[998] bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
-        onClick={onClose}
+        onClick={pickingAvatar ? () => setPickingAvatar(false) : onClose}
       />
       <div className="fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 z-[999] flex flex-col md:w-[400px] md:max-h-[90vh] bg-card md:rounded-2xl border border-border shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-250 overflow-hidden">
 
@@ -93,13 +119,22 @@ export function ProfileModal({ lang, sessionUser, onClose }: ProfileModalProps) 
 
           {/* Avatar + name */}
           <div className="flex items-center gap-4">
-            {sessionUser.image ? (
-              <img src={sessionUser.image} alt="" className="w-14 h-14 rounded-2xl border border-border flex-shrink-0" referrerPolicy="no-referrer" />
-            ) : (
-              <div className="w-14 h-14 rounded-2xl bg-muted border border-border flex items-center justify-center text-xl font-bold text-muted-foreground flex-shrink-0">
-                {displayName[0]?.toUpperCase()}
+            {/* Avatar button */}
+            <button
+              onClick={() => setPickingAvatar(true)}
+              className="relative w-14 h-14 rounded-2xl bg-muted border border-border flex items-center justify-center flex-shrink-0 overflow-hidden hover:border-foreground/30 transition-colors group"
+              title={t('Changer l\'avatar', 'Change avatar')}
+            >
+              {avatarEl ? (
+                <span className="text-3xl leading-none">{avatarEl.icon}</span>
+              ) : (
+                <span className="text-2xl font-bold text-muted-foreground">{displayName[0]?.toUpperCase()}</span>
+              )}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Pencil className="w-4 h-4 text-white" />
               </div>
-            )}
+            </button>
+
             <div className="flex-1 min-w-0">
               {editingName ? (
                 <div className="flex flex-col gap-1">
@@ -139,6 +174,36 @@ export function ProfileModal({ lang, sessionUser, onClose }: ProfileModalProps) 
             </div>
           </div>
 
+          {/* Avatar picker */}
+          {pickingAvatar && profile && (
+            <div className="flex flex-col gap-3">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                {t('Choisir un avatar', 'Choose an avatar')}
+              </p>
+              <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto pr-1">
+                {profile.discovered.map(key => {
+                  const el = elements.get(key)
+                  if (!el) return null
+                  const isSelected = (profile.avatar ?? avatarKey) === key
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => saveAvatar(key)}
+                      title={el.name}
+                      className={`aspect-square rounded-xl flex items-center justify-center text-xl transition-colors border ${
+                        isSelected
+                          ? 'bg-foreground/10 border-foreground/40'
+                          : 'bg-muted/40 border-border hover:border-foreground/20 hover:bg-muted/60'
+                      }`}
+                    >
+                      {el.icon}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Stats */}
           {profile && (
             <div className="flex items-center gap-3">
@@ -167,7 +232,6 @@ export function ProfileModal({ lang, sessionUser, onClose }: ProfileModalProps) 
                   </p>
                 </div>
               </div>
-              {/* Toggle */}
               <button
                 onClick={() => toggleLeaderboard(!profile.show_in_leaderboard)}
                 className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${profile.show_in_leaderboard ? 'bg-foreground' : 'bg-muted-foreground/30'}`}
@@ -192,4 +256,11 @@ export function ProfileModal({ lang, sessionUser, onClose }: ProfileModalProps) 
       </div>
     </>
   )
+}
+
+// Simple deterministic hash for stable default avatar based on email
+function hashStr(s: string): number {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0
+  return h
 }
