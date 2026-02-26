@@ -143,6 +143,12 @@
   animation: shake 0.35s ease-in-out;
 }
 
+@keyframes loading {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(0%); }
+  100% { transform: translateX(100%); }
+}
+
 /* Hide scrollbar but keep scroll functionality */
 .scrollbar-thin::-webkit-scrollbar {
   width: 4px;

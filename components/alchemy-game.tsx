@@ -42,10 +42,29 @@ export function AlchemyGame() {
 
   if (!mounted || !initialized) {
     return (
-      <div className="h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
-          <p className="text-sm text-muted-foreground">Chargement...</p>
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-background gap-8">
+        {/* Logo */}
+        <div className="relative flex items-center justify-center">
+          {/* Outer pulse ring */}
+          <div className="absolute w-24 h-24 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2s' }} />
+          {/* Inner ring */}
+          <div className="absolute w-20 h-20 rounded-full bg-primary/8 animate-pulse" />
+          {/* Logo */}
+          <img
+            src="/logo.png"
+            alt="Elementz"
+            className="relative w-16 h-16 rounded-2xl shadow-lg"
+          />
+        </div>
+
+        {/* Title */}
+        <div className="flex flex-col items-center gap-2">
+          <h1 className="font-bold text-2xl tracking-tight text-foreground font-sans">Elementz</h1>
+          {/* Loading bar */}
+          <div className="w-32 h-0.5 bg-border rounded-full overflow-hidden">
+            <div className="h-full bg-primary rounded-full animate-[loading_1.5s_ease-in-out_infinite]" />
+          </div>
+          <p className="text-xs text-muted-foreground tracking-widest uppercase font-sans">Loading</p>
         </div>
       </div>
     )
