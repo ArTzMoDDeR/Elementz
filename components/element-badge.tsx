@@ -37,7 +37,7 @@ const ELEMENT_ICONS: Record<string, (color: string) => React.ReactNode> = {
 
 const FIXED_SIZE = {
   xs: 'w-12 h-12',
-  sm: 'w-14 h-14',
+  sm: 'w-16 h-16',
   md: 'w-20 h-20',
   lg: 'w-28 h-28',
 }
