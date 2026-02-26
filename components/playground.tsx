@@ -619,7 +619,7 @@ export function Playground({
         <div
           className="flex-shrink-0 border-t border-border px-3 pt-3 pb-3 md:pb-3"
           style={{
-            paddingBottom: isMobile ? 'max(12px, env(safe-area-inset-bottom, 20px))' : undefined,
+            paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom, 0px) + 24px)' : undefined,
             opacity: footerOpacity,
             pointerEvents: footerOpacity < 0.1 ? 'none' : 'auto',
           }}
@@ -637,10 +637,10 @@ export function Playground({
               ) : (
                 <Link
                   href="/login"
-                  className="flex items-center gap-1.5 h-10 px-3 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground text-xs font-medium transition-colors"
+                  className="flex items-center justify-center w-10 h-10 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  title="Login"
                 >
-                  <LogIn className="w-3.5 h-3.5" />
-                  Login
+                  <LogIn className="w-4 h-4" />
                 </Link>
               )}
               <button
