@@ -6,10 +6,12 @@ export async function GET() {
   const rows = await sql`
     SELECT
       user_id,
+      username,
       array_length(discovered, 1) AS count,
       updated_at
     FROM user_progress
     WHERE discovered IS NOT NULL
+      AND (show_in_leaderboard IS NULL OR show_in_leaderboard = TRUE)
     ORDER BY count DESC
     LIMIT 50
   `
