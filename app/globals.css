@@ -3,6 +3,19 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Prevent text selection on long-press — native app feel */
+* {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Re-enable selection only for explicit inputs */
+input, textarea, [contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 :root {
   --background: oklch(0.98 0.002 80);
   --foreground: oklch(0.18 0.01 60);
