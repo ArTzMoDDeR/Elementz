@@ -195,12 +195,13 @@ export function Playground({
   const [inventoryHeight, setInventoryHeight] = useState<number | null>(null) // null = default 55vh
   const dragHandleRef = useRef<{ startY: number; startH: number } | null>(null)
 
-  // Footer opacity: fades in from 0→1 between 73% and 92% of screen height
+  // Footer opacity: only show on mobile when inventory >= 50% screen height, fade in to 92%
   const footerOpacity = (() => {
     if (!isMobile) return 1
-    const maxH = typeof window !== 'undefined' ? window.innerHeight * 0.92 : 0
-    const fadeStart = maxH * 0.73
-    const h = inventoryHeight ?? (typeof window !== 'undefined' ? window.innerHeight * 0.55 : 0)
+    const screenH = typeof window !== 'undefined' ? window.innerHeight : 800
+    const maxH = screenH * 0.92
+    const fadeStart = screenH * 0.50
+    const h = inventoryHeight ?? screenH * 0.55
     if (h <= fadeStart) return 0
     return Math.min(1, (h - fadeStart) / (maxH - fadeStart))
   })()
@@ -535,14 +536,13 @@ export function Playground({
           </div>
         </div>
 
-        {/* Footer — desktop: always visible / mobile: fades in when expanded */}
+        {/* Footer — desktop: always visible / mobile: only rendered when expanded past 50% */}
+        {(!isMobile || footerOpacity > 0) && (
         <div
           className="flex-shrink-0 border-t border-border px-3 py-3"
           style={{
             opacity: footerOpacity,
             pointerEvents: footerOpacity < 0.1 ? 'none' : 'auto',
-            // On desktop always visible regardless of opacity calc
-            ...(isMobile ? {} : { opacity: 1, pointerEvents: 'auto' }),
           }}
         >
           <div className="flex items-center justify-between gap-2">
@@ -611,6 +611,7 @@ export function Playground({
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   )
