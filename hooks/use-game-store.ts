@@ -160,20 +160,36 @@ export function useGameStore() {
       setElements(elMap)
       setRecipeMap(buildRecipeMap(recipes, savedLang))
 
-      // Priority: server progress (if logged in) > localStorage > base elements
+      // Build a name→name mapping so server names (any lang) can be resolved to current lang
+      const anyNameToCurrentLang = new Map<string, string>()
+      for (const row of rows) {
+        const currentName = savedLang === 'fr'
+          ? (row.name_french || row.name_english)
+          : (row.name_english || row.name_french)
+        if (!currentName) continue
+        if (row.name_french) anyNameToCurrentLang.set(row.name_french, currentName)
+        if (row.name_english) anyNameToCurrentLang.set(row.name_english, currentName)
+      }
+
       const baseElements = savedLang === 'fr' ? BASE_ELEMENTS_FR : BASE_ELEMENTS_EN
       const validDisc = new Set<string>(baseElements.filter(b => elMap.has(b)))
 
-      // Always merge server + localStorage — union, never subtract
+      // Server progress: translate any language name to current lang before checking elMap
       if (progressData?.discovered && Array.isArray(progressData.discovered)) {
-        progressData.discovered.forEach((name: string) => { if (elMap.has(name)) validDisc.add(name) })
+        progressData.discovered.forEach((name: string) => {
+          const resolved = anyNameToCurrentLang.get(name) ?? name
+          if (elMap.has(resolved)) validDisc.add(resolved)
+        })
       }
-      // Also merge localStorage on top (handles offline discoveries)
+      // Also merge localStorage (handles offline discoveries), same translation
       try {
         const saved = localStorage.getItem(STORAGE_KEY)
         if (saved) {
           const parsed = JSON.parse(saved) as string[]
-          parsed.forEach(name => { if (elMap.has(name)) validDisc.add(name) })
+          parsed.forEach(name => {
+            const resolved = anyNameToCurrentLang.get(name) ?? name
+            if (elMap.has(resolved)) validDisc.add(resolved)
+          })
         }
       } catch {}
 
