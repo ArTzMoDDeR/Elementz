@@ -619,7 +619,7 @@ export function Playground({
         <div
           className="flex-shrink-0 border-t border-border px-3 pt-2.5 pb-2.5"
           style={{
-            paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom, 0px) + 14px)' : undefined,
+            paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom, 16px) + 14px)' : undefined,
             opacity: footerOpacity,
             pointerEvents: footerOpacity < 0.1 ? 'none' : 'auto',
           }}
