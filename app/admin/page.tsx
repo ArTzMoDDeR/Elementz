@@ -25,6 +25,16 @@ type Recipe = {
   ingredient2_name: string
 }
 
+type ProducesEntry = {
+  id: number
+  other_number: number
+  other_name: string
+  other_img: string | null
+  result_number: number
+  result_name: string
+  result_img: string | null
+}
+
 // ─── Edit Modal ──────────────────────────────────────────────────────────────
 function ElementCard({ element, uploading, onEdit, onUpload }: {
   element: Element
@@ -101,6 +111,8 @@ function EditModal({
   const [img, setImg] = useState(element.img)
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [loadingRecipes, setLoadingRecipes] = useState(true)
+  const [produces, setProduces] = useState<ProducesEntry[]>([])
+  const [loadingProduces, setLoadingProduces] = useState(true)
   const [selected, setSelected] = useState<[Element | null, Element | null]>([null, null])
   const [recipeSearch, setRecipeSearch] = useState('')
   const [addingRecipe, setAddingRecipe] = useState(false)
@@ -113,6 +125,10 @@ function EditModal({
       .then(r => r.json())
       .then(data => { setRecipes(Array.isArray(data) ? data : []); setLoadingRecipes(false) })
       .catch(() => setLoadingRecipes(false))
+    fetch(`/api/elements/${element.number}/produces`)
+      .then(r => r.json())
+      .then(data => { setProduces(Array.isArray(data) ? data : []); setLoadingProduces(false) })
+      .catch(() => setLoadingProduces(false))
   }, [element.number])
 
   async function save() {
@@ -387,6 +403,34 @@ function EditModal({
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Produces — what this element creates when combined with others */}
+          <div>
+            <p className="text-sm font-semibold mb-3">
+              Crée aussi… <span className="text-muted-foreground font-normal">({produces.length} combo{produces.length !== 1 ? 's' : ''})</span>
+            </p>
+            {loadingProduces ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                Chargement...
+              </div>
+            ) : produces.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic py-2">Cet élément n'est ingrédient d'aucune recette</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {produces.map(p => (
+                  <div key={p.id} className="flex items-center gap-1.5 bg-muted/40 border border-border rounded-lg px-2 py-1.5 text-sm">
+                    <span className="text-muted-foreground text-xs">+</span>
+                    {p.other_img && <img src={p.other_img} className="w-4 h-4 object-contain flex-shrink-0" alt="" />}
+                    <span className="font-medium">{p.other_name}</span>
+                    <span className="text-muted-foreground text-xs mx-0.5">=</span>
+                    {p.result_img && <img src={p.result_img} className="w-4 h-4 object-contain flex-shrink-0" alt="" />}
+                    <span className="font-semibold text-foreground">{p.result_name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
