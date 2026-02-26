@@ -61,7 +61,7 @@ export function useHint(
   // so switching lang doesn't generate a new hint
   const hintGeneratedAtRef = useRef<number | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const HINT_DELAY = 2 * 60 * 1000 // 2 minutes
+  const HINT_DELAY = 60 * 1000 // 1 minute
 
   // Auto-trigger hint after 2min of no unlock
   useEffect(() => {
