@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { signOut } from 'next-auth/react'
 import { ElementBadge } from './element-badge'
-import { Settings, Search, X, ArrowUpDown, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
+import { Settings, Search, X, ArrowUpDown, Trash2, ChevronUp, ChevronDown, Lightbulb, LogIn, LogOut } from 'lucide-react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import Link from 'next/link'
 
@@ -419,9 +419,9 @@ export function Playground({
             </span>
           </div>
 
-          {/* Row 2: clear (icon), spacer, settings */}
+          {/* Row 2: clear, login/logout, FR/EN, hint */}
           <div className="flex items-center gap-2">
-            {/* Clear — icon only, left */}
+            {/* Clear — icon only */}
             <button
               onClick={onClear}
               disabled={items.length === 0}
@@ -433,14 +433,54 @@ export function Playground({
 
             <div className="flex-1" />
 
-            {/* Settings */}
-            <Link
-              href="/settings"
-              className="flex items-center justify-center w-9 h-9 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
-              title="Settings"
+            {/* Login / avatar+logout */}
+            {sessionUser ? (
+              <div className="flex items-center gap-1 h-9 px-2 rounded-xl bg-muted/50 border border-border flex-shrink-0">
+                {sessionUser.image && (
+                  <img src={sessionUser.image} alt="" className="w-5 h-5 rounded-full" referrerPolicy="no-referrer" />
+                )}
+                <button
+                  onClick={() => signOut({ callbackUrl: '/login' })}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  title="Sign out"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="flex items-center gap-1.5 h-9 px-2.5 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground text-xs font-medium transition-colors flex-shrink-0"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                Login
+              </Link>
+            )}
+
+            {/* Lang switcher */}
+            <div className="flex items-center bg-muted/50 border border-border rounded-xl p-1 h-9 gap-0.5 flex-shrink-0">
+              <button
+                className={`px-2 h-full text-xs font-semibold rounded-lg transition-colors ${lang === 'fr' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => onSetLang('fr')}
+              >FR</button>
+              <button
+                className={`px-2 h-full text-xs font-semibold rounded-lg transition-colors ${lang === 'en' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => onSetLang('en')}
+              >EN</button>
+            </div>
+
+            {/* Hint toggle */}
+            <button
+              onClick={onToggleHints}
+              title={hintsEnabled ? (lang === 'fr' ? 'Désactiver les hints' : 'Disable hints') : (lang === 'fr' ? 'Activer les hints' : 'Enable hints')}
+              className={`flex items-center justify-center w-9 h-9 rounded-xl border transition-colors flex-shrink-0 ${
+                hintsEnabled
+                  ? 'bg-amber-500/15 border-amber-500/40 text-amber-400 hover:bg-amber-500/25'
+                  : 'bg-muted/50 border-border text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
             >
-              <Settings className="w-3.5 h-3.5" />
-            </Link>
+              <Lightbulb className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           {/* Row 3: search + Nom + Récent sur la même ligne */}
