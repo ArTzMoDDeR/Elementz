@@ -698,37 +698,38 @@ export function Playground({
 // Chevron scroll bar — hold to scroll, tap = 1 row
 // ============================================================
 
-const ROW_HEIGHT = 58 // approximate height of one element row in px
+const MIN_SPEED = 80   // px/s at start
+const MAX_SPEED = 800  // px/s at full hold
+const ACCEL_TIME = 1500 // ms to reach max speed
 
 function ChevronScrollBar({ scrollRef }: { scrollRef: React.RefObject<HTMLDivElement | null> }) {
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const rafRef = useRef<number | null>(null)
+  const startTimeRef = useRef<number>(0)
+  const lastTimeRef = useRef<number>(0)
 
   const startScroll = (dir: 1 | -1) => {
-    const scroll = (speed: number) => scrollRef.current?.scrollBy({ top: dir * ROW_HEIGHT, behavior: 'smooth' })
+    const now = performance.now()
+    startTimeRef.current = now
+    lastTimeRef.current = now
 
-    // immediate first scroll
-    scroll(ROW_HEIGHT)
+    const tick = (t: number) => {
+      const el = scrollRef.current
+      if (!el) return
+      const elapsed = t - startTimeRef.current
+      // ease-in: speed ramps from MIN to MAX over ACCEL_TIME
+      const progress = Math.min(elapsed / ACCEL_TIME, 1)
+      const speed = MIN_SPEED + (MAX_SPEED - MIN_SPEED) * progress * progress
+      const dt = (t - lastTimeRef.current) / 1000 // seconds since last frame
+      lastTimeRef.current = t
+      el.scrollTop += dir * speed * dt
+      rafRef.current = requestAnimationFrame(tick)
+    }
 
-    // slow phase — 300ms
-    intervalRef.current = setInterval(() => scroll(ROW_HEIGHT), 300)
-
-    // after 1s → medium phase 150ms
-    timeoutRef.current = setTimeout(() => {
-      clearInterval(intervalRef.current!)
-      intervalRef.current = setInterval(() => scroll(ROW_HEIGHT), 150)
-
-      // after 2s total → fast phase 60ms
-      timeoutRef.current = setTimeout(() => {
-        clearInterval(intervalRef.current!)
-        intervalRef.current = setInterval(() => scroll(ROW_HEIGHT), 60)
-      }, 1000)
-    }, 1000)
+    rafRef.current = requestAnimationFrame(tick)
   }
 
   const stopScroll = () => {
-    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
-    if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null }
+    if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
   }
 
   return (
