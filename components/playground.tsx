@@ -646,7 +646,7 @@ export function Playground({
                 <button
                   key={id}
                   onClick={() => setActiveTab(prev => prev === id && id !== 'home' ? 'home' : id)}
-                  className="flex-1 flex flex-col items-center justify-center pt-3 pb-1.5 gap-0.5 relative transition-colors"
+                  className="flex-1 flex flex-col items-center justify-center py-3 relative transition-colors"
                 >
                   {isActive && (
                     <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] rounded-full bg-foreground" />
@@ -655,9 +655,6 @@ export function Playground({
                     className={`w-[22px] h-[22px] transition-all ${isActive ? 'text-foreground' : 'text-muted-foreground/50'}`}
                     strokeWidth={isActive ? 2.5 : 1.75}
                   />
-                  <span className={`text-[10px] transition-all ${isActive ? 'text-foreground font-semibold' : 'text-muted-foreground/50 font-normal'}`}>
-                    {lang === 'fr' ? labelFr : labelEn}
-                  </span>
                 </button>
               )
             })}

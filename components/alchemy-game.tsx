@@ -105,11 +105,11 @@ export function AlchemyGame() {
         onRequestHint={requestHint}
       />
 
-      {/* Clear button — top right of canvas, safe area aware */}
+      {/* Clear button — top left of canvas, safe area aware */}
       {playground.length > 0 && (
         <button
           onClick={clearPlayground}
-          className="fixed right-3 z-40 flex items-center justify-center w-9 h-9 rounded-xl bg-card/80 border border-border backdrop-blur-sm text-muted-foreground hover:text-foreground hover:bg-card transition-colors shadow-sm"
+          className="fixed left-3 z-40 flex items-center justify-center w-9 h-9 rounded-xl bg-card/80 border border-border backdrop-blur-sm text-muted-foreground hover:text-foreground hover:bg-card transition-colors shadow-sm"
           style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
           title={lang === 'fr' ? 'Vider le terrain' : 'Clear playground'}
         >
