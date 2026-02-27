@@ -588,7 +588,7 @@ export function Playground({
           >
             {activeTab === 'home' ? (
               <div className="p-2">
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="grid grid-cols-4 md:grid-cols-3 gap-1.5">
                   {discoveredElements.map((element) => (
                     <div
                       key={element.name}
@@ -702,21 +702,33 @@ const ROW_HEIGHT = 58 // approximate height of one element row in px
 
 function ChevronScrollBar({ scrollRef }: { scrollRef: React.RefObject<HTMLDivElement | null> }) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const startScroll = (dir: 1 | -1) => {
+    const scroll = (speed: number) => scrollRef.current?.scrollBy({ top: dir * ROW_HEIGHT, behavior: 'smooth' })
+
     // immediate first scroll
-    scrollRef.current?.scrollBy({ top: dir * ROW_HEIGHT, behavior: 'smooth' })
-    // then continue while held
-    intervalRef.current = setInterval(() => {
-      scrollRef.current?.scrollBy({ top: dir * ROW_HEIGHT, behavior: 'smooth' })
-    }, 300)
+    scroll(ROW_HEIGHT)
+
+    // slow phase — 300ms
+    intervalRef.current = setInterval(() => scroll(ROW_HEIGHT), 300)
+
+    // after 1s → medium phase 150ms
+    timeoutRef.current = setTimeout(() => {
+      clearInterval(intervalRef.current!)
+      intervalRef.current = setInterval(() => scroll(ROW_HEIGHT), 150)
+
+      // after 2s total → fast phase 60ms
+      timeoutRef.current = setTimeout(() => {
+        clearInterval(intervalRef.current!)
+        intervalRef.current = setInterval(() => scroll(ROW_HEIGHT), 60)
+      }, 1000)
+    }, 1000)
   }
 
   const stopScroll = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current)
-      intervalRef.current = null
-    }
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
+    if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null }
   }
 
   return (
