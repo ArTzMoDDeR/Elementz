@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { signInWithGoogle } from '@/app/actions/auth'
 
 type Lang = 'fr' | 'en'
 
@@ -35,36 +36,9 @@ function InventoryIllustration() {
 
 const SLIDES: {
   title: { fr: string; en: string }
-  content: (props: { lang: Lang; onSetLang: (l: Lang) => void }) => React.ReactNode
+  content: (props: { lang: Lang }) => React.ReactNode
 }[] = [
-  // Slide 0 — Language picker first
-  {
-    title: { fr: 'Choisis ta langue', en: 'Choose your language' },
-    content: ({ lang, onSetLang }) => (
-      <div className="flex flex-col gap-5 items-center">
-        <p className="text-sm text-muted-foreground text-center leading-relaxed">
-          {lang === 'fr'
-            ? "Les noms des éléments s'afficheront dans la langue choisie. Tu peux changer à tout moment."
-            : 'Element names will appear in the chosen language. You can change at any time.'}
-        </p>
-        <div className="flex items-center bg-muted/50 border border-border rounded-xl p-1.5 h-12 gap-1">
-          <button
-            className={`px-7 h-full text-sm font-semibold rounded-lg transition-colors ${lang === 'fr' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-            onClick={() => onSetLang('fr')}
-          >Français</button>
-          <button
-            className={`px-7 h-full text-sm font-semibold rounded-lg transition-colors ${lang === 'en' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-            onClick={() => onSetLang('en')}
-          >English</button>
-        </div>
-        <p className="text-xs text-muted-foreground/50 text-center">
-          {lang === 'fr' ? 'Modifiable depuis le menu en bas à tout moment' : 'Can be changed anytime from the bottom menu'}
-        </p>
-      </div>
-    ),
-  },
-
-  // Slide 1 — Combine
+  // Slide 0 — Combine
   {
     title: { fr: 'Combiner des éléments', en: 'Combine elements' },
     content: ({ lang }) => (
@@ -75,20 +49,13 @@ const SLIDES: {
             : 'Drag one element onto another to combine them and discover new ones.'}
         </p>
         <div className="rounded-xl overflow-hidden border border-border bg-muted/30">
-          <video
-            src="/tutohelp.webm"
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-auto block"
-          />
+          <video src="/tutohelp.webm" autoPlay loop muted playsInline className="w-full h-auto block" />
         </div>
       </div>
     ),
   },
 
-  // Slide 2 — Inventory
+  // Slide 1 — Inventory
   {
     title: { fr: "L'inventaire", en: 'The Inventory' },
     content: ({ lang }) => (
@@ -100,15 +67,13 @@ const SLIDES: {
         </p>
         <InventoryIllustration />
         <p className="text-xs text-muted-foreground/60 text-center">
-          {lang === 'fr'
-            ? 'Le compteur en haut indique ta progression'
-            : 'The counter at the top shows your progress'}
+          {lang === 'fr' ? 'Le compteur en haut indique ta progression' : 'The counter at the top shows your progress'}
         </p>
       </div>
     ),
   },
 
-  // Slide 3 — Hints & Clear
+  // Slide 2 — Hints & Clear
   {
     title: { fr: 'Indices & Vider', en: 'Hints & Clear' },
     content: ({ lang }) => (
@@ -124,8 +89,8 @@ const SLIDES: {
             <p className="text-sm font-medium text-foreground mb-1">{lang === 'fr' ? 'Indices' : 'Hints'}</p>
             <p className="text-xs text-muted-foreground leading-relaxed">
               {lang === 'fr'
-                ? 'Si tu bloques, une suggestion arrive automatiquement après 1 min sans nouvelle découverte — une combinaison réalisable avec ce que tu as déjà.'
-                : 'If you get stuck, a suggestion appears automatically after 1 min without a new discovery — a combination you can already make with what you have.'}
+                ? 'Si tu bloques, une suggestion arrive automatiquement après 1 min sans nouvelle découverte.'
+                : 'If you get stuck, a suggestion appears automatically after 1 min without a new discovery.'}
             </p>
           </div>
         </div>
@@ -139,8 +104,8 @@ const SLIDES: {
             <p className="text-sm font-medium text-foreground mb-1">{lang === 'fr' ? 'Vider' : 'Clear'}</p>
             <p className="text-xs text-muted-foreground leading-relaxed">
               {lang === 'fr'
-                ? 'Retire tous les éléments posés sur le plateau en un seul clic.'
-                : 'Remove all elements placed on the board in one tap.'}
+                ? 'Retire tous les éléments posés sur le plateau en un seul clic — bouton en haut à gauche.'
+                : 'Remove all elements placed on the board in one tap — button top-left.'}
             </p>
           </div>
         </div>
@@ -148,7 +113,7 @@ const SLIDES: {
     ),
   },
 
-  // Slide 4 — Login / save progress
+  // Slide 3 — Save progress
   {
     title: { fr: 'Sauvegarde ta progression', en: 'Save your progress' },
     content: ({ lang }) => (
@@ -164,18 +129,20 @@ const SLIDES: {
             ? 'Connecte-toi avec Google pour retrouver ta progression sur tous tes appareils.'
             : 'Sign in with Google to keep your progress across all your devices.'}
         </p>
-        <a
-          href="/login"
-          className="flex items-center gap-2.5 h-11 px-5 rounded-xl bg-foreground text-background text-sm font-semibold hover:opacity-90 transition-opacity"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-          </svg>
-          {lang === 'fr' ? 'Continuer avec Google' : 'Continue with Google'}
-        </a>
+        <form action={signInWithGoogle}>
+          <button
+            type="submit"
+            className="flex items-center gap-2.5 h-11 px-5 rounded-xl bg-foreground text-background text-sm font-semibold hover:opacity-90 transition-opacity"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" className="flex-shrink-0">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            {lang === 'fr' ? 'Continuer avec Google' : 'Continue with Google'}
+          </button>
+        </form>
         <p className="text-xs text-muted-foreground/50 text-center">
           {lang === 'fr'
             ? 'Tu peux jouer sans compte, mais ta progression restera uniquement sur cet appareil.'
@@ -224,7 +191,7 @@ export function HelpModal({ lang, onSetLang, onClose }: HelpModalProps) {
           <h2 className="text-lg font-semibold text-foreground mb-4 text-balance">
             {current.title[lang]}
           </h2>
-          <current.content lang={lang} onSetLang={onSetLang} />
+          <current.content lang={lang} />
         </div>
 
         {/* Navigation */}
