@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ElementBadge } from './element-badge'
-import { Search, X, ArrowUpDown, ChevronUp, ChevronDown, Home, Trophy, Settings, HelpCircle, User, Lightbulb, Trash2, Pencil, Check, LogOut } from 'lucide-react'
+import { Search, X, ArrowUpDown, ChevronUp, ChevronDown, Package, Trophy, Settings, HelpCircle, User, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff } from 'lucide-react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import { HelpModal } from './help-modal'
 import { LeaderboardModal } from './leaderboard-modal'
@@ -637,6 +637,7 @@ export function Playground({
                     lang={lang}
                     sessionUser={sessionUser}
                     elements={elements}
+                    onAvatarChange={setTabAvatarKey}
                   />
                 )}
                 {activeTab === 'profile' && !sessionUser && (
@@ -676,7 +677,7 @@ export function Playground({
         >
           <div className="flex items-stretch">
             {([
-              { id: 'home',        icon: Home,        labelFr: 'Jeu',      labelEn: 'Play'     },
+              { id: 'home',        icon: Package,     labelFr: 'Jeu',      labelEn: 'Play'     },
               { id: 'leaderboard', icon: Trophy,       labelFr: 'Scores',   labelEn: 'Scores'   },
               { id: 'settings',    icon: Settings,     labelFr: 'Réglages', labelEn: 'Settings' },
               { id: 'help',        icon: HelpCircle,   labelFr: 'Aide',     labelEn: 'Help'     },
@@ -918,10 +919,11 @@ function HelpPanel({ lang }: { lang: 'fr' | 'en' }) {
   )
 }
 
-function ProfileInlinePanel({ lang, sessionUser, elements }: {
+function ProfileInlinePanel({ lang, sessionUser, elements, onAvatarChange }: {
   lang: 'fr' | 'en'
   sessionUser: { name?: string | null; email?: string | null; image?: string | null }
   elements: Map<string, ElementDef>
+  onAvatarChange?: (key: string) => void
 }) {
   const [profile, setProfile] = useState<{ username: string | null; show_in_leaderboard: boolean; discovered_count: number; avatar: string | null; discovered: string[] } | null>(null)
   const [editingName, setEditingName] = useState(false)
@@ -929,6 +931,7 @@ function ProfileInlinePanel({ lang, sessionUser, elements }: {
   const [nameError, setNameError] = useState('')
   const [saving, setSaving] = useState(false)
   const [pickingAvatar, setPickingAvatar] = useState(false)
+  const [showEmail, setShowEmail] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
@@ -965,6 +968,7 @@ function ProfileInlinePanel({ lang, sessionUser, elements }: {
 
   const saveAvatar = async (key: string) => {
     setProfile(p => p ? { ...p, avatar: key } : p)
+    onAvatarChange?.(key)
     setPickingAvatar(false)
     await fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ avatar: key }) })
   }
@@ -1023,7 +1027,14 @@ function ProfileInlinePanel({ lang, sessionUser, elements }: {
               </button>
             </div>
           )}
-          <p className="text-sm text-muted-foreground mt-0.5">{sessionUser.email}</p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <p className="text-sm text-muted-foreground truncate">
+              {showEmail ? sessionUser.email : (sessionUser.email?.replace(/(.{2}).+(@.+)/, '$1••••$2') ?? '')}
+            </p>
+            <button onClick={() => setShowEmail(v => !v)} className="text-muted-foreground/60 hover:text-muted-foreground transition-colors flex-shrink-0">
+              {showEmail ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            </button>
+          </div>
         </div>
       </div>
 
