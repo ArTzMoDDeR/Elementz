@@ -655,7 +655,6 @@ export function Playground({
             </div>
           )}
         </div>
-        </div>
 
         {/* ── TAB BAR (all screen sizes) ─────────────────────────── */}
         <div
