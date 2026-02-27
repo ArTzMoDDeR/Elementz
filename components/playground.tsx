@@ -261,6 +261,17 @@ export function Playground({
   const inventoryScrollRef = useRef<HTMLDivElement>(null)
 
   const [tabAvatarKey, setTabAvatarKey] = useState<string | null>(null)
+  const [gridCols, setGridColsState] = useState<3 | 4 | 5>(4)
+
+  useEffect(() => {
+    const stored = localStorage.getItem('inventoryGridCols')
+    if (stored === '3' || stored === '4' || stored === '5') setGridColsState(Number(stored) as 3 | 4 | 5)
+  }, [])
+
+  const setGridCols = (n: 3 | 4 | 5) => {
+    setGridColsState(n)
+    localStorage.setItem('inventoryGridCols', String(n))
+  }
   useEffect(() => {
     if (!sessionUser?.email) return
     fetch('/api/profile')
@@ -602,7 +613,7 @@ export function Playground({
               className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden touch-none"
             >
               <div className="p-2">
-                <div className="grid grid-cols-4 md:grid-cols-3 gap-1.5">
+                <div className={`grid gap-1.5 ${gridCols === 3 ? 'grid-cols-3' : gridCols === 5 ? 'grid-cols-5' : 'grid-cols-4'}`}>
                   {discoveredElements.map((element) => (
                     <div
                       key={element.name}
@@ -627,6 +638,8 @@ export function Playground({
                     onToggleHints={onToggleHints}
                     onClear={onClear}
                     itemsCount={items.length}
+                    gridCols={gridCols}
+                    onSetGridCols={setGridCols}
                   />
                 )}
                 {activeTab === 'help' && (
@@ -826,10 +839,11 @@ function LeaderboardInlinePanel({ lang }: { lang: 'fr' | 'en' }) {
   )
 }
 
-function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, itemsCount }: {
+function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, itemsCount, gridCols, onSetGridCols }: {
   lang: 'fr' | 'en'; onSetLang: (l: 'fr' | 'en') => void
   hintsEnabled?: boolean; onToggleHints?: () => void
   onClear: () => void; itemsCount: number
+  gridCols: 3 | 4 | 5; onSetGridCols: (n: 3 | 4 | 5) => void
 }) {
   return (
     <div className="space-y-5 py-1">
@@ -839,6 +853,21 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
         <div className="flex items-center bg-muted/50 border border-border rounded-xl p-1 h-9 gap-0.5">
           <button className={`px-4 h-full text-sm font-semibold rounded-lg transition-colors ${lang === 'fr' ? 'bg-background shadow text-foreground' : 'text-muted-foreground'}`} onClick={() => onSetLang('fr')}>FR</button>
           <button className={`px-4 h-full text-sm font-semibold rounded-lg transition-colors ${lang === 'en' ? 'bg-background shadow text-foreground' : 'text-muted-foreground'}`} onClick={() => onSetLang('en')}>EN</button>
+        </div>
+      </div>
+      {/* Grid columns */}
+      <div className="flex items-center justify-between gap-4">
+        <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Colonnes inventaire' : 'Inventory columns'}</span>
+        <div className="flex items-center bg-muted/50 border border-border rounded-xl p-1 h-9 gap-0.5">
+          {([3, 4, 5] as const).map(n => (
+            <button
+              key={n}
+              onClick={() => onSetGridCols(n)}
+              className={`w-8 h-full text-sm font-semibold rounded-lg transition-colors ${gridCols === n ? 'bg-background shadow text-foreground' : 'text-muted-foreground'}`}
+            >
+              {n}
+            </button>
+          ))}
         </div>
       </div>
       {/* Hints */}
