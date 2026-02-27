@@ -575,8 +575,13 @@ export function Playground({
           )}
         </div>
 
+        {/* Chevron row — mobile home tab only, above the grid */}
+        {isMobile && activeTab === 'home' && (
+          <ChevronScrollBar scrollRef={inventoryScrollRef} />
+        )}
+
         {/* Scrollable content area — switches between home grid and tab panels */}
-        <div className="flex-1 min-h-0 relative">
+        <div className="flex-1 min-h-0">
           <div
             ref={inventoryScrollRef}
             className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden touch-none"
@@ -647,11 +652,6 @@ export function Playground({
               </div>
             )}
           </div>
-
-          {/* Chevron scroll bar — mobile home tab: two half-width buttons side by side */}
-          {isMobile && activeTab === 'home' && (
-            <ChevronScrollBar scrollRef={inventoryScrollRef} />
-          )}
         </div>
 
         {/* ── TAB BAR (all screen sizes) ─────────────────────────── */}
@@ -720,7 +720,7 @@ function ChevronScrollBar({ scrollRef }: { scrollRef: React.RefObject<HTMLDivEle
   }
 
   return (
-    <div className="flex border-t border-border">
+    <div className="flex flex-shrink-0 border-b border-border">
       <button
         className="flex-1 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/40 active:bg-muted/60 transition-colors border-r border-border"
         onPointerDown={e => { e.preventDefault(); startScroll(-1) }}
