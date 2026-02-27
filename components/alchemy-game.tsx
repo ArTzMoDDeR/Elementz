@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 import { Playground } from './playground'
 import { useGameStore } from '@/hooks/use-game-store'
 import { useHint } from '@/hooks/use-hint'
-import { Sparkles, Lightbulb } from 'lucide-react'
+import { Sparkles, Lightbulb, Trash2 } from 'lucide-react'
 
 export function AlchemyGame() {
   const [mounted, setMounted] = useState(false)
@@ -105,8 +105,23 @@ export function AlchemyGame() {
         onRequestHint={requestHint}
       />
 
-      {/* Notification stack — top left */}
-      <div className="fixed top-3 left-3 z-50 flex flex-col gap-2 pointer-events-none">
+      {/* Clear button — top right of canvas, safe area aware */}
+      {playground.length > 0 && (
+        <button
+          onClick={clearPlayground}
+          className="fixed right-3 z-40 flex items-center justify-center w-9 h-9 rounded-xl bg-card/80 border border-border backdrop-blur-sm text-muted-foreground hover:text-foreground hover:bg-card transition-colors shadow-sm"
+          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
+          title={lang === 'fr' ? 'Vider le terrain' : 'Clear playground'}
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      )}
+
+      {/* Notification stack — top left, below notch */}
+      <div
+        className="fixed left-3 z-50 flex flex-col gap-2 pointer-events-none"
+        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
+      >
 
         {/* Hints toggled */}
         {hintsToast !== null && (
