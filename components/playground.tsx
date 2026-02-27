@@ -260,6 +260,19 @@ export function Playground({
   const inventoryRef = useRef<HTMLDivElement>(null)
   const inventoryScrollRef = useRef<HTMLDivElement>(null)
 
+  const [tabAvatarKey, setTabAvatarKey] = useState<string | null>(null)
+  useEffect(() => {
+    if (!sessionUser?.email) return
+    fetch('/api/profile')
+      .then(r => r.json())
+      .then(d => {
+        if (d.avatar) { setTabAvatarKey(d.avatar); return }
+        const starting = lang === 'fr' ? STARTING_FR : STARTING_EN
+        setTabAvatarKey(starting[Math.abs(hashStr(sessionUser.email ?? 'x')) % 4])
+      })
+      .catch(() => {})
+  }, [sessionUser?.email, lang])
+
   const [dragging, setDragging] = useState<DragState | null>(null)
   const [nearMergeId, setNearMergeId] = useState<string | null>(null)
   const [mergeAnimation, setMergeAnimation] = useState<{ x: number; y: number } | null>(null)
@@ -677,17 +690,20 @@ export function Playground({
                   onClick={() => setActiveTab(prev => prev === id && id !== 'home' ? 'home' : id)}
                   className="flex-1 flex flex-col items-center justify-center py-3 relative transition-colors"
                 >
-                  {isProfileWithUser ? (
-                    <div className={`w-7 h-7 rounded-full overflow-hidden border-2 transition-all flex-shrink-0 ${isActive ? 'border-foreground' : 'border-transparent'}`}>
-                      {sessionUser.image ? (
-                        <img src={sessionUser.image} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full bg-muted flex items-center justify-center">
-                          <span className="text-xs font-bold text-foreground">{(sessionUser.name ?? 'P')[0].toUpperCase()}</span>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
+                  {isProfileWithUser ? (() => {
+                    const tabEl = tabAvatarKey ? elements.get(tabAvatarKey) : null
+                    return (
+                      <div className={`w-7 h-7 rounded-full overflow-hidden border-2 transition-all flex-shrink-0 bg-muted flex items-center justify-center ${isActive ? 'border-foreground' : 'border-transparent'}`}
+                        style={tabEl?.color ? { backgroundColor: `${tabEl.color}22` } : undefined}
+                      >
+                        {tabEl?.imageUrl ? (
+                          <img src={tabEl.imageUrl} alt="" className="w-5 h-5 object-contain" draggable={false} />
+                        ) : (
+                          <span className="text-xs font-bold text-muted-foreground">{(sessionUser.name ?? 'P')[0].toUpperCase()}</span>
+                        )}
+                      </div>
+                    )
+                  })() : (
                     <Icon
                       className={`w-6 h-6 transition-all ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}
                       strokeWidth={isActive ? 2.5 : 1.75}
@@ -731,16 +747,20 @@ function ChevronScrollBar({ scrollRef }: { scrollRef: React.RefObject<HTMLDivEle
       const el = scrollRef.current
       if (!el) return
       const elapsed = t - startTimeRef.current
-      // ease-in: speed ramps from MIN to MAX over ACCEL_TIME
       const progress = Math.min(elapsed / ACCEL_TIME, 1)
       const speed = MIN_SPEED + (MAX_SPEED - MIN_SPEED) * progress * progress
-      const dt = (t - lastTimeRef.current) / 1000 // seconds since last frame
+      // clamp dt to max 32ms so a tab switch/freeze doesn't cause a huge jump
+      const dt = Math.min(t - lastTimeRef.current, 32) / 1000
       lastTimeRef.current = t
       el.scrollTop += dir * speed * dt
       rafRef.current = requestAnimationFrame(tick)
     }
 
-    rafRef.current = requestAnimationFrame(tick)
+    // skip first frame so lastTimeRef is valid before first dt calculation
+    rafRef.current = requestAnimationFrame(t => {
+      lastTimeRef.current = t
+      rafRef.current = requestAnimationFrame(tick)
+    })
   }
 
   const stopScroll = () => {
