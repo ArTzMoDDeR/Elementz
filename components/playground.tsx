@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ElementBadge } from './element-badge'
-import { Search, X, ArrowUpDown, ChevronUp, ChevronDown, Home, Trophy, Settings, HelpCircle, User, Lightbulb, Trash2 } from 'lucide-react'
+import { Search, X, ArrowUpDown, ChevronUp, ChevronDown, Home, Trophy, Settings, HelpCircle, User, Lightbulb, Trash2, Pencil, Check, LogOut } from 'lucide-react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import { HelpModal } from './help-modal'
 import { LeaderboardModal } from './leaderboard-modal'
 import { ProfileModal } from './profile-modal'
 import { signInWithGoogle } from '@/app/actions/auth'
+import { signOut } from 'next-auth/react'
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false)
@@ -621,7 +622,6 @@ export function Playground({
                     lang={lang}
                     sessionUser={sessionUser}
                     elements={elements}
-                    onOpenFull={() => { setActiveTab('home'); setProfileOpen(true) }}
                   />
                 )}
                 {activeTab === 'profile' && !sessionUser && (
@@ -668,16 +668,29 @@ export function Playground({
               { id: 'profile',     icon: User,         labelFr: 'Profil',   labelEn: 'Profile'  },
             ] as const).map(({ id, icon: Icon }) => {
               const isActive = activeTab === id
+              const isProfileWithUser = id === 'profile' && !!sessionUser
               return (
                 <button
                   key={id}
                   onClick={() => setActiveTab(prev => prev === id && id !== 'home' ? 'home' : id)}
                   className="flex-1 flex flex-col items-center justify-center py-3 relative transition-colors"
                 >
-                  <Icon
-                    className={`w-6 h-6 transition-all ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}
-                    strokeWidth={isActive ? 2.5 : 1.75}
-                  />
+                  {isProfileWithUser ? (
+                    <div className={`w-7 h-7 rounded-full overflow-hidden border-2 transition-all flex-shrink-0 ${isActive ? 'border-foreground' : 'border-transparent'}`}>
+                      {sessionUser.image ? (
+                        <img src={sessionUser.image} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                          <span className="text-xs font-bold text-foreground">{(sessionUser.name ?? 'P')[0].toUpperCase()}</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Icon
+                      className={`w-6 h-6 transition-all ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}
+                      strokeWidth={isActive ? 2.5 : 1.75}
+                    />
+                  )}
                 </button>
               )
             })}
@@ -884,41 +897,175 @@ function HelpPanel({ lang }: { lang: 'fr' | 'en' }) {
   )
 }
 
-function ProfileInlinePanel({ lang, sessionUser, elements, onOpenFull }: {
+function ProfileInlinePanel({ lang, sessionUser, elements }: {
   lang: 'fr' | 'en'
   sessionUser: { name?: string | null; email?: string | null; image?: string | null }
   elements: Map<string, ElementDef>
-  onOpenFull: () => void
 }) {
-  const [avatarImg, setAvatarImg] = useState<string | null>(null)
-  const [username, setUsername] = useState<string | null>(null)
-  const [count, setCount] = useState<number>(0)
+  const [profile, setProfile] = useState<{ username: string | null; show_in_leaderboard: boolean; discovered_count: number; avatar: string | null; discovered: string[] } | null>(null)
+  const [editingName, setEditingName] = useState(false)
+  const [nameInput, setNameInput] = useState('')
+  const [nameError, setNameError] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [pickingAvatar, setPickingAvatar] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
   useEffect(() => {
     fetch('/api/profile').then(r => r.json()).then(d => {
-      setUsername(d.username ?? null)
-      setCount(d.discovered_count ?? 0)
-      if (d.avatar) {
-        const el = elements.get(d.avatar)
-        if (el?.imageUrl) setAvatarImg(el.imageUrl)
-      }
+      setProfile(d)
+      setNameInput(d.username ?? '')
     }).catch(() => {})
-  }, [elements])
+  }, [])
 
-  const displayName = username || sessionUser.name?.split(' ')[0] || (lang === 'fr' ? 'Joueur' : 'Player')
+  const displayName = profile?.username || sessionUser.name?.split(' ')[0] || t('Joueur', 'Player')
+
+  const STARTING = lang === 'fr' ? ['eau','feu','terre','air'] : ['water','fire','earth','air']
+  function hashStr(s: string) { let h = 0; for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0; return h }
+  const avatarKey = profile?.avatar ?? STARTING[Math.abs(hashStr(sessionUser.email ?? 'x')) % 4]
+  const avatarEl = elements.get(avatarKey)
+
+  const saveName = async () => {
+    if (!profile) return
+    const trimmed = nameInput.trim()
+    if (trimmed.length > 20) { setNameError(t('Max 20 caractères', 'Max 20 characters')); return }
+    if (trimmed.length > 0 && !/^[a-zA-Z0-9_\- ]+$/.test(trimmed)) { setNameError(t('Lettres, chiffres, _ et -', 'Letters, numbers, _ and -')); return }
+    setSaving(true)
+    await fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: trimmed || null }) })
+    setProfile(p => p ? { ...p, username: trimmed || null } : p)
+    setEditingName(false); setNameError(''); setSaving(false)
+  }
+
+  const toggleLeaderboard = async (val: boolean) => {
+    if (!profile) return
+    setProfile(p => p ? { ...p, show_in_leaderboard: val } : p)
+    await fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ show_in_leaderboard: val }) })
+  }
+
+  const saveAvatar = async (key: string) => {
+    setProfile(p => p ? { ...p, avatar: key } : p)
+    setPickingAvatar(false)
+    await fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ avatar: key }) })
+  }
+
+  if (!profile) return (
+    <div className="flex justify-center py-8">
+      <div className="w-6 h-6 border-2 border-border border-t-foreground/40 rounded-full animate-spin" />
+    </div>
+  )
 
   return (
-    <div className="flex items-center gap-3 py-1">
-      <div className="w-10 h-10 rounded-xl bg-muted border border-border flex items-center justify-center overflow-hidden p-1.5 flex-shrink-0">
-        {avatarImg ? <img src={avatarImg} alt="" className="w-full h-full object-contain" /> : <span className="text-sm font-bold text-muted-foreground">{displayName[0]?.toUpperCase()}</span>}
+    <div className="space-y-5 py-1">
+
+      {/* Avatar + name */}
+      <div className="flex items-center gap-4">
+        <button
+          onClick={() => setPickingAvatar(v => !v)}
+          className="relative w-16 h-16 rounded-2xl bg-muted border border-border flex items-center justify-center flex-shrink-0 overflow-hidden hover:border-foreground/40 transition-colors group p-2"
+        >
+          {avatarEl?.imageUrl ? (
+            <img src={avatarEl.imageUrl} alt="" className="w-full h-full object-contain" />
+          ) : (
+            <span className="text-2xl font-bold text-muted-foreground">{displayName[0]?.toUpperCase()}</span>
+          )}
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-2xl">
+            <Pencil className="w-4 h-4 text-white" />
+          </div>
+        </button>
+
+        <div className="flex-1 min-w-0">
+          {editingName ? (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2">
+                <input
+                  ref={inputRef}
+                  value={nameInput}
+                  onChange={e => { setNameInput(e.target.value); setNameError('') }}
+                  onKeyDown={e => e.key === 'Enter' && saveName()}
+                  maxLength={20}
+                  placeholder={t('Ton pseudo', 'Your username')}
+                  className="flex-1 h-9 px-3 rounded-xl bg-muted/60 border border-border text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-foreground/30 transition-colors"
+                  autoFocus
+                  style={{ fontSize: '16px' }}
+                />
+                <button onClick={saveName} disabled={saving} className="w-9 h-9 rounded-xl bg-foreground text-background flex items-center justify-center disabled:opacity-50 flex-shrink-0">
+                  <Check className="w-4 h-4" />
+                </button>
+              </div>
+              {nameError && <p className="text-xs text-red-400">{nameError}</p>}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <p className="text-base font-semibold text-foreground truncate">{displayName}</p>
+              <button onClick={() => { setEditingName(true); setTimeout(() => inputRef.current?.focus(), 50) }} className="text-muted-foreground hover:text-foreground transition-colors">
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+          <p className="text-sm text-muted-foreground mt-0.5">{sessionUser.email}</p>
+        </div>
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
-        <p className="text-xs text-muted-foreground">{count} {lang === 'fr' ? 'éléments découverts' : 'elements discovered'}</p>
+
+      {/* Avatar picker */}
+      {pickingAvatar && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('Choisir un avatar', 'Choose an avatar')}</p>
+          <div className="grid grid-cols-5 gap-2 max-h-52 overflow-y-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {profile.discovered.map(key => {
+              const el = elements.get(key)
+              if (!el?.imageUrl) return null
+              const isSelected = (profile.avatar ?? avatarKey) === key
+              return (
+                <button key={key} onClick={() => saveAvatar(key)} title={el.name}
+                  className={`aspect-square rounded-xl p-2 flex items-center justify-center border transition-all ${isSelected ? 'border-foreground/50 ring-2 ring-foreground/30' : 'bg-muted/40 border-border hover:border-foreground/20'}`}
+                  style={{ backgroundColor: `${el.color}18` }}
+                >
+                  <img src={el.imageUrl} alt={el.name} className="w-full h-full object-contain" />
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Stats */}
+      <div className="flex gap-3">
+        <div className="flex-1 flex flex-col items-center gap-1 p-4 rounded-2xl bg-muted/40 border border-border">
+          <span className="text-2xl font-bold text-foreground">{profile.discovered_count}</span>
+          <span className="text-sm text-muted-foreground">{t('éléments', 'elements')}</span>
+        </div>
+        <div className="flex-1 flex flex-col items-center gap-1 p-4 rounded-2xl bg-muted/40 border border-border">
+          <span className="text-2xl font-bold text-foreground">{Math.round((profile.discovered_count / 593) * 100)}%</span>
+          <span className="text-sm text-muted-foreground">{t('complété', 'completed')}</span>
+        </div>
       </div>
-      <button onClick={onOpenFull} className="h-8 px-3 rounded-xl bg-muted/50 border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0">
-        {lang === 'fr' ? 'Modifier' : 'Edit'}
+
+      {/* Leaderboard toggle */}
+      <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-muted/40 border border-border">
+        <div className="flex items-center gap-3">
+          <Trophy className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-foreground">{t('Classement', 'Leaderboard')}</p>
+            <p className="text-xs text-muted-foreground leading-snug">{t('Apparaître dans le top', 'Appear in the top players')}</p>
+          </div>
+        </div>
+        <button
+          onClick={() => toggleLeaderboard(!profile.show_in_leaderboard)}
+          className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${profile.show_in_leaderboard ? 'bg-foreground' : 'bg-muted-foreground/30'}`}
+        >
+          <span className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-background shadow transition-transform ${profile.show_in_leaderboard ? 'translate-x-5' : 'translate-x-0'}`} />
+        </button>
+      </div>
+
+      {/* Sign out */}
+      <button
+        onClick={() => signOut({ callbackUrl: '/' })}
+        className="w-full flex items-center justify-center gap-2 h-11 rounded-2xl bg-muted/50 border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+      >
+        <LogOut className="w-4 h-4" />
+        {t('Se déconnecter', 'Sign out')}
       </button>
+
     </div>
   )
 }
