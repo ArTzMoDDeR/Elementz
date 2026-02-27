@@ -538,10 +538,10 @@ export function Playground({
 
         {/* Header — always visible */}
         <div className="flex-shrink-0 px-3 pt-3 pb-3 border-b border-border flex flex-col gap-2.5">
-          <div className="flex items-center justify-center gap-2">
-            <img src="/logo.png" alt="Elementz" className="w-6 h-6 rounded-full flex-shrink-0" />
-            <span className="font-bold text-sm tracking-tight">Elementz</span>
-            <span className="text-xs tabular-nums text-muted-foreground" suppressHydrationWarning>
+          <div className="flex items-center justify-center gap-2" style={{ transform: 'translateY(-3px)' }}>
+            <img src="/logo.png" alt="Elementz" className="w-7 h-7 rounded-full flex-shrink-0" />
+            <span className="font-bold text-base tracking-tight">Elementz</span>
+            <span className="text-sm tabular-nums text-muted-foreground" suppressHydrationWarning>
               {discovered.size}<span className="opacity-40">/{totalElements}</span>
             </span>
           </div>
