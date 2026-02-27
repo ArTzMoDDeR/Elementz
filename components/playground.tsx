@@ -258,6 +258,7 @@ export function Playground({
   const containerRef = useRef<HTMLDivElement>(null)
   const inventoryRef = useRef<HTMLDivElement>(null)
   const inventoryScrollRef = useRef<HTMLDivElement>(null)
+  const inventoryScrollRef = useRef<HTMLDivElement>(null)
 
   const [dragging, setDragging] = useState<DragState | null>(null)
   const [nearMergeId, setNearMergeId] = useState<string | null>(null)
@@ -576,23 +577,27 @@ export function Playground({
         </div>
 
         {/* Scrollable content area — switches between home grid and tab panels */}
-        <div className="flex-1 overflow-y-auto min-h-0">
-          {activeTab === 'home' ? (
-            <div className="p-2">
-              <div className={`grid gap-1.5 ${isMobile ? 'grid-cols-3' : 'grid-cols-3'}`}>
-                {discoveredElements.map((element) => (
-                  <div
-                    key={element.name}
-                    className="cursor-grab active:cursor-grabbing select-none"
-                    onPointerDown={e => handleInventoryPointerDown(e, element.name)}
-                  >
-                    <ElementBadge element={element} size={isMobile ? 'sm' : 'md'} fluid />
-                  </div>
-                ))}
+        <div className="flex-1 min-h-0 relative">
+          <div
+            ref={inventoryScrollRef}
+            className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden touch-none"
+          >
+            {activeTab === 'home' ? (
+              <div className="p-2">
+                <div className="grid grid-cols-3 gap-1.5">
+                  {discoveredElements.map((element) => (
+                    <div
+                      key={element.name}
+                      className="cursor-grab active:cursor-grabbing select-none"
+                      onPointerDown={e => handleInventoryPointerDown(e, element.name)}
+                    >
+                      <ElementBadge element={element} size={isMobile ? 'sm' : 'md'} fluid />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="px-4 py-4">
+            ) : (
+              <div className="px-4 py-4 overflow-y-auto h-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {activeTab === 'leaderboard' && <LeaderboardInlinePanel lang={lang} />}
               {activeTab === 'settings' && (
                 <SettingsPanel
@@ -638,9 +643,30 @@ export function Playground({
                       {lang === 'fr' ? 'Continuer avec Google' : 'Continue with Google'}
                     </button>
                   </form>
-                </div>
-              )}
             </div>
+          )}
+          </div>
+
+          {/* Chevron scroll buttons — mobile home tab only */}
+          {isMobile && activeTab === 'home' && (
+            <>
+              <button
+                className="absolute top-1 right-1 z-10 w-7 h-7 flex items-center justify-center rounded-lg bg-card/90 border border-border backdrop-blur-sm text-foreground shadow-sm"
+                onPointerDown={e => { e.preventDefault(); e.stopPropagation() }}
+                onClick={() => inventoryScrollRef.current?.scrollBy({ top: -120, behavior: 'smooth' })}
+              >
+                <ChevronUp className="w-4 h-4" />
+              </button>
+              <button
+                className="absolute bottom-1 right-1 z-10 w-7 h-7 flex items-center justify-center rounded-lg bg-card/90 border border-border backdrop-blur-sm text-foreground shadow-sm"
+                onPointerDown={e => { e.preventDefault(); e.stopPropagation() }}
+                onClick={() => inventoryScrollRef.current?.scrollBy({ top: 120, behavior: 'smooth' })}
+              >
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            </>
+          )}
+        </div>
           )}
         </div>
 
@@ -656,7 +682,7 @@ export function Playground({
               { id: 'settings',    icon: Settings,     labelFr: 'Réglages', labelEn: 'Settings' },
               { id: 'help',        icon: HelpCircle,   labelFr: 'Aide',     labelEn: 'Help'     },
               { id: 'profile',     icon: User,         labelFr: 'Profil',   labelEn: 'Profile'  },
-            ] as const).map(({ id, icon: Icon, labelFr, labelEn }) => {
+            ] as const).map(({ id, icon: Icon }) => {
               const isActive = activeTab === id
               return (
                 <button
@@ -668,7 +694,7 @@ export function Playground({
                     <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] rounded-full bg-foreground" />
                   )}
                   <Icon
-                    className={`w-[22px] h-[22px] transition-all ${isActive ? 'text-foreground' : 'text-muted-foreground/50'}`}
+                    className="w-6 h-6 text-foreground transition-all"
                     strokeWidth={isActive ? 2.5 : 1.75}
                   />
                 </button>
