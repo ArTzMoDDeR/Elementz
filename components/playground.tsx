@@ -769,19 +769,19 @@ function LeaderboardInlinePanel({ lang }: { lang: 'fr' | 'en' }) {
   return (
     <div className="space-y-1">
       {loading ? (
-        <div className="flex justify-center py-4"><div className="w-5 h-5 border-2 border-border border-t-foreground/40 rounded-full animate-spin" /></div>
+        <div className="flex justify-center py-6"><div className="w-6 h-6 border-2 border-border border-t-foreground/40 rounded-full animate-spin" /></div>
       ) : entries.length === 0 ? (
-        <p className="text-xs text-muted-foreground py-2 text-center">{lang === 'fr' ? "Aucun joueur pour l'instant." : 'No players yet.'}</p>
+        <p className="text-sm text-muted-foreground py-4 text-center">{lang === 'fr' ? "Aucun joueur pour l'instant." : 'No players yet.'}</p>
       ) : (
-        <ul className="space-y-1">
+        <ul className="space-y-2">
           {entries.slice(0, 10).map((e, i) => (
-            <li key={e.user_id} className="flex items-center gap-2">
-              <span className="w-5 text-xs text-muted-foreground text-right tabular-nums flex-shrink-0">{i + 1}</span>
-              <div className="w-6 h-6 rounded-lg bg-muted border border-border flex items-center justify-center overflow-hidden p-0.5 flex-shrink-0">
-                {e.avatar_img ? <img src={e.avatar_img} alt="" className="w-full h-full object-contain" /> : <span className="text-[9px] font-bold text-muted-foreground">{(e.username ?? '?').slice(0, 2).toUpperCase()}</span>}
+            <li key={e.user_id} className="flex items-center gap-3">
+              <span className="w-6 text-sm text-muted-foreground text-right tabular-nums flex-shrink-0">{i + 1}</span>
+              <div className="w-8 h-8 rounded-xl bg-muted border border-border flex items-center justify-center overflow-hidden p-0.5 flex-shrink-0">
+                {e.avatar_img ? <img src={e.avatar_img} alt="" className="w-full h-full object-contain" /> : <span className="text-[10px] font-bold text-muted-foreground">{(e.username ?? '?').slice(0, 2).toUpperCase()}</span>}
               </div>
-              <span className="flex-1 text-xs text-foreground truncate">{e.username ?? (lang === 'fr' ? `Joueur #${i + 1}` : `Player #${i + 1}`)}</span>
-              <span className="text-xs font-bold tabular-nums text-foreground flex-shrink-0">{e.count}</span>
+              <span className="flex-1 text-sm text-foreground truncate">{e.username ?? (lang === 'fr' ? `Joueur #${i + 1}` : `Player #${i + 1}`)}</span>
+              <span className="text-sm font-bold tabular-nums text-foreground flex-shrink-0">{e.count}</span>
             </li>
           ))}
         </ul>
@@ -796,35 +796,35 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
   onClear: () => void; itemsCount: number
 }) {
   return (
-    <div className="space-y-3 py-1">
+    <div className="space-y-5 py-1">
       {/* Language */}
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-foreground">{lang === 'fr' ? 'Langue' : 'Language'}</span>
-        <div className="flex items-center bg-muted/50 border border-border rounded-xl p-1 h-8 gap-0.5">
-          <button className={`px-3 h-full text-xs font-semibold rounded-lg transition-colors ${lang === 'fr' ? 'bg-background shadow text-foreground' : 'text-muted-foreground'}`} onClick={() => onSetLang('fr')}>FR</button>
-          <button className={`px-3 h-full text-xs font-semibold rounded-lg transition-colors ${lang === 'en' ? 'bg-background shadow text-foreground' : 'text-muted-foreground'}`} onClick={() => onSetLang('en')}>EN</button>
+      <div className="flex items-center justify-between gap-4">
+        <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Langue' : 'Language'}</span>
+        <div className="flex items-center bg-muted/50 border border-border rounded-xl p-1 h-9 gap-0.5">
+          <button className={`px-4 h-full text-sm font-semibold rounded-lg transition-colors ${lang === 'fr' ? 'bg-background shadow text-foreground' : 'text-muted-foreground'}`} onClick={() => onSetLang('fr')}>FR</button>
+          <button className={`px-4 h-full text-sm font-semibold rounded-lg transition-colors ${lang === 'en' ? 'bg-background shadow text-foreground' : 'text-muted-foreground'}`} onClick={() => onSetLang('en')}>EN</button>
         </div>
       </div>
       {/* Hints */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <span className="text-xs font-medium text-foreground">{lang === 'fr' ? 'Indices' : 'Hints'}</span>
-          <p className="text-[11px] text-muted-foreground">{lang === 'fr' ? 'Surligne les combinaisons' : 'Highlight combinations'}</p>
+          <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Indices' : 'Hints'}</span>
+          <p className="text-xs text-muted-foreground mt-0.5">{lang === 'fr' ? 'Surligne les combinaisons' : 'Highlight combinations'}</p>
         </div>
         <button
           onClick={onToggleHints}
-          className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${hintsEnabled ? 'bg-foreground' : 'bg-muted-foreground/30'}`}
+          className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${hintsEnabled ? 'bg-foreground' : 'bg-muted-foreground/30'}`}
         >
-          <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-background shadow transition-all ${hintsEnabled ? 'left-[22px]' : 'left-0.5'}`} />
+          <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${hintsEnabled ? 'left-[22px]' : 'left-0.5'}`} />
         </button>
       </div>
       {/* Clear */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <span className="text-xs font-medium text-foreground">{lang === 'fr' ? 'Vider le terrain' : 'Clear playground'}</span>
-          <p className="text-[11px] text-muted-foreground">{lang === 'fr' ? `${itemsCount} élément${itemsCount !== 1 ? 's' : ''} en jeu` : `${itemsCount} item${itemsCount !== 1 ? 's' : ''} on canvas`}</p>
+          <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Vider le terrain' : 'Clear playground'}</span>
+          <p className="text-xs text-muted-foreground mt-0.5">{lang === 'fr' ? `${itemsCount} élément${itemsCount !== 1 ? 's' : ''} en jeu` : `${itemsCount} item${itemsCount !== 1 ? 's' : ''} on canvas`}</p>
         </div>
-        <button onClick={onClear} disabled={itemsCount === 0} className="h-8 px-3 rounded-xl bg-muted/50 border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0">
+        <button onClick={onClear} disabled={itemsCount === 0} className="h-9 px-4 rounded-xl bg-muted/50 border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0">
           {lang === 'fr' ? 'Vider' : 'Clear'}
         </button>
       </div>

@@ -9,7 +9,14 @@ export async function GET() {
       up.username,
       up.avatar,
       e.img AS avatar_img,
-      array_length(up.discovered, 1) AS count,
+      (
+        SELECT COUNT(*)::int
+        FROM unnest(up.discovered) AS d(name)
+        WHERE EXISTS (
+          SELECT 1 FROM elements el
+          WHERE el.name_french = d.name OR el.name_english = d.name
+        )
+      ) AS count,
       up.updated_at
     FROM user_progress up
     LEFT JOIN elements e

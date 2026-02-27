@@ -9,8 +9,20 @@ export async function GET() {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const rows = await sql`
-    SELECT username, show_in_leaderboard, discovered, avatar
-    FROM user_progress
+    SELECT
+      username,
+      show_in_leaderboard,
+      discovered,
+      avatar,
+      (
+        SELECT COUNT(*)::int
+        FROM unnest(up.discovered) AS d(name)
+        WHERE EXISTS (
+          SELECT 1 FROM elements el
+          WHERE el.name_french = d.name OR el.name_english = d.name
+        )
+      ) AS discovered_count
+    FROM user_progress up
     WHERE user_id = ${session.user.id}
     LIMIT 1
   `
@@ -19,7 +31,7 @@ export async function GET() {
   return NextResponse.json({
     username: row.username ?? null,
     show_in_leaderboard: row.show_in_leaderboard ?? true,
-    discovered_count: Array.isArray(row.discovered) ? row.discovered.length : 0,
+    discovered_count: row.discovered_count ?? 0,
     avatar: row.avatar ?? null,
     discovered: Array.isArray(row.discovered) ? row.discovered : [],
   })
