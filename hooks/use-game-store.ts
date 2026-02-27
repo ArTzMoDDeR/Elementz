@@ -93,6 +93,8 @@ export function useGameStore() {
   const [dbRows, setDbRows] = useState<Array<{ number: number; name_french: string; name_english: string; img: string | null }>>([])
   const [dbRecipes, setDbRecipes] = useState<RecipeRow[]>([])
   const [elements, setElements] = useState<Map<string, ElementDef>>(new Map())
+  const [frToElement, setFrToElement] = useState<Map<string, ElementDef>>(new Map())
+  const [frToEn, setFrToEn] = useState<Map<string, string>>(new Map())
   const [recipeMap, setRecipeMap] = useState<RecipeMap>(new Map())
   const [discovered, setDiscovered] = useState<Set<string>>(new Set())
   const [playground, setPlayground] = useState<PlaygroundItem[]>([])
@@ -159,6 +161,15 @@ export function useGameStore() {
       const elMap = buildElementMap(rows, savedLang)
       setElements(elMap)
       setRecipeMap(buildRecipeMap(recipes, savedLang))
+
+      // Always build a French-keyed element map and frToEn for hint lookups
+      const frElMap = buildElementMap(rows, 'fr')
+      setFrToElement(frElMap)
+      const frEnMap = new Map<string, string>()
+      for (const row of rows) {
+        if (row.name_french && row.name_english) frEnMap.set(row.name_french, row.name_english)
+      }
+      setFrToEn(frEnMap)
 
       // Build a name→name mapping so server names (any lang) can be resolved to current lang
       const anyNameToCurrentLang = new Map<string, string>()
@@ -385,6 +396,8 @@ export function useGameStore() {
     lang,
     setLang,
     elements,
+    frToElement,
+    frToEn,
     discovered,
     recipeMap,
     playground,

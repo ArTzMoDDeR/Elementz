@@ -14,6 +14,8 @@ export function AlchemyGame() {
     lang,
     setLang,
     elements,
+    frToElement,
+    frToEn,
     discovered,
     recipeMap,
     playground,
@@ -158,7 +160,12 @@ export function AlchemyGame() {
 
         {/* Hint */}
         {hintVisible && currentHint && hintLabel && (() => {
-          const el = elements.get(currentHint.result)
+          // currentHint.result is always a French name (recipeMap uses FR keys)
+          // Look up image via frToElement, display name via frToEn when in EN mode
+          const el = frToElement.get(currentHint.result) ?? elements.get(currentHint.result)
+          const displayName = lang === 'en'
+            ? (frToEn.get(currentHint.result) ?? currentHint.result)
+            : currentHint.result
           return (
             <div
               className="animate-in slide-in-from-left-4 fade-in duration-200 pointer-events-auto cursor-pointer"
@@ -167,7 +174,7 @@ export function AlchemyGame() {
               <div className="flex items-center gap-2.5 pl-3 pr-3 py-2.5 bg-card border border-border rounded-xl shadow-lg backdrop-blur-sm">
                 <Lightbulb className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
                 <span className="text-xs text-muted-foreground leading-snug">
-                  {hintLabel} <span className="font-semibold text-foreground">{currentHint.result}</span>
+                  {hintLabel} <span className="font-semibold text-foreground">{displayName}</span>
                 </span>
                 {el?.imageUrl && (
                   <img src={el.imageUrl} alt={currentHint.result} className="w-6 h-6 object-contain flex-shrink-0" />
