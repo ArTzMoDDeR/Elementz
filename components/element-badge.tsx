@@ -49,23 +49,11 @@ const ICON_RATIO = {
   lg: 'w-[72%] h-[72%]',
 }
 
-// Base font sizes per badge size
-const LABEL_BASE_PX: Record<'xs' | 'sm' | 'md' | 'lg', number> = {
-  xs: 9,
-  sm: 12,
-  md: 13,
-  lg: 14,
-}
-
-// Returns a scaled font-size in px depending on name length
-function labelFontSize(size: 'xs' | 'sm' | 'md' | 'lg', name: string): number {
-  const base = LABEL_BASE_PX[size]
-  const len = name.length
-  if (len <= 7)  return base
-  if (len <= 10) return Math.max(base - 1.5, 8)
-  if (len <= 14) return Math.max(base - 3, 8)
-  if (len <= 18) return Math.max(base - 4, 8)
-  return Math.max(base - 5, 8)
+const LABEL_SIZE = {
+  xs: 'text-[8px]',
+  sm: 'text-[9px]',
+  md: 'text-[11px]',
+  lg: 'text-xs',
 }
 
 // Single neutral background for all badges
@@ -109,22 +97,19 @@ export function ElementBadge({ element, size = 'md', fluid = false, className = 
         </div>
       </div>
 
-      {/* Label — auto height, font shrinks for long names, no crop */}
+      {/* Label — shrinks font if name is long via fitText approach */}
       <div
-        className="w-full px-[3px] py-[3px] flex items-center justify-center shrink-0"
+        className="w-full px-1 py-[3px] flex items-center justify-center shrink-0"
         style={{ backgroundColor: LABEL_BG }}
       >
         <span
-          className="font-semibold text-center text-white w-full"
+          className={`${LABEL_SIZE[size]} font-semibold leading-tight text-center text-white w-full`}
           style={{
-            fontSize: labelFontSize(size, element.name),
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
-            overflow: 'visible',
+            overflow: 'hidden',
             wordBreak: 'break-word',
-            hyphens: 'auto',
-            lineHeight: 1.25,
           }}
         >
           {element.name}
