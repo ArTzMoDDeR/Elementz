@@ -648,24 +648,9 @@ export function Playground({
             )}
           </div>
 
-          {/* Chevron scroll buttons — mobile home tab only */}
+          {/* Chevron scroll bar — mobile home tab: two half-width buttons side by side */}
           {isMobile && activeTab === 'home' && (
-            <>
-              <button
-                className="absolute top-1 right-1 z-10 w-7 h-7 flex items-center justify-center rounded-lg bg-card/90 border border-border backdrop-blur-sm text-foreground shadow-sm"
-                onPointerDown={e => { e.preventDefault(); e.stopPropagation() }}
-                onClick={() => inventoryScrollRef.current?.scrollBy({ top: -120, behavior: 'smooth' })}
-              >
-                <ChevronUp className="w-4 h-4" />
-              </button>
-              <button
-                className="absolute bottom-1 right-1 z-10 w-7 h-7 flex items-center justify-center rounded-lg bg-card/90 border border-border backdrop-blur-sm text-foreground shadow-sm"
-                onPointerDown={e => { e.preventDefault(); e.stopPropagation() }}
-                onClick={() => inventoryScrollRef.current?.scrollBy({ top: 120, behavior: 'smooth' })}
-              >
-                <ChevronDown className="w-4 h-4" />
-              </button>
-            </>
+            <ChevronScrollBar scrollRef={inventoryScrollRef} />
           )}
         </div>
 
@@ -689,11 +674,8 @@ export function Playground({
                   onClick={() => setActiveTab(prev => prev === id && id !== 'home' ? 'home' : id)}
                   className="flex-1 flex flex-col items-center justify-center py-3 relative transition-colors"
                 >
-                  {isActive && (
-                    <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] rounded-full bg-foreground" />
-                  )}
                   <Icon
-                    className="w-6 h-6 text-foreground transition-all"
+                    className={`w-6 h-6 transition-all ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}
                     strokeWidth={isActive ? 2.5 : 1.75}
                   />
                 </button>
@@ -713,7 +695,56 @@ export function Playground({
 }
 
 // ============================================================
-// Inline tab panels — mobile only
+// Chevron scroll bar — hold to scroll, tap = 1 row
+// ============================================================
+
+const ROW_HEIGHT = 58 // approximate height of one element row in px
+
+function ChevronScrollBar({ scrollRef }: { scrollRef: React.RefObject<HTMLDivElement | null> }) {
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const startScroll = (dir: 1 | -1) => {
+    // immediate first scroll
+    scrollRef.current?.scrollBy({ top: dir * ROW_HEIGHT, behavior: 'smooth' })
+    // then continue while held
+    intervalRef.current = setInterval(() => {
+      scrollRef.current?.scrollBy({ top: dir * ROW_HEIGHT, behavior: 'smooth' })
+    }, 300)
+  }
+
+  const stopScroll = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
+  }
+
+  return (
+    <div className="flex border-t border-border">
+      <button
+        className="flex-1 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/40 active:bg-muted/60 transition-colors border-r border-border"
+        onPointerDown={e => { e.preventDefault(); startScroll(-1) }}
+        onPointerUp={stopScroll}
+        onPointerLeave={stopScroll}
+        onPointerCancel={stopScroll}
+      >
+        <ChevronUp className="w-5 h-5" />
+      </button>
+      <button
+        className="flex-1 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/40 active:bg-muted/60 transition-colors"
+        onPointerDown={e => { e.preventDefault(); startScroll(1) }}
+        onPointerUp={stopScroll}
+        onPointerLeave={stopScroll}
+        onPointerCancel={stopScroll}
+      >
+        <ChevronDown className="w-5 h-5" />
+      </button>
+    </div>
+  )
+}
+
+// ============================================================
+// Inline tab panels
 // ============================================================
 
 function LeaderboardInlinePanel({ lang }: { lang: 'fr' | 'en' }) {
