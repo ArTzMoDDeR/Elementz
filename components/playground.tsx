@@ -539,7 +539,7 @@ export function Playground({
         {/* Header — always visible */}
         <div className="flex-shrink-0 px-3 pt-3 pb-3 border-b border-border flex flex-col gap-2.5">
           <div className="flex items-center justify-center gap-2" style={{ transform: 'translateY(-3px)' }}>
-            <img src="/logo.png" alt="Elementz" className="w-7 h-7 rounded-full flex-shrink-0" />
+            <img src="/logo.png" alt="Elementz" className="w-7 h-7 rounded-full flex-shrink-0 pointer-events-none select-none" draggable={false} />
             <span className="font-bold text-base tracking-tight">Elementz</span>
             <span className="text-sm tabular-nums text-muted-foreground" suppressHydrationWarning>
               {discovered.size}<span className="opacity-40">/{totalElements}</span>
@@ -581,13 +581,13 @@ export function Playground({
           <ChevronScrollBar scrollRef={inventoryScrollRef} />
         )}
 
-        {/* Scrollable content area — switches between home grid and tab panels */}
+        {/* Scrollable content area — home: chevron-controlled, tabs: native scroll */}
         <div className="flex-1 min-h-0">
-          <div
-            ref={inventoryScrollRef}
-            className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden touch-none"
-          >
-            {activeTab === 'home' ? (
+          {activeTab === 'home' ? (
+            <div
+              ref={inventoryScrollRef}
+              className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden touch-none"
+            >
               <div className="p-2">
                 <div className="grid grid-cols-4 md:grid-cols-3 gap-1.5">
                   {discoveredElements.map((element) => (
@@ -601,7 +601,9 @@ export function Playground({
                   ))}
                 </div>
               </div>
-            ) : (
+            </div>
+          ) : (
+            <div className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div className="px-4 py-4">
                 {activeTab === 'leaderboard' && <LeaderboardInlinePanel lang={lang} />}
                 {activeTab === 'settings' && (
@@ -650,8 +652,9 @@ export function Playground({
                   </div>
                 )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
         </div>
 
         {/* ── TAB BAR (all screen sizes) ─────────────────────────── */}
@@ -847,49 +850,48 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
 
 function HelpPanel({ lang }: { lang: 'fr' | 'en' }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 py-1">
 
-      {/* Video */}
+      {/* How to play */}
       <div className="flex flex-col gap-2">
-        <p className="text-xs text-muted-foreground text-center leading-relaxed">
+        <p className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Comment jouer' : 'How to play'}</p>
+        <p className="text-sm text-muted-foreground leading-relaxed">
           {lang === 'fr'
             ? 'Glisse un élément sur un autre pour les combiner et découvrir de nouveaux éléments.'
             : 'Drag one element onto another to combine them and discover new ones.'}
         </p>
-        <div className="rounded-xl overflow-hidden border border-border bg-muted/30">
+        <div className="rounded-xl overflow-hidden border border-border bg-muted/30 mt-1">
           <video src="/tutohelp.webm" autoPlay loop muted playsInline className="w-full h-auto block" />
         </div>
       </div>
 
-      <div className="border-t border-border" />
-
-      {/* Hints & Clear */}
-      <div className="space-y-2">
-        <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/40 border border-border">
-          <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-center flex-shrink-0">
-            <Lightbulb className="w-4 h-4 text-amber-400" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-foreground mb-0.5">{lang === 'fr' ? 'Indices' : 'Hints'}</p>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {lang === 'fr'
-                ? 'Une suggestion arrive automatiquement après 1 min sans nouvelle découverte.'
-                : 'A suggestion appears automatically after 1 min without a new discovery.'}
-            </p>
-          </div>
+      {/* Hints row */}
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Indices' : 'Hints'}</span>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {lang === 'fr'
+              ? 'Suggestion automatique après 1 min sans découverte'
+              : 'Auto suggestion after 1 min without a discovery'}
+          </p>
         </div>
-        <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/40 border border-border">
-          <div className="w-9 h-9 rounded-xl bg-muted/50 border border-border flex items-center justify-center flex-shrink-0">
-            <Trash2 className="w-4 h-4 text-muted-foreground" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-foreground mb-0.5">{lang === 'fr' ? 'Vider' : 'Clear'}</p>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {lang === 'fr'
-                ? 'Bouton en haut à gauche du terrain pour retirer tous les éléments.'
-                : 'Button top-left of the canvas to remove all elements at once.'}
-            </p>
-          </div>
+        <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-center flex-shrink-0">
+          <Lightbulb className="w-4 h-4 text-amber-400" />
+        </div>
+      </div>
+
+      {/* Clear row */}
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Vider le terrain' : 'Clear canvas'}</span>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {lang === 'fr'
+              ? 'Bouton en haut à gauche du terrain'
+              : 'Button top-left of the canvas'}
+          </p>
+        </div>
+        <div className="w-9 h-9 rounded-xl bg-muted/50 border border-border flex items-center justify-center flex-shrink-0">
+          <Trash2 className="w-4 h-4 text-muted-foreground" />
         </div>
       </div>
 
