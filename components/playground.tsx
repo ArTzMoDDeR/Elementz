@@ -501,7 +501,7 @@ export function Playground({
         </div>
       )}
 
-      {/* MERGE ANIMATION ��� flash ring only, no badge duplicate */}
+      {/* MERGE ANIMATION - flash ring only, no badge duplicate */}
       {mergeAnimation && (
         <div
           className="absolute pointer-events-none"
