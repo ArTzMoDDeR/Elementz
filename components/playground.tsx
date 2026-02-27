@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ElementBadge } from './element-badge'
-import { Settings, Search, X, ArrowUpDown, Trash2, ChevronUp, ChevronDown, Lightbulb, LogIn, HelpCircle, Trophy } from 'lucide-react'
+import { Search, X, ArrowUpDown, ChevronUp, ChevronDown, LogIn, Home, Trophy, Settings, HelpCircle, User, Lightbulb, Trash2 } from 'lucide-react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import Link from 'next/link'
 import { HelpModal } from './help-modal'
@@ -271,6 +271,7 @@ export function Playground({
   const [helpOpen, setHelpOpen] = useState(false)
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<'home' | 'leaderboard' | 'settings' | 'help' | 'profile'>('home')
 
   // Inventory resize — mobile only
   const [inventoryHeight, setInventoryHeight] = useState<number | null>(null) // null = default 55vh
@@ -614,116 +615,261 @@ export function Playground({
           </div>
         </div>
 
-        {/* Footer — desktop: always visible / mobile: only rendered when expanded past 50% */}
-        {(!isMobile || footerOpacity > 0) && (
-        <div
-          className="flex-shrink-0 border-t border-border px-3 pt-2.5 pb-2.5"
-          style={{
-            paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom, 16px) + 14px)' : undefined,
-            opacity: footerOpacity,
-            pointerEvents: footerOpacity < 0.1 ? 'none' : 'auto',
-          }}
-        >
-          <div className="flex items-center justify-between gap-1.5">
+        {/* ── MOBILE TAB BAR ─────────────────────────────────────── */}
+        {isMobile && (
+          <div
+            className="flex-shrink-0 border-t border-border bg-card/95 backdrop-blur-xl"
+            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 16px) + 4px)' }}
+          >
+            {/* Inline panel content (leaderboard / settings / help / profile) */}
+            {activeTab !== 'home' && (
+              <div className="px-4 pt-4 pb-2 border-b border-border/60">
+                {activeTab === 'leaderboard' && (
+                  <LeaderboardInlinePanel lang={lang} />
+                )}
+                {activeTab === 'settings' && (
+                  <SettingsPanel
+                    lang={lang}
+                    onSetLang={onSetLang}
+                    hintsEnabled={hintsEnabled}
+                    onToggleHints={onToggleHints}
+                    onClear={onClear}
+                    itemsCount={items.length}
+                  />
+                )}
+                {activeTab === 'help' && (
+                  <HelpPanel lang={lang} onOpenFull={() => { setActiveTab('home'); setHelpOpen(true) }} />
+                )}
+                {activeTab === 'profile' && sessionUser && (
+                  <ProfileInlinePanel
+                    lang={lang}
+                    sessionUser={sessionUser}
+                    elements={elements}
+                    onOpenFull={() => { setActiveTab('home'); setProfileOpen(true) }}
+                  />
+                )}
+                {activeTab === 'profile' && !sessionUser && (
+                  <div className="flex flex-col items-center gap-2 py-2">
+                    <p className="text-xs text-muted-foreground">{lang === 'fr' ? 'Connecte-toi pour sauvegarder ta progression' : 'Sign in to save your progress'}</p>
+                    <Link href="/login" className="flex items-center gap-1.5 h-9 px-4 rounded-xl bg-primary text-primary-foreground text-xs font-semibold transition-colors">
+                      <LogIn className="w-3.5 h-3.5" />
+                      {lang === 'fr' ? 'Se connecter' : 'Sign in'}
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
 
-            {/* Left group: profile/login + leaderboard */}
+            {/* Tab icons row */}
+            <div className="flex items-stretch">
+              {([
+                { id: 'home', icon: Home, labelFr: 'Jeu', labelEn: 'Play' },
+                { id: 'leaderboard', icon: Trophy, labelFr: 'Scores', labelEn: 'Scores' },
+                { id: 'settings', icon: Settings, labelFr: 'Réglages', labelEn: 'Settings' },
+                { id: 'help', icon: HelpCircle, labelFr: 'Aide', labelEn: 'Help' },
+                { id: 'profile', icon: User, labelFr: 'Profil', labelEn: 'Profile' },
+              ] as const).map(({ id, icon: Icon, labelFr, labelEn }) => {
+                const isActive = activeTab === id
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setActiveTab(prev => prev === id && id !== 'home' ? 'home' : id)}
+                    className="flex-1 flex flex-col items-center justify-center pt-3 pb-1 gap-0.5 relative transition-colors"
+                  >
+                    {isActive && id !== 'home' && (
+                      <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] rounded-full bg-foreground" />
+                    )}
+                    <Icon
+                      className={`w-[22px] h-[22px] transition-all ${isActive ? 'text-foreground' : 'text-muted-foreground/60'}`}
+                      strokeWidth={isActive ? 2.5 : 1.75}
+                    />
+                    <span className={`text-[10px] transition-all ${isActive ? 'text-foreground font-semibold' : 'text-muted-foreground/60 font-normal'}`}>
+                      {lang === 'fr' ? labelFr : labelEn}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── DESKTOP FOOTER (unchanged) ─────────────────────────── */}
+        {!isMobile && (
+        <div className="flex-shrink-0 border-t border-border px-3 pt-2.5 pb-2.5">
+          <div className="flex items-center justify-between gap-1.5">
             <div className="flex items-center gap-1.5">
               {sessionUser ? (
-                <AvatarButton
-                  sessionUser={sessionUser}
-                  elements={elements}
-                  onClick={() => setProfileOpen(true)}
-                  lang={lang}
-                />
+                <AvatarButton sessionUser={sessionUser} elements={elements} onClick={() => setProfileOpen(true)} lang={lang} />
               ) : (
-                <Link
-                  href="/login"
-                  className="flex items-center justify-center w-10 h-10 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                  title="Login"
-                >
+                <Link href="/login" className="flex items-center justify-center w-10 h-10 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Login">
                   <LogIn className="w-4 h-4" />
                 </Link>
               )}
-              <button
-                onClick={() => setLeaderboardOpen(true)}
-                className="flex items-center justify-center w-10 h-10 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                title={lang === 'fr' ? 'Classement' : 'Leaderboard'}
-              >
+              <button onClick={() => setLeaderboardOpen(true)} className="flex items-center justify-center w-10 h-10 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title={lang === 'fr' ? 'Classement' : 'Leaderboard'}>
                 <Trophy className="w-3.5 h-3.5" />
               </button>
             </div>
-
-            {/* Center: lang switcher */}
             <div className="flex items-center bg-muted/50 border border-border rounded-xl p-1 h-10 gap-0.5">
-              <button
-                className={`px-2.5 h-full text-xs font-semibold rounded-lg transition-colors ${lang === 'fr' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                onClick={() => onSetLang('fr')}
-              >FR</button>
-              <button
-                className={`px-2.5 h-full text-xs font-semibold rounded-lg transition-colors ${lang === 'en' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                onClick={() => onSetLang('en')}
-              >EN</button>
+              <button className={`px-2.5 h-full text-xs font-semibold rounded-lg transition-colors ${lang === 'fr' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`} onClick={() => onSetLang('fr')}>FR</button>
+              <button className={`px-2.5 h-full text-xs font-semibold rounded-lg transition-colors ${lang === 'en' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`} onClick={() => onSetLang('en')}>EN</button>
             </div>
-
-            {/* Right group: hints + clear + help */}
             <div className="flex items-center gap-1.5">
-              <button
-                onClick={onToggleHints}
-                title={hintsEnabled ? (lang === 'fr' ? 'Désactiver les hints' : 'Disable hints') : (lang === 'fr' ? 'Activer les hints' : 'Enable hints')}
-                className={`flex items-center justify-center w-10 h-10 rounded-xl border transition-colors ${
-                  hintsEnabled
-                    ? 'bg-amber-500/15 border-amber-500/40 text-amber-400 hover:bg-amber-500/25'
-                    : 'bg-muted/50 border-border text-muted-foreground hover:bg-muted hover:text-foreground'
-                }`}
-              >
+              <button onClick={onToggleHints} className={`flex items-center justify-center w-10 h-10 rounded-xl border transition-colors ${hintsEnabled ? 'bg-amber-500/15 border-amber-500/40 text-amber-400' : 'bg-muted/50 border-border text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
                 <Lightbulb className="w-3.5 h-3.5" />
               </button>
-              <button
-                onClick={onClear}
-                disabled={items.length === 0}
-                className="flex items-center justify-center w-10 h-10 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                title={lang === 'fr' ? 'Vider' : 'Clear'}
-              >
+              <button onClick={onClear} disabled={items.length === 0} className="flex items-center justify-center w-10 h-10 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
-              <button
-                onClick={() => setHelpOpen(true)}
-                className="flex items-center justify-center w-10 h-10 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                title={lang === 'fr' ? 'Aide' : 'Help'}
-              >
+              <button onClick={() => setHelpOpen(true)} className="flex items-center justify-center w-10 h-10 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
                 <HelpCircle className="w-3.5 h-3.5" />
               </button>
             </div>
-
           </div>
         </div>
         )}
       </div>
 
-      {/* Help modal */}
-      {helpOpen && (
-        <HelpModal
-          lang={lang}
-          onSetLang={onSetLang}
-          onClose={() => setHelpOpen(false)}
-        />
-      )}
+      {/* Modals (desktop + mobile full overlay) */}
+      {helpOpen && <HelpModal lang={lang} onSetLang={onSetLang} onClose={() => setHelpOpen(false)} />}
+      {leaderboardOpen && <LeaderboardModal lang={lang} onClose={() => setLeaderboardOpen(false)} />}
+      {profileOpen && sessionUser && <ProfileModal lang={lang} sessionUser={sessionUser} elements={elements} onClose={() => setProfileOpen(false)} />}
+    </div>
+  )
+}
 
-      {leaderboardOpen && (
-        <LeaderboardModal
-          lang={lang}
-          onClose={() => setLeaderboardOpen(false)}
-        />
-      )}
+// ============================================================
+// Inline tab panels — mobile only
+// ============================================================
 
-      {profileOpen && sessionUser && (
-        <ProfileModal
-          lang={lang}
-          sessionUser={sessionUser}
-          elements={elements}
-          onClose={() => setProfileOpen(false)}
-        />
+function LeaderboardInlinePanel({ lang }: { lang: 'fr' | 'en' }) {
+  const [entries, setEntries] = useState<Array<{ user_id: string; username: string | null; avatar_img: string | null; count: number }>>([])
+  const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    fetch('/api/leaderboard').then(r => r.json()).then(d => { setEntries(d.leaderboard ?? []); setLoading(false) }).catch(() => setLoading(false))
+  }, [])
+  return (
+    <div className="max-h-52 overflow-y-auto">
+      <p className="text-xs font-semibold text-foreground mb-2">{lang === 'fr' ? 'Classement' : 'Leaderboard'}</p>
+      {loading ? (
+        <div className="flex justify-center py-4"><div className="w-5 h-5 border-2 border-border border-t-foreground/40 rounded-full animate-spin" /></div>
+      ) : entries.length === 0 ? (
+        <p className="text-xs text-muted-foreground py-2 text-center">{lang === 'fr' ? 'Aucun joueur pour l\'instant.' : 'No players yet.'}</p>
+      ) : (
+        <ul className="space-y-1">
+          {entries.slice(0, 10).map((e, i) => (
+            <li key={e.user_id} className="flex items-center gap-2">
+              <span className="w-5 text-xs text-muted-foreground text-right tabular-nums flex-shrink-0">{i + 1}</span>
+              <div className="w-6 h-6 rounded-lg bg-muted border border-border flex items-center justify-center overflow-hidden p-0.5 flex-shrink-0">
+                {e.avatar_img ? <img src={e.avatar_img} alt="" className="w-full h-full object-contain" /> : <span className="text-[9px] font-bold text-muted-foreground">{(e.username ?? '?').slice(0, 2).toUpperCase()}</span>}
+              </div>
+              <span className="flex-1 text-xs text-foreground truncate">{e.username ?? (lang === 'fr' ? `Joueur #${i + 1}` : `Player #${i + 1}`)}</span>
+              <span className="text-xs font-bold tabular-nums text-foreground flex-shrink-0">{e.count}</span>
+            </li>
+          ))}
+        </ul>
       )}
+    </div>
+  )
+}
+
+function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, itemsCount }: {
+  lang: 'fr' | 'en'; onSetLang: (l: 'fr' | 'en') => void
+  hintsEnabled?: boolean; onToggleHints?: () => void
+  onClear: () => void; itemsCount: number
+}) {
+  return (
+    <div className="space-y-3 py-1">
+      {/* Language */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-foreground">{lang === 'fr' ? 'Langue' : 'Language'}</span>
+        <div className="flex items-center bg-muted/50 border border-border rounded-xl p-1 h-8 gap-0.5">
+          <button className={`px-3 h-full text-xs font-semibold rounded-lg transition-colors ${lang === 'fr' ? 'bg-background shadow text-foreground' : 'text-muted-foreground'}`} onClick={() => onSetLang('fr')}>FR</button>
+          <button className={`px-3 h-full text-xs font-semibold rounded-lg transition-colors ${lang === 'en' ? 'bg-background shadow text-foreground' : 'text-muted-foreground'}`} onClick={() => onSetLang('en')}>EN</button>
+        </div>
+      </div>
+      {/* Hints */}
+      <div className="flex items-center justify-between">
+        <div>
+          <span className="text-xs font-medium text-foreground">{lang === 'fr' ? 'Indices' : 'Hints'}</span>
+          <p className="text-[11px] text-muted-foreground">{lang === 'fr' ? 'Surligne les combinaisons' : 'Highlight combinations'}</p>
+        </div>
+        <button
+          onClick={onToggleHints}
+          className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${hintsEnabled ? 'bg-foreground' : 'bg-muted-foreground/30'}`}
+        >
+          <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-background shadow transition-all ${hintsEnabled ? 'left-[22px]' : 'left-0.5'}`} />
+        </button>
+      </div>
+      {/* Clear */}
+      <div className="flex items-center justify-between">
+        <div>
+          <span className="text-xs font-medium text-foreground">{lang === 'fr' ? 'Vider le terrain' : 'Clear playground'}</span>
+          <p className="text-[11px] text-muted-foreground">{lang === 'fr' ? `${itemsCount} élément${itemsCount !== 1 ? 's' : ''} en jeu` : `${itemsCount} item${itemsCount !== 1 ? 's' : ''} on canvas`}</p>
+        </div>
+        <button onClick={onClear} disabled={itemsCount === 0} className="h-8 px-3 rounded-xl bg-muted/50 border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0">
+          {lang === 'fr' ? 'Vider' : 'Clear'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function HelpPanel({ lang, onOpenFull }: { lang: 'fr' | 'en'; onOpenFull: () => void }) {
+  const tips = lang === 'fr'
+    ? ['Glisse un élément sur le terrain pour jouer.', 'Superpose deux éléments pour les fusionner.', 'Double-tape un élément pour le retirer.', 'Active les indices pour voir les combos possibles.']
+    : ['Drag an element onto the canvas to play.', 'Overlap two elements to merge them.', 'Double-tap an element to remove it.', 'Enable hints to see possible combos.']
+  return (
+    <div className="space-y-2 py-1">
+      <ul className="space-y-1.5">
+        {tips.map((tip, i) => (
+          <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+            <span className="w-4 h-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-foreground flex-shrink-0 mt-0.5">{i + 1}</span>
+            {tip}
+          </li>
+        ))}
+      </ul>
+      <button onClick={onOpenFull} className="text-xs text-foreground/60 hover:text-foreground underline underline-offset-2 transition-colors">
+        {lang === 'fr' ? 'Voir l\'aide complète →' : 'View full help →'}
+      </button>
+    </div>
+  )
+}
+
+function ProfileInlinePanel({ lang, sessionUser, elements, onOpenFull }: {
+  lang: 'fr' | 'en'
+  sessionUser: { name?: string | null; email?: string | null; image?: string | null }
+  elements: Map<string, ElementDef>
+  onOpenFull: () => void
+}) {
+  const [avatarImg, setAvatarImg] = useState<string | null>(null)
+  const [username, setUsername] = useState<string | null>(null)
+  const [count, setCount] = useState<number>(0)
+
+  useEffect(() => {
+    fetch('/api/profile').then(r => r.json()).then(d => {
+      setUsername(d.username ?? null)
+      setCount(d.discovered_count ?? 0)
+      if (d.avatar) {
+        const el = elements.get(d.avatar)
+        if (el?.imageUrl) setAvatarImg(el.imageUrl)
+      }
+    }).catch(() => {})
+  }, [elements])
+
+  const displayName = username || sessionUser.name?.split(' ')[0] || (lang === 'fr' ? 'Joueur' : 'Player')
+
+  return (
+    <div className="flex items-center gap-3 py-1">
+      <div className="w-10 h-10 rounded-xl bg-muted border border-border flex items-center justify-center overflow-hidden p-1.5 flex-shrink-0">
+        {avatarImg ? <img src={avatarImg} alt="" className="w-full h-full object-contain" /> : <span className="text-sm font-bold text-muted-foreground">{displayName[0]?.toUpperCase()}</span>}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
+        <p className="text-xs text-muted-foreground">{count} {lang === 'fr' ? 'éléments découverts' : 'elements discovered'}</p>
+      </div>
+      <button onClick={onOpenFull} className="h-8 px-3 rounded-xl bg-muted/50 border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0">
+        {lang === 'fr' ? 'Modifier' : 'Edit'}
+      </button>
     </div>
   )
 }
