@@ -51,10 +51,10 @@ const ICON_RATIO = {
 
 // Base font sizes per badge size
 const LABEL_BASE_PX: Record<'xs' | 'sm' | 'md' | 'lg', number> = {
-  xs: 6.5,
-  sm: 7,
-  md: 8,
-  lg: 9,
+  xs: 9,
+  sm: 12,
+  md: 13,
+  lg: 14,
 }
 
 // Returns a scaled font-size in px depending on name length
@@ -62,10 +62,10 @@ function labelFontSize(size: 'xs' | 'sm' | 'md' | 'lg', name: string): number {
   const base = LABEL_BASE_PX[size]
   const len = name.length
   if (len <= 7)  return base
-  if (len <= 10) return Math.max(base - 0.5, 5.5)
-  if (len <= 14) return Math.max(base - 1, 5.5)
-  if (len <= 18) return Math.max(base - 1.5, 5.5)
-  return Math.max(base - 2, 5.5)
+  if (len <= 10) return Math.max(base - 1.5, 8)
+  if (len <= 14) return Math.max(base - 3, 8)
+  if (len <= 18) return Math.max(base - 4, 8)
+  return Math.max(base - 5, 8)
 }
 
 // Single neutral background for all badges
