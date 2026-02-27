@@ -15,12 +15,9 @@ export async function GET() {
       discovered,
       avatar,
       (
-        SELECT COUNT(*)::int
+        SELECT COUNT(DISTINCT el.number)::int
         FROM unnest(up.discovered) AS d(name)
-        WHERE EXISTS (
-          SELECT 1 FROM elements el
-          WHERE el.name_french = d.name OR el.name_english = d.name
-        )
+        JOIN elements el ON el.name_french = d.name OR el.name_english = d.name
       ) AS discovered_count
     FROM user_progress up
     WHERE user_id = ${session.user.id}

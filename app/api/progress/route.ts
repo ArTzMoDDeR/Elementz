@@ -19,14 +19,29 @@ export async function POST(req: NextRequest) {
   if (!Array.isArray(discovered)) return NextResponse.json({ error: 'Invalid' }, { status: 400 })
 
   const sql = neon(process.env.DATABASE_URL!)
-  // Always UNION with existing — never remove elements already unlocked
+
+  // Translate every incoming name (FR or EN) to canonical French name before storing.
+  // This prevents the DB accumulating both "eau" and "water" for the same element.
   await sql`
     INSERT INTO user_progress (user_id, discovered, updated_at)
-    VALUES (${session.user.id}, ${discovered}, NOW())
+    VALUES (
+      ${session.user.id},
+      (
+        SELECT array_agg(DISTINCT el.name_french ORDER BY el.name_french)
+        FROM unnest(${discovered}::text[]) AS d(name)
+        JOIN elements el ON el.name_french = d.name OR el.name_english = d.name
+      ),
+      NOW()
+    )
     ON CONFLICT (user_id) DO UPDATE
       SET discovered = (
-        SELECT array_agg(DISTINCT elem)
-        FROM unnest(user_progress.discovered || EXCLUDED.discovered) AS elem
+        SELECT array_agg(DISTINCT el.name_french ORDER BY el.name_french)
+        FROM (
+          SELECT unnest(user_progress.discovered) AS name
+          UNION ALL
+          SELECT unnest(${discovered}::text[]) AS name
+        ) combined
+        JOIN elements el ON el.name_french = combined.name OR el.name_english = combined.name
       ),
       updated_at = NOW()
   `

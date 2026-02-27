@@ -10,12 +10,9 @@ export async function GET() {
       up.avatar,
       e.img AS avatar_img,
       (
-        SELECT COUNT(*)::int
+        SELECT COUNT(DISTINCT el.number)::int
         FROM unnest(up.discovered) AS d(name)
-        WHERE EXISTS (
-          SELECT 1 FROM elements el
-          WHERE el.name_french = d.name OR el.name_english = d.name
-        )
+        JOIN elements el ON el.name_french = d.name OR el.name_english = d.name
       ) AS count,
       up.updated_at
     FROM user_progress up
