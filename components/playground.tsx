@@ -525,7 +525,7 @@ export function Playground({
           height: isMobile ? (inventoryHeight != null ? `${inventoryHeight}px` : '55vh') : undefined,
         }}
       >
-        {/* Drag handle — mobile only, rendered via isMobile to avoid SSR/hydration mismatch */}
+        {/* Drag handle — mobile only */}
         {isMobile && (
           <div
             className="flex-shrink-0 flex items-center justify-center h-6 cursor-row-resize touch-none select-none active:bg-muted/30 transition-colors"
@@ -534,10 +534,9 @@ export function Playground({
             <div className="w-12 h-1.5 rounded-full bg-muted-foreground/40" />
           </div>
         )}
-        {/* Header */}
-        <div className="flex-shrink-0 px-3 pt-3 pb-3 border-b border-border flex flex-col gap-2.5">
 
-          {/* Row 1: logo + title + counter — centré */}
+        {/* Header — always visible */}
+        <div className="flex-shrink-0 px-3 pt-3 pb-3 border-b border-border flex flex-col gap-2.5">
           <div className="flex items-center justify-center gap-2">
             <img src="/logo.png" alt="Elementz" className="w-6 h-6 rounded-full flex-shrink-0" />
             <span className="font-bold text-sm tracking-tight">Elementz</span>
@@ -545,191 +544,129 @@ export function Playground({
               {discovered.size}<span className="opacity-40">/{totalElements}</span>
             </span>
           </div>
-
-          {/* Row 3: search + Nom + Récent sur la même ligne */}
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-              <input
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder={lang === 'fr' ? 'Rechercher...' : 'Search...'}
-                className="w-full h-9 pl-9 pr-8 bg-muted/50 border border-input rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-ring focus:bg-background transition-colors"
-                style={{ fontSize: '16px' }}
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center rounded-full bg-muted-foreground/20 hover:bg-muted-foreground/30 transition-colors"
-                >
-                  <X className="w-2.5 h-2.5 text-muted-foreground" />
-                </button>
-              )}
-            </div>
-            {(['name', 'recent'] as const).map(type => (
-              <button
-                key={type}
-                className={`h-9 px-3 rounded-xl text-xs font-medium flex items-center gap-1 border transition-colors flex-shrink-0 ${
-                  sortBy === type
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-muted/50 text-muted-foreground border-border hover:text-foreground hover:bg-muted'
-                }`}
-                onClick={() => toggleSort(type)}
-              >
-                {type === 'name' ? (lang === 'fr' ? 'Nom' : 'Name') : (lang === 'fr' ? 'Récent' : 'Recent')}
-                {sortBy === type && <ArrowUpDown className={`w-3 h-3 transition-transform ${sortReverse ? 'rotate-180' : ''}`} />}
-              </button>
-            ))}
-          </div>
-        </div>
-
-
-
-        {/* Scroll area + scroll buttons */}
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-
-          {/* Up + Down buttons side by side — mobile only */}
-          <div className="md:hidden flex flex-shrink-0 border-b border-border">
-            <ScrollButton dir="up" scrollRef={inventoryScrollRef} />
-            <ScrollButton dir="down" scrollRef={inventoryScrollRef} />
-          </div>
-
-          {/* Grid */}
-          <div
-            ref={inventoryScrollRef}
-            className="flex-1 overflow-y-scroll p-2"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', touchAction: 'none' }}
-          >
-            <div className="grid grid-cols-4 md:grid-cols-3 gap-2 md:gap-3 justify-items-center pb-5 md:pb-0">
-              {discoveredElements.map(element => (
-                <div
-                  key={element.name}
-                  className="cursor-grab active:cursor-grabbing select-none"
-                  onPointerDown={e => handleInventoryPointerDown(e, element.name)}
-                >
-                  <ElementBadge element={element} size={isMobile ? 'sm' : 'md'} fluid />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ── MOBILE TAB BAR ─────────────────────────────────────── */}
-        {isMobile && (
-          <div
-            className="flex-shrink-0 border-t border-border bg-card/95 backdrop-blur-xl"
-            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 16px) + 4px)' }}
-          >
-            {/* Inline panel content (leaderboard / settings / help / profile) */}
-            {activeTab !== 'home' && (
-              <div className="px-4 pt-4 pb-2 border-b border-border/60">
-                {activeTab === 'leaderboard' && (
-                  <LeaderboardInlinePanel lang={lang} />
-                )}
-                {activeTab === 'settings' && (
-                  <SettingsPanel
-                    lang={lang}
-                    onSetLang={onSetLang}
-                    hintsEnabled={hintsEnabled}
-                    onToggleHints={onToggleHints}
-                    onClear={onClear}
-                    itemsCount={items.length}
-                  />
-                )}
-                {activeTab === 'help' && (
-                  <HelpPanel lang={lang} onOpenFull={() => { setActiveTab('home'); setHelpOpen(true) }} />
-                )}
-                {activeTab === 'profile' && sessionUser && (
-                  <ProfileInlinePanel
-                    lang={lang}
-                    sessionUser={sessionUser}
-                    elements={elements}
-                    onOpenFull={() => { setActiveTab('home'); setProfileOpen(true) }}
-                  />
-                )}
-                {activeTab === 'profile' && !sessionUser && (
-                  <div className="flex flex-col items-center gap-2 py-2">
-                    <p className="text-xs text-muted-foreground">{lang === 'fr' ? 'Connecte-toi pour sauvegarder ta progression' : 'Sign in to save your progress'}</p>
-                    <Link href="/login" className="flex items-center gap-1.5 h-9 px-4 rounded-xl bg-primary text-primary-foreground text-xs font-semibold transition-colors">
-                      <LogIn className="w-3.5 h-3.5" />
-                      {lang === 'fr' ? 'Se connecter' : 'Sign in'}
-                    </Link>
-                  </div>
+          {activeTab === 'home' && (
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder={lang === 'fr' ? 'Rechercher...' : 'Search...'}
+                  className="w-full h-9 pl-9 pr-8 bg-muted/50 border border-input rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-ring focus:bg-background transition-colors"
+                  style={{ fontSize: '16px' }}
+                />
+                {search && (
+                  <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 )}
               </div>
-            )}
+              <button onClick={() => toggleSort('name')} className={`flex items-center gap-1 h-9 px-2.5 rounded-xl border text-xs font-medium transition-colors whitespace-nowrap ${sortBy === 'name' ? 'bg-foreground/10 border-foreground/30 text-foreground' : 'bg-muted/50 border-border text-muted-foreground hover:text-foreground'}`}>
+                <ArrowUpDown className="w-3 h-3" />
+                {lang === 'fr' ? 'Nom' : 'Name'}
+                {sortBy === 'name' && (sortReverse ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
+              </button>
+              <button onClick={() => toggleSort('recent')} className={`flex items-center gap-1 h-9 px-2.5 rounded-xl border text-xs font-medium transition-colors whitespace-nowrap ${sortBy === 'recent' ? 'bg-foreground/10 border-foreground/30 text-foreground' : 'bg-muted/50 border-border text-muted-foreground hover:text-foreground'}`}>
+                {lang === 'fr' ? 'Récent' : 'Recent'}
+                {sortBy === 'recent' && (sortReverse ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
+              </button>
+            </div>
+          )}
+        </div>
 
-            {/* Tab icons row */}
-            <div className="flex items-stretch">
-              {([
-                { id: 'home', icon: Home, labelFr: 'Jeu', labelEn: 'Play' },
-                { id: 'leaderboard', icon: Trophy, labelFr: 'Scores', labelEn: 'Scores' },
-                { id: 'settings', icon: Settings, labelFr: 'Réglages', labelEn: 'Settings' },
-                { id: 'help', icon: HelpCircle, labelFr: 'Aide', labelEn: 'Help' },
-                { id: 'profile', icon: User, labelFr: 'Profil', labelEn: 'Profile' },
-              ] as const).map(({ id, icon: Icon, labelFr, labelEn }) => {
-                const isActive = activeTab === id
-                return (
-                  <button
-                    key={id}
-                    onClick={() => setActiveTab(prev => prev === id && id !== 'home' ? 'home' : id)}
-                    className="flex-1 flex flex-col items-center justify-center pt-3 pb-1 gap-0.5 relative transition-colors"
+        {/* Scrollable content area — switches between home grid and tab panels */}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          {activeTab === 'home' ? (
+            <div className="p-2">
+              <div className={`grid gap-1.5 ${isMobile ? 'grid-cols-3' : 'grid-cols-3'}`}>
+                {discoveredElements.map((element) => (
+                  <div
+                    key={element.name}
+                    className="cursor-grab active:cursor-grabbing select-none"
+                    onPointerDown={e => handleInventoryPointerDown(e, element.name)}
                   >
-                    {isActive && id !== 'home' && (
-                      <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] rounded-full bg-foreground" />
-                    )}
-                    <Icon
-                      className={`w-[22px] h-[22px] transition-all ${isActive ? 'text-foreground' : 'text-muted-foreground/60'}`}
-                      strokeWidth={isActive ? 2.5 : 1.75}
-                    />
-                    <span className={`text-[10px] transition-all ${isActive ? 'text-foreground font-semibold' : 'text-muted-foreground/60 font-normal'}`}>
-                      {lang === 'fr' ? labelFr : labelEn}
-                    </span>
-                  </button>
-                )
-              })}
+                    <ElementBadge element={element} size={isMobile ? 'sm' : 'md'} fluid />
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-
-        {/* ── DESKTOP FOOTER (unchanged) ─────────────────────────── */}
-        {!isMobile && (
-        <div className="flex-shrink-0 border-t border-border px-3 pt-2.5 pb-2.5">
-          <div className="flex items-center justify-between gap-1.5">
-            <div className="flex items-center gap-1.5">
-              {sessionUser ? (
-                <AvatarButton sessionUser={sessionUser} elements={elements} onClick={() => setProfileOpen(true)} lang={lang} />
-              ) : (
-                <Link href="/login" className="flex items-center justify-center w-10 h-10 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Login">
-                  <LogIn className="w-4 h-4" />
-                </Link>
+          ) : (
+            <div className="px-4 py-4">
+              {activeTab === 'leaderboard' && <LeaderboardInlinePanel lang={lang} />}
+              {activeTab === 'settings' && (
+                <SettingsPanel
+                  lang={lang}
+                  onSetLang={onSetLang}
+                  hintsEnabled={hintsEnabled}
+                  onToggleHints={onToggleHints}
+                  onClear={onClear}
+                  itemsCount={items.length}
+                />
               )}
-              <button onClick={() => setLeaderboardOpen(true)} className="flex items-center justify-center w-10 h-10 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title={lang === 'fr' ? 'Classement' : 'Leaderboard'}>
-                <Trophy className="w-3.5 h-3.5" />
-              </button>
+              {activeTab === 'help' && (
+                <HelpPanel lang={lang} onOpenFull={() => { setActiveTab('home'); setHelpOpen(true) }} />
+              )}
+              {activeTab === 'profile' && sessionUser && (
+                <ProfileInlinePanel
+                  lang={lang}
+                  sessionUser={sessionUser}
+                  elements={elements}
+                  onOpenFull={() => { setActiveTab('home'); setProfileOpen(true) }}
+                />
+              )}
+              {activeTab === 'profile' && !sessionUser && (
+                <div className="flex flex-col items-center gap-3 py-4">
+                  <p className="text-xs text-muted-foreground text-center">{lang === 'fr' ? 'Connecte-toi pour sauvegarder ta progression' : 'Sign in to save your progress'}</p>
+                  <Link href="/login" className="flex items-center gap-1.5 h-9 px-4 rounded-xl bg-foreground text-background text-xs font-semibold transition-colors">
+                    <LogIn className="w-3.5 h-3.5" />
+                    {lang === 'fr' ? 'Se connecter' : 'Sign in'}
+                  </Link>
+                </div>
+              )}
             </div>
-            <div className="flex items-center bg-muted/50 border border-border rounded-xl p-1 h-10 gap-0.5">
-              <button className={`px-2.5 h-full text-xs font-semibold rounded-lg transition-colors ${lang === 'fr' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`} onClick={() => onSetLang('fr')}>FR</button>
-              <button className={`px-2.5 h-full text-xs font-semibold rounded-lg transition-colors ${lang === 'en' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`} onClick={() => onSetLang('en')}>EN</button>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <button onClick={onToggleHints} className={`flex items-center justify-center w-10 h-10 rounded-xl border transition-colors ${hintsEnabled ? 'bg-amber-500/15 border-amber-500/40 text-amber-400' : 'bg-muted/50 border-border text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
-                <Lightbulb className="w-3.5 h-3.5" />
-              </button>
-              <button onClick={onClear} disabled={items.length === 0} className="flex items-center justify-center w-10 h-10 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-              <button onClick={() => setHelpOpen(true)} className="flex items-center justify-center w-10 h-10 rounded-xl bg-muted/50 border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
-                <HelpCircle className="w-3.5 h-3.5" />
-              </button>
-            </div>
+          )}
+        </div>
+
+        {/* ── TAB BAR (all screen sizes) ─────────────────────────── */}
+        <div
+          className="flex-shrink-0 border-t border-border bg-card/95 backdrop-blur-xl"
+          style={{ paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom, 16px) + 4px)' : undefined }}
+        >
+          <div className="flex items-stretch">
+            {([
+              { id: 'home',        icon: Home,        labelFr: 'Jeu',      labelEn: 'Play'     },
+              { id: 'leaderboard', icon: Trophy,       labelFr: 'Scores',   labelEn: 'Scores'   },
+              { id: 'settings',    icon: Settings,     labelFr: 'Réglages', labelEn: 'Settings' },
+              { id: 'help',        icon: HelpCircle,   labelFr: 'Aide',     labelEn: 'Help'     },
+              { id: 'profile',     icon: User,         labelFr: 'Profil',   labelEn: 'Profile'  },
+            ] as const).map(({ id, icon: Icon, labelFr, labelEn }) => {
+              const isActive = activeTab === id
+              return (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(prev => prev === id && id !== 'home' ? 'home' : id)}
+                  className="flex-1 flex flex-col items-center justify-center pt-3 pb-1.5 gap-0.5 relative transition-colors"
+                >
+                  {isActive && (
+                    <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] rounded-full bg-foreground" />
+                  )}
+                  <Icon
+                    className={`w-[22px] h-[22px] transition-all ${isActive ? 'text-foreground' : 'text-muted-foreground/50'}`}
+                    strokeWidth={isActive ? 2.5 : 1.75}
+                  />
+                  <span className={`text-[10px] transition-all ${isActive ? 'text-foreground font-semibold' : 'text-muted-foreground/50 font-normal'}`}>
+                    {lang === 'fr' ? labelFr : labelEn}
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </div>
-        )}
+
       </div>
 
-      {/* Modals (desktop + mobile full overlay) */}
+      {/* Modals */}
       {helpOpen && <HelpModal lang={lang} onSetLang={onSetLang} onClose={() => setHelpOpen(false)} />}
       {leaderboardOpen && <LeaderboardModal lang={lang} onClose={() => setLeaderboardOpen(false)} />}
       {profileOpen && sessionUser && <ProfileModal lang={lang} sessionUser={sessionUser} elements={elements} onClose={() => setProfileOpen(false)} />}
@@ -748,12 +685,11 @@ function LeaderboardInlinePanel({ lang }: { lang: 'fr' | 'en' }) {
     fetch('/api/leaderboard').then(r => r.json()).then(d => { setEntries(d.leaderboard ?? []); setLoading(false) }).catch(() => setLoading(false))
   }, [])
   return (
-    <div className="max-h-52 overflow-y-auto">
-      <p className="text-xs font-semibold text-foreground mb-2">{lang === 'fr' ? 'Classement' : 'Leaderboard'}</p>
+    <div className="space-y-1">
       {loading ? (
         <div className="flex justify-center py-4"><div className="w-5 h-5 border-2 border-border border-t-foreground/40 rounded-full animate-spin" /></div>
       ) : entries.length === 0 ? (
-        <p className="text-xs text-muted-foreground py-2 text-center">{lang === 'fr' ? 'Aucun joueur pour l\'instant.' : 'No players yet.'}</p>
+        <p className="text-xs text-muted-foreground py-2 text-center">{lang === 'fr' ? "Aucun joueur pour l'instant." : 'No players yet.'}</p>
       ) : (
         <ul className="space-y-1">
           {entries.slice(0, 10).map((e, i) => (
