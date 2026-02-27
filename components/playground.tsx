@@ -258,7 +258,6 @@ export function Playground({
   const containerRef = useRef<HTMLDivElement>(null)
   const inventoryRef = useRef<HTMLDivElement>(null)
   const inventoryScrollRef = useRef<HTMLDivElement>(null)
-  const inventoryScrollRef = useRef<HTMLDivElement>(null)
 
   const [dragging, setDragging] = useState<DragState | null>(null)
   const [nearMergeId, setNearMergeId] = useState<string | null>(null)
