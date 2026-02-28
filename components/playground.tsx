@@ -522,7 +522,7 @@ export function Playground({
         return (
           <div
             key={item.id}
-            className={`absolute select-none cursor-grab active:cursor-grabbing ${isShaking ? 'animate-shake' : ''}`}
+            className="absolute select-none cursor-grab active:cursor-grabbing"
             style={{
               left: 0,
               top: 0,
@@ -536,7 +536,10 @@ export function Playground({
             onPointerDown={e => handlePointerDown(e, item.element, item.id)}
             onDoubleClick={() => onRemove(item.id)}
           >
-            <ElementBadge element={el} size={playgroundBadgeSize} />
+            {/* Inner wrapper carries the shake animation — keeps outer translate(x,y) intact */}
+            <div className={isShaking ? 'animate-shake' : undefined}>
+              <ElementBadge element={el} size={playgroundBadgeSize} />
+            </div>
           </div>
         )
       })}

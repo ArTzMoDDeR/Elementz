@@ -156,6 +156,11 @@ input, textarea, [contenteditable] {
   animation: shake 0.35s ease-in-out;
 }
 
+/* Shake applied to inner wrapper so it doesn't conflict with outer translate(x,y) */
+.animate-shake-inner > * {
+  animation: shake 0.35s ease-in-out;
+}
+
 @keyframes loading {
   0% { transform: translateX(-100%); }
   50% { transform: translateX(0%); }
