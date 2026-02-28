@@ -1,6 +1,7 @@
 import NextAuth from 'next-auth'
 import Google from 'next-auth/providers/google'
 import Discord from 'next-auth/providers/discord'
+import Credentials from 'next-auth/providers/credentials'
 import { neon } from '@neondatabase/serverless'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -14,6 +15,38 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Discord({
       clientId: process.env.DISCORD_CLIENT_ID!,
       clientSecret: process.env.DISCORD_CLIENT_SECRET!,
+    }),
+    Credentials({
+      id: 'email-otp',
+      name: 'Email OTP',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        code: { label: 'Code', type: 'text' },
+      },
+      async authorize(credentials) {
+        const email = credentials?.email as string
+        const code = credentials?.code as string
+        if (!email || !code) return null
+
+        const sql = neon(process.env.DATABASE_URL!)
+
+        const rows = await sql`
+          SELECT id FROM email_otps
+          WHERE email = ${email}
+            AND code = ${code}
+            AND used = FALSE
+            AND expires_at > NOW()
+          ORDER BY created_at DESC
+          LIMIT 1
+        `
+        if (!rows.length) return null
+
+        // Mark code as used
+        await sql`UPDATE email_otps SET used = TRUE WHERE id = ${rows[0].id}`
+
+        // Return a minimal user object — the jwt callback will upsert into users
+        return { id: email, email, name: email.split('@')[0] }
+      },
     }),
   ],
   session: { strategy: 'jwt' },

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { signInWithGoogle, signInWithDiscord } from '@/app/actions/auth'
+import EmailSignIn from '@/components/email-sign-in'
 
 type Lang = 'fr' | 'en'
 
@@ -155,7 +156,14 @@ const SLIDES: {
               {lang === 'fr' ? 'Continuer avec Discord' : 'Continue with Discord'}
             </button>
           </form>
-        </div>
+          <div className="flex items-center gap-2 my-1">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-xs text-muted-foreground">
+              {lang === 'fr' ? 'ou par email' : 'or by email'}
+            </span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+          <EmailSignIn lang={lang} />
         <p className="text-xs text-muted-foreground/50 text-center">
           {lang === 'fr'
             ? 'Tu peux jouer sans compte, mais ta progression restera uniquement sur cet appareil.'
