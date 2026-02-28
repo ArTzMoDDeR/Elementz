@@ -603,6 +603,8 @@ export function Playground({
                   placeholder={lang === 'fr' ? 'Rechercher...' : 'Search...'}
                   className="w-full h-9 pl-9 pr-8 bg-muted/50 border border-input rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-ring focus:bg-background transition-colors"
                   style={{ fontSize: '16px' }}
+                  onPointerDown={e => e.stopPropagation()}
+                  onTouchStart={e => e.stopPropagation()}
                 />
                 {search && (
                   <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
@@ -618,6 +620,17 @@ export function Playground({
               <button onClick={() => toggleSort('recent')} className={`flex items-center gap-1 h-9 px-2.5 rounded-xl border text-xs font-medium transition-colors whitespace-nowrap ${sortBy === 'recent' ? 'bg-foreground/10 border-foreground/30 text-foreground' : 'bg-muted/50 border-border text-muted-foreground hover:text-foreground'}`}>
                 {lang === 'fr' ? 'Récent' : 'Recent'}
                 {sortBy === 'recent' && (sortReverse ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
+              </button>
+              <button
+                onClick={() => setTapMode(!tapMode)}
+                onPointerDown={e => e.stopPropagation()}
+                title={tapMode ? (lang === 'fr' ? 'Passer en mode drag' : 'Switch to drag mode') : (lang === 'fr' ? 'Passer en mode tap' : 'Switch to tap mode')}
+                className="flex items-center justify-center h-9 w-9 rounded-xl border bg-muted/50 border-border text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+              >
+                {tapMode
+                  ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 11V6a2 2 0 00-2-2v0a2 2 0 00-2 2v0"/><path d="M14 10V4a2 2 0 00-2-2v0a2 2 0 00-2 2v0"/><path d="M10 10.5V6a2 2 0 00-2-2v0a2 2 0 00-2 2v6"/><path d="M18 8a2 2 0 114 0v6a8 8 0 01-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 012.83-2.82L7 15"/></svg>
+                }
               </button>
             </div>
           )}
