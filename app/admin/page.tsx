@@ -690,36 +690,11 @@ export default function AdminPanel() {
         </div>
 
         {/* Grid */}
-        {sortBy === 'alpha' ? (
-          // Grouped by first letter with section headers
-          (() => {
-            const groups = filteredElements.reduce<Record<string, typeof filteredElements>>((acc, el) => {
-              const letter = el.name_french[0].toUpperCase()
-              if (!acc[letter]) acc[letter] = []
-              acc[letter].push(el)
-              return acc
-            }, {})
-            return Object.entries(groups).map(([letter, els]) => (
-              <div key={letter} className="mb-6">
-                <div className="flex items-baseline gap-2 mb-3 pb-2 border-b border-border">
-                  <span className="text-xl font-bold">{letter}</span>
-                  <span className="text-xs text-muted-foreground">{els.length} élément{els.length > 1 ? 's' : ''}</span>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {els.map(element => (
-                    <ElementCard key={element.number} element={element} uploading={uploading} onEdit={setEditingElement} onUpload={handleFileUpload} />
-                  ))}
-                </div>
-              </div>
-            ))
-          })()
-        ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {filteredElements.map(element => (
             <ElementCard key={element.number} element={element} uploading={uploading} onEdit={setEditingElement} onUpload={handleFileUpload} />
           ))}
         </div>
-        )}
 
 
         {filteredElements.length === 0 && (
