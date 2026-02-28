@@ -7,6 +7,8 @@ import { useGameStore } from '@/hooks/use-game-store'
 import { useHint } from '@/hooks/use-hint'
 import { Sparkles, Lightbulb, Trash2, BarChart2, Hand, MousePointer } from 'lucide-react'
 
+const PROGRESS_MILESTONES = [10, 20, 50, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900]
+
 export function AlchemyGame() {
   const [mounted, setMounted] = useState(false)
   const { data: session } = useSession()
@@ -64,14 +66,13 @@ export function AlchemyGame() {
   }
 
   // Progress toast — only on milestones
-  const MILESTONES = [10, 20, 50, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900]
   const [progressToast, setProgressToast] = useState<{ count: number; pct: number } | null>(null)
   const progressToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!newlyDiscovered || !totalElements) return
     const count = discovered.size
-    if (!MILESTONES.includes(count)) return
+    if (!PROGRESS_MILESTONES.includes(count)) return
     const pct = Math.round((count / totalElements) * 100)
     if (progressToastTimer.current) clearTimeout(progressToastTimer.current)
     setProgressToast({ count, pct })
