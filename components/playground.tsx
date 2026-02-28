@@ -455,9 +455,15 @@ export function Playground({
           setMergeAnimation({ x: (dragging.x + nearest.x) / 2, y: (dragging.y + nearest.y) / 2 })
           setTimeout(() => setMergeAnimation(null), 600)
         } else {
+          // Commit the current drag position to the store BEFORE clearing drag state
+          // so the item doesn't snap back to (0,0) during the shake animation
+          onMove(dragging.itemId, dragging.x, dragging.y)
           setShakeId(dragging.itemId)
           setTimeout(() => setShakeId(null), 400)
         }
+      } else {
+        // No target found — still commit position so item stays where it was dropped
+        onMove(dragging.itemId, dragging.x, dragging.y)
       }
     }
 
