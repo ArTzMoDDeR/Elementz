@@ -326,8 +326,9 @@ export function useGameStore() {
     const results = findRecipes(recipeMap, item1.element, item2.element)
     if (results.length === 0) return null
 
-    const cx = (item1.x + item2.x) / 2
-    const cy = (item1.y + item2.y) / 2
+    // Place result at the stationary target (item2) position
+    const tx = item2.x
+    const ty = item2.y
     const spread = 60
 
     // Remove the two source items, add all results
@@ -335,8 +336,8 @@ export function useGameStore() {
       const filtered = prev.filter(i => i.id !== id1 && i.id !== id2)
       const newItems = results.map((res, idx) => {
         const angle = (idx / results.length) * Math.PI * 2
-        const x = results.length > 1 ? cx + Math.cos(angle) * spread : cx
-        const y = results.length > 1 ? cy + Math.sin(angle) * spread : cy
+        const x = results.length > 1 ? tx + Math.cos(angle) * spread : tx
+        const y = results.length > 1 ? ty + Math.sin(angle) * spread : ty
         return { id: generateId(), element: res, x, y }
       })
       return [...filtered, ...newItems]

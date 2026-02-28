@@ -409,7 +409,6 @@ export function Playground({
     const newY = pos.y - dragging.offsetY
 
     if (dragging.source === 'playground' && dragging.itemId) {
-      onMove(dragging.itemId, newX, newY)
       setDragging(prev => prev ? { ...prev, x: newX, y: newY } : null)
       setNearMergeId(findNearestItem(newX, newY, dragging.itemId)?.id || null)
     } else {
@@ -452,17 +451,14 @@ export function Playground({
       if (nearest) {
         const result = onMerge(dragging.itemId, nearest.id)
         if (result) {
-          setMergeAnimation({ x: (dragging.x + nearest.x) / 2, y: (dragging.y + nearest.y) / 2 })
+          setMergeAnimation({ x: nearest.x, y: nearest.y })
           setTimeout(() => setMergeAnimation(null), 600)
         } else {
-          // Commit the current drag position to the store BEFORE clearing drag state
-          // so the item doesn't snap back to (0,0) during the shake animation
-          onMove(dragging.itemId, dragging.x, dragging.y)
           setShakeId(dragging.itemId)
           setTimeout(() => setShakeId(null), 400)
         }
       } else {
-        // No target found — still commit position so item stays where it was dropped
+        // No target — commit position to store
         onMove(dragging.itemId, dragging.x, dragging.y)
       }
     }
@@ -521,6 +517,9 @@ export function Playground({
         const isNear = nearMergeId === item.id
         const isShaking = shakeId === item.id
         const scale = isDragging ? 1.08 : isNear ? 1.05 : 1
+        // While dragging, use live dragging coords — avoids flash when setDragging(null) and store update are in different render cycles
+        const x = isDragging ? dragging.x : item.x
+        const y = isDragging ? dragging.y : item.y
         return (
           <div
             key={item.id}
@@ -528,7 +527,7 @@ export function Playground({
             style={{
               left: 0,
               top: 0,
-              transform: `translate(${item.x}px, ${item.y}px) scale(${scale})`,
+              transform: `translate(${x}px, ${y}px) scale(${scale})`,
               zIndex: isDragging ? 1000 : 10 + index,
               transition: isDragging ? 'none' : 'transform 0.15s',
               filter: isNear ? `drop-shadow(0 0 10px ${el.color}80)` : undefined,
