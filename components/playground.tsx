@@ -263,15 +263,24 @@ export function Playground({
 
   const [tabAvatarKey, setTabAvatarKey] = useState<string | null>(null)
   const [gridCols, setGridColsState] = useState<3 | 4 | 5>(4)
+  const [tapMode, setTapModeState] = useState(true) // default on — loaded from localStorage after mount
 
   useEffect(() => {
     const stored = localStorage.getItem('inventoryGridCols')
     if (stored === '3' || stored === '4' || stored === '5') setGridColsState(Number(stored) as 3 | 4 | 5)
+    const tap = localStorage.getItem('tapMode')
+    // default true on mobile, false on desktop (if never set)
+    if (tap !== null) setTapModeState(tap === '1')
+    else setTapModeState(true) // default on for everyone, user can disable in settings
   }, [])
 
   const setGridCols = (n: 3 | 4 | 5) => {
     setGridColsState(n)
     localStorage.setItem('inventoryGridCols', String(n))
+  }
+  const setTapMode = (v: boolean) => {
+    setTapModeState(v)
+    localStorage.setItem('tapMode', v ? '1' : '0')
   }
   useEffect(() => {
     if (!sessionUser?.email) return
@@ -601,25 +610,39 @@ export function Playground({
           )}
         </div>
 
-        {/* Chevron row — mobile home tab only, above the grid */}
-        {isMobile && activeTab === 'home' && (
+        {/* Chevron row — only in drag mode, mobile home tab */}
+        {isMobile && activeTab === 'home' && !tapMode && (
           <ChevronScrollBar scrollRef={inventoryScrollRef} />
         )}
 
-        {/* Scrollable content area — home: chevron-controlled, tabs: native scroll */}
+        {/* Scrollable content area — home: chevron-controlled in drag mode / free scroll in tap mode */}
         <div className="flex-1 min-h-0">
           {activeTab === 'home' ? (
             <div
               ref={inventoryScrollRef}
-              className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden touch-none"
+              className={`h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${tapMode ? '' : 'touch-none'}`}
             >
               <div className="p-2">
                 <div className={`grid gap-1.5 ${gridCols === 3 ? 'grid-cols-3' : gridCols === 5 ? 'grid-cols-5' : 'grid-cols-4'}`}>
                   {discoveredElements.map((element) => (
                     <div
                       key={element.name}
-                      className="cursor-grab active:cursor-grabbing select-none"
-                      onPointerDown={e => handleInventoryPointerDown(e, element.name)}
+                      className={tapMode ? 'cursor-pointer active:scale-95 transition-transform select-none' : 'cursor-grab active:cursor-grabbing select-none'}
+                      {...(tapMode
+                        ? {
+                            onClick: () => {
+                              // Place at a slightly random offset near center of canvas
+                              const rect = containerRef.current?.getBoundingClientRect()
+                              if (!rect) return
+                              const cx = rect.width / 2 + (Math.random() - 0.5) * 80
+                              const cy = rect.height / 2 + (Math.random() - 0.5) * 80
+                              onDrop(element.name, cx, cy)
+                            },
+                          }
+                        : {
+                            onPointerDown: (e: React.PointerEvent) => handleInventoryPointerDown(e, element.name),
+                          }
+                      )}
                     >
                       <ElementBadge element={element} size={isMobile ? 'sm' : 'md'} fluid />
                     </div>
@@ -641,6 +664,8 @@ export function Playground({
                     itemsCount={items.length}
                     gridCols={gridCols}
                     onSetGridCols={setGridCols}
+                    tapMode={tapMode}
+                    onToggleTapMode={() => setTapMode(!tapMode)}
                   />
                 )}
                 {activeTab === 'help' && (
@@ -861,11 +886,12 @@ function LeaderboardInlinePanel({ lang }: { lang: 'fr' | 'en' }) {
   )
 }
 
-function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, itemsCount, gridCols, onSetGridCols }: {
+function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, itemsCount, gridCols, onSetGridCols, tapMode, onToggleTapMode }: {
   lang: 'fr' | 'en'; onSetLang: (l: 'fr' | 'en') => void
   hintsEnabled?: boolean; onToggleHints?: () => void
   onClear: () => void; itemsCount: number
   gridCols: 3 | 4 | 5; onSetGridCols: (n: 3 | 4 | 5) => void
+  tapMode: boolean; onToggleTapMode: () => void
 }) {
   return (
     <div className="space-y-5 py-1">
@@ -891,6 +917,19 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
             </button>
           ))}
         </div>
+      </div>
+      {/* Tap mode */}
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Mode tap inventaire' : 'Tap inventory mode'}</span>
+          <p className="text-xs text-muted-foreground mt-0.5">{lang === 'fr' ? 'Tap pour poser sur le terrain' : 'Tap to place on canvas'}</p>
+        </div>
+        <button
+          onClick={onToggleTapMode}
+          className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${tapMode ? 'bg-foreground' : 'bg-muted-foreground/30'}`}
+        >
+          <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${tapMode ? 'left-[22px]' : 'left-0.5'}`} />
+        </button>
       </div>
       {/* Hints */}
       <div className="flex items-center justify-between gap-4">
