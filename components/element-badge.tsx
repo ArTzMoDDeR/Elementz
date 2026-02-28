@@ -2,7 +2,6 @@
 
 import { memo } from 'react'
 import { type ElementDef } from '@/lib/game-data'
-import { optimizeImageUrl, BADGE_IMG_WIDTH } from '@/lib/image-utils'
 
 interface ElementBadgeProps {
   element: ElementDef
@@ -66,7 +65,8 @@ const LABEL_BG = 'rgba(0,0,0,0.55)'
 function ElementBadgeInner({ element, size = 'md', fluid = false, className = '', style }: ElementBadgeProps) {
   const hasIcon = ELEMENT_ICONS[element.name]
   const sizeClass = fluid ? 'w-full aspect-square' : FIXED_SIZE[size]
-  const optimizedSrc = optimizeImageUrl(element.imageUrl, BADGE_IMG_WIDTH[size] * 2)
+  // Use imageUrl directly — optimizeImageUrl was returning the same value anyway
+  const imgSrc = element.imageUrl || null
 
   return (
     <div
@@ -80,9 +80,9 @@ function ElementBadgeInner({ element, size = 'md', fluid = false, className = ''
       {/* Image / icon — fills most of the badge */}
       <div className="flex-1 w-full flex items-center justify-center p-1.5">
         <div className={`${ICON_RATIO[size]} flex items-center justify-center`}>
-          {optimizedSrc ? (
+          {imgSrc ? (
             <img
-              src={optimizedSrc}
+              src={imgSrc}
               alt={element.name}
               draggable={false}
               loading="lazy"
