@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 import { Playground } from './playground'
 import { useGameStore } from '@/hooks/use-game-store'
 import { useHint } from '@/hooks/use-hint'
-import { Sparkles, Lightbulb, Trash2, BarChart2 } from 'lucide-react'
+import { Sparkles, Lightbulb, Trash2, BarChart2, Hand, MousePointer } from 'lucide-react'
 
 export function AlchemyGame() {
   const [mounted, setMounted] = useState(false)
@@ -54,15 +54,27 @@ export function AlchemyGame() {
     hintsToastTimer.current = setTimeout(() => setHintsToast(null), 2000)
   }
 
-  // Progress toast — shows % discovered after each new element
-  const [progressToast, setProgressToast] = useState<number | null>(null)
+  // Tap mode toast
+  const [tapModeToast, setTapModeToast] = useState<boolean | null>(null)
+  const tapModeToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const handleTapModeChange = (enabled: boolean) => {
+    if (tapModeToastTimer.current) clearTimeout(tapModeToastTimer.current)
+    setTapModeToast(enabled)
+    tapModeToastTimer.current = setTimeout(() => setTapModeToast(null), 2000)
+  }
+
+  // Progress toast — only on milestones
+  const MILESTONES = [10, 20, 50, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900]
+  const [progressToast, setProgressToast] = useState<{ count: number; pct: number } | null>(null)
   const progressToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!newlyDiscovered || !totalElements) return
-    const pct = Math.round((discovered.size / totalElements) * 100)
+    const count = discovered.size
+    if (!MILESTONES.includes(count)) return
+    const pct = Math.round((count / totalElements) * 100)
     if (progressToastTimer.current) clearTimeout(progressToastTimer.current)
-    setProgressToast(pct)
+    setProgressToast({ count, pct })
     progressToastTimer.current = setTimeout(() => setProgressToast(null), 2500)
   }, [newlyDiscovered])
 
@@ -127,6 +139,7 @@ export function AlchemyGame() {
             fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ haptic_feedback: next }) })
           }
         }}
+        onTapModeChange={handleTapModeChange}
       />
 
       {/* Clear button — top left of canvas, safe area aware */}
@@ -180,15 +193,32 @@ export function AlchemyGame() {
           )
         })()}
 
-        {/* Progress */}
+        {/* Tap / Grab mode */}
+        {tapModeToast !== null && (
+          <div className="animate-in slide-in-from-left-4 fade-in duration-200 pointer-events-auto">
+            <div className="flex items-center gap-2.5 pl-3 pr-3 py-2.5 bg-card border border-border rounded-xl shadow-lg backdrop-blur-sm">
+              {tapModeToast
+                ? <MousePointer className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#10d9ae' }} />
+                : <Hand className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#fe8f27' }} />
+              }
+              <span className="text-xs text-muted-foreground leading-snug">
+                {lang === 'fr'
+                  ? tapModeToast ? 'Mode tap activé' : 'Mode drag activé'
+                  : tapModeToast ? 'Tap mode on' : 'Drag mode on'}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Progress milestone */}
         {progressToast !== null && (
           <div className="animate-in slide-in-from-left-4 fade-in duration-200 pointer-events-auto">
             <div className="flex items-center gap-2.5 pl-3 pr-3 py-2.5 bg-card border border-border rounded-xl shadow-lg backdrop-blur-sm">
               <BarChart2 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#15e9ff' }} />
               <span className="text-xs text-muted-foreground leading-snug">
                 {lang === 'fr'
-                  ? <><span className="font-semibold text-foreground">{progressToast}%</span> des éléments découverts</>
-                  : <><span className="font-semibold text-foreground">{progressToast}%</span> of elements discovered</>
+                  ? <><span className="font-semibold text-foreground">{progressToast.count}</span> éléments — <span className="font-semibold text-foreground">{progressToast.pct}%</span> découverts</>
+                  : <><span className="font-semibold text-foreground">{progressToast.count}</span> elements — <span className="font-semibold text-foreground">{progressToast.pct}%</span> discovered</>
                 }
               </span>
             </div>
