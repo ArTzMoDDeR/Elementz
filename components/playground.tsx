@@ -565,9 +565,13 @@ export function Playground({
           height: isMobile ? (inventoryHeight != null ? `${inventoryHeight}px` : '55vh') : undefined,
         }}
       >
-        {/* Drag handle — mobile only, visual bar only */}
+        {/* Drag handle — mobile only, also triggers resize */}
         {isMobile && (
-          <div className="flex-shrink-0 flex items-center justify-center h-6 touch-none select-none">
+          <div
+            className="flex-shrink-0 flex items-center justify-center h-6 touch-none select-none"
+            onPointerDown={handleDragHandlePointerDown}
+            style={{ cursor: 'row-resize', touchAction: 'none' }}
+          >
             <div className="w-12 h-1.5 rounded-full bg-muted-foreground/40" />
           </div>
         )}
