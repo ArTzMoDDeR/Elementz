@@ -299,6 +299,7 @@ export function Playground({
   useEffect(() => {
     if (items.length === 0) tapSlotRef.current = 0
   }, [items.length])
+  const [dragging, setDragging] = useState<DragState | null>(null)
   const [nearMergeId, setNearMergeId] = useState<string | null>(null)
   const [mergeAnimation, setMergeAnimation] = useState<{ x: number; y: number } | null>(null)
   const [shakeId, setShakeId] = useState<string | null>(null)
