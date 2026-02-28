@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 import { Playground } from './playground'
 import { useGameStore } from '@/hooks/use-game-store'
 import { useHint } from '@/hooks/use-hint'
-import { Sparkles, Lightbulb, Trash2 } from 'lucide-react'
+import { Sparkles, Lightbulb, Trash2, BarChart2 } from 'lucide-react'
 
 export function AlchemyGame() {
   const [mounted, setMounted] = useState(false)
@@ -53,6 +53,18 @@ export function AlchemyGame() {
     setHintsToast(next)
     hintsToastTimer.current = setTimeout(() => setHintsToast(null), 2000)
   }
+
+  // Progress toast — shows % discovered after each new element
+  const [progressToast, setProgressToast] = useState<number | null>(null)
+  const progressToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (!newlyDiscovered || !totalElements) return
+    const pct = Math.round((discovered.size / totalElements) * 100)
+    if (progressToastTimer.current) clearTimeout(progressToastTimer.current)
+    setProgressToast(pct)
+    progressToastTimer.current = setTimeout(() => setProgressToast(null), 2500)
+  }, [newlyDiscovered])
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -167,6 +179,21 @@ export function AlchemyGame() {
             </div>
           )
         })()}
+
+        {/* Progress */}
+        {progressToast !== null && (
+          <div className="animate-in slide-in-from-left-4 fade-in duration-200 pointer-events-auto">
+            <div className="flex items-center gap-2.5 pl-3 pr-3 py-2.5 bg-card border border-border rounded-xl shadow-lg backdrop-blur-sm">
+              <BarChart2 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#15e9ff' }} />
+              <span className="text-xs text-muted-foreground leading-snug">
+                {lang === 'fr'
+                  ? <><span className="font-semibold text-foreground">{progressToast}%</span> des éléments découverts</>
+                  : <><span className="font-semibold text-foreground">{progressToast}%</span> of elements discovered</>
+                }
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Hint */}
         {hintVisible && currentHint && hintLabel && (() => {

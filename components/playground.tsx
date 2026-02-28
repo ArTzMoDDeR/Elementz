@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ElementBadge } from './element-badge'
-import { Search, X, ArrowUpDown, ChevronUp, ChevronDown, Package, Trophy, Settings, HelpCircle, User, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff } from 'lucide-react'
+import { Search, X, ArrowUpDown, ChevronUp, ChevronDown, Package, Trophy, Settings, HelpCircle, User, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Hand, MousePointer } from 'lucide-react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import { HelpModal } from './help-modal'
 import { LeaderboardModal } from './leaderboard-modal'
@@ -287,7 +287,12 @@ export function Playground({
   const setTapMode = (v: boolean) => {
     setTapModeState(v)
     localStorage.setItem('tapMode', v ? '1' : '0')
+    if (tapModeToastTimer.current) clearTimeout(tapModeToastTimer.current)
+    setTapModeToast(v)
+    tapModeToastTimer.current = setTimeout(() => setTapModeToast(null), 2000)
   }
+  const [tapModeToast, setTapModeToast] = useState<boolean | null>(null)
+  const tapModeToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const setMergeFlashEnabled = (v: boolean) => {
     setMergeFlashEnabledState(v)
     localStorage.setItem('mergeFlash', v ? '1' : '0')
@@ -860,6 +865,28 @@ export function Playground({
       {helpOpen && <HelpModal lang={lang} onSetLang={onSetLang} onClose={() => setHelpOpen(false)} />}
       {leaderboardOpen && <LeaderboardModal lang={lang} onClose={() => setLeaderboardOpen(false)} />}
       {profileOpen && sessionUser && <ProfileModal lang={lang} sessionUser={sessionUser} elements={elements} onClose={() => setProfileOpen(false)} />}
+
+      {/* Tap / Grab mode toast */}
+      {tapModeToast !== null && (
+        <div
+          className="fixed z-[60] pointer-events-none"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)', left: '50%', transform: 'translateX(-50%)' }}
+        >
+          <div className="animate-in slide-in-from-bottom-3 fade-in duration-200">
+            <div className="flex items-center gap-2.5 pl-3.5 pr-3.5 py-2.5 bg-card border border-border rounded-xl shadow-lg backdrop-blur-sm whitespace-nowrap">
+              {tapModeToast
+                ? <MousePointer className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#10d9ae' }} />
+                : <Hand className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#fe8f27' }} />
+              }
+              <span className="text-xs text-muted-foreground leading-snug">
+                {lang === 'fr'
+                  ? tapModeToast ? 'Mode tap activé' : 'Mode drag activé'
+                  : tapModeToast ? 'Tap mode on' : 'Drag mode on'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
