@@ -1006,7 +1006,13 @@ function ProfileInlinePanel({ lang, sessionUser, elements, onAvatarChange }: {
     if (trimmed.length > 20) { setNameError(t('Max 20 caractères', 'Max 20 characters')); return }
     if (trimmed.length > 0 && !/^[a-zA-Z0-9_\- ]+$/.test(trimmed)) { setNameError(t('Lettres, chiffres, _ et -', 'Letters, numbers, _ and -')); return }
     setSaving(true)
-    await fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: trimmed || null }) })
+    const res = await fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: trimmed || null }) })
+    if (!res.ok) {
+      const data = await res.json()
+      setNameError(data?.error ?? t('Erreur, réessaie.', 'Error, try again.'))
+      setSaving(false)
+      return
+    }
     setProfile(p => p ? { ...p, username: trimmed || null } : p)
     setEditingName(false); setNameError(''); setSaving(false)
   }

@@ -48,6 +48,15 @@ export async function PATCH(req: Request) {
     if (trimmed.length > 0 && !/^[a-zA-Z0-9_\- ]+$/.test(trimmed)) {
       return NextResponse.json({ error: 'Username can only contain letters, numbers, spaces, _ and -' }, { status: 400 })
     }
+    // Enforce unique username (case-insensitive), ignoring the user's own current username
+    if (trimmed.length > 0) {
+      const conflict = await sql`
+        SELECT 1 FROM user_progress
+        WHERE LOWER(username) = LOWER(${trimmed}) AND user_id != ${session.user.id}
+        LIMIT 1
+      `
+      if (conflict.length) return NextResponse.json({ error: 'Ce pseudo est déjà pris' }, { status: 409 })
+    }
   }
 
   await sql`

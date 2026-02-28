@@ -55,6 +55,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // Only hit DB on first sign-in or explicit session update
       if (user?.email) {
         const sql = neon(process.env.DATABASE_URL!)
+
+        // Upsert user
         const rows = await sql`
           INSERT INTO users (id, name, email, image)
           VALUES (gen_random_uuid()::text, ${user.name ?? ''}, ${user.email}, ${user.image ?? null})
@@ -64,6 +66,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (rows[0]) {
           token.userId = rows[0].id as string
           token.isAdmin = rows[0].is_admin === 1
+
+          // Assign default Hunter username + random starting avatar on first sign-in
+          const existing = await sql`SELECT user_id FROM user_progress WHERE user_id = ${rows[0].id as string}`
+          if (!existing.length) {
+            // Find next available HunterN
+            let username: string | null = null
+            for (let n = 1; n <= 9999; n++) {
+              const candidate = `Hunter${n}`
+              const taken = await sql`SELECT 1 FROM user_progress WHERE LOWER(username) = LOWER(${candidate}) LIMIT 1`
+              if (!taken.length) { username = candidate; break }
+            }
+            // Pick random starting avatar
+            const starters = ['eau', 'feu', 'terre', 'air']
+            const avatar = starters[Math.floor(Math.random() * starters.length)]
+            await sql`
+              INSERT INTO user_progress (user_id, username, avatar, discovered, show_in_leaderboard)
+              VALUES (${rows[0].id as string}, ${username}, ${avatar}, ARRAY['eau','feu','terre','air'], true)
+              ON CONFLICT (user_id) DO NOTHING
+            `
+          }
         }
       } else if (trigger === 'update' && token.userId) {
         // Explicit refresh (called via useSession().update()) — re-read is_admin
