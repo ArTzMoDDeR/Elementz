@@ -164,6 +164,7 @@ const SLIDES: {
             <div className="flex-1 h-px bg-border" />
           </div>
           <EmailSignIn lang={lang} />
+        </div>
         <p className="text-xs text-muted-foreground/50 text-center">
           {lang === 'fr'
             ? 'Tu peux jouer sans compte, mais ta progression restera uniquement sur cet appareil.'
