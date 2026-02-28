@@ -447,6 +447,8 @@ export function Playground({
         onDrop(dragging.elementName, dragging.x, dragging.y)
       }
     } else if (dragging.source === 'playground' && dragging.itemId) {
+      // Always commit drag position to store first — item.x/y was never updated during drag
+      onMove(dragging.itemId, dragging.x, dragging.y)
       const nearest = findNearestItem(dragging.x, dragging.y, dragging.itemId)
       if (nearest) {
         const result = onMerge(dragging.itemId, nearest.id)
@@ -457,9 +459,6 @@ export function Playground({
           setShakeId(dragging.itemId)
           setTimeout(() => setShakeId(null), 400)
         }
-      } else {
-        // No target — commit position to store
-        onMove(dragging.itemId, dragging.x, dragging.y)
       }
     }
 
