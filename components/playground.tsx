@@ -669,18 +669,18 @@ export function Playground({
                             onClick: () => {
                               const rect = containerRef.current?.getBoundingClientRect()
                               if (!rect) return
-                              // 4-column grid from top-left, badge ~72px wide with 12px gap
                               const COLS = 4
+                              const MAX_SLOTS = 12 // 3 rows × 4 cols, then wrap
                               const BADGE_W = 72
                               const BADGE_H = 72
                               const GAP = 12
                               const PAD = 16
-                              const slot = tapSlotRef.current
+                              const slot = tapSlotRef.current % MAX_SLOTS
                               const col = slot % COLS
                               const row = Math.floor(slot / COLS)
                               const cx = PAD + col * (BADGE_W + GAP) + BADGE_W / 2
                               const cy = PAD + row * (BADGE_H + GAP) + BADGE_H / 2
-                              tapSlotRef.current = slot + 1
+                              tapSlotRef.current += 1
                               onDrop(element.name, cx, cy)
                             },
                           }
