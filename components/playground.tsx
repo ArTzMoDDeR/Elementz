@@ -565,18 +565,19 @@ export function Playground({
           height: isMobile ? (inventoryHeight != null ? `${inventoryHeight}px` : '55vh') : undefined,
         }}
       >
-        {/* Drag handle — mobile only */}
+        {/* Drag handle — mobile only, visual bar only */}
         {isMobile && (
-          <div
-            className="flex-shrink-0 flex items-center justify-center h-6 cursor-row-resize touch-none select-none active:bg-muted/30 transition-colors"
-            onPointerDown={handleDragHandlePointerDown}
-          >
+          <div className="flex-shrink-0 flex items-center justify-center h-6 touch-none select-none">
             <div className="w-12 h-1.5 rounded-full bg-muted-foreground/40" />
           </div>
         )}
 
-        {/* Header — always visible */}
-        <div className="flex-shrink-0 px-3 pt-3 pb-3 border-b border-border flex flex-col gap-2.5">
+        {/* Header — always visible, drag to resize on mobile */}
+        <div
+          className="flex-shrink-0 px-3 pt-3 pb-3 border-b border-border flex flex-col gap-2.5"
+          onPointerDown={isMobile ? handleDragHandlePointerDown : undefined}
+          style={isMobile ? { cursor: 'row-resize', touchAction: 'none' } : undefined}
+        >
           <div className="flex items-center justify-center gap-2" style={{ transform: 'translateY(-3px)' }}>
             <img src="/logo.png" alt="Elementz" className="w-7 h-7 rounded-full flex-shrink-0 pointer-events-none select-none" draggable={false} />
             <span className="font-bold text-base tracking-tight">Elementz</span>
