@@ -42,6 +42,8 @@ interface PlaygroundProps {
   hintsEnabled?: boolean
   onToggleHints?: () => void
   onRequestHint?: () => void
+  hapticEnabled?: boolean
+  onToggleHaptic?: () => void
 }
 
 type SortType = 'name' | 'recent'
@@ -256,6 +258,7 @@ export function Playground({
   lang, onSetLang,
   onDrop, onMove, onMerge, onDropAndMerge, onRemove, onClear, onReset,
   onUnlockAll, sessionUser, hintsEnabled, onToggleHints, onRequestHint,
+  hapticEnabled = true, onToggleHaptic,
 }: PlaygroundProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const inventoryRef = useRef<HTMLDivElement>(null)
@@ -685,6 +688,8 @@ export function Playground({
                     onSetGridCols={setGridCols}
                     tapMode={tapMode}
                     onToggleTapMode={() => setTapMode(!tapMode)}
+                    hapticEnabled={hapticEnabled}
+                    onToggleHaptic={onToggleHaptic}
                   />
                 )}
                 {activeTab === 'help' && (
@@ -905,12 +910,13 @@ function LeaderboardInlinePanel({ lang }: { lang: 'fr' | 'en' }) {
   )
 }
 
-function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, itemsCount, gridCols, onSetGridCols, tapMode, onToggleTapMode }: {
+function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, itemsCount, gridCols, onSetGridCols, tapMode, onToggleTapMode, hapticEnabled, onToggleHaptic }: {
   lang: 'fr' | 'en'; onSetLang: (l: 'fr' | 'en') => void
   hintsEnabled?: boolean; onToggleHints?: () => void
   onClear: () => void; itemsCount: number
   gridCols: 3 | 4 | 5; onSetGridCols: (n: 3 | 4 | 5) => void
   tapMode: boolean; onToggleTapMode: () => void
+  hapticEnabled?: boolean; onToggleHaptic?: () => void
 }) {
   return (
     <div className="space-y-5 py-1">
@@ -948,6 +954,19 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
           className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${tapMode ? 'bg-foreground' : 'bg-muted-foreground/30'}`}
         >
           <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${tapMode ? 'left-[22px]' : 'left-0.5'}`} />
+        </button>
+      </div>
+      {/* Haptic feedback */}
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Vibration' : 'Haptic feedback'}</span>
+          <p className="text-xs text-muted-foreground mt-0.5">{lang === 'fr' ? 'Vibration sur découverte' : 'Vibrate on new discovery'}</p>
+        </div>
+        <button
+          onClick={onToggleHaptic}
+          className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${hapticEnabled ? 'bg-foreground' : 'bg-muted-foreground/30'}`}
+        >
+          <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${hapticEnabled ? 'left-[22px]' : 'left-0.5'}`} />
         </button>
       </div>
       {/* Hints */}

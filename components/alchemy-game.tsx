@@ -16,6 +16,8 @@ export function AlchemyGame() {
     elements,
     frToElement,
     frToEn,
+    hapticEnabled,
+    setHapticEnabled,
     discovered,
     recipeMap,
     playground,
@@ -105,6 +107,14 @@ export function AlchemyGame() {
         hintsEnabled={hintsEnabled}
         onToggleHints={handleToggleHints}
         onRequestHint={requestHint}
+        hapticEnabled={hapticEnabled}
+        onToggleHaptic={() => {
+          const next = !hapticEnabled
+          setHapticEnabled(next)
+          if (session?.user?.id) {
+            fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ haptic_feedback: next }) })
+          }
+        }}
       />
 
       {/* Clear button — top left of canvas, safe area aware */}

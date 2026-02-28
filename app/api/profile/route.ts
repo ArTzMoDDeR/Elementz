@@ -12,6 +12,7 @@ export async function GET() {
     SELECT
       username,
       show_in_leaderboard,
+      haptic_feedback,
       discovered,
       avatar,
       (
@@ -23,11 +24,12 @@ export async function GET() {
     WHERE user_id = ${session.user.id}
     LIMIT 1
   `
-  if (!rows.length) return NextResponse.json({ username: null, show_in_leaderboard: true, discovered_count: 0, avatar: null, discovered: [] })
+  if (!rows.length) return NextResponse.json({ username: null, show_in_leaderboard: true, haptic_feedback: true, discovered_count: 0, avatar: null, discovered: [] })
   const row = rows[0]
   return NextResponse.json({
     username: row.username ?? null,
     show_in_leaderboard: row.show_in_leaderboard ?? true,
+    haptic_feedback: row.haptic_feedback ?? true,
     discovered_count: row.discovered_count ?? 0,
     avatar: row.avatar ?? null,
     discovered: Array.isArray(row.discovered) ? row.discovered : [],
@@ -39,7 +41,7 @@ export async function PATCH(req: Request) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { username, show_in_leaderboard, avatar } = body
+  const { username, show_in_leaderboard, avatar, haptic_feedback } = body
 
   if (username !== undefined) {
     if (typeof username !== 'string') return NextResponse.json({ error: 'Invalid username' }, { status: 400 })
@@ -60,12 +62,13 @@ export async function PATCH(req: Request) {
   }
 
   await sql`
-    INSERT INTO user_progress (user_id, username, show_in_leaderboard, avatar)
-    VALUES (${session.user.id}, ${username?.trim() ?? null}, ${show_in_leaderboard ?? true}, ${avatar ?? null})
+    INSERT INTO user_progress (user_id, username, show_in_leaderboard, avatar, haptic_feedback)
+    VALUES (${session.user.id}, ${username?.trim() ?? null}, ${show_in_leaderboard ?? true}, ${avatar ?? null}, ${haptic_feedback ?? true})
     ON CONFLICT (user_id) DO UPDATE SET
       username = CASE WHEN ${username !== undefined} THEN EXCLUDED.username ELSE user_progress.username END,
       show_in_leaderboard = CASE WHEN ${show_in_leaderboard !== undefined} THEN EXCLUDED.show_in_leaderboard ELSE user_progress.show_in_leaderboard END,
-      avatar = CASE WHEN ${avatar !== undefined} THEN EXCLUDED.avatar ELSE user_progress.avatar END
+      avatar = CASE WHEN ${avatar !== undefined} THEN EXCLUDED.avatar ELSE user_progress.avatar END,
+      haptic_feedback = CASE WHEN ${haptic_feedback !== undefined} THEN EXCLUDED.haptic_feedback ELSE user_progress.haptic_feedback END
   `
   return NextResponse.json({ ok: true })
 }

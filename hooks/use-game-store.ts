@@ -104,6 +104,8 @@ export function useGameStore() {
   const [lastUnlockTime, setLastUnlockTime] = useState(Date.now())
   const idCounter = useRef(0)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hapticEnabledRef = useRef(true) // ref so it's readable inside useCallback without deps
+  const [hapticEnabled, setHapticEnabledState] = useState(true)
 
   // Load lang — DB takes priority if logged in, else localStorage, else 'en'
   useEffect(() => {
@@ -115,10 +117,25 @@ export function useGameStore() {
           if (serverLang === 'fr' || serverLang === 'en') setLangState(serverLang)
         })
         .catch(() => {})
+      // Load haptic preference from profile
+      fetch('/api/profile')
+        .then(r => r.json())
+        .then(d => {
+          const val = d.haptic_feedback ?? true
+          setHapticEnabledState(val)
+          hapticEnabledRef.current = val
+        })
+        .catch(() => {})
     } else {
       try {
         const saved = localStorage.getItem(LANG_KEY) as Lang | null
         if (saved === 'fr' || saved === 'en') setLangState(saved)
+        const hap = localStorage.getItem('hapticFeedback')
+        if (hap !== null) {
+          const val = hap !== '0'
+          setHapticEnabledState(val)
+          hapticEnabledRef.current = val
+        }
       } catch {}
     }
   }, [sessionStatus, session?.user?.id])
@@ -334,6 +351,9 @@ export function useGameStore() {
           setNewlyDiscovered(res)
           setLastUnlockTime(Date.now())
           setTimeout(() => setNewlyDiscovered(null), 3000)
+          if (hapticEnabledRef.current && typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate([30, 20, 60])
+          }
         }
       }
     })
@@ -371,6 +391,9 @@ export function useGameStore() {
           setNewlyDiscovered(res)
           setLastUnlockTime(Date.now())
           setTimeout(() => setNewlyDiscovered(null), 3000)
+          if (hapticEnabledRef.current && typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate([30, 20, 60])
+          }
         }
       }
     })
@@ -392,12 +415,20 @@ export function useGameStore() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...all])) } catch {}
   }, [elements])
 
+  const setHapticEnabled = (val: boolean) => {
+    setHapticEnabledState(val)
+    hapticEnabledRef.current = val
+    try { localStorage.setItem('hapticFeedback', val ? '1' : '0') } catch {}
+  }
+
   return {
     lang,
     setLang,
     elements,
     frToElement,
     frToEn,
+    hapticEnabled,
+    setHapticEnabled,
     discovered,
     recipeMap,
     playground,
