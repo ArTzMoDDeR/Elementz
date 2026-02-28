@@ -144,6 +144,12 @@ input, textarea, [contenteditable] {
   }
 }
 
+@keyframes mergeFlash {
+  0%   { opacity: 1; }
+  60%  { opacity: 0.5; }
+  100% { opacity: 0; }
+}
+
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   20% { transform: translateX(-4px); }

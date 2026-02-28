@@ -306,6 +306,7 @@ export function Playground({
   const [nearMergeId, setNearMergeId] = useState<string | null>(null)
   const [mergeAnimation, setMergeAnimation] = useState<{ x: number; y: number } | null>(null)
   const [shakeId, setShakeId] = useState<string | null>(null)
+  const [playgroundFlash, setPlaygroundFlash] = useState<'success' | 'fail' | null>(null)
   const isMobile = useIsMobile()
   const playgroundBadgeSize = isMobile ? 'sm' : 'lg'
   const [search, setSearch] = useState('')
@@ -436,12 +437,14 @@ export function Playground({
       if (nearest) {
         const result = onDropAndMerge(dragging.elementName, dragging.x, dragging.y, nearest.id)
         if (result) {
-          setMergeAnimation({ x: (dragging.x + nearest.x) / 2, y: (dragging.y + nearest.y) / 2 })
-          setTimeout(() => setMergeAnimation(null), 600)
+          setMergeAnimation({ x: nearest.x, y: nearest.y })
+          setPlaygroundFlash('success')
+          setTimeout(() => { setMergeAnimation(null); setPlaygroundFlash(null) }, 600)
         } else {
           const newId = onDrop(dragging.elementName, dragging.x, dragging.y)
           setShakeId(newId)
-          setTimeout(() => setShakeId(null), 400)
+          setPlaygroundFlash('fail')
+          setTimeout(() => { setShakeId(null); setPlaygroundFlash(null) }, 500)
         }
       } else {
         onDrop(dragging.elementName, dragging.x, dragging.y)
@@ -454,10 +457,12 @@ export function Playground({
         const result = onMerge(dragging.itemId, nearest.id)
         if (result) {
           setMergeAnimation({ x: nearest.x, y: nearest.y })
-          setTimeout(() => setMergeAnimation(null), 600)
+          setPlaygroundFlash('success')
+          setTimeout(() => { setMergeAnimation(null); setPlaygroundFlash(null) }, 600)
         } else {
           setShakeId(dragging.itemId)
-          setTimeout(() => setShakeId(null), 400)
+          setPlaygroundFlash('fail')
+          setTimeout(() => { setShakeId(null); setPlaygroundFlash(null) }, 500)
         }
       }
     }
@@ -499,7 +504,7 @@ export function Playground({
       onPointerUp={handlePointerUp}
       style={{ touchAction: 'none', contain: 'layout style paint' }}
     >
-      {/* Dot grid — more visible */}
+      {/* Dot grid */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -507,6 +512,20 @@ export function Playground({
           backgroundSize: '28px 28px',
         }}
       />
+
+      {/* Merge flash overlay */}
+      {playgroundFlash && (
+        <div
+          className="absolute inset-0 pointer-events-none rounded-inherit"
+          style={{
+            backgroundColor: playgroundFlash === 'success'
+              ? 'oklch(0.72 0.17 145 / 0.18)'
+              : 'oklch(0.63 0.22 25 / 0.18)',
+            animation: 'mergeFlash 0.5s ease-out forwards',
+            zIndex: 500,
+          }}
+        />
+      )}
 
       {/* PLAYGROUND ITEMS */}
       {items.map((item, index) => {
