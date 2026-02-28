@@ -267,15 +267,17 @@ export function Playground({
   const [tabAvatarKey, setTabAvatarKey] = useState<string | null>(null)
   const [gridCols, setGridColsState] = useState<3 | 4 | 5>(4)
   const [tapMode, setTapModeState] = useState(true)
-  const tapSlotRef = useRef(0) // tracks next grid position for tap placement
+  const [mergeFlashEnabled, setMergeFlashEnabledState] = useState(true)
+  const tapSlotRef = useRef(0)
 
   useEffect(() => {
     const stored = localStorage.getItem('inventoryGridCols')
     if (stored === '3' || stored === '4' || stored === '5') setGridColsState(Number(stored) as 3 | 4 | 5)
     const tap = localStorage.getItem('tapMode')
-    // default true on mobile, false on desktop (if never set)
     if (tap !== null) setTapModeState(tap === '1')
-    else setTapModeState(true) // default on for everyone, user can disable in settings
+    else setTapModeState(true)
+    const flash = localStorage.getItem('mergeFlash')
+    if (flash !== null) setMergeFlashEnabledState(flash !== '0')
   }, [])
 
   const setGridCols = (n: 3 | 4 | 5) => {
@@ -285,6 +287,10 @@ export function Playground({
   const setTapMode = (v: boolean) => {
     setTapModeState(v)
     localStorage.setItem('tapMode', v ? '1' : '0')
+  }
+  const setMergeFlashEnabled = (v: boolean) => {
+    setMergeFlashEnabledState(v)
+    localStorage.setItem('mergeFlash', v ? '1' : '0')
   }
   useEffect(() => {
     if (!sessionUser?.email) return
@@ -513,8 +519,8 @@ export function Playground({
         }}
       />
 
-      {/* Merge flash overlay */}
-      {playgroundFlash && (
+      {/* Merge flash overlay — scoped to canvas, only when enabled */}
+      {mergeFlashEnabled && playgroundFlash && (
         <div
           className="absolute inset-0 pointer-events-none rounded-inherit"
           style={{
@@ -732,6 +738,8 @@ export function Playground({
                     onToggleTapMode={() => setTapMode(!tapMode)}
                     hapticEnabled={hapticEnabled}
                     onToggleHaptic={onToggleHaptic}
+                    mergeFlashEnabled={mergeFlashEnabled}
+                    onToggleMergeFlash={() => setMergeFlashEnabled(!mergeFlashEnabled)}
                   />
                 )}
                 {activeTab === 'help' && (
@@ -952,13 +960,14 @@ function LeaderboardInlinePanel({ lang }: { lang: 'fr' | 'en' }) {
   )
 }
 
-function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, itemsCount, gridCols, onSetGridCols, tapMode, onToggleTapMode, hapticEnabled, onToggleHaptic }: {
+function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, itemsCount, gridCols, onSetGridCols, tapMode, onToggleTapMode, hapticEnabled, onToggleHaptic, mergeFlashEnabled, onToggleMergeFlash }: {
   lang: 'fr' | 'en'; onSetLang: (l: 'fr' | 'en') => void
   hintsEnabled?: boolean; onToggleHints?: () => void
   onClear: () => void; itemsCount: number
   gridCols: 3 | 4 | 5; onSetGridCols: (n: 3 | 4 | 5) => void
   tapMode: boolean; onToggleTapMode: () => void
   hapticEnabled?: boolean; onToggleHaptic?: () => void
+  mergeFlashEnabled: boolean; onToggleMergeFlash: () => void
 }) {
   return (
     <div className="space-y-5 py-1">
@@ -1009,6 +1018,19 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
           className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${hapticEnabled ? 'bg-foreground' : 'bg-muted-foreground/30'}`}
         >
           <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${hapticEnabled ? 'left-[22px]' : 'left-0.5'}`} />
+        </button>
+      </div>
+      {/* Merge flash */}
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Flash fusion' : 'Merge flash'}</span>
+          <p className="text-xs text-muted-foreground mt-0.5">{lang === 'fr' ? 'Vert/rouge sur le terrain' : 'Green/red on the canvas'}</p>
+        </div>
+        <button
+          onClick={onToggleMergeFlash}
+          className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${mergeFlashEnabled ? 'bg-foreground' : 'bg-muted-foreground/30'}`}
+        >
+          <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${mergeFlashEnabled ? 'left-[22px]' : 'left-0.5'}`} />
         </button>
       </div>
       {/* Hints */}
