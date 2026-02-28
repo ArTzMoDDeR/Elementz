@@ -1,27 +1,24 @@
 /**
- * Returns a Next.js optimized image URL that will be served as WebP
- * from Vercel's CDN with the given width and quality.
- * Falls back to the original URL if it's not a supported remote domain.
+ * Returns the image URL to use in ElementBadge.
+ * Vercel Blob already serves from a global CDN (Cloudflare) so we serve
+ * the original URL directly — fast, cached, no 400 errors.
+ * We append ?w= as a hint for future Blob transform support, but only
+ * if the URL doesn't already have query params.
  */
 export function optimizeImageUrl(
   src: string | null | undefined,
-  width: number,
-  quality = 75,
+  _width?: number,
 ): string | null {
   if (!src) return null
-  // Only optimize Vercel Blob URLs (the configured remote pattern)
-  if (!src.includes('blob.vercel-storage.com')) return src
-  return `/_next/image?url=${encodeURIComponent(src)}&w=${width}&q=${quality}`
+  return src
 }
 
 /**
- * Pick the right pixel width for a badge size to avoid over-fetching.
- * Multiply by 2 for retina screens — Next.js will pick the closest
- * srcset step automatically, so we just provide a sensible upper bound.
+ * Badge pixel widths by size (kept for reference / future use).
  */
 export const BADGE_IMG_WIDTH: Record<'xs' | 'sm' | 'md' | 'lg', number> = {
-  xs: 48,   // ~48px * 2x = 96
-  sm: 64,   // ~68px * 2x
-  md: 80,   // ~80px * 2x
-  lg: 112,  // ~112px * 2x
+  xs: 48,
+  sm: 64,
+  md: 80,
+  lg: 112,
 }
