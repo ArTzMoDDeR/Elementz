@@ -263,7 +263,8 @@ export function Playground({
 
   const [tabAvatarKey, setTabAvatarKey] = useState<string | null>(null)
   const [gridCols, setGridColsState] = useState<3 | 4 | 5>(4)
-  const [tapMode, setTapModeState] = useState(true) // default on — loaded from localStorage after mount
+  const [tapMode, setTapModeState] = useState(true)
+  const tapSlotRef = useRef(0) // tracks next grid position for tap placement
 
   useEffect(() => {
     const stored = localStorage.getItem('inventoryGridCols')
@@ -294,7 +295,10 @@ export function Playground({
       .catch(() => {})
   }, [sessionUser?.email, lang])
 
-  const [dragging, setDragging] = useState<DragState | null>(null)
+  // Reset tap grid slot counter when canvas is emptied
+  useEffect(() => {
+    if (items.length === 0) tapSlotRef.current = 0
+  }, [items.length])
   const [nearMergeId, setNearMergeId] = useState<string | null>(null)
   const [mergeAnimation, setMergeAnimation] = useState<{ x: number; y: number } | null>(null)
   const [shakeId, setShakeId] = useState<string | null>(null)
@@ -631,11 +635,20 @@ export function Playground({
                       {...(tapMode
                         ? {
                             onClick: () => {
-                              // Place at a slightly random offset near center of canvas
                               const rect = containerRef.current?.getBoundingClientRect()
                               if (!rect) return
-                              const cx = rect.width / 2 + (Math.random() - 0.5) * 80
-                              const cy = rect.height / 2 + (Math.random() - 0.5) * 80
+                              // 4-column grid from top-left, badge ~72px wide with 12px gap
+                              const COLS = 4
+                              const BADGE_W = 72
+                              const BADGE_H = 72
+                              const GAP = 12
+                              const PAD = 16
+                              const slot = tapSlotRef.current
+                              const col = slot % COLS
+                              const row = Math.floor(slot / COLS)
+                              const cx = PAD + col * (BADGE_W + GAP) + BADGE_W / 2
+                              const cy = PAD + row * (BADGE_H + GAP) + BADGE_H / 2
+                              tapSlotRef.current = slot + 1
                               onDrop(element.name, cx, cy)
                             },
                           }
