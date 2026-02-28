@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import { type ElementDef } from '@/lib/game-data'
 
 interface ElementBadgeProps {
@@ -61,7 +62,7 @@ const BADGE_BG = 'rgba(255,255,255,0.06)'
 const BADGE_BORDER = 'rgba(255,255,255,0.12)'
 const LABEL_BG = 'rgba(0,0,0,0.55)'
 
-export function ElementBadge({ element, size = 'md', fluid = false, className = '', style }: ElementBadgeProps) {
+function ElementBadgeInner({ element, size = 'md', fluid = false, className = '', style }: ElementBadgeProps) {
   const hasIcon = ELEMENT_ICONS[element.name]
   const sizeClass = fluid ? 'w-full aspect-square' : FIXED_SIZE[size]
 
@@ -82,6 +83,8 @@ export function ElementBadge({ element, size = 'md', fluid = false, className = 
               src={element.imageUrl}
               alt={element.name}
               draggable={false}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-contain pointer-events-none"
             />
           ) : hasIcon ? (
@@ -118,3 +121,5 @@ export function ElementBadge({ element, size = 'md', fluid = false, className = 
     </div>
   )
 }
+
+export const ElementBadge = memo(ElementBadgeInner)

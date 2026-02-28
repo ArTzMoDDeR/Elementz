@@ -496,7 +496,7 @@ export function Playground({
       className="relative w-full h-full overflow-hidden"
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      style={{ touchAction: 'none' }}
+      style={{ touchAction: 'none', contain: 'layout style paint' }}
     >
       {/* Dot grid — more visible */}
       <div
@@ -514,22 +514,25 @@ export function Playground({
         const isDragging = dragging?.source === 'playground' && dragging.itemId === item.id
         const isNear = nearMergeId === item.id
         const isShaking = shakeId === item.id
+        const scale = isDragging ? 1.08 : isNear ? 1.05 : 1
         return (
           <div
             key={item.id}
             className={`absolute select-none cursor-grab active:cursor-grabbing ${isShaking ? 'animate-shake' : ''}`}
             style={{
-              left: item.x,
-              top: item.y,
+              left: 0,
+              top: 0,
+              transform: `translate(${item.x}px, ${item.y}px) scale(${scale})`,
               zIndex: isDragging ? 1000 : 10 + index,
-              transform: isDragging ? 'scale(1.08)' : isNear ? 'scale(1.05)' : 'scale(1)',
               transition: isDragging ? 'none' : 'transform 0.15s',
               filter: isNear ? `drop-shadow(0 0 10px ${el.color}80)` : undefined,
+              willChange: isDragging ? 'transform' : undefined,
+              contain: 'layout style',
             }}
             onPointerDown={e => handlePointerDown(e, item.element, item.id)}
             onDoubleClick={() => onRemove(item.id)}
           >
-                <ElementBadge element={el} size={playgroundBadgeSize} />
+            <ElementBadge element={el} size={playgroundBadgeSize} />
           </div>
         )
       })}
@@ -538,7 +541,7 @@ export function Playground({
       {dragging?.source === 'inventory' && elements.get(dragging.elementName) && (
         <div
           className="absolute pointer-events-none"
-          style={{ left: dragging.x, top: dragging.y, zIndex: 9999, transform: 'scale(1.05)', opacity: 0.9 }}
+          style={{ left: 0, top: 0, transform: `translate(${dragging.x}px, ${dragging.y}px) scale(1.05)`, zIndex: 9999, opacity: 0.9, willChange: 'transform' }}
         >
               <ElementBadge element={elements.get(dragging.elementName)!} size={playgroundBadgeSize} />
         </div>
