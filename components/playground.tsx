@@ -510,28 +510,32 @@ export function Playground({
       onPointerUp={handlePointerUp}
       style={{ touchAction: 'none', contain: 'layout style paint' }}
     >
-      {/* Dot grid */}
+      {/* Canvas area — dot grid + flash overlay, clipped to the actual play area (excludes inventory) */}
       <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          backgroundImage: 'radial-gradient(circle, oklch(0.6 0.01 250 / 0.18) 1.5px, transparent 1.5px)',
-          backgroundSize: '28px 28px',
-        }}
-      />
-
-      {/* Merge flash overlay — scoped to canvas, only when enabled */}
-      {mergeFlashEnabled && playgroundFlash && (
+        className="absolute inset-0 md:right-[300px] lg:right-[400px] pointer-events-none overflow-hidden"
+        style={{ bottom: isMobile ? (inventoryHeight != null ? `${inventoryHeight}px` : '55vh') : 0 }}
+      >
+        {/* Dot grid */}
         <div
-          className="absolute inset-0 pointer-events-none rounded-inherit"
+          className="absolute inset-0"
           style={{
-            backgroundColor: playgroundFlash === 'success'
-              ? 'oklch(0.72 0.17 145 / 0.18)'
-              : 'oklch(0.63 0.22 25 / 0.18)',
-            animation: 'mergeFlash 0.5s ease-out forwards',
-            zIndex: 500,
+            backgroundImage: 'radial-gradient(circle, oklch(0.6 0.01 250 / 0.18) 1.5px, transparent 1.5px)',
+            backgroundSize: '28px 28px',
           }}
         />
-      )}
+        {/* Merge flash — only within the play area */}
+        {mergeFlashEnabled && playgroundFlash && (
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundColor: playgroundFlash === 'success'
+                ? 'oklch(0.72 0.17 145 / 0.18)'
+                : 'oklch(0.63 0.22 25 / 0.18)',
+              animation: 'mergeFlash 0.5s ease-out forwards',
+            }}
+          />
+        )}
+      </div>
 
       {/* PLAYGROUND ITEMS */}
       {items.map((item, index) => {
