@@ -705,7 +705,7 @@ export default function AdminPanel() {
                   <span className="text-xl font-bold">{letter}</span>
                   <span className="text-xs text-muted-foreground">{els.length} élément{els.length > 1 ? 's' : ''}</span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {els.map(element => (
                     <ElementCard key={element.number} element={element} uploading={uploading} onEdit={setEditingElement} onUpload={handleFileUpload} />
                   ))}
@@ -714,7 +714,7 @@ export default function AdminPanel() {
             ))
           })()
         ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {filteredElements.map(element => (
             <ElementCard key={element.number} element={element} uploading={uploading} onEdit={setEditingElement} onUpload={handleFileUpload} />
           ))}
