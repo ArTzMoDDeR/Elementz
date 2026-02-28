@@ -50,7 +50,11 @@ export default function EmailSignIn({ lang }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: trimmed }),
       })
-      if (!res.ok) throw new Error()
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data?.error ?? t("Erreur lors de l'envoi, réessaie.", 'Failed to send, please retry.'))
+        return
+      }
       setEmail(trimmed)
       setStep('otp')
     } catch {

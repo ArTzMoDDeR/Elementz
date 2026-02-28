@@ -10,21 +10,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid email' }, { status: 400 })
   }
 
+  if (!process.env.RESEND_API_KEY) {
+    console.error('[v0] RESEND_API_KEY is not set')
+    return NextResponse.json({ error: 'Email service not configured' }, { status: 500 })
+  }
+
   const sql = neon(process.env.DATABASE_URL!)
   const code = String(Math.floor(100000 + Math.random() * 900000))
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
 
-  // Invalidate any existing unused codes for this email
   await sql`UPDATE email_otps SET used = TRUE WHERE email = ${email} AND used = FALSE`
+  await sql`INSERT INTO email_otps (email, code, expires_at) VALUES (${email}, ${code}, ${expiresAt.toISOString()})`
 
-  await sql`
-    INSERT INTO email_otps (email, code, expires_at)
-    VALUES (${email}, ${code}, ${expiresAt.toISOString()})
-  `
+  const from = process.env.EMAIL_FROM ?? 'onboarding@resend.dev'
+  console.log('[v0] Sending OTP to:', email, '| from:', from, '| code:', code)
 
-  const from = process.env.EMAIL_FROM ?? 'Elementz <onboarding@resend.dev>'
-
-  await resend.emails.send({
+  const { data, error } = await resend.emails.send({
     from,
     to: email,
     subject: `${code} — ton code Elementz`,
@@ -40,5 +41,11 @@ export async function POST(req: NextRequest) {
     `,
   })
 
+  if (error) {
+    console.error('[v0] Resend error:', JSON.stringify(error))
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  console.log('[v0] Email sent successfully, id:', data?.id)
   return NextResponse.json({ ok: true })
 }
