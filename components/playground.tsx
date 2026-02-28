@@ -1006,7 +1006,8 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
         </div>
         <button
           onClick={onToggleTapMode}
-          className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${tapMode ? 'bg-foreground' : 'bg-muted-foreground/30'}`}
+          className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${!tapMode ? 'bg-muted-foreground/30' : ''}`}
+          style={{ backgroundColor: tapMode ? '#10d9ae' : undefined }}
         >
           <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${tapMode ? 'left-[22px]' : 'left-0.5'}`} />
         </button>
@@ -1019,7 +1020,8 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
         </div>
         <button
           onClick={onToggleHaptic}
-          className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${hapticEnabled ? 'bg-foreground' : 'bg-muted-foreground/30'}`}
+          className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${hapticEnabled ? '' : 'bg-muted-foreground/30'}`}
+          style={{ backgroundColor: hapticEnabled ? '#15e9ff' : undefined }}
         >
           <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${hapticEnabled ? 'left-[22px]' : 'left-0.5'}`} />
         </button>
@@ -1032,7 +1034,8 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
         </div>
         <button
           onClick={onToggleMergeFlash}
-          className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${mergeFlashEnabled ? 'bg-foreground' : 'bg-muted-foreground/30'}`}
+          className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${mergeFlashEnabled ? '' : 'bg-muted-foreground/30'}`}
+          style={{ backgroundColor: mergeFlashEnabled ? '#fe8f27' : undefined }}
         >
           <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${mergeFlashEnabled ? 'left-[22px]' : 'left-0.5'}`} />
         </button>
@@ -1045,7 +1048,8 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
         </div>
         <button
           onClick={onToggleHints}
-          className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${hintsEnabled ? 'bg-foreground' : 'bg-muted-foreground/30'}`}
+          className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${hintsEnabled ? '' : 'bg-muted-foreground/30'}`}
+          style={{ backgroundColor: hintsEnabled ? '#ffc338' : undefined }}
         >
           <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${hintsEnabled ? 'left-[22px]' : 'left-0.5'}`} />
         </button>
