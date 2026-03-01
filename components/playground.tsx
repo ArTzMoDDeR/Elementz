@@ -1108,8 +1108,8 @@ function HelpPanel({ lang }: { lang: 'fr' | 'en' }) {
           <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Vider le terrain' : 'Clear canvas'}</span>
           <p className="text-xs text-muted-foreground mt-0.5">
             {lang === 'fr'
-              ? 'Bouton en haut à gauche du terrain'
-              : 'Button top-left of the canvas'}
+              ? 'Bouton en haut à droite du terrain'
+              : 'Button top-right of the canvas'}
           </p>
         </div>
         <div className="w-9 h-9 rounded-xl bg-muted/50 border border-border flex items-center justify-center flex-shrink-0">

@@ -44,6 +44,18 @@ export function AlchemyGame() {
     lang,
   )
 
+  // Auto-dismiss hint when the hinted element is discovered
+  useEffect(() => {
+    if (!newlyDiscovered || !currentHint || !hintVisible) return
+    // currentHint.result is always FR name, newlyDiscovered is lang-dependent
+    // Check both FR and EN names to be safe
+    const hintedFr = currentHint.result
+    const hintedEn = frToEn.get(hintedFr) ?? hintedFr
+    if (newlyDiscovered === hintedFr || newlyDiscovered === hintedEn) {
+      dismissHint()
+    }
+  }, [newlyDiscovered, currentHint, hintVisible, dismissHint])
+
   // Toast when hints toggled
   const [hintsToast, setHintsToast] = useState<boolean | null>(null)
   const hintsToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -143,11 +155,11 @@ export function AlchemyGame() {
         onTapModeChange={handleTapModeChange}
       />
 
-      {/* Clear button — top left of canvas, safe area aware */}
+      {/* Clear button — top right of canvas on mobile, safe area aware */}
       {playground.length > 0 && (
         <button
           onClick={clearPlayground}
-          className="fixed left-3 z-40 flex items-center justify-center w-9 h-9 rounded-xl bg-card/80 border border-border backdrop-blur-sm text-muted-foreground hover:text-foreground hover:bg-card transition-colors shadow-sm"
+          className="fixed right-3 md:left-3 md:right-auto z-40 flex items-center justify-center w-9 h-9 rounded-xl bg-card/80 border border-border backdrop-blur-sm text-muted-foreground hover:text-foreground hover:bg-card transition-colors shadow-sm"
           style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
           title={lang === 'fr' ? 'Vider le terrain' : 'Clear playground'}
         >
