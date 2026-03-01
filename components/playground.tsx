@@ -701,18 +701,40 @@ export function Playground({
                               const rect = containerRef.current?.getBoundingClientRect()
                               if (!rect) return
                               const COLS = 4
-                              const MAX_SLOTS = 12 // 3 rows × 4 cols, then wrap
+                              const ROWS = 5 // Check up to 5 rows
                               const BADGE_W = 72
                               const BADGE_H = 72
                               const GAP = 12
                               const PAD = 16
-                              const slot = tapSlotRef.current % MAX_SLOTS
-                              const col = slot % COLS
-                              const row = Math.floor(slot / COLS)
-                              const cx = PAD + col * (BADGE_W + GAP) + BADGE_W / 2
-                              const cy = PAD + row * (BADGE_H + GAP) + BADGE_H / 2
-                              tapSlotRef.current += 1
-                              onDrop(element.name, cx, cy)
+                              
+                              // Find first empty slot that doesn't overlap existing items
+                              const isSlotFree = (cx: number, cy: number) => {
+                                const threshold = BADGE_W * 0.6 // Allow some tolerance
+                                return !items.some(item => {
+                                  const dx = Math.abs(item.x - cx)
+                                  const dy = Math.abs(item.y - cy)
+                                  return dx < threshold && dy < threshold
+                                })
+                              }
+                              
+                              let placed = false
+                              for (let row = 0; row < ROWS && !placed; row++) {
+                                for (let col = 0; col < COLS && !placed; col++) {
+                                  const cx = PAD + col * (BADGE_W + GAP) + BADGE_W / 2
+                                  const cy = PAD + row * (BADGE_H + GAP) + BADGE_H / 2
+                                  if (isSlotFree(cx, cy)) {
+                                    onDrop(element.name, cx, cy)
+                                    placed = true
+                                  }
+                                }
+                              }
+                              
+                              // Fallback: place at a random position if all slots occupied
+                              if (!placed) {
+                                const cx = PAD + Math.random() * (rect.width - PAD * 2 - BADGE_W)
+                                const cy = PAD + Math.random() * (rect.height * 0.4)
+                                onDrop(element.name, cx, cy)
+                              }
                             },
                           }
                         : {
