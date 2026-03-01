@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import { Playground } from './playground'
 import { useGameStore } from '@/hooks/use-game-store'
@@ -91,6 +91,77 @@ export function AlchemyGame() {
     progressToastTimer.current = setTimeout(() => setProgressToast(null), 2500)
   }, [newlyDiscovered])
 
+  // Build mobile header notification (priority: hint > discovery > progress > tapMode > hintsToggle)
+  const headerNotification = useMemo(() => {
+    // Hint notification (persistent until dismissed)
+    if (hintVisible && currentHint && hintLabel) {
+      const el = frToElement.get(currentHint.result) ?? elements.get(currentHint.result)
+      const displayName = lang === 'en'
+        ? (frToEn.get(currentHint.result) ?? currentHint.result)
+        : currentHint.result
+      return {
+        type: 'hint' as const,
+        message: `${hintLabel} ${displayName}`,
+        icon: <Lightbulb className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />,
+        image: el?.imageUrl || undefined,
+      }
+    }
+    // New discovery
+    if (newlyDiscovered) {
+      const el = elements.get(newlyDiscovered)
+      if (el) {
+        return {
+          type: 'discovery' as const,
+          message: `${lang === 'fr' ? 'Nouveau' : 'Discovered'} ${el.name}`,
+          icon: <Sparkles className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />,
+          image: el.imageUrl || undefined,
+        }
+      }
+    }
+    // Progress milestone
+    if (progressToast) {
+      return {
+        type: 'progress' as const,
+        message: lang === 'fr'
+          ? `${progressToast.count} éléments — ${progressToast.pct}% découverts`
+          : `${progressToast.count} elements — ${progressToast.pct}% discovered`,
+        icon: <BarChart2 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#15e9ff' }} />,
+      }
+    }
+    // Tap mode change
+    if (tapModeToast !== null) {
+      return {
+        type: 'tapMode' as const,
+        message: lang === 'fr'
+          ? tapModeToast ? 'Mode tap activé' : 'Mode drag activé'
+          : tapModeToast ? 'Tap mode on' : 'Drag mode on',
+        icon: tapModeToast
+          ? <MousePointer className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#10d9ae' }} />
+          : <Hand className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#fe8f27' }} />,
+      }
+    }
+    // Hints toggled
+    if (hintsToast !== null) {
+      return {
+        type: 'hintsToggle' as const,
+        message: lang === 'fr'
+          ? hintsToast ? 'Indices activés' : 'Indices désactivés'
+          : hintsToast ? 'Hints enabled' : 'Hints disabled',
+        icon: <Lightbulb className={`w-3.5 h-3.5 flex-shrink-0 ${hintsToast ? 'text-amber-400' : 'text-muted-foreground'}`} />,
+      }
+    }
+    return null
+  }, [hintVisible, currentHint, hintLabel, newlyDiscovered, progressToast, tapModeToast, hintsToast, lang, elements, frToElement, frToEn])
+
+  const handleDismissNotification = () => {
+    // Dismiss based on type
+    if (hintVisible) dismissHint()
+    // Toasts auto-dismiss but allow manual clear
+    if (hintsToast !== null) setHintsToast(null)
+    if (tapModeToast !== null) setTapModeToast(null)
+    if (progressToast !== null) setProgressToast(null)
+  }
+
   useEffect(() => { setMounted(true) }, [])
 
   if (!mounted || !initialized) {
@@ -153,13 +224,16 @@ export function AlchemyGame() {
           }
         }}
         onTapModeChange={handleTapModeChange}
+        headerNotification={headerNotification}
+        onDismissNotification={handleDismissNotification}
+        playgroundItemsCount={playground.length}
       />
 
-      {/* Clear button — top right of canvas on mobile, safe area aware */}
+      {/* Clear button — desktop only (mobile has it in inventory header) */}
       {playground.length > 0 && (
         <button
           onClick={clearPlayground}
-          className="fixed right-3 md:left-3 md:right-auto z-40 flex items-center justify-center w-9 h-9 rounded-xl bg-card/80 border border-border backdrop-blur-sm text-muted-foreground hover:text-foreground hover:bg-card transition-colors shadow-sm"
+          className="hidden md:flex fixed left-3 z-40 items-center justify-center w-9 h-9 rounded-xl bg-card/80 border border-border backdrop-blur-sm text-muted-foreground hover:text-foreground hover:bg-card transition-colors shadow-sm"
           style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
           title={lang === 'fr' ? 'Vider le terrain' : 'Clear playground'}
         >
@@ -167,9 +241,9 @@ export function AlchemyGame() {
         </button>
       )}
 
-      {/* Notification stack — top left, below notch */}
+      {/* Notification stack — desktop only (mobile shows in inventory header) */}
       <div
-        className="fixed left-3 z-50 flex flex-col gap-2 pointer-events-none"
+        className="hidden md:flex fixed left-3 z-50 flex-col gap-2 pointer-events-none"
         style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
       >
 

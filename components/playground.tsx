@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { ElementBadge } from './element-badge'
 import { Search, X, ArrowUpDown, ChevronUp, ChevronDown, Package, Trophy, Settings, HelpCircle, User, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Hand, MousePointer } from 'lucide-react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
@@ -45,6 +45,16 @@ interface PlaygroundProps {
   hapticEnabled?: boolean
   onToggleHaptic?: () => void
   onTapModeChange?: (enabled: boolean) => void
+  // Mobile header notifications
+  headerNotification?: {
+    type: 'discovery' | 'hint' | 'progress' | 'tapMode' | 'hintsToggle'
+    message: string
+    icon?: React.ReactNode
+    image?: string
+    color?: string
+  } | null
+  onDismissNotification?: () => void
+  playgroundItemsCount?: number
 }
 
 type SortType = 'name' | 'recent'
@@ -260,6 +270,7 @@ export function Playground({
   onDrop, onMove, onMerge, onDropAndMerge, onRemove, onClear, onReset,
   onUnlockAll, sessionUser, hintsEnabled, onToggleHints, onRequestHint,
   hapticEnabled = true, onToggleHaptic, onTapModeChange,
+  headerNotification, onDismissNotification, playgroundItemsCount = 0,
 }: PlaygroundProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const inventoryRef = useRef<HTMLDivElement>(null)
@@ -626,13 +637,71 @@ export function Playground({
           onPointerDown={isMobile ? handleDragHandlePointerDown : undefined}
           style={isMobile ? { cursor: 'row-resize', touchAction: 'none' } : undefined}
         >
-          <div className="flex items-center justify-center gap-2" style={{ transform: 'translateY(-3px)' }}>
-            <img src="/logo.png" alt="Elementz" className="w-7 h-7 rounded-full flex-shrink-0 pointer-events-none select-none" draggable={false} />
-            <span className="font-bold text-base tracking-tight">Elementz</span>
-            <span className="text-sm tabular-nums text-muted-foreground" suppressHydrationWarning>
-              {discovered.size}<span className="opacity-40">/{totalElements}</span>
-            </span>
-          </div>
+          {/* Mobile: Show notification OR logo row with action buttons */}
+          {isMobile && headerNotification ? (
+            <div
+              className="flex items-center gap-2 cursor-pointer animate-in fade-in duration-200"
+              onClick={onDismissNotification}
+              style={{ transform: 'translateY(-3px)' }}
+            >
+              {/* Clear button left */}
+              <button
+                onClick={e => { e.stopPropagation(); onClear() }}
+                className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${playgroundItemsCount > 0 ? 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted' : 'opacity-30 pointer-events-none'}`}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+              {/* Notification content */}
+              <div className="flex-1 flex items-center justify-center gap-2 min-w-0">
+                {headerNotification.icon}
+                <span className="text-xs text-muted-foreground truncate">{headerNotification.message}</span>
+                {headerNotification.image && (
+                  <img src={headerNotification.image} alt="" className="w-5 h-5 object-contain flex-shrink-0" />
+                )}
+              </div>
+              {/* Hint button right */}
+              <button
+                onClick={e => { e.stopPropagation(); onRequestHint?.() }}
+                className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                <Lightbulb className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : isMobile ? (
+            <div className="flex items-center gap-2" style={{ transform: 'translateY(-3px)' }}>
+              {/* Clear button left */}
+              <button
+                onClick={onClear}
+                className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${playgroundItemsCount > 0 ? 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted' : 'opacity-30 pointer-events-none'}`}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+              {/* Logo + title + counter */}
+              <div className="flex-1 flex items-center justify-center gap-2">
+                <img src="/logo.png" alt="Elementz" className="w-6 h-6 rounded-full flex-shrink-0 pointer-events-none select-none" draggable={false} />
+                <span className="font-bold text-sm tracking-tight">Elementz</span>
+                <span className="text-xs tabular-nums text-muted-foreground" suppressHydrationWarning>
+                  {discovered.size}<span className="opacity-40">/{totalElements}</span>
+                </span>
+              </div>
+              {/* Hint button right */}
+              <button
+                onClick={onRequestHint}
+                className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                <Lightbulb className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            /* Desktop: Original centered logo */
+            <div className="flex items-center justify-center gap-2" style={{ transform: 'translateY(-3px)' }}>
+              <img src="/logo.png" alt="Elementz" className="w-7 h-7 rounded-full flex-shrink-0 pointer-events-none select-none" draggable={false} />
+              <span className="font-bold text-base tracking-tight">Elementz</span>
+              <span className="text-sm tabular-nums text-muted-foreground" suppressHydrationWarning>
+                {discovered.size}<span className="opacity-40">/{totalElements}</span>
+              </span>
+            </div>
+          )}
           {activeTab === 'home' && (
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
