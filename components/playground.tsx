@@ -760,7 +760,7 @@ export function Playground({
           {activeTab === 'home' ? (
             <div
               ref={inventoryScrollRef}
-              className={`h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${tapMode ? '' : 'touch-none'}`}
+              className={`h-full overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${tapMode ? '' : 'touch-none'}`}
             >
               <div className="p-2">
                 <div className={`grid gap-1.5 ${gridCols === 3 ? 'grid-cols-3' : gridCols === 5 ? 'grid-cols-5' : 'grid-cols-4'}`}>
@@ -823,7 +823,7 @@ export function Playground({
               </div>
             </div>
           ) : (
-            <div className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="h-full overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div className="px-4 py-4">
                 {activeTab === 'leaderboard' && <LeaderboardInlinePanel lang={lang} />}
                 {activeTab === 'settings' && (

@@ -10,6 +10,12 @@
   -webkit-touch-callout: none;
 }
 
+/* Prevent iOS rubber-band / overscroll bounce */
+html, body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Re-enable selection only for explicit inputs */
 input, textarea, [contenteditable] {
   -webkit-user-select: text;
