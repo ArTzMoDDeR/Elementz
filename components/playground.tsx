@@ -715,6 +715,10 @@ export function Playground({
                   style={{ fontSize: '16px' }}
                   onPointerDown={e => e.stopPropagation()}
                   onTouchStart={e => e.stopPropagation()}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
                 />
                 {search && (
                   <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
