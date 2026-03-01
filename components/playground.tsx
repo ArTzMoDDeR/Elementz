@@ -705,7 +705,7 @@ export function Playground({
                               const BADGE_W = 72
                               const BADGE_H = 72
                               const GAP = 12
-                              const PAD_X = 8 // Shifted left
+                              const PAD_X = 0 // Flush left
                               const PAD_Y = 16
                               
                               // Find first empty slot that doesn't overlap existing items
