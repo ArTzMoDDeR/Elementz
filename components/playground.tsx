@@ -701,11 +701,12 @@ export function Playground({
                               const rect = containerRef.current?.getBoundingClientRect()
                               if (!rect) return
                               const COLS = 4
-                              const ROWS = 5 // Check up to 5 rows
+                              const ROWS = 4 // 4x4 = 16 slots before fallback
                               const BADGE_W = 72
                               const BADGE_H = 72
                               const GAP = 12
-                              const PAD = 16
+                              const PAD_X = 8 // Shifted left
+                              const PAD_Y = 16
                               
                               // Find first empty slot that doesn't overlap existing items
                               const isSlotFree = (cx: number, cy: number) => {
@@ -720,8 +721,8 @@ export function Playground({
                               let placed = false
                               for (let row = 0; row < ROWS && !placed; row++) {
                                 for (let col = 0; col < COLS && !placed; col++) {
-                                  const cx = PAD + col * (BADGE_W + GAP) + BADGE_W / 2
-                                  const cy = PAD + row * (BADGE_H + GAP) + BADGE_H / 2
+                                  const cx = PAD_X + col * (BADGE_W + GAP) + BADGE_W / 2
+                                  const cy = PAD_Y + row * (BADGE_H + GAP) + BADGE_H / 2
                                   if (isSlotFree(cx, cy)) {
                                     onDrop(element.name, cx, cy)
                                     placed = true
