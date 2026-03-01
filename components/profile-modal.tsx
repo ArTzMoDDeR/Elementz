@@ -282,7 +282,11 @@ export function ProfileModal({ lang, sessionUser, elements, onClose }: ProfileMo
         {/* Footer: logout */}
         <div className="px-5 py-4 border-t border-border flex-shrink-0">
           <button
-            onClick={() => signOut({ callbackUrl: '/login' })}
+            onClick={() => {
+              // Clear local progress so switching accounts starts fresh
+              try { localStorage.removeItem('alchemy-discovered-v3') } catch {}
+              signOut({ callbackUrl: '/login' })
+            }}
             className="w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-muted/50 border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <LogOut className="w-3.5 h-3.5" />

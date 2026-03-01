@@ -1299,7 +1299,11 @@ function ProfileInlinePanel({ lang, sessionUser, elements, onAvatarChange }: {
 
       {/* Sign out */}
       <button
-        onClick={() => signOut({ callbackUrl: '/' })}
+        onClick={() => {
+          // Clear local progress so switching accounts starts fresh
+          try { localStorage.removeItem('alchemy-discovered-v3') } catch {}
+          signOut({ callbackUrl: '/' })
+        }}
         className="w-full flex items-center justify-center gap-2 h-11 rounded-2xl bg-muted/50 border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
       >
         <LogOut className="w-4 h-4" />
