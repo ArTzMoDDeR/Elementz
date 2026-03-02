@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Sparkles, Star, Droplets, Flame, Wind, Mountain, Sun, Compass, Crown, Gem, CheckCircle2, Lock, ChevronRight, Microscope, FlaskConical } from 'lucide-react'
+import { Sparkles, Star, Droplets, Flame, Wind, Mountain, Sun, Compass, Crown, Gem, CheckCircle2, Microscope, FlaskConical, Plus } from 'lucide-react'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -12,6 +12,10 @@ type QuestReward = {
   name_french: string
   name_english: string
   img: string | null
+  result_name_french: string | null
+  result_name_english: string | null
+  result_img: string | null
+  result_number: number | null
 }
 
 type Quest = {
@@ -45,9 +49,11 @@ function ScratchCard({ reward, lang, onScratched }: {
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [revealed, setRevealed] = useState(!!reward.scratched_at)
+  const [dismissed, setDismissed] = useState(false)
   const [scratching, setScratching] = useState(false)
   const lastPos = useRef<{ x: number; y: number } | null>(null)
   const scratchedPct = useRef(0)
+  const notifiedRef = useRef(false)
 
   const COVER_COLOR = '#1a1a2e'
   const SIZE = 120
@@ -59,7 +65,6 @@ function ScratchCard({ reward, lang, onScratched }: {
     const ctx = canvas.getContext('2d')!
     ctx.fillStyle = COVER_COLOR
     ctx.fillRect(0, 0, SIZE, SIZE)
-    // Draw question mark pattern
     ctx.fillStyle = 'rgba(255,255,255,0.08)'
     for (let x = 10; x < SIZE; x += 20) {
       for (let y = 10; y < SIZE; y += 20) {
@@ -74,15 +79,9 @@ function ScratchCard({ reward, lang, onScratched }: {
     const scaleX = canvas.width / rect.width
     const scaleY = canvas.height / rect.height
     if ('touches' in e) {
-      return {
-        x: (e.touches[0].clientX - rect.left) * scaleX,
-        y: (e.touches[0].clientY - rect.top) * scaleY,
-      }
+      return { x: (e.touches[0].clientX - rect.left) * scaleX, y: (e.touches[0].clientY - rect.top) * scaleY }
     }
-    return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY,
-    }
+    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY }
   }
 
   const scratch = useCallback((x: number, y: number) => {
@@ -103,48 +102,46 @@ function ScratchCard({ reward, lang, onScratched }: {
     ctx.fill()
     lastPos.current = { x, y }
 
-    // Check % scratched
     const data = ctx.getImageData(0, 0, SIZE, SIZE).data
     let transparent = 0
     for (let i = 3; i < data.length; i += 4) if (data[i] < 128) transparent++
     scratchedPct.current = transparent / (SIZE * SIZE)
-    if (scratchedPct.current > 0.55 && !revealed) {
+    if (scratchedPct.current > 0.55 && !notifiedRef.current) {
       ctx.clearRect(0, 0, SIZE, SIZE)
+      notifiedRef.current = true
       setRevealed(true)
       onScratched(reward.slot)
     }
-  }, [revealed, reward.slot, onScratched])
+  }, [reward.slot, onScratched])
+
+  const name = lang === 'fr' ? reward.name_french : reward.name_english
 
   if (revealed) {
-    const name = lang === 'fr' ? reward.name_french : reward.name_english
     return (
-      <div className="flex flex-col items-center gap-2 w-[120px]">
+      <div className={`flex flex-col items-center gap-2 w-[120px] transition-opacity duration-300 ${dismissed ? 'opacity-30' : ''}`}>
         <div className="w-[120px] h-[120px] rounded-2xl border-2 border-primary/30 bg-primary/5 flex flex-col items-center justify-center gap-2 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
           {reward.img
             ? <img src={reward.img} alt={name} className="w-14 h-14 object-contain" draggable={false} />
             : <Sparkles className="w-10 h-10 text-primary" />
           }
           <span className="text-[10px] font-bold text-primary text-center px-1 leading-tight">{name}</span>
         </div>
-        <p className="text-[10px] text-muted-foreground">{lang === 'fr' ? 'Débloqué' : 'Unlocked'}</p>
+        <p className="text-[10px] text-muted-foreground text-center leading-tight">
+          {lang === 'fr' ? 'Ingrédient' : 'Ingredient'}
+        </p>
       </div>
     )
   }
 
   return (
     <div className="flex flex-col items-center gap-2 w-[120px]">
-      <div className="relative w-[120px] h-[120px] rounded-2xl overflow-hidden cursor-crosshair select-none"
-        style={{ touchAction: 'none' }}
-      >
-        {/* Element underneath */}
+      <div className="relative w-[120px] h-[120px] rounded-2xl overflow-hidden cursor-crosshair select-none" style={{ touchAction: 'none' }}>
         <div className="absolute inset-0 rounded-2xl border border-border bg-muted flex flex-col items-center justify-center gap-2">
           {reward.img
             ? <img src={reward.img} alt="" className="w-14 h-14 object-contain opacity-60" draggable={false} />
             : <Sparkles className="w-10 h-10 text-muted-foreground" />
           }
         </div>
-        {/* Scratch layer */}
         <canvas
           ref={canvasRef}
           width={SIZE}
@@ -264,23 +261,49 @@ function QuestCard({ quest, lang, onClaim, onScratch }: {
       {/* Scratch cards panel */}
       {isClaimed && (expanded || !allScratched) && hasRewards && (
         <div className="px-4 pb-4 border-t border-border/50 pt-4">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-4">
-            {lang === 'fr' ? 'Tes récompenses' : 'Your rewards'}
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+            {lang === 'fr' ? 'Ta recette secrète' : 'Your secret recipe'}
           </p>
-          <div className="flex gap-4 justify-center flex-wrap">
-            {quest.rewards.map(r => (
-              <ScratchCard
-                key={r.slot}
-                reward={r}
-                lang={lang}
-                onScratched={(slot) => onScratch(quest.id, slot)}
-              />
+          {/* Result target element */}
+          {(() => {
+            const anyReward = quest.rewards[0]
+            const resultName = anyReward ? (lang === 'fr' ? anyReward.result_name_french : anyReward.result_name_english) : null
+            const resultImg = anyReward?.result_img ?? null
+            if (!resultName) return null
+            return (
+              <p className="text-xs text-muted-foreground mb-4">
+                {lang === 'fr' ? `Pour créer : ` : `To create: `}
+                <span className="font-semibold text-foreground">{resultName}</span>
+              </p>
+            )
+          })()}
+          {/* Cards row with + separator */}
+          <div className="flex items-center justify-center gap-3">
+            {quest.rewards.sort((a, b) => a.slot - b.slot).map((r, i) => (
+              <div key={r.slot} className="flex items-center gap-3">
+                <ScratchCard reward={r} lang={lang} onScratched={(slot) => onScratch(quest.id, slot)} />
+                {i < quest.rewards.length - 1 && (
+                  <Plus className="w-5 h-5 text-muted-foreground/40 flex-shrink-0" />
+                )}
+              </div>
             ))}
           </div>
+          {/* Once both are scratched, show "J'ai noté" button */}
           {allScratched && (
-            <p className="text-xs text-center text-muted-foreground/50 mt-4">
-              {lang === 'fr' ? 'Éléments ajoutés à ta collection' : 'Elements added to your collection'}
-            </p>
+            <div className="mt-4 flex flex-col items-center gap-2">
+              <p className="text-[11px] text-center text-muted-foreground/60 leading-relaxed">
+                {lang === 'fr'
+                  ? 'Retiens bien cette combinaison et va créer cet élément sur le terrain !'
+                  : 'Remember this combo and create the element on the field!'
+                }
+              </p>
+              <button
+                onClick={() => setExpanded(false)}
+                className="mt-1 px-4 py-2 rounded-xl bg-primary/10 border border-primary/20 text-sm font-semibold text-primary active:bg-primary/20 transition-colors"
+              >
+                {lang === 'fr' ? "J'ai noté !" : 'Got it!'}
+              </button>
+            </div>
           )}
         </div>
       )}
