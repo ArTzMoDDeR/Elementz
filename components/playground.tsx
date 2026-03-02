@@ -2,11 +2,12 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { ElementBadge } from './element-badge'
-import { Search, X, ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Package, Trophy, Settings, HelpCircle, User, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Hand, MousePointer, Medal, Atom } from 'lucide-react'
+import { Search, X, ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Package, Scroll, Trophy, Settings, HelpCircle, User, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Hand, MousePointer, Medal, Atom, Star } from 'lucide-react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import { HelpModal } from './help-modal'
 import { LeaderboardModal } from './leaderboard-modal'
 import { ProfileModal } from './profile-modal'
+import { QuestInlinePanel } from './quest-panel'
 import EmailSignIn from '@/components/email-sign-in'
 import { signInWithGoogle, signInWithDiscord } from '@/app/actions/auth'
 import { signOut } from 'next-auth/react'
@@ -334,7 +335,27 @@ export function Playground({
   const [helpOpen, setHelpOpen] = useState(false)
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'home' | 'leaderboard' | 'settings' | 'help' | 'profile'>('home')
+  const [activeTab, setActiveTab] = useState<'home' | 'quests' | 'settings' | 'help' | 'profile'>('home')
+  const [questBadge, setQuestBadge] = useState(false)
+
+  // Poll quest readiness every 30s to show badge dot
+  useEffect(() => {
+    if (!sessionUser) return
+    const check = async () => {
+      try {
+        const res = await fetch('/api/quests')
+        const data = await res.json()
+        const hasReady = (data.quests ?? []).some((q: { claimed_at: string | null; progress: number; target_value: number; rewards?: { scratched_at: string | null }[] }) =>
+          (!q.claimed_at && q.progress >= q.target_value) ||
+          (q.claimed_at && (q.rewards ?? []).some(r => !r.scratched_at))
+        )
+        setQuestBadge(hasReady)
+      } catch {}
+    }
+    check()
+    const id = setInterval(check, 30000)
+    return () => clearInterval(id)
+  }, [sessionUser])
 
   // Inventory resize — mobile only
   const [inventoryHeight, setInventoryHeight] = useState<number | null>(null) // null = default 55vh
@@ -825,7 +846,7 @@ export function Playground({
           ) : (
             <div className="h-full overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div className="px-4 py-4">
-                {activeTab === 'leaderboard' && <LeaderboardInlinePanel lang={lang} onBack={() => setActiveTab('profile')} />}
+                {activeTab === 'quests' && <QuestInlinePanel lang={lang} />}
                 {activeTab === 'settings' && (
                   <SettingsPanel
                     lang={lang}
@@ -915,7 +936,7 @@ export function Playground({
           <div className="flex items-stretch">
             {([
               { id: 'home',        icon: Package,     labelFr: 'Jeu',      labelEn: 'Play'     },
-              { id: 'leaderboard', icon: Trophy,       labelFr: 'Scores',   labelEn: 'Scores'   },
+              { id: 'quests',      icon: Scroll,       labelFr: 'Quêtes',   labelEn: 'Quests'   },
               { id: 'settings',    icon: Settings,     labelFr: 'Réglages', labelEn: 'Settings' },
               { id: 'help',        icon: HelpCircle,   labelFr: 'Aide',     labelEn: 'Help'     },
               { id: 'profile',     icon: User,         labelFr: 'Profil',   labelEn: 'Profile'  },
@@ -925,7 +946,10 @@ export function Playground({
               return (
                 <button
                   key={id}
-                  onClick={() => setActiveTab(prev => prev === id && id !== 'home' ? 'home' : id)}
+                  onClick={() => {
+                    setActiveTab(prev => prev === id && id !== 'home' ? 'home' : id)
+                    if (id === 'quests') setQuestBadge(false)
+                  }}
                   className="flex-1 flex flex-col items-center justify-center py-3 relative transition-colors"
                 >
                   {isProfileWithUser ? (() => {
@@ -942,10 +966,15 @@ export function Playground({
                       </div>
                     )
                   })() : (
-                    <Icon
-                      className={`w-6 h-6 transition-all ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}
-                      strokeWidth={isActive ? 2.5 : 1.75}
-                    />
+                    <div className="relative">
+                      <Icon
+                        className={`w-6 h-6 transition-all ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}
+                        strokeWidth={isActive ? 2.5 : 1.75}
+                      />
+                      {id === 'quests' && questBadge && !isActive && (
+                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 border border-card animate-pulse" />
+                      )}
+                    </div>
                   )}
                 </button>
               )

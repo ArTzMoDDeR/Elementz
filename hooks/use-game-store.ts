@@ -359,8 +359,17 @@ export function useGameStore() {
       }
     })
 
+    // Track combo ingredients for quest progress (element-usage quests)
+    if (session?.user?.id) {
+      fetch('/api/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discovered: results, combo_ingredients: [item1.element, item2.element] }),
+      }).catch(() => {})
+    }
+
     return results[0]
-  }, [playground, discovered, recipeMap, generateId])
+  }, [playground, discovered, recipeMap, generateId, session?.user?.id])
 
   const dropAndMerge = useCallback((element: string, x: number, y: number, targetId: string): string | null => {
     const target = playground.find(i => i.id === targetId)
@@ -399,10 +408,17 @@ export function useGameStore() {
       }
     })
 
-    return results[0]
-  }, [playground, discovered, recipeMap, generateId])
+    // Track combo ingredients for quest progress
+    if (session?.user?.id) {
+      fetch('/api/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discovered: results, combo_ingredients: [element, target.element] }),
+      }).catch(() => {})
+    }
 
-  const resetProgress = useCallback(() => {
+    return results[0]
+  }, [playground, discovered, recipeMap, generateId, session?.user?.id]) = useCallback(() => {
     const baseEls = lang === 'fr' ? BASE_ELEMENTS_FR : BASE_ELEMENTS_EN
     const validBase = new Set(baseEls.filter(b => elements.has(b)))
     setDiscovered(validBase)
