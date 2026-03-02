@@ -825,7 +825,7 @@ export function Playground({
           ) : (
             <div className="h-full overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div className="px-4 py-4">
-                {activeTab === 'leaderboard' && <LeaderboardInlinePanel lang={lang} />}
+                {activeTab === 'leaderboard' && <LeaderboardInlinePanel lang={lang} onBack={() => setActiveTab('profile')} />}
                 {activeTab === 'settings' && (
                   <SettingsPanel
                     lang={lang}
@@ -1033,31 +1033,117 @@ function ChevronScrollBar({ scrollRef }: { scrollRef: React.RefObject<HTMLDivEle
 // Inline tab panels
 // ============================================================
 
-function LeaderboardInlinePanel({ lang }: { lang: 'fr' | 'en' }) {
+function LeaderboardInlinePanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: () => void }) {
+  const TOTAL = 593
   const [entries, setEntries] = useState<Array<{ user_id: string; username: string | null; avatar_img: string | null; count: number }>>([])
   const [loading, setLoading] = useState(true)
+  const t = (fr: string, en: string) => lang === 'fr' ? fr : en
+
   useEffect(() => {
     fetch('/api/leaderboard').then(r => r.json()).then(d => { setEntries(d.leaderboard ?? []); setLoading(false) }).catch(() => setLoading(false))
   }, [])
+
+  const top3 = entries.slice(0, 3)
+  const rest = entries.slice(3)
+
+  const podiumOrder = top3.length === 3 ? [top3[1], top3[0], top3[2]] : top3
+  const podiumHeights = [28, 40, 20] // px multiples for visual height
+  const podiumRanks = top3.length === 3 ? [2, 1, 3] : [1, 2, 3]
+  const rankColors: Record<number, string> = { 1: 'text-yellow-400', 2: 'text-zinc-400', 3: 'text-amber-600' }
+  const podiumBg: Record<number, string> = { 1: 'border-yellow-400/30 bg-yellow-400/5', 2: 'border-zinc-400/20 bg-zinc-400/5', 3: 'border-amber-600/20 bg-amber-600/5' }
+
   return (
-    <div className="space-y-1">
+    <div className="flex flex-col gap-4 py-1">
+
+      {/* Back button */}
+      <button
+        onClick={onBack}
+        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors -mt-1 self-start"
+      >
+        <ChevronRight className="w-4 h-4 rotate-180" />
+        {t('Profil', 'Profile')}
+      </button>
+
+      {/* Title */}
+      <div className="flex items-center gap-2.5">
+        <div className="w-9 h-9 rounded-2xl bg-yellow-400/10 border border-yellow-400/20 flex items-center justify-center flex-shrink-0">
+          <Trophy className="w-4.5 h-4.5 text-yellow-400" />
+        </div>
+        <div>
+          <h2 className="text-base font-bold text-foreground">{t('Classement', 'Leaderboard')}</h2>
+          <p className="text-xs text-muted-foreground">{entries.length} {t('joueurs', 'players')}</p>
+        </div>
+      </div>
+
       {loading ? (
-        <div className="flex justify-center py-6"><div className="w-6 h-6 border-2 border-border border-t-foreground/40 rounded-full animate-spin" /></div>
+        <div className="flex justify-center py-10">
+          <div className="w-6 h-6 border-2 border-border border-t-foreground/40 rounded-full animate-spin" />
+        </div>
       ) : entries.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4 text-center">{lang === 'fr' ? "Aucun joueur pour l'instant." : 'No players yet.'}</p>
+        <p className="text-sm text-muted-foreground py-4 text-center">{t("Aucun joueur pour l'instant.", 'No players yet.')}</p>
       ) : (
-        <ul className="space-y-2">
-          {entries.slice(0, 10).map((e, i) => (
-            <li key={e.user_id} className="flex items-center gap-3">
-              <span className="w-6 text-sm text-muted-foreground text-right tabular-nums flex-shrink-0">{i + 1}</span>
-              <div className="w-8 h-8 rounded-xl bg-muted border border-border flex items-center justify-center overflow-hidden p-0.5 flex-shrink-0">
-                {e.avatar_img ? <img src={e.avatar_img} alt="" className="w-full h-full object-contain" /> : <span className="text-[10px] font-bold text-muted-foreground">{(e.username ?? '?').slice(0, 2).toUpperCase()}</span>}
-              </div>
-              <span className="flex-1 text-sm text-foreground truncate">{e.username ?? (lang === 'fr' ? `Joueur #${i + 1}` : `Player #${i + 1}`)}</span>
-              <span className="text-sm font-bold tabular-nums text-foreground flex-shrink-0">{e.count}</span>
-            </li>
-          ))}
-        </ul>
+        <>
+          {/* Podium top 3 */}
+          {top3.length > 0 && (
+            <div className="flex items-end justify-center gap-3 pt-2 pb-4">
+              {podiumOrder.map((entry, idx) => {
+                if (!entry) return null
+                const rank = podiumRanks[idx]
+                const height = podiumHeights[idx]
+                const name = entry.username ?? t(`Joueur #${rank}`, `Player #${rank}`)
+                const pct = Math.round((entry.count / TOTAL) * 100)
+                return (
+                  <div key={entry.user_id} className="flex flex-col items-center gap-2" style={{ flex: rank === 1 ? '0 0 38%' : '0 0 29%' }}>
+                    {/* Avatar */}
+                    <div className={`rounded-2xl border-2 flex items-center justify-center overflow-hidden p-2 ${podiumBg[rank]} ${rank === 1 ? 'w-16 h-16' : 'w-12 h-12'}`}
+                      style={{ borderColor: rank === 1 ? 'rgb(250 204 21 / 0.5)' : rank === 2 ? 'rgb(161 161 170 / 0.3)' : 'rgb(217 119 6 / 0.3)' }}>
+                      {entry.avatar_img
+                        ? <img src={entry.avatar_img} alt={name} className="w-full h-full object-contain pointer-events-none" draggable={false} />
+                        : <span className={`font-bold ${rank === 1 ? 'text-xl' : 'text-base'} ${rankColors[rank]}`}>{name.slice(0, 2).toUpperCase()}</span>
+                      }
+                    </div>
+                    {/* Name */}
+                    <span className="text-xs font-semibold text-foreground truncate max-w-full text-center px-1">{name}</span>
+                    {/* Podium block */}
+                    <div className={`w-full rounded-t-xl border border-b-0 flex flex-col items-center justify-start pt-2 gap-0.5 ${podiumBg[rank]}`}
+                      style={{ height: `${height + 40}px`, borderColor: rank === 1 ? 'rgb(250 204 21 / 0.3)' : rank === 2 ? 'rgb(161 161 170 / 0.2)' : 'rgb(217 119 6 / 0.2)' }}>
+                      <span className={`text-base font-bold tabular-nums ${rankColors[rank]}`}>#{rank}</span>
+                      <span className="text-xs font-bold text-foreground tabular-nums">{entry.count}</span>
+                      <span className="text-[10px] text-muted-foreground">{pct}%</span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Rest of rankings */}
+          {rest.length > 0 && (
+            <div className="rounded-2xl border border-border overflow-hidden divide-y divide-border">
+              {rest.map((entry, i) => {
+                const rank = i + 4
+                const name = entry.username ?? t(`Joueur #${rank}`, `Player #${rank}`)
+                const pct = Math.round((entry.count / TOTAL) * 100)
+                return (
+                  <div key={entry.user_id} className="flex items-center gap-3 px-4 py-3 bg-card">
+                    <span className="w-6 text-xs font-bold text-muted-foreground text-right tabular-nums flex-shrink-0">{rank}</span>
+                    <div className="w-8 h-8 rounded-xl bg-muted border border-border flex items-center justify-center overflow-hidden p-1 flex-shrink-0">
+                      {entry.avatar_img
+                        ? <img src={entry.avatar_img} alt={name} className="w-full h-full object-contain pointer-events-none" draggable={false} />
+                        : <span className="text-[10px] font-bold text-muted-foreground">{name.slice(0, 2).toUpperCase()}</span>
+                      }
+                    </div>
+                    <span className="flex-1 text-sm font-medium text-foreground truncate">{name}</span>
+                    <div className="flex flex-col items-end flex-shrink-0">
+                      <span className="text-sm font-bold tabular-nums text-foreground">{entry.count}</span>
+                      <span className="text-[10px] text-muted-foreground tabular-nums">{pct}%</span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </>
       )}
     </div>
   )
