@@ -1016,8 +1016,7 @@ export function Playground({
                     <div className="relative">
                       <Icon
                         className={`w-6 h-6 transition-all ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}
-                        strokeWidth={isActive ? 0 : 1.75}
-                        fill={isActive ? 'currentColor' : 'none'}
+                        strokeWidth={isActive ? 2.5 : 1.75}
                       />
                       {id === 'quests' && questBadge && !isActive && (
                         <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 border border-card animate-pulse" />
