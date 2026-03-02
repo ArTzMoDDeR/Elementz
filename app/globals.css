@@ -145,7 +145,8 @@ input, textarea, [contenteditable] {
   /* Only apply no-scroll on the game page, not admin */
   .game-container {
     overflow: hidden;
-    height: 100vh;
+    height: 100vh;       /* fallback for old browsers */
+    height: 100dvh;      /* dynamic viewport height — shrinks with Safari toolbar */
     touch-action: none;
   }
 }

@@ -166,7 +166,7 @@ export function AlchemyGame() {
 
   if (!mounted || !initialized) {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center bg-background gap-8">
+      <div className="h-[100dvh] w-screen flex flex-col items-center justify-center bg-background gap-8">
         {/* Logo */}
         <div className="relative flex items-center justify-center">
           {/* Outer pulse ring */}
