@@ -418,7 +418,9 @@ export function useGameStore() {
     }
 
     return results[0]
-  }, [playground, discovered, recipeMap, generateId, session?.user?.id]) = useCallback(() => {
+  }, [playground, discovered, recipeMap, generateId, session?.user?.id])
+
+  const resetProgress = useCallback(() => {
     const baseEls = lang === 'fr' ? BASE_ELEMENTS_FR : BASE_ELEMENTS_EN
     const validBase = new Set(baseEls.filter(b => elements.has(b)))
     setDiscovered(validBase)
