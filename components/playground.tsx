@@ -545,6 +545,8 @@ export function Playground({
       onPointerUp={handlePointerUp}
       style={{ touchAction: 'none', contain: 'layout style paint' }}
     >
+      {/* Preload help video so it's buffered before the tab opens */}
+      <video src="/tutohelp.webm" preload="auto" muted playsInline className="hidden" aria-hidden="true" />
       {/* Canvas area — dot grid + flash overlay, clipped to the actual play area (excludes inventory) */}
       <div
         className="absolute inset-0 md:right-[300px] lg:right-[400px] pointer-events-none overflow-hidden"
@@ -1328,49 +1330,76 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
 }
 
 function HelpPanel({ lang }: { lang: 'fr' | 'en' }) {
+  const t = (fr: string, en: string) => lang === 'fr' ? fr : en
   return (
-    <div className="space-y-5 py-1">
+    <div className="flex flex-col gap-4 py-1">
 
-      {/* How to play */}
-      <div className="flex flex-col gap-2">
-        <p className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Comment jouer' : 'How to play'}</p>
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          {lang === 'fr'
-            ? 'Glisse un élément sur un autre pour les combiner et découvrir de nouveaux éléments.'
-            : 'Drag one element onto another to combine them and discover new ones.'}
-        </p>
-        <div className="rounded-xl overflow-hidden border border-border bg-muted/30 mt-1">
-          <video src="/tutohelp.webm" autoPlay loop muted playsInline className="w-full h-auto block" />
+      {/* Header */}
+      <div className="flex items-center gap-2.5">
+        <div className="w-9 h-9 rounded-2xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
+          <HelpCircle className="w-4.5 h-4.5 text-foreground/70" />
+        </div>
+        <div>
+          <h2 className="text-base font-bold text-foreground">{t('Comment jouer', 'How to play')}</h2>
+          <p className="text-xs text-muted-foreground">{t('Alchimie en 3 minutes', 'Alchemy in 3 minutes')}</p>
         </div>
       </div>
 
-      {/* Hints row */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Indices' : 'Hints'}</span>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {lang === 'fr'
-              ? 'Suggestion automatique après 1 min sans découverte'
-              : 'Auto suggestion after 1 min without a discovery'}
-          </p>
-        </div>
-        <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-center flex-shrink-0">
-          <Lightbulb className="w-4 h-4 text-amber-400" />
-        </div>
+      {/* Video */}
+      <div className="rounded-2xl overflow-hidden border border-border bg-muted/20">
+        <video
+          src="/tutohelp.webm"
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="w-full h-auto block"
+        />
       </div>
 
-      {/* Clear row */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Vider le terrain' : 'Clear canvas'}</span>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {lang === 'fr'
-              ? 'Bouton en haut à droite du terrain'
-              : 'Button top-right of the canvas'}
-          </p>
+      {/* Description */}
+      <p className="text-sm text-muted-foreground leading-relaxed px-1">
+        {t(
+          'Glisse un élément sur un autre pour les combiner. Chaque combinaison peut révéler un nouvel élément.',
+          'Drag one element onto another to combine them. Each combination can reveal a new element.'
+        )}
+      </p>
+
+      {/* Tips */}
+      <div className="rounded-2xl border border-border overflow-hidden divide-y divide-border">
+        <div className="flex items-center gap-3 px-4 py-3 bg-card">
+          <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
+            <Lightbulb className="w-4 h-4 text-amber-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground">{t('Indices automatiques', 'Auto hints')}</p>
+            <p className="text-xs text-muted-foreground leading-snug mt-0.5">
+              {t('Une suggestion apparaît après 1 min sans nouvelle découverte', 'A suggestion appears after 1 min without a new discovery')}
+            </p>
+          </div>
         </div>
-        <div className="w-9 h-9 rounded-xl bg-muted/50 border border-border flex items-center justify-center flex-shrink-0">
-          <Trash2 className="w-4 h-4 text-muted-foreground" />
+        <div className="flex items-center gap-3 px-4 py-3 bg-card">
+          <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
+            <Trash2 className="w-4 h-4 text-muted-foreground" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground">{t('Vider le terrain', 'Clear the board')}</p>
+            <p className="text-xs text-muted-foreground leading-snug mt-0.5">
+              {t('Retire tous les éléments posés en un clic — bouton en haut à gauche', 'Remove all placed elements in one tap — button top-left')}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 px-4 py-3 bg-card">
+          <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
+            <Scroll className="w-4 h-4 text-muted-foreground" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground">{t('Quêtes', 'Quests')}</p>
+            <p className="text-xs text-muted-foreground leading-snug mt-0.5">
+              {t('Accomplis des défis pour gagner des indices de recettes secrètes', 'Complete challenges to earn secret recipe hints')}
+            </p>
+          </div>
         </div>
       </div>
 
