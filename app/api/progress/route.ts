@@ -7,8 +7,16 @@ export async function GET() {
   if (!session?.user?.id) return NextResponse.json({ discovered: null })
 
   const sql = neon(process.env.DATABASE_URL!)
-  const rows = await sql`SELECT discovered FROM user_progress WHERE user_id = ${session.user.id}`
-  return NextResponse.json({ discovered: rows[0]?.discovered ?? [] })
+
+  // Read from unlocks table — join elements to get FR name for store compatibility
+  const rows = await sql`
+    SELECT e.name_french
+    FROM unlocks u
+    JOIN elements e ON e.number = u.element_number
+    WHERE u.user_id = ${session.user.id}
+    ORDER BY u.discovered_at ASC
+  `
+  return NextResponse.json({ discovered: rows.map(r => r.name_french) })
 }
 
 export async function POST(req: NextRequest) {
@@ -20,8 +28,23 @@ export async function POST(req: NextRequest) {
 
   const sql = neon(process.env.DATABASE_URL!)
 
-  // Translate every incoming name (FR or EN) to canonical French name before storing.
-  // This prevents the DB accumulating both "eau" and "water" for the same element.
+  // Double-write: 1) unlocks table (new source of truth), 2) user_progress (kept in sync)
+
+  // 1) Insert new unlocks — one row per element, skip existing (ON CONFLICT DO NOTHING)
+  if (discovered.length > 0) {
+    await sql`
+      INSERT INTO unlocks (user_id, element_number, discovered_at)
+      SELECT
+        ${session.user.id},
+        e.number,
+        NOW()
+      FROM unnest(${discovered}::text[]) AS d(name)
+      JOIN elements e ON e.name_french = d.name OR e.name_english = d.name
+      ON CONFLICT DO NOTHING
+    `
+  }
+
+  // 2) Keep user_progress in sync (legacy — will be removed once fully migrated)
   await sql`
     INSERT INTO user_progress (user_id, discovered, updated_at)
     VALUES (
@@ -45,5 +68,6 @@ export async function POST(req: NextRequest) {
       ),
       updated_at = NOW()
   `
+
   return NextResponse.json({ ok: true })
 }
