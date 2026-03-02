@@ -10,21 +10,18 @@ export async function GET() {
 
   const rows = await sql`
     SELECT
-      username,
-      show_in_leaderboard,
-      haptic_feedback,
-      discovered,
-      avatar,
-      (
-        SELECT COUNT(DISTINCT el.number)::int
-        FROM unnest(up.discovered) AS d(name)
-        JOIN elements el ON el.name_french = d.name OR el.name_english = d.name
-      ) AS discovered_count
+      up.username,
+      up.show_in_leaderboard,
+      up.haptic_feedback,
+      up.avatar,
+      COUNT(u.element_number)::int AS discovered_count
     FROM user_progress up
-    WHERE user_id = ${session.user.id}
+    LEFT JOIN unlocks u ON u.user_id = up.user_id
+    WHERE up.user_id = ${session.user.id}
+    GROUP BY up.username, up.show_in_leaderboard, up.haptic_feedback, up.avatar
     LIMIT 1
   `
-  if (!rows.length) return NextResponse.json({ username: null, show_in_leaderboard: true, haptic_feedback: true, discovered_count: 0, avatar: null, discovered: [] })
+  if (!rows.length) return NextResponse.json({ username: null, show_in_leaderboard: true, haptic_feedback: true, discovered_count: 0, avatar: null })
   const row = rows[0]
   return NextResponse.json({
     username: row.username ?? null,
@@ -32,7 +29,6 @@ export async function GET() {
     haptic_feedback: row.haptic_feedback ?? true,
     discovered_count: row.discovered_count ?? 0,
     avatar: row.avatar ?? null,
-    discovered: Array.isArray(row.discovered) ? row.discovered : [],
   })
 }
 

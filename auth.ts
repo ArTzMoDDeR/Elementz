@@ -80,10 +80,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             // Pick random starting avatar
             const starters = ['eau', 'feu', 'terre', 'air']
             const avatar = starters[Math.floor(Math.random() * starters.length)]
+            // Insert profile row (no discovered column — progression is in unlocks)
             await sql`
-              INSERT INTO user_progress (user_id, username, avatar, discovered, show_in_leaderboard)
-              VALUES (${rows[0].id as string}, ${username}, ${avatar}, ARRAY['eau','feu','terre','air'], true)
+              INSERT INTO user_progress (user_id, username, avatar, show_in_leaderboard)
+              VALUES (${rows[0].id as string}, ${username}, ${avatar}, true)
               ON CONFLICT (user_id) DO NOTHING
+            `
+            // Seed the 4 starter elements into unlocks
+            await sql`
+              INSERT INTO unlocks (user_id, element_number, discovered_at)
+              SELECT ${rows[0].id as string}, number, NOW()
+              FROM elements
+              WHERE name_french IN ('eau', 'feu', 'terre', 'air')
+              ON CONFLICT DO NOTHING
             `
           }
         }
