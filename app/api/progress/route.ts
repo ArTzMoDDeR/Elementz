@@ -28,9 +28,7 @@ export async function POST(req: NextRequest) {
 
   const sql = neon(process.env.DATABASE_URL!)
 
-  // Double-write: 1) unlocks table (new source of truth), 2) user_progress (kept in sync)
-
-  // 1) Insert new unlocks — one row per element, skip existing (ON CONFLICT DO NOTHING)
+  // Insert new unlocks — one row per element, skip existing (ON CONFLICT DO NOTHING)
   if (discovered.length > 0) {
     await sql`
       INSERT INTO unlocks (user_id, element_number, discovered_at)
@@ -43,31 +41,6 @@ export async function POST(req: NextRequest) {
       ON CONFLICT DO NOTHING
     `
   }
-
-  // 2) Keep user_progress in sync (legacy — will be removed once fully migrated)
-  await sql`
-    INSERT INTO user_progress (user_id, discovered, updated_at)
-    VALUES (
-      ${session.user.id},
-      (
-        SELECT array_agg(DISTINCT el.name_french ORDER BY el.name_french)
-        FROM unnest(${discovered}::text[]) AS d(name)
-        JOIN elements el ON el.name_french = d.name OR el.name_english = d.name
-      ),
-      NOW()
-    )
-    ON CONFLICT (user_id) DO UPDATE
-      SET discovered = (
-        SELECT array_agg(DISTINCT el.name_french ORDER BY el.name_french)
-        FROM (
-          SELECT unnest(user_progress.discovered) AS name
-          UNION ALL
-          SELECT unnest(${discovered}::text[]) AS name
-        ) combined
-        JOIN elements el ON el.name_french = combined.name OR el.name_english = combined.name
-      ),
-      updated_at = NOW()
-  `
 
   return NextResponse.json({ ok: true })
 }
