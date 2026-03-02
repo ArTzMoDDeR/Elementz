@@ -14,14 +14,27 @@ export async function GET() {
       up.show_in_leaderboard,
       up.haptic_feedback,
       up.avatar,
-      COUNT(u.element_number)::int AS discovered_count
+      COUNT(u.element_number)::int AS discovered_count,
+      RANK() OVER (ORDER BY COUNT(u.element_number) DESC) AS rank
     FROM user_progress up
     LEFT JOIN unlocks u ON u.user_id = up.user_id
     WHERE up.user_id = ${session.user.id}
-    GROUP BY up.username, up.show_in_leaderboard, up.haptic_feedback, up.avatar
+    GROUP BY up.user_id, up.username, up.show_in_leaderboard, up.haptic_feedback, up.avatar
     LIMIT 1
   `
-  if (!rows.length) return NextResponse.json({ username: null, show_in_leaderboard: true, haptic_feedback: true, discovered_count: 0, avatar: null })
+
+  const lastDiscovered = await sql`
+    SELECT e.name_french, e.name_english, e.img, u.discovered_at
+    FROM unlocks u
+    JOIN elements e ON e.number = u.element_number
+    WHERE u.user_id = ${session.user.id}
+    ORDER BY u.discovered_at DESC
+    LIMIT 5
+  `
+
+  const totalPlayers = await sql`SELECT COUNT(*)::int AS n FROM user_progress`
+
+  if (!rows.length) return NextResponse.json({ username: null, show_in_leaderboard: true, haptic_feedback: true, discovered_count: 0, avatar: null, rank: null, total_players: 1, last_discovered: [] })
   const row = rows[0]
   return NextResponse.json({
     username: row.username ?? null,
@@ -29,6 +42,9 @@ export async function GET() {
     haptic_feedback: row.haptic_feedback ?? true,
     discovered_count: row.discovered_count ?? 0,
     avatar: row.avatar ?? null,
+    rank: row.rank ?? null,
+    total_players: totalPlayers[0]?.n ?? 1,
+    last_discovered: lastDiscovered,
   })
 }
 
