@@ -37,8 +37,11 @@ export async function GET() {
 
   const totalPlayers = await sql`SELECT COUNT(*)::int AS n FROM user_progress`
 
-  if (!rows.length) return NextResponse.json({ username: null, show_in_leaderboard: true, haptic_feedback: true, discovered_count: 0, avatar: null, rank: null, total_players: 1, last_discovered: [] })
+  if (!rows.length) return NextResponse.json({ username: null, show_in_leaderboard: true, haptic_feedback: true, discovered_count: 0, avatar: null, rank: null, total_players: 1, last_discovered: [], is_admin: false })
   const row = rows[0]
+
+  const adminRow = await sql`SELECT is_admin FROM users WHERE id = ${session.user.id}`
+
   return NextResponse.json({
     username: row.username ?? null,
     show_in_leaderboard: row.show_in_leaderboard ?? true,
@@ -48,6 +51,7 @@ export async function GET() {
     rank: row.rank ?? null,
     total_players: totalPlayers[0]?.n ?? 1,
     last_discovered: lastDiscovered,
+    is_admin: adminRow[0]?.is_admin === 1,
   })
 }
 

@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { ElementBadge } from './element-badge'
-import { Search, X, ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Package, Scroll, Trophy, Settings, HelpCircle, User, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Hand, MousePointer, Medal, Atom, Star } from 'lucide-react'
+import { Search, X, ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Package, Scroll, Trophy, Settings, HelpCircle, User, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Hand, MousePointer, Medal, Atom, Star, Shield } from 'lucide-react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import { HelpModal } from './help-modal'
 import { LeaderboardModal } from './leaderboard-modal'
@@ -1423,6 +1423,7 @@ function ProfileInlinePanel({ lang, sessionUser, elements, onAvatarChange, onOpe
     avatar: string | null
     rank: number | null
     total_players: number
+    is_admin: boolean
     last_discovered: { name_french: string; name_english: string; img: string | null; discovered_at: string }[]
   }
   const [profile, setProfile] = useState<ProfileData | null>(null)
@@ -1635,6 +1636,26 @@ function ProfileInlinePanel({ lang, sessionUser, elements, onAvatarChange, onOpe
           </button>
         </div>
       </div>
+
+      {/* Admin panel link — only visible for admins */}
+      {profile?.is_admin && (
+        <div className="rounded-2xl border border-blue-500/20 overflow-hidden">
+          <a
+            href="/admin"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center gap-3 px-4 py-3.5 bg-blue-500/5 cursor-pointer active:bg-blue-500/10"
+          >
+            <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+              <Shield className="w-4 h-4 text-blue-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-medium text-blue-400">{t('Panel admin', 'Admin panel')}</span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-blue-400/50 flex-shrink-0" />
+          </a>
+        </div>
+      )}
 
       {/* Sign out */}
       <div className="rounded-2xl border border-border overflow-hidden">
