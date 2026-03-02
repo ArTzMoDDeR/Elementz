@@ -9,17 +9,20 @@ export async function GET() {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const rows = await sql`
-    SELECT
-      up.username,
-      up.show_in_leaderboard,
-      up.haptic_feedback,
-      up.avatar,
-      COUNT(u.element_number)::int AS discovered_count,
-      RANK() OVER (ORDER BY COUNT(u.element_number) DESC) AS rank
-    FROM user_progress up
-    LEFT JOIN unlocks u ON u.user_id = up.user_id
-    WHERE up.user_id = ${session.user.id}
-    GROUP BY up.user_id, up.username, up.show_in_leaderboard, up.haptic_feedback, up.avatar
+    WITH rankings AS (
+      SELECT
+        up.user_id,
+        up.username,
+        up.show_in_leaderboard,
+        up.haptic_feedback,
+        up.avatar,
+        COUNT(u.element_number)::int AS discovered_count,
+        RANK() OVER (ORDER BY COUNT(u.element_number) DESC)::int AS rank
+      FROM user_progress up
+      LEFT JOIN unlocks u ON u.user_id = up.user_id
+      GROUP BY up.user_id, up.username, up.show_in_leaderboard, up.haptic_feedback, up.avatar
+    )
+    SELECT * FROM rankings WHERE user_id = ${session.user.id}
     LIMIT 1
   `
 
