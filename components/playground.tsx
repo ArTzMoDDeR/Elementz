@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { ElementBadge } from './element-badge'
 import { Search, X, ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Hand, MousePointer, Medal, Atom as AtomIcon, Star, Shield, Trophy } from 'lucide-react'
-import { HouseSimple, Bell, Gear, Lifebuoy, User, UserCircle, Scroll } from '@phosphor-icons/react'
+import { HouseSimple, Bell, Gear, Lifebuoy, Question, User, UserCircle, Scroll } from '@phosphor-icons/react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import { HelpModal } from './help-modal'
 import { LeaderboardModal } from './leaderboard-modal'
