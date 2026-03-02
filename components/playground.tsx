@@ -2,21 +2,8 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { ElementBadge } from './element-badge'
-import { Search, X, ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Hand, MousePointer, Medal, Atom, Star, Shield, Trophy } from 'lucide-react'
-import {
-  CubeIcon as CubeOutline,
-  SparklesIcon as SparklesOutline,
-  Cog6ToothIcon as CogOutline,
-  QuestionMarkCircleIcon as QuestionOutline,
-  UserCircleIcon as UserOutline,
-} from '@heroicons/react/24/outline'
-import {
-  CubeIcon as CubeSolid,
-  SparklesIcon as SparklesSolid,
-  Cog6ToothIcon as CogSolid,
-  QuestionMarkCircleIcon as QuestionSolid,
-  UserCircleIcon as UserSolid,
-} from '@heroicons/react/24/solid'
+import { Search, X, ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Hand, MousePointer, Medal, Atom as AtomIcon, Star, Shield, Trophy } from 'lucide-react'
+import { Atom, Sparkle, Gear, Question, User, UserCircle, Scroll } from '@phosphor-icons/react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import { HelpModal } from './help-modal'
 import { LeaderboardModal } from './leaderboard-modal'
@@ -867,7 +854,7 @@ export function Playground({
                 {activeTab === 'quests' && !sessionUser && (
                   <div className="flex flex-col items-center gap-4 py-6">
                     <div className="w-14 h-14 rounded-2xl bg-muted/50 border border-border flex items-center justify-center">
-                      <Scroll className="w-6 h-6 text-foreground/40" />
+                      <Scroll size={24} weight="regular" className="text-foreground/40" />
                     </div>
                     <div className="text-center">
                       <p className="text-sm font-semibold text-foreground">{lang === 'fr' ? 'Non connecté' : 'Not signed in'}</p>
@@ -937,7 +924,7 @@ export function Playground({
                 {activeTab === 'profile' && !sessionUser && (
                   <div className="flex flex-col items-center gap-4 py-6">
                     <div className="w-14 h-14 rounded-2xl bg-muted/50 border border-border flex items-center justify-center">
-                      <User className="w-6 h-6 text-foreground/40" />
+                      <UserCircle size={24} weight="regular" className="text-foreground/40" />
                     </div>
                     <div className="text-center">
                       <p className="text-sm font-semibold text-foreground">{lang === 'fr' ? 'Non connecté' : 'Not signed in'}</p>
@@ -992,15 +979,14 @@ export function Playground({
         >
           <div className="flex items-stretch">
             {([
-              { id: 'home',     outline: CubeOutline,     solid: CubeSolid,     labelFr: 'Jeu',      labelEn: 'Play'     },
-              { id: 'quests',   outline: SparklesOutline,  solid: SparklesSolid, labelFr: 'Quêtes',   labelEn: 'Quests'   },
-              { id: 'settings', outline: CogOutline,       solid: CogSolid,      labelFr: 'Réglages', labelEn: 'Settings' },
-              { id: 'help',     outline: QuestionOutline,  solid: QuestionSolid, labelFr: 'Aide',     labelEn: 'Help'     },
-              { id: 'profile',  outline: UserOutline,      solid: UserSolid,     labelFr: 'Profil',   labelEn: 'Profile'  },
-            ] as const).map(({ id, outline: IconOutline, solid: IconSolid }) => {
+              { id: 'home',     icon: Atom,     labelFr: 'Jeu',      labelEn: 'Play'     },
+              { id: 'quests',   icon: Sparkle,  labelFr: 'Quêtes',   labelEn: 'Quests'   },
+              { id: 'settings', icon: Gear,     labelFr: 'Réglages', labelEn: 'Settings' },
+              { id: 'help',     icon: Question, labelFr: 'Aide',     labelEn: 'Help'     },
+              { id: 'profile',  icon: User,     labelFr: 'Profil',   labelEn: 'Profile'  },
+            ] as const).map(({ id, icon: Icon }) => {
               const isActive = activeTab === id
               const isProfileWithUser = id === 'profile' && !!sessionUser
-              const Icon = isActive ? IconSolid : IconOutline
               return (
                 <button
                   key={id}
@@ -1029,7 +1015,11 @@ export function Playground({
                     )
                   })() : (
                     <div className="relative">
-                      <Icon className={`w-6 h-6 transition-all ${isActive ? 'text-foreground' : 'text-muted-foreground'}`} />
+                      <Icon
+                        size={24}
+                        weight={isActive ? 'fill' : 'regular'}
+                        className={`transition-all ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}
+                      />
                       {id === 'quests' && questBadge && !isActive && (
                         <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 border border-card animate-pulse" />
                       )}
@@ -1349,7 +1339,7 @@ function HelpPanel({ lang }: { lang: 'fr' | 'en' }) {
       {/* Header */}
       <div className="flex items-center gap-2.5">
         <div className="w-9 h-9 rounded-2xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
-          <HelpCircle className="w-4.5 h-4.5 text-foreground/70" />
+          <Question size={18} weight="regular" className="text-foreground/70" />
         </div>
         <div>
           <h2 className="text-base font-bold text-foreground">{t('Comment jouer', 'How to play')}</h2>
@@ -1404,7 +1394,7 @@ function HelpPanel({ lang }: { lang: 'fr' | 'en' }) {
         </div>
         <div className="flex items-center gap-3 px-4 py-3 bg-card">
           <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
-            <Scroll className="w-4 h-4 text-muted-foreground" />
+            <Scroll size={16} weight="regular" className="text-muted-foreground" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-foreground">{t('Quêtes', 'Quests')}</p>
