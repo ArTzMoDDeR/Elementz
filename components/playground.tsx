@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { ElementBadge } from './element-badge'
 import { Search, X, ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Hand, MousePointer, Medal, Atom as AtomIcon, Star, Shield, Trophy } from 'lucide-react'
-import { Atom, Sparkle, Gear, Question, User, UserCircle, Scroll } from '@phosphor-icons/react'
+import { HouseSimple, Bell, Gear, Lifebuoy, User, UserCircle, Scroll } from '@phosphor-icons/react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import { HelpModal } from './help-modal'
 import { LeaderboardModal } from './leaderboard-modal'
@@ -979,11 +979,11 @@ export function Playground({
         >
           <div className="flex items-stretch">
             {([
-              { id: 'home',     icon: Atom,     labelFr: 'Jeu',      labelEn: 'Play'     },
-              { id: 'quests',   icon: Sparkle,  labelFr: 'Quêtes',   labelEn: 'Quests'   },
-              { id: 'settings', icon: Gear,     labelFr: 'Réglages', labelEn: 'Settings' },
-              { id: 'help',     icon: Question, labelFr: 'Aide',     labelEn: 'Help'     },
-              { id: 'profile',  icon: User,     labelFr: 'Profil',   labelEn: 'Profile'  },
+              { id: 'home',     icon: HouseSimple, labelFr: 'Jeu',      labelEn: 'Play'     },
+              { id: 'quests',   icon: Bell,        labelFr: 'Quêtes',   labelEn: 'Quests'   },
+              { id: 'settings', icon: Gear,        labelFr: 'Réglages', labelEn: 'Settings' },
+              { id: 'help',     icon: Lifebuoy,    labelFr: 'Aide',     labelEn: 'Help'     },
+              { id: 'profile',  icon: User,        labelFr: 'Profil',   labelEn: 'Profile'  },
             ] as const).map(({ id, icon: Icon }) => {
               const isActive = activeTab === id
               const isProfileWithUser = id === 'profile' && !!sessionUser
@@ -1002,11 +1002,14 @@ export function Playground({
                 >
                   {isProfileWithUser ? (() => {
                     const tabEl = tabAvatarKey ? elements.get(tabAvatarKey) : null
+                    const oauthImg = (sessionUser as any).image as string | undefined
                     return (
-                      <div className={`w-7 h-7 rounded-full overflow-hidden border-2 transition-all flex-shrink-0 bg-muted flex items-center justify-center ${isActive ? 'border-foreground' : 'border-transparent'}`}
-                        style={tabEl?.color ? { backgroundColor: `${tabEl.color}22` } : undefined}
+                      <div className={`w-7 h-7 rounded-full overflow-hidden border-2 transition-all flex-shrink-0 bg-muted flex items-center justify-center ${isActive ? 'border-foreground' : 'border-muted-foreground/30'}`}
+                        style={!oauthImg && tabEl?.color ? { backgroundColor: `${tabEl.color}22` } : undefined}
                       >
-                        {tabEl?.imageUrl ? (
+                        {oauthImg ? (
+                          <img src={oauthImg} alt="" className="w-full h-full object-cover" draggable={false} />
+                        ) : tabEl?.imageUrl ? (
                           <img src={tabEl.imageUrl} alt="" className="w-5 h-5 object-contain" draggable={false} />
                         ) : (
                           <span className="text-xs font-bold text-muted-foreground">{(sessionUser.name ?? 'P')[0].toUpperCase()}</span>
