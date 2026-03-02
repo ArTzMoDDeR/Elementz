@@ -995,9 +995,12 @@ export default function AdminPanel() {
   const { theme, setTheme } = useTheme()
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {/* Top bar */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-20">
+      <header
+        className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-20"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
         <div className="max-w-7xl mx-auto px-4 lg:px-8">
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-3">
@@ -1012,16 +1015,16 @@ export default function AdminPanel() {
             </Button>
           </div>
 
-          {/* Tab nav */}
-          <nav className="flex items-center gap-1 -mb-px">
+          {/* Tab nav — equal-width on mobile, auto on desktop */}
+          <nav className="grid grid-cols-4 sm:flex sm:items-center sm:gap-1 -mb-px">
             {TABS.map(t => {
               const Icon = t.icon
               const isActive = tab === t.id
               return (
                 <button key={t.id} onClick={() => setTab(t.id)}
-                  className={`flex items-center gap-2 px-3 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${isActive ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>
-                  <Icon className="w-4 h-4" />
-                  {t.label}
+                  className={`flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-2 px-2 sm:px-3 py-2.5 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${isActive ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>
+                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  <span className="leading-none">{t.label}</span>
                 </button>
               )
             })}
@@ -1030,7 +1033,10 @@ export default function AdminPanel() {
       </header>
 
       {/* Content */}
-      <main className="max-w-7xl mx-auto px-4 lg:px-8 py-6">
+      <main
+        className="max-w-7xl mx-auto px-4 lg:px-8 py-6"
+        style={{ paddingLeft: 'max(1rem, env(safe-area-inset-left))', paddingRight: 'max(1rem, env(safe-area-inset-right))' }}
+      >
         {tab === 'overview' && <OverviewTab />}
         {tab === 'elements' && <ElementsTab />}
         {tab === 'quests' && <QuestsTab />}
