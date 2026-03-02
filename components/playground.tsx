@@ -336,6 +336,7 @@ export function Playground({
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'home' | 'quests' | 'settings' | 'help' | 'profile'>('home')
+  const [profileView, setProfileView] = useState<'profile' | 'leaderboard'>('profile')
   const [questBadge, setQuestBadge] = useState(false)
 
   // Poll quest readiness every 30s to show badge dot
@@ -869,13 +870,15 @@ export function Playground({
                   <HelpPanel lang={lang} />
                 )}
                 {activeTab === 'profile' && sessionUser && (
-                  <ProfileInlinePanel
-                    lang={lang}
-                    sessionUser={sessionUser}
-                    elements={elements}
-                    onAvatarChange={setTabAvatarKey}
-                    onOpenLeaderboard={() => setActiveTab('leaderboard')}
-                  />
+                  profileView === 'leaderboard'
+                    ? <LeaderboardInlinePanel lang={lang} onBack={() => setProfileView('profile')} />
+                    : <ProfileInlinePanel
+                        lang={lang}
+                        sessionUser={sessionUser}
+                        elements={elements}
+                        onAvatarChange={setTabAvatarKey}
+                        onOpenLeaderboard={() => setProfileView('leaderboard')}
+                      />
                 )}
                 {activeTab === 'profile' && !sessionUser && (
                   <div className="flex flex-col items-center gap-4 py-6">
@@ -947,7 +950,11 @@ export function Playground({
                 <button
                   key={id}
                   onClick={() => {
-                    setActiveTab(prev => prev === id && id !== 'home' ? 'home' : id)
+                    setActiveTab(prev => {
+                      const next = prev === id && id !== 'home' ? 'home' : id
+                      if (next !== 'profile') setProfileView('profile')
+                      return next
+                    })
                     if (id === 'quests') setQuestBadge(false)
                   }}
                   className="flex-1 flex flex-col items-center justify-center py-3 relative transition-colors"
