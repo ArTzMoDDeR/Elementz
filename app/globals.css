@@ -146,8 +146,17 @@ input, textarea, [contenteditable] {
   .game-container {
     overflow: hidden;
     height: 100vh;       /* fallback for old browsers */
-    height: 100dvh;      /* dynamic viewport height — shrinks with Safari toolbar */
+    height: 100dvh;      /* shrinks with Safari browser toolbar in browser mode */
     touch-action: none;
+  }
+
+  /* In standalone PWA mode, dvh = vh = full screen.
+     The navbar already pads itself with env(safe-area-inset-bottom),
+     so we just need the full screen height — no dvh quirks. */
+  @media (display-mode: standalone) {
+    .game-container {
+      height: 100vh;
+    }
   }
 }
 
