@@ -163,11 +163,13 @@ function ScratchCard({ reward, lang, onScratched }: {
 
 // ─── Quest Card ───────────────────────────────────────────────────────────────
 
-function QuestCard({ quest, lang, onClaim, onScratch }: {
+function QuestCard({ quest, lang, onClaim, onScratch, pinned, onDismiss }: {
   quest: Quest
   lang: 'fr' | 'en'
   onClaim: (id: number) => Promise<void>
   onScratch: (questId: number, slot: number) => Promise<void>
+  pinned?: boolean       // stay open even if allScratched
+  onDismiss?: () => void // called when user clicks "J'ai noté"
 }) {
   const [claiming, setClaiming] = useState(false)
   const [expanded, setExpanded] = useState(false)
@@ -192,8 +194,10 @@ function QuestCard({ quest, lang, onClaim, onScratch }: {
   }
 
   const statusColor = isClaimed
-    ? allScratched ? 'border-border' : 'border-primary/40 bg-primary/3'
+    ? (!pinned && allScratched) ? 'border-border' : 'border-primary/40 bg-primary/3'
     : isCompleted ? 'border-amber-400/40 bg-amber-400/5' : 'border-border'
+
+  const isDone = !pinned && allScratched
 
   return (
     <div className={`rounded-2xl border overflow-hidden transition-colors ${statusColor}`}>
@@ -202,11 +206,10 @@ function QuestCard({ quest, lang, onClaim, onScratch }: {
         className="flex items-center gap-3 px-4 py-3.5 bg-card cursor-pointer active:bg-muted/40"
         onClick={() => (isClaimed || !isCompleted) && setExpanded(v => !v)}
       >
-        {/* Icon */}
         <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-          isClaimed ? 'bg-muted' : isCompleted ? 'bg-amber-400/15' : 'bg-muted'
+          isDone ? 'bg-muted' : isClaimed ? 'bg-primary/10' : isCompleted ? 'bg-amber-400/15' : 'bg-muted'
         }`}>
-          {isClaimed && allScratched
+          {isDone
             ? <CheckCircle2 className="w-4.5 h-4.5 text-muted-foreground/40" />
             : isClaimed
             ? <Icon className="w-4.5 h-4.5 text-primary" />
@@ -216,21 +219,23 @@ function QuestCard({ quest, lang, onClaim, onScratch }: {
           }
         </div>
 
-        {/* Title + progress */}
         <div className="flex-1 min-w-0">
-          <p className={`text-sm font-semibold leading-tight ${isClaimed && allScratched ? 'text-muted-foreground/50 line-through' : 'text-foreground'}`}>
+          <p className={`text-sm font-semibold leading-tight ${isDone ? 'text-muted-foreground/50 line-through' : 'text-foreground'}`}>
             {title}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5 truncate">{desc}</p>
         </div>
 
-        {/* Right side */}
         {isClaimed && !allScratched ? (
           <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full flex-shrink-0">
             {lang === 'fr' ? 'À gratter' : 'Scratch'}
           </span>
-        ) : isClaimed ? (
+        ) : isDone ? (
           <CheckCircle2 className="w-4 h-4 text-muted-foreground/30 flex-shrink-0" />
+        ) : isClaimed && pinned ? (
+          <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full flex-shrink-0">
+            {lang === 'fr' ? 'Gratté' : 'Scratched'}
+          </span>
         ) : isCompleted ? (
           <button
             onClick={handleClaim}
@@ -246,7 +251,7 @@ function QuestCard({ quest, lang, onClaim, onScratch }: {
         )}
       </div>
 
-      {/* Progress bar (not claimed, not done) */}
+      {/* Progress bar */}
       {!isClaimed && !isCompleted && (
         <div className="px-4 pb-3">
           <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
@@ -258,26 +263,23 @@ function QuestCard({ quest, lang, onClaim, onScratch }: {
         </div>
       )}
 
-      {/* Scratch cards panel */}
-      {isClaimed && (expanded || !allScratched) && hasRewards && (
+      {/* Scratch cards panel — show when pinned (freshly scratched) or has unscratched cards */}
+      {isClaimed && (pinned || expanded || !allScratched) && hasRewards && (
         <div className="px-4 pb-4 border-t border-border/50 pt-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
             {lang === 'fr' ? 'Ta recette secrète' : 'Your secret recipe'}
           </p>
-          {/* Result target element */}
           {(() => {
             const anyReward = quest.rewards[0]
             const resultName = anyReward ? (lang === 'fr' ? anyReward.result_name_french : anyReward.result_name_english) : null
-            const resultImg = anyReward?.result_img ?? null
             if (!resultName) return null
             return (
               <p className="text-xs text-muted-foreground mb-4">
-                {lang === 'fr' ? `Pour créer : ` : `To create: `}
+                {lang === 'fr' ? 'Pour créer : ' : 'To create: '}
                 <span className="font-semibold text-foreground">{resultName}</span>
               </p>
             )
           })()}
-          {/* Cards row with + separator */}
           <div className="flex items-center justify-center gap-3">
             {quest.rewards.sort((a, b) => a.slot - b.slot).map((r, i) => (
               <div key={r.slot} className="flex items-center gap-3">
@@ -288,17 +290,16 @@ function QuestCard({ quest, lang, onClaim, onScratch }: {
               </div>
             ))}
           </div>
-          {/* Once both are scratched, show "J'ai noté" button */}
+          {/* "J'ai noté" — only after all scratched */}
           {allScratched && (
             <div className="mt-4 flex flex-col items-center gap-2">
               <p className="text-[11px] text-center text-muted-foreground/60 leading-relaxed">
                 {lang === 'fr'
                   ? 'Retiens bien cette combinaison et va créer cet élément sur le terrain !'
-                  : 'Remember this combo and create the element on the field!'
-                }
+                  : 'Remember this combo and create the element on the field!'}
               </p>
               <button
-                onClick={() => setExpanded(false)}
+                onClick={() => { setExpanded(false); onDismiss?.() }}
                 className="mt-1 px-4 py-2 rounded-xl bg-primary/10 border border-primary/20 text-sm font-semibold text-primary active:bg-primary/20 transition-colors"
               >
                 {lang === 'fr' ? "J'ai noté !" : 'Got it!'}
@@ -316,6 +317,8 @@ function QuestCard({ quest, lang, onClaim, onScratch }: {
 export function QuestInlinePanel({ lang }: { lang: 'fr' | 'en' }) {
   const [quests, setQuests] = useState<Quest[]>([])
   const [loading, setLoading] = useState(true)
+  // Quest IDs that were just fully scratched — stay pinned open until user clicks "J'ai noté"
+  const [pinnedIds, setPinnedIds] = useState<Set<number>>(new Set())
 
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
@@ -345,13 +348,27 @@ export function QuestInlinePanel({ lang }: { lang: 'fr' | 'en' }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ quest_id: questId, slot }),
     })
-    await fetchQuests()
+    // Refresh data but pin this quest so it doesn't vanish
+    const res = await fetch('/api/quests')
+    const data = await res.json()
+    const updated: Quest[] = data.quests ?? []
+    setQuests(updated)
+    // If all cards are now scratched, pin it
+    const q = updated.find(q => q.id === questId)
+    if (q && q.rewards.length > 0 && q.rewards.every(r => !!r.scratched_at)) {
+      setPinnedIds(prev => new Set(prev).add(questId))
+    }
+  }
+
+  const handleDismiss = (questId: number) => {
+    setPinnedIds(prev => { const next = new Set(prev); next.delete(questId); return next })
   }
 
   const pending = quests.filter(q => !q.claimed_at && q.progress < q.target_value)
   const ready = quests.filter(q => !q.claimed_at && q.progress >= q.target_value)
   const claimed = quests.filter(q => !!q.claimed_at)
-  const unscratched = claimed.filter(q => q.rewards.some(r => !r.scratched_at))
+  const unscratched = claimed.filter(q => pinnedIds.has(q.id) || q.rewards.some(r => !r.scratched_at))
+  const done = claimed.filter(q => !pinnedIds.has(q.id) && q.rewards.every(r => !!r.scratched_at))
 
   return (
     <div className="flex flex-col gap-4 py-1">
@@ -385,7 +402,8 @@ export function QuestInlinePanel({ lang }: { lang: 'fr' | 'en' }) {
                 {t('Récompenses à gratter', 'Scratch rewards')}
               </p>
               {unscratched.map(q => (
-                <QuestCard key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={handleScratch} />
+                <QuestCard key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={handleScratch}
+                  pinned={pinnedIds.has(q.id)} onDismiss={() => handleDismiss(q.id)} />
               ))}
             </div>
           )}
@@ -415,12 +433,12 @@ export function QuestInlinePanel({ lang }: { lang: 'fr' | 'en' }) {
           )}
 
           {/* Completed */}
-          {claimed.filter(q => q.rewards.every(r => !!r.scratched_at)).length > 0 && (
+          {done.length > 0 && (
             <div className="flex flex-col gap-2">
               <p className="text-xs font-semibold text-muted-foreground/40 uppercase tracking-wide px-1">
                 {t('Terminées', 'Completed')}
               </p>
-              {claimed.filter(q => q.rewards.every(r => !!r.scratched_at)).map(q => (
+              {done.map(q => (
                 <QuestCard key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={handleScratch} />
               ))}
             </div>
