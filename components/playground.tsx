@@ -917,6 +917,7 @@ export function Playground({
                         lang={lang}
                         sessionUser={sessionUser}
                         elements={elements}
+                        discovered={discovered}
                         onAvatarChange={setTabAvatarKey}
                         onOpenLeaderboard={() => setProfileView('leaderboard')}
                       />
@@ -1037,7 +1038,7 @@ export function Playground({
       {/* Modals */}
       {helpOpen && <HelpModal lang={lang} onSetLang={onSetLang} onClose={() => setHelpOpen(false)} />}
       {leaderboardOpen && <LeaderboardModal lang={lang} onClose={() => setLeaderboardOpen(false)} />}
-      {profileOpen && sessionUser && <ProfileModal lang={lang} sessionUser={sessionUser} elements={elements} onClose={() => setProfileOpen(false)} onOpenLeaderboard={() => { setProfileOpen(false); setLeaderboardOpen(true) }} />}
+      {profileOpen && sessionUser && <ProfileModal lang={lang} sessionUser={sessionUser} elements={elements} discovered={discovered} onClose={() => setProfileOpen(false)} onOpenLeaderboard={() => { setProfileOpen(false); setLeaderboardOpen(true) }} />}
     </div>
   )
 }
@@ -1440,10 +1441,11 @@ function HelpPanel({ lang }: { lang: 'fr' | 'en' }) {
   )
 }
 
-function ProfileInlinePanel({ lang, sessionUser, elements, onAvatarChange, onOpenLeaderboard }: {
+function ProfileInlinePanel({ lang, sessionUser, elements, discovered, onAvatarChange, onOpenLeaderboard }: {
   lang: 'fr' | 'en'
   sessionUser: { name?: string | null; email?: string | null; image?: string | null }
   elements: Map<string, ElementDef>
+  discovered: Set<string>
   onAvatarChange?: (key: string) => void
   onOpenLeaderboard?: () => void
 }) {
@@ -1481,7 +1483,7 @@ function ProfileInlinePanel({ lang, sessionUser, elements, onAvatarChange, onOpe
   const avatarEl = elements.get(avatarKey)
   const displayName = profile?.username || sessionUser.name?.split(' ')[0] || t('Joueur', 'Player')
   const pct = profile ? Math.round((profile.discovered_count / TOTAL_ELEMENTS) * 100) : 0
-  const allDiscovered = Array.from(elements.values()).filter(e => e.imageUrl)
+  const allDiscovered = Array.from(elements.values()).filter(e => e.imageUrl && discovered.has(e.name))
 
   const saveName = async () => {
     if (!profile) return

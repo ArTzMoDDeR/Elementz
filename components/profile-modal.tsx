@@ -31,6 +31,7 @@ interface ProfileModalProps {
   lang: Lang
   sessionUser: { name?: string | null; email?: string | null; image?: string | null }
   elements: Map<string, ElementDef>
+  discovered: Set<string>
   onClose: () => void
   onOpenLeaderboard?: () => void
 }
@@ -78,7 +79,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
   )
 }
 
-export function ProfileModal({ lang, sessionUser, elements, onClose, onOpenLeaderboard }: ProfileModalProps) {
+export function ProfileModal({ lang, sessionUser, elements, discovered, onClose, onOpenLeaderboard }: ProfileModalProps) {
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState('')
@@ -105,8 +106,8 @@ export function ProfileModal({ lang, sessionUser, elements, onClose, onOpenLeade
   const avatarKey = profile?.avatar ?? STARTERS[Math.abs(hashStr(sessionUser.email ?? 'x')) % 4]
   const avatarEl = elements.get(avatarKey)
 
-  // All discovered elements for avatar picker
-  const allDiscovered = Array.from(elements.values()).filter(e => e.imageUrl)
+  // Only unlocked elements for avatar picker
+  const allDiscovered = Array.from(elements.values()).filter(e => e.imageUrl && discovered.has(e.name))
 
   const saveName = async () => {
     if (!profile) return
