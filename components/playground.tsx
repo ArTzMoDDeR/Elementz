@@ -665,14 +665,15 @@ export function Playground({
         >
           {/* Header — same layout on mobile and desktop: [clear] [logo+counter] [hint] */}
           <div className="flex items-center gap-2" style={{ transform: 'translateY(-3px)' }}>
-            {/* Clear button */}
+
+            {/* Clear button — always visible, attractive */}
             <button
               onClick={e => { e.stopPropagation(); onClear() }}
-              disabled={playgroundItemsCount === 0}
-              className="flex-shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center transition-all bg-muted/50 border border-border text-muted-foreground hover:text-foreground hover:bg-muted active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
+              className="flex-shrink-0 flex items-center gap-1.5 h-10 px-3 rounded-2xl transition-all bg-muted border border-border text-foreground/70 hover:text-foreground hover:bg-muted/80 hover:border-foreground/20 active:scale-95"
               title={lang === 'fr' ? 'Vider le terrain' : 'Clear field'}
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-4 h-4 flex-shrink-0" />
+              <span className="text-xs font-semibold hidden sm:inline">{lang === 'fr' ? 'Vider' : 'Clear'}</span>
             </button>
 
             {/* Center: logo + title + counter — or notification */}
@@ -697,18 +698,20 @@ export function Playground({
               </div>
             )}
 
-            {/* Hint button — pulses after 1 min without discovery */}
+            {/* Hint button — always amber-tinted, pulses + glows after 1 min without discovery */}
             <button
               onClick={e => { e.stopPropagation(); onRequestHint?.() }}
-              className={`relative flex-shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center transition-all border active:scale-95 ${
+              className={`relative flex-shrink-0 flex items-center gap-1.5 h-10 px-3 rounded-2xl transition-all border active:scale-95 ${
                 hintShouldPulse
-                  ? 'bg-amber-400/15 border-amber-400/40 text-amber-400 animate-pulse'
-                  : 'bg-muted/50 border-border text-muted-foreground hover:text-foreground hover:bg-muted'
+                  ? 'bg-amber-400/20 border-amber-400/60 text-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.35)] animate-pulse'
+                  : 'bg-amber-400/10 border-amber-400/25 text-amber-400 hover:bg-amber-400/20 hover:border-amber-400/50'
               }`}
               title={lang === 'fr' ? 'Indice' : 'Hint'}
             >
-              <Lightbulb className="w-4 h-4" />
+              <Lightbulb className="w-4 h-4 flex-shrink-0" />
+              <span className="text-xs font-semibold hidden sm:inline">{lang === 'fr' ? 'Indice' : 'Hint'}</span>
             </button>
+
           </div>
           {activeTab === 'home' && (
             <div className="flex items-center gap-2">
