@@ -364,7 +364,6 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
     setPinnedIds(prev => { const next = new Set(prev); next.delete(questId); return next })
     onGoToPlay?.()
   }
-  }
 
   const pending = quests.filter(q => !q.claimed_at && q.progress < q.target_value)
   const ready = quests.filter(q => !q.claimed_at && q.progress >= q.target_value)
