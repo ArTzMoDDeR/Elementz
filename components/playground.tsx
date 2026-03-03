@@ -668,6 +668,7 @@ export function Playground({
 
             {/* Clear button — always visible, attractive */}
             <button
+              onPointerDown={e => e.stopPropagation()}
               onClick={e => { e.stopPropagation(); onClear() }}
               className="flex-shrink-0 flex items-center gap-1.5 h-10 px-3 rounded-2xl transition-all bg-muted border border-border text-foreground/70 hover:text-foreground hover:bg-muted/80 hover:border-foreground/20 active:scale-95"
               title={lang === 'fr' ? 'Vider le terrain' : 'Clear field'}
@@ -680,6 +681,7 @@ export function Playground({
             {headerNotification ? (
               <div
                 className="flex-1 flex items-center justify-center gap-2 min-w-0 cursor-pointer"
+                onPointerDown={e => e.stopPropagation()}
                 onClick={onDismissNotification}
               >
                 {headerNotification.icon}
@@ -700,6 +702,7 @@ export function Playground({
 
             {/* Hint button — always amber-tinted, pulses + glows after 1 min without discovery */}
             <button
+              onPointerDown={e => e.stopPropagation()}
               onClick={e => { e.stopPropagation(); onRequestHint?.() }}
               className={`relative flex-shrink-0 flex items-center gap-1.5 h-10 px-3 rounded-2xl transition-all border active:scale-95 ${
                 hintShouldPulse
