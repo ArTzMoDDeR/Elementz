@@ -1004,11 +1004,11 @@ export function Playground({
                     const tabEl = tabAvatarKey ? elements.get(tabAvatarKey) : null
                     return (
                       <div
-                        className={`w-7 h-7 rounded-full overflow-hidden border-2 transition-all flex-shrink-0 bg-muted flex items-center justify-center ${isActive ? 'border-foreground' : 'border-muted-foreground/30'}`}
+                        className={`w-8 h-8 rounded-full overflow-hidden border-2 transition-all flex-shrink-0 bg-muted flex items-center justify-center ${isActive ? 'border-foreground' : 'border-muted-foreground/30'}`}
                         style={tabEl?.color ? { backgroundColor: `${tabEl.color}22` } : undefined}
                       >
                         {tabEl?.imageUrl ? (
-                          <img src={tabEl.imageUrl} alt="" className="w-5 h-5 object-contain" draggable={false} />
+                          <img src={tabEl.imageUrl} alt="" className="w-6 h-6 object-contain" draggable={false} />
                         ) : (
                           <span className="text-xs font-bold text-muted-foreground">{(sessionUser.name ?? 'P')[0].toUpperCase()}</span>
                         )}
@@ -1017,7 +1017,7 @@ export function Playground({
                   })() : (
                     <div className="relative">
                       <Icon
-                        size={24}
+                        size={28}
                         weight={isActive ? 'fill' : 'regular'}
                         className={`transition-all ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}
                       />
