@@ -142,6 +142,11 @@ input, textarea, [contenteditable] {
     @apply bg-background text-foreground;
   }
   
+  /* Color shown below 100dvh in Safari browser (between app and toolbar) */
+  body {
+    background-color: #101418;
+  }
+
   /* Only apply no-scroll on the game page, not admin */
   .game-container {
     overflow: hidden;
