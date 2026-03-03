@@ -988,14 +988,12 @@ export function Playground({
                 >
                   {isProfileWithUser ? (() => {
                     const tabEl = tabAvatarKey ? elements.get(tabAvatarKey) : null
-                    const oauthImg = (sessionUser as any).image as string | undefined
                     return (
-                      <div className={`w-7 h-7 rounded-full overflow-hidden border-2 transition-all flex-shrink-0 bg-muted flex items-center justify-center ${isActive ? 'border-foreground' : 'border-muted-foreground/30'}`}
-                        style={!oauthImg && tabEl?.color ? { backgroundColor: `${tabEl.color}22` } : undefined}
+                      <div
+                        className={`w-7 h-7 rounded-full overflow-hidden border-2 transition-all flex-shrink-0 bg-muted flex items-center justify-center ${isActive ? 'border-foreground' : 'border-muted-foreground/30'}`}
+                        style={tabEl?.color ? { backgroundColor: `${tabEl.color}22` } : undefined}
                       >
-                        {oauthImg ? (
-                          <img src={oauthImg} alt="" className="w-full h-full object-cover" draggable={false} />
-                        ) : tabEl?.imageUrl ? (
+                        {tabEl?.imageUrl ? (
                           <img src={tabEl.imageUrl} alt="" className="w-5 h-5 object-contain" draggable={false} />
                         ) : (
                           <span className="text-xs font-bold text-muted-foreground">{(sessionUser.name ?? 'P')[0].toUpperCase()}</span>
