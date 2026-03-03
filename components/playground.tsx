@@ -750,12 +750,23 @@ export function Playground({
                 onClick={() => setTapMode(!tapMode)}
                 onPointerDown={e => e.stopPropagation()}
                 title={tapMode ? (lang === 'fr' ? 'Passer en mode drag' : 'Switch to drag mode') : (lang === 'fr' ? 'Passer en mode tap' : 'Switch to tap mode')}
-                className="flex items-center justify-center h-9 w-9 rounded-xl border bg-muted/50 border-border text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+                className={`flex items-center gap-1.5 h-9 px-2.5 rounded-xl border text-xs font-semibold transition-all flex-shrink-0 active:scale-95 ${
+                  tapMode
+                    ? 'bg-sky-500/10 border-sky-500/30 text-sky-400 hover:bg-sky-500/20'
+                    : 'bg-violet-500/10 border-violet-500/30 text-violet-400 hover:bg-violet-500/20'
+                }`}
               >
-                {tapMode
-                  ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 11V6a2 2 0 00-2-2v0a2 2 0 00-2 2v0"/><path d="M14 10V4a2 2 0 00-2-2v0a2 2 0 00-2 2v0"/><path d="M10 10.5V6a2 2 0 00-2-2v0a2 2 0 00-2 2v6"/><path d="M18 8a2 2 0 114 0v6a8 8 0 01-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 012.83-2.82L7 15"/></svg>
-                }
+                {tapMode ? (
+                  <>
+                    <MousePointer className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span>Tab</span>
+                  </>
+                ) : (
+                  <>
+                    <Hand className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span>Grab</span>
+                  </>
+                )}
               </button>
             </div>
           )}
