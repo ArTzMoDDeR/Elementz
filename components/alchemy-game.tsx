@@ -37,7 +37,7 @@ export function AlchemyGame() {
     unlockAll,
   } = useGameStore()
 
-  const { hintsEnabled, setHintsEnabled, hintVisible, currentHint, hintLabel, dismissHint, requestHint } = useHint(
+  const { hintsEnabled, setHintsEnabled, hintVisible, currentHint, hintLabel, dismissHint, requestHint, shouldPulse } = useHint(
     discovered,
     recipeMap,
     lastUnlockTime,
@@ -215,6 +215,7 @@ export function AlchemyGame() {
         hintsEnabled={hintsEnabled}
         onToggleHints={handleToggleHints}
         onRequestHint={requestHint}
+        hintShouldPulse={shouldPulse}
         hapticEnabled={hapticEnabled}
         onToggleHaptic={() => {
           const next = !hapticEnabled

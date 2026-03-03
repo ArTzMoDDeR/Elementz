@@ -44,6 +44,7 @@ interface PlaygroundProps {
   hintsEnabled?: boolean
   onToggleHints?: () => void
   onRequestHint?: () => void
+  hintShouldPulse?: boolean
   hapticEnabled?: boolean
   onToggleHaptic?: () => void
   onTapModeChange?: (enabled: boolean) => void
@@ -270,7 +271,7 @@ export function Playground({
   items, elements, discovered, totalElements,
   lang, onSetLang,
   onDrop, onMove, onMerge, onDropAndMerge, onRemove, onClear, onReset,
-  onUnlockAll, sessionUser, hintsEnabled, onToggleHints, onRequestHint,
+  onUnlockAll, sessionUser, hintsEnabled, onToggleHints, onRequestHint, hintShouldPulse = false,
   hapticEnabled = true, onToggleHaptic, onTapModeChange,
   headerNotification, onDismissNotification, playgroundItemsCount = 0,
 }: PlaygroundProps) {
@@ -662,46 +663,31 @@ export function Playground({
           onPointerDown={isMobile ? handleDragHandlePointerDown : undefined}
           style={isMobile ? { cursor: 'row-resize', touchAction: 'none' } : undefined}
         >
-          {/* Mobile: Show notification OR logo row with action buttons */}
-          {isMobile && headerNotification ? (
-            <div
-              className="flex items-center gap-2 cursor-pointer animate-in fade-in duration-200"
-              onClick={onDismissNotification}
-              style={{ transform: 'translateY(-3px)' }}
+          {/* Header — same layout on mobile and desktop: [clear] [logo+counter] [hint] */}
+          <div className="flex items-center gap-2" style={{ transform: 'translateY(-3px)' }}>
+            {/* Clear button */}
+            <button
+              onClick={e => { e.stopPropagation(); onClear() }}
+              disabled={playgroundItemsCount === 0}
+              className="flex-shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center transition-all bg-muted/50 border border-border text-muted-foreground hover:text-foreground hover:bg-muted active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
+              title={lang === 'fr' ? 'Vider le terrain' : 'Clear field'}
             >
-              {/* Clear button left */}
-              <button
-                onClick={e => { e.stopPropagation(); onClear() }}
-                className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${playgroundItemsCount > 0 ? 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted' : 'opacity-30 pointer-events-none'}`}
+              <Trash2 className="w-4 h-4" />
+            </button>
+
+            {/* Center: logo + title + counter — or notification */}
+            {isMobile && headerNotification ? (
+              <div
+                className="flex-1 flex items-center justify-center gap-2 min-w-0 cursor-pointer"
+                onClick={onDismissNotification}
               >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-              {/* Notification content */}
-              <div className="flex-1 flex items-center justify-center gap-2 min-w-0">
                 {headerNotification.icon}
                 <span className="text-xs text-muted-foreground truncate">{headerNotification.message}</span>
                 {headerNotification.image && (
                   <img src={headerNotification.image} alt="" className="w-5 h-5 object-contain flex-shrink-0" />
                 )}
               </div>
-              {/* Hint button right */}
-              <button
-                onClick={e => { e.stopPropagation(); onRequestHint?.() }}
-                className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              >
-                <Lightbulb className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ) : isMobile ? (
-            <div className="flex items-center gap-2" style={{ transform: 'translateY(-3px)' }}>
-              {/* Clear button left */}
-              <button
-                onClick={onClear}
-                className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${playgroundItemsCount > 0 ? 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted' : 'opacity-30 pointer-events-none'}`}
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-              {/* Logo + title + counter */}
+            ) : (
               <div className="flex-1 flex items-center justify-center gap-2">
                 <img src="/logo.png" alt="Elementz" className="w-6 h-6 rounded-full flex-shrink-0 pointer-events-none select-none" draggable={false} />
                 <span className="font-bold text-sm tracking-tight">Elementz</span>
@@ -709,24 +695,21 @@ export function Playground({
                   {discovered.size}<span className="opacity-40">/{totalElements}</span>
                 </span>
               </div>
-              {/* Hint button right */}
-              <button
-                onClick={onRequestHint}
-                className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              >
-                <Lightbulb className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ) : (
-            /* Desktop: Original centered logo */
-            <div className="flex items-center justify-center gap-2" style={{ transform: 'translateY(-3px)' }}>
-              <img src="/logo.png" alt="Elementz" className="w-7 h-7 rounded-full flex-shrink-0 pointer-events-none select-none" draggable={false} />
-              <span className="font-bold text-base tracking-tight">Elementz</span>
-              <span className="text-sm tabular-nums text-muted-foreground" suppressHydrationWarning>
-                {discovered.size}<span className="opacity-40">/{totalElements}</span>
-              </span>
-            </div>
-          )}
+            )}
+
+            {/* Hint button — pulses after 1 min without discovery */}
+            <button
+              onClick={e => { e.stopPropagation(); onRequestHint?.() }}
+              className={`relative flex-shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center transition-all border active:scale-95 ${
+                hintShouldPulse
+                  ? 'bg-amber-400/15 border-amber-400/40 text-amber-400 animate-pulse'
+                  : 'bg-muted/50 border-border text-muted-foreground hover:text-foreground hover:bg-muted'
+              }`}
+              title={lang === 'fr' ? 'Indice' : 'Hint'}
+            >
+              <Lightbulb className="w-4 h-4" />
+            </button>
+          </div>
           {activeTab === 'home' && (
             <div className="flex items-center gap-2">
               <div className="relative flex-1">

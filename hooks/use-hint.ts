@@ -12,7 +12,6 @@ interface HintResult {
 
 function findHint(discovered: Set<string>, recipeMap: RecipeMap): HintResult | null {
   const discoveredArr = [...discovered]
-  // Collect all possible combos with at least one undiscovered result
   const candidates: HintResult[] = []
 
   for (let i = 0; i < discoveredArr.length; i++) {
@@ -29,11 +28,11 @@ function findHint(discovered: Set<string>, recipeMap: RecipeMap): HintResult | n
   }
 
   if (candidates.length === 0) return null
-  // Pick a random one so repeated hints vary
   return candidates[Math.floor(Math.random() * candidates.length)]
 }
 
 const HINTS_KEY = 'elementz_hints'
+const PULSE_DELAY = 60 * 1000 // 1 minute without discovery → pulse
 
 export function useHint(
   discovered: Set<string>,
@@ -45,7 +44,6 @@ export function useHint(
     try { return JSON.parse(localStorage.getItem(HINTS_KEY) ?? 'true') as boolean } catch { return true }
   })
 
-  // Sync hints toggle from /settings page
   useEffect(() => {
     const handler = (e: StorageEvent) => {
       if (e.key === HINTS_KEY && e.newValue !== null) {
@@ -55,53 +53,44 @@ export function useHint(
     window.addEventListener('storage', handler)
     return () => window.removeEventListener('storage', handler)
   }, [])
+
   const [currentHint, setCurrentHint] = useState<HintResult | null>(null)
   const [hintVisible, setHintVisible] = useState(false)
-  // Track the lastUnlockTime at which the current hint was generated
-  // so switching lang doesn't generate a new hint
-  const hintGeneratedAtRef = useRef<number | null>(null)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const HINT_DELAY = 60 * 1000 // 1 minute
+  // Whether the hint button should pulse to attract attention
+  const [shouldPulse, setShouldPulse] = useState(false)
+  const pulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Auto-trigger hint after 2min of no unlock
+  // Start a 1-minute timer whenever a new discovery happens.
+  // After 1 min without a new discovery, activate pulse on the hint button.
   useEffect(() => {
-    if (!hintsEnabled) return
-    if (timerRef.current) clearTimeout(timerRef.current)
+    if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current)
+    setShouldPulse(false) // reset on new discovery
 
     const elapsed = Date.now() - lastUnlockTime
-    const remaining = Math.max(0, HINT_DELAY - elapsed)
+    const remaining = Math.max(0, PULSE_DELAY - elapsed)
 
-    timerRef.current = setTimeout(() => {
-      // Only show a new auto-hint if we haven't already shown one for this unlock period
-      if (hintGeneratedAtRef.current === lastUnlockTime) return
-      const hint = findHint(discovered, recipeMap)
-      if (hint) {
-        hintGeneratedAtRef.current = lastUnlockTime
-        setCurrentHint(hint)
-        setHintVisible(true)
-      }
+    pulseTimerRef.current = setTimeout(() => {
+      setShouldPulse(true)
     }, remaining)
 
-    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [lastUnlockTime, hintsEnabled]) // deliberately NOT depending on discovered/recipeMap to avoid re-triggering on lang switch
+    return () => { if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current) }
+  }, [lastUnlockTime])
 
   const dismissHint = useCallback(() => setHintVisible(false), [])
 
   const requestHint = useCallback(() => {
-    // Manual request: pick a new random hint but don't update hintGeneratedAtRef
-    // so the auto-timer still respects the 2min window
     const hint = findHint(discovered, recipeMap)
     if (hint) {
       setCurrentHint(hint)
       setHintVisible(true)
     }
+    // Stop pulsing once the user manually asked for a hint
+    setShouldPulse(false)
+    if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current)
   }, [discovered, recipeMap])
 
-  // Text is derived from currentHint + lang — switching lang just retranslates, doesn't generate a new hint
   const hintLabel = currentHint
-    ? lang === 'fr'
-      ? 'Essayez de créer'
-      : 'Try to create'
+    ? lang === 'fr' ? 'Essayez de créer' : 'Try to create'
     : null
 
   return {
@@ -112,5 +101,6 @@ export function useHint(
     hintLabel,
     dismissHint,
     requestHint,
+    shouldPulse,
   }
 }
