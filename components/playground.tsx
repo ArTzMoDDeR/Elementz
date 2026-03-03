@@ -677,7 +677,7 @@ export function Playground({
             </button>
 
             {/* Center: logo + title + counter — or notification */}
-            {isMobile && headerNotification ? (
+            {headerNotification ? (
               <div
                 className="flex-1 flex items-center justify-center gap-2 min-w-0 cursor-pointer"
                 onClick={onDismissNotification}
@@ -759,7 +759,7 @@ export function Playground({
                 {tapMode ? (
                   <>
                     <MousePointer className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span>Tab</span>
+                    <span>Tap</span>
                   </>
                 ) : (
                   <>
