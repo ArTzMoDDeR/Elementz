@@ -847,7 +847,7 @@ export function Playground({
           ) : (
             <div className="h-full overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div className="px-4 py-4">
-                {activeTab === 'quests' && sessionUser && <QuestInlinePanel lang={lang} />}
+                {activeTab === 'quests' && sessionUser && <QuestInlinePanel lang={lang} onGoToPlay={() => setActiveTab('home')} />}
                 {activeTab === 'quests' && !sessionUser && (
                   <div className="flex flex-col items-center gap-4 py-6">
                     <div className="w-14 h-14 rounded-2xl bg-muted/50 border border-border flex items-center justify-center">
@@ -1111,7 +1111,14 @@ function ChevronScrollBar({ scrollRef }: { scrollRef: React.RefObject<HTMLDivEle
 
 function LeaderboardInlinePanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: () => void }) {
   const TOTAL = 593
-  const [entries, setEntries] = useState<Array<{ user_id: string; username: string | null; avatar_img: string | null; count: number }>>([])
+  const [entries, setEntries] = useState<Array<{
+    user_id: string
+    username: string | null
+    avatar_img: string | null
+    count: number
+    joined_at: string | null
+    last_elements: Array<{ img: string | null; name: string }>
+  }>>([])
   const [loading, setLoading] = useState(true)
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
@@ -1121,29 +1128,33 @@ function LeaderboardInlinePanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: 
 
   const top3 = entries.slice(0, 3)
   const rest = entries.slice(3)
-
   const podiumOrder = top3.length === 3 ? [top3[1], top3[0], top3[2]] : top3
-  const podiumHeights = [28, 40, 20] // px multiples for visual height
+  const podiumHeights = [28, 40, 20]
   const podiumRanks = top3.length === 3 ? [2, 1, 3] : [1, 2, 3]
   const rankColors: Record<number, string> = { 1: 'text-yellow-400', 2: 'text-zinc-400', 3: 'text-amber-600' }
   const podiumBg: Record<number, string> = { 1: 'border-yellow-400/30 bg-yellow-400/5', 2: 'border-zinc-400/20 bg-zinc-400/5', 3: 'border-amber-600/20 bg-amber-600/5' }
 
+  const memberSince = (joinedAt: string | null) => {
+    if (!joinedAt) return null
+    const days = Math.floor((Date.now() - new Date(joinedAt).getTime()) / (1000 * 60 * 60 * 24))
+    if (days === 0) return t("Aujourd'hui", 'Today')
+    if (days === 1) return t('Hier', 'Yesterday')
+    return t(`Il y a ${days} j`, `${days}d ago`)
+  }
+
   return (
     <div className="flex flex-col gap-4 py-1">
 
-      {/* Back button */}
-      <button
-        onClick={onBack}
-        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors -mt-1 self-start"
-      >
-        <ChevronRight className="w-4 h-4 rotate-180" />
-        {t('Profil', 'Profile')}
-      </button>
-
-      {/* Title */}
-      <div className="flex items-center gap-2.5">
+      {/* Header with back */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onBack}
+          className="w-9 h-9 rounded-2xl bg-muted border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 active:scale-95"
+        >
+          <ChevronRight className="w-4 h-4 rotate-180" />
+        </button>
         <div className="w-9 h-9 rounded-2xl bg-yellow-400/10 border border-yellow-400/20 flex items-center justify-center flex-shrink-0">
-          <Trophy className="w-4.5 h-4.5 text-yellow-400" />
+          <Trophy className="w-4 h-4 text-yellow-400" />
         </div>
         <div>
           <h2 className="text-base font-bold text-foreground">{t('Classement', 'Leaderboard')}</h2>
@@ -1161,7 +1172,7 @@ function LeaderboardInlinePanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: 
         <>
           {/* Podium top 3 */}
           {top3.length > 0 && (
-            <div className="flex items-end justify-center gap-3 pt-2 pb-4">
+            <div className="flex items-end justify-center gap-3 pt-2 pb-1">
               {podiumOrder.map((entry, idx) => {
                 if (!entry) return null
                 const rank = podiumRanks[idx]
@@ -1170,7 +1181,6 @@ function LeaderboardInlinePanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: 
                 const pct = Math.round((entry.count / TOTAL) * 100)
                 return (
                   <div key={entry.user_id} className="flex flex-col items-center gap-2" style={{ flex: rank === 1 ? '0 0 38%' : '0 0 29%' }}>
-                    {/* Avatar */}
                     <div className={`rounded-2xl border-2 flex items-center justify-center overflow-hidden p-2 ${podiumBg[rank]} ${rank === 1 ? 'w-16 h-16' : 'w-12 h-12'}`}
                       style={{ borderColor: rank === 1 ? 'rgb(250 204 21 / 0.5)' : rank === 2 ? 'rgb(161 161 170 / 0.3)' : 'rgb(217 119 6 / 0.3)' }}>
                       {entry.avatar_img
@@ -1178,9 +1188,7 @@ function LeaderboardInlinePanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: 
                         : <span className={`font-bold ${rank === 1 ? 'text-xl' : 'text-base'} ${rankColors[rank]}`}>{name.slice(0, 2).toUpperCase()}</span>
                       }
                     </div>
-                    {/* Name */}
                     <span className="text-xs font-semibold text-foreground truncate max-w-full text-center px-1">{name}</span>
-                    {/* Podium block */}
                     <div className={`w-full rounded-t-xl border border-b-0 flex flex-col items-center justify-start pt-2 gap-0.5 ${podiumBg[rank]}`}
                       style={{ height: `${height + 40}px`, borderColor: rank === 1 ? 'rgb(250 204 21 / 0.3)' : rank === 2 ? 'rgb(161 161 170 / 0.2)' : 'rgb(217 119 6 / 0.2)' }}>
                       <span className={`text-base font-bold tabular-nums ${rankColors[rank]}`}>#{rank}</span>
@@ -1193,32 +1201,54 @@ function LeaderboardInlinePanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: 
             </div>
           )}
 
-          {/* Rest of rankings */}
-          {rest.length > 0 && (
-            <div className="rounded-2xl border border-border overflow-hidden divide-y divide-border">
-              {rest.map((entry, i) => {
-                const rank = i + 4
-                const name = entry.username ?? t(`Joueur #${rank}`, `Player #${rank}`)
-                const pct = Math.round((entry.count / TOTAL) * 100)
-                return (
-                  <div key={entry.user_id} className="flex items-center gap-3 px-4 py-3 bg-card">
-                    <span className="w-6 text-xs font-bold text-muted-foreground text-right tabular-nums flex-shrink-0">{rank}</span>
-                    <div className="w-8 h-8 rounded-xl bg-muted border border-border flex items-center justify-center overflow-hidden p-1 flex-shrink-0">
-                      {entry.avatar_img
-                        ? <img src={entry.avatar_img} alt={name} className="w-full h-full object-contain pointer-events-none" draggable={false} />
-                        : <span className="text-[10px] font-bold text-muted-foreground">{name.slice(0, 2).toUpperCase()}</span>
-                      }
-                    </div>
-                    <span className="flex-1 text-sm font-medium text-foreground truncate">{name}</span>
-                    <div className="flex flex-col items-end flex-shrink-0">
-                      <span className="text-sm font-bold tabular-nums text-foreground">{entry.count}</span>
-                      <span className="text-[10px] text-muted-foreground tabular-nums">{pct}%</span>
+          {/* Full list */}
+          <div className="rounded-2xl border border-border overflow-hidden divide-y divide-border">
+            {entries.map((entry, i) => {
+              const rank = i + 1
+              const name = entry.username ?? t(`Joueur #${rank}`, `Player #${rank}`)
+              const pct = Math.round((entry.count / TOTAL) * 100)
+              const since = memberSince(entry.joined_at)
+              const rankIcon =
+                rank === 1 ? <Trophy className="w-3.5 h-3.5 text-yellow-400" /> :
+                rank === 2 ? <Medal className="w-3.5 h-3.5 text-zinc-400" /> :
+                rank === 3 ? <Medal className="w-3.5 h-3.5 text-amber-600" /> :
+                <span className="text-[11px] font-bold text-muted-foreground tabular-nums">{rank}</span>
+              return (
+                <div key={entry.user_id} className={`flex items-center gap-3 px-4 py-3 bg-card ${rank === 1 ? 'bg-yellow-400/3' : ''}`}>
+                  {/* Rank */}
+                  <div className="w-5 flex items-center justify-center flex-shrink-0">{rankIcon}</div>
+                  {/* Avatar */}
+                  <div className="w-9 h-9 rounded-xl bg-muted border border-border flex items-center justify-center overflow-hidden p-1 flex-shrink-0">
+                    {entry.avatar_img
+                      ? <img src={entry.avatar_img} alt={name} className="w-full h-full object-contain pointer-events-none" draggable={false} />
+                      : <span className="text-[10px] font-bold text-muted-foreground">{name.slice(0, 2).toUpperCase()}</span>
+                    }
+                  </div>
+                  {/* Name + meta */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {since && <span className="text-[10px] text-muted-foreground/60">{since}</span>}
+                      {entry.last_elements.length > 0 && (
+                        <div className="flex items-center gap-1">
+                          {entry.last_elements.map((el, j) => (
+                            el.img
+                              ? <img key={j} src={el.img} alt={el.name} title={el.name} className="w-4 h-4 object-contain opacity-70" draggable={false} />
+                              : null
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
-                )
-              })}
-            </div>
-          )}
+                  {/* Score */}
+                  <div className="flex flex-col items-end flex-shrink-0">
+                    <span className="text-sm font-bold tabular-nums text-foreground">{entry.count}</span>
+                    <span className="text-[10px] text-muted-foreground tabular-nums">{pct}%</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </>
       )}
     </div>

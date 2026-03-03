@@ -314,7 +314,7 @@ function QuestCard({ quest, lang, onClaim, onScratch, pinned, onDismiss }: {
 
 // ─── Main Panel ───────────────────────────────────────────────────────────────
 
-export function QuestInlinePanel({ lang }: { lang: 'fr' | 'en' }) {
+export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGoToPlay?: () => void }) {
   const [quests, setQuests] = useState<Quest[]>([])
   const [loading, setLoading] = useState(true)
   // Quest IDs that were just fully scratched — stay pinned open until user clicks "J'ai noté"
@@ -362,6 +362,8 @@ export function QuestInlinePanel({ lang }: { lang: 'fr' | 'en' }) {
 
   const handleDismiss = (questId: number) => {
     setPinnedIds(prev => { const next = new Set(prev); next.delete(questId); return next })
+    onGoToPlay?.()
+  }
   }
 
   const pending = quests.filter(q => !q.claimed_at && q.progress < q.target_value)
