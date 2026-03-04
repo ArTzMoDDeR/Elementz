@@ -28,10 +28,15 @@ type Quest = {
   target_value: number
   icon: string
   sort_order: number
+  is_daily: boolean
+  reset_hours: number | null
+  required_element: number | null
   progress: number
   completed_at: string | null
   claimed_at: string | null
+  reset_at: string | null
   rewards: QuestReward[]
+  is_expired?: boolean
 }
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -220,9 +225,16 @@ function QuestCard({ quest, lang, onClaim, onScratch, pinned, onDismiss }: {
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className={`text-sm font-semibold leading-tight ${isDone ? 'text-muted-foreground/50 line-through' : 'text-foreground'}`}>
-            {title}
-          </p>
+          <div className="flex items-center gap-1.5">
+            <p className={`text-sm font-semibold leading-tight ${isDone ? 'text-muted-foreground/50 line-through' : 'text-foreground'}`}>
+              {title}
+            </p>
+            {quest.is_daily && (
+              <span className="text-[9px] font-bold text-sky-400 bg-sky-400/10 px-1.5 py-0.5 rounded-full flex-shrink-0 uppercase tracking-wide">
+                {lang === 'fr' ? 'Jour' : 'Day'}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-muted-foreground mt-0.5 truncate">{desc}</p>
         </div>
 
@@ -365,9 +377,13 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
     onGoToPlay?.()
   }
 
-  const pending = quests.filter(q => !q.claimed_at && q.progress < q.target_value)
-  const ready = quests.filter(q => !q.claimed_at && q.progress >= q.target_value)
-  const claimed = quests.filter(q => !!q.claimed_at)
+  const daily = quests.filter(q => q.is_daily)
+  const permanent = quests.filter(q => !q.is_daily)
+
+  const pending = permanent.filter(q => !q.claimed_at && q.progress < q.target_value)
+  const ready = [...daily.filter(q => !q.claimed_at && q.progress >= q.target_value),
+                 ...permanent.filter(q => !q.claimed_at && q.progress >= q.target_value)]
+  const claimed = permanent.filter(q => !!q.claimed_at)
   const unscratched = claimed.filter(q => pinnedIds.has(q.id) || q.rewards.some(r => !r.scratched_at))
   const done = claimed.filter(q => !pinnedIds.has(q.id) && q.rewards.every(r => !!r.scratched_at))
 
@@ -396,6 +412,21 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
         </div>
       ) : (
         <>
+          {/* Daily quests */}
+          {daily.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 px-1">
+                <Sun className="w-3.5 h-3.5 text-sky-400" />
+                <p className="text-xs font-semibold text-sky-400 uppercase tracking-wide">
+                  {t('Quêtes journalières', 'Daily quests')}
+                </p>
+              </div>
+              {daily.map(q => (
+                <QuestCard key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={handleScratch} />
+              ))}
+            </div>
+          )}
+
           {/* To scratch — highest priority */}
           {unscratched.length > 0 && (
             <div className="flex flex-col gap-2">
