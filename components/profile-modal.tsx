@@ -7,7 +7,7 @@ import type { ElementDef } from '@/lib/game-data'
 
 type Lang = 'fr' | 'en'
 
-const TOTAL_ELEMENTS = 593
+const TOTAL_ELEMENTS = 592
 
 interface LastDiscovered {
   name_french: string
