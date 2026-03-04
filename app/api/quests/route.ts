@@ -154,9 +154,17 @@ export async function POST(req: NextRequest) {
   const completed = liveProgress >= quest.target_value
   if (!completed) return NextResponse.json({ error: 'Quest not completed' }, { status: 400 })
 
-  // Check not already claimed
-  const [existing] = await sql`SELECT claimed_at FROM user_quests WHERE user_id = ${userId} AND quest_id = ${quest_id}`
-  if (existing?.claimed_at) return NextResponse.json({ error: 'Already claimed' }, { status: 400 })
+  // For daily quests: clear old claimed state + rewards so they can be re-claimed each cycle
+  if (quest.is_daily) {
+    await sql`DELETE FROM quest_rewards WHERE user_id = ${userId} AND quest_id = ${quest_id}`
+    await sql`DELETE FROM user_quests WHERE user_id = ${userId} AND quest_id = ${quest_id}`
+  }
+
+  // Check not already claimed (permanent quests only — daily already cleared above)
+  if (!quest.is_daily) {
+    const [existing] = await sql`SELECT claimed_at FROM user_quests WHERE user_id = ${userId} AND quest_id = ${quest_id}`
+    if (existing?.claimed_at) return NextResponse.json({ error: 'Already claimed' }, { status: 400 })
+  }
 
   // Pick a recipe where BOTH ingredients are already unlocked but result is NOT yet discovered
   let candidates = await sql`
