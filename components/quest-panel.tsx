@@ -366,11 +366,15 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
   useEffect(() => { fetchQuests() }, [fetchQuests])
 
   const handleClaim = async (questId: number) => {
-    await fetch('/api/quests', {
+    const res = await fetch('/api/quests', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ quest_id: questId }),
     })
+    if (res.ok) {
+      // Pin immediately so the quest shows open in the scratch section after refetch
+      setPinnedIds(prev => new Set(prev).add(questId))
+    }
     await fetchQuests()
   }
 
@@ -429,7 +433,7 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
             <p className="text-xs text-muted-foreground">
               {loading ? '—' : totalReady > 0
                 ? <span className="text-amber-400 font-semibold">{totalReady} {t(totalReady > 1 ? 'récompenses prêtes' : 'récompense prête', totalReady > 1 ? 'rewards ready' : 'reward ready')}</span>
-                : t(`${pendingPermanent.length + pendingDaily.length} en cours`, `${pendingPermanent.length + pendingDaily.length} in progress`)
+                : t('Bonne chance !', 'Good luck!')
               }
             </p>
           </div>
