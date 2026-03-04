@@ -35,6 +35,12 @@ export async function GET() {
 
     const [unlockCount] = await sql`SELECT COUNT(*)::int AS n FROM unlocks WHERE user_id = ${userId}`
 
+    // Daily: only unlocks in the last 24h
+    const [dailyUnlockCount] = await sql`
+      SELECT COUNT(*)::int AS n FROM unlocks
+      WHERE user_id = ${userId} AND discovered_at >= NOW() - INTERVAL '24 hours'
+    `
+
     let comboCount = { n: 0 }
     try {
       const [r] = await sql`SELECT COUNT(*)::int AS n FROM element_actions WHERE user_id = ${userId}`
@@ -58,8 +64,10 @@ export async function GET() {
       const isExpired = q.is_daily && q.reset_at && new Date(q.reset_at) <= now
       let liveProgress: number
 
-      if (q.type === 'discover_n' || q.type === 'discover_n_daily') {
-        liveProgress = isExpired ? 0 : Math.min(unlockCount.n, q.target_value)
+      if (q.type === 'discover_n_daily') {
+        liveProgress = isExpired ? 0 : Math.min(dailyUnlockCount.n, q.target_value)
+      } else if (q.type === 'discover_n') {
+        liveProgress = Math.min(unlockCount.n, q.target_value)
       } else if (q.type === 'combinations_n') {
         liveProgress = Math.min(comboCount.n, q.target_value)
       } else if (q.type === 'session_n') {
