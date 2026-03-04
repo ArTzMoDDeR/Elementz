@@ -1,9 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Sparkles, Star, Droplets, Flame, Wind, Mountain, Sun, Compass, Crown, Gem, CheckCircle2, Microscope, FlaskConical, Plus } from 'lucide-react'
+import {
+  Sparkles, Star, Droplets, Flame, Wind, Mountain, Sun, Compass, Crown,
+  Gem, CheckCircle2, Microscope, FlaskConical, Plus, Lock, Trophy,
+} from 'lucide-react'
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type QuestReward = {
   quest_id: number
@@ -43,6 +46,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   sparkles: Sparkles, star: Star, droplets: Droplets, flame: Flame,
   wind: Wind, mountain: Mountain, sun: Sun, compass: Compass,
   crown: Crown, gem: Gem, microscope: Microscope, flask: FlaskConical,
+  trophy: Trophy,
 }
 
 // ─── Scratch Card ─────────────────────────────────────────────────────────────
@@ -54,39 +58,29 @@ function ScratchCard({ reward, lang, onScratched }: {
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [revealed, setRevealed] = useState(!!reward.scratched_at)
-  const [dismissed, setDismissed] = useState(false)
-  const [scratching, setScratching] = useState(false)
   const lastPos = useRef<{ x: number; y: number } | null>(null)
-  const scratchedPct = useRef(0)
   const notifiedRef = useRef(false)
-
-  const COVER_COLOR = '#1a1a2e'
-  const SIZE = 120
+  const SIZE = 100
 
   useEffect(() => {
     if (revealed) return
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')!
-    ctx.fillStyle = COVER_COLOR
+    ctx.fillStyle = '#1c1c28'
     ctx.fillRect(0, 0, SIZE, SIZE)
-    ctx.fillStyle = 'rgba(255,255,255,0.08)'
-    for (let x = 10; x < SIZE; x += 20) {
-      for (let y = 10; y < SIZE; y += 20) {
-        ctx.font = '12px sans-serif'
+    ctx.fillStyle = 'rgba(255,255,255,0.06)'
+    ctx.font = 'bold 11px sans-serif'
+    for (let x = 12; x < SIZE; x += 22)
+      for (let y = 18; y < SIZE; y += 22)
         ctx.fillText('?', x, y)
-      }
-    }
   }, [revealed])
 
   const getPos = (e: React.TouchEvent | React.MouseEvent, canvas: HTMLCanvasElement) => {
     const rect = canvas.getBoundingClientRect()
-    const scaleX = canvas.width / rect.width
-    const scaleY = canvas.height / rect.height
-    if ('touches' in e) {
-      return { x: (e.touches[0].clientX - rect.left) * scaleX, y: (e.touches[0].clientY - rect.top) * scaleY }
-    }
-    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY }
+    const sx = canvas.width / rect.width, sy = canvas.height / rect.height
+    if ('touches' in e) return { x: (e.touches[0].clientX - rect.left) * sx, y: (e.touches[0].clientY - rect.top) * sy }
+    return { x: (e.clientX - rect.left) * sx, y: (e.clientY - rect.top) * sy }
   }
 
   const scratch = useCallback((x: number, y: number) => {
@@ -98,20 +92,14 @@ function ScratchCard({ reward, lang, onScratched }: {
     if (lastPos.current) {
       ctx.moveTo(lastPos.current.x, lastPos.current.y)
       ctx.lineTo(x, y)
-      ctx.lineWidth = 28
-      ctx.lineCap = 'round'
-      ctx.lineJoin = 'round'
+      ctx.lineWidth = 26; ctx.lineCap = 'round'; ctx.lineJoin = 'round'
       ctx.stroke()
     }
-    ctx.arc(x, y, 14, 0, Math.PI * 2)
-    ctx.fill()
+    ctx.arc(x, y, 13, 0, Math.PI * 2); ctx.fill()
     lastPos.current = { x, y }
-
     const data = ctx.getImageData(0, 0, SIZE, SIZE).data
-    let transparent = 0
-    for (let i = 3; i < data.length; i += 4) if (data[i] < 128) transparent++
-    scratchedPct.current = transparent / (SIZE * SIZE)
-    if (scratchedPct.current > 0.55 && !notifiedRef.current) {
+    let t = 0; for (let i = 3; i < data.length; i += 4) if (data[i] < 128) t++
+    if (t / (SIZE * SIZE) > 0.55 && !notifiedRef.current) {
       ctx.clearRect(0, 0, SIZE, SIZE)
       notifiedRef.current = true
       setRevealed(true)
@@ -123,45 +111,36 @@ function ScratchCard({ reward, lang, onScratched }: {
 
   if (revealed) {
     return (
-      <div className={`flex flex-col items-center gap-2 w-[120px] transition-opacity duration-300 ${dismissed ? 'opacity-30' : ''}`}>
-        <div className="w-[120px] h-[120px] rounded-2xl border-2 border-primary/30 bg-primary/5 flex flex-col items-center justify-center gap-2 relative overflow-hidden">
+      <div className="flex flex-col items-center gap-1.5">
+        <div className="w-[100px] h-[100px] rounded-2xl border border-amber-400/30 bg-amber-400/5 flex flex-col items-center justify-center gap-1.5 relative">
           {reward.img
-            ? <img src={reward.img} alt={name} className="w-14 h-14 object-contain" draggable={false} />
-            : <Sparkles className="w-10 h-10 text-primary" />
-          }
-          <span className="text-[10px] font-bold text-primary text-center px-1 leading-tight">{name}</span>
+            ? <img src={reward.img} alt={name} className="w-12 h-12 object-contain" draggable={false} />
+            : <Sparkles className="w-9 h-9 text-amber-400" />}
+          <span className="text-[9px] font-bold text-amber-400 text-center px-1 leading-tight">{name}</span>
         </div>
-        <p className="text-[10px] text-muted-foreground text-center leading-tight">
-          {lang === 'fr' ? 'Ingrédient' : 'Ingredient'}
-        </p>
+        <p className="text-[9px] text-muted-foreground/60">{lang === 'fr' ? 'Révélé' : 'Revealed'}</p>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col items-center gap-2 w-[120px]">
-      <div className="relative w-[120px] h-[120px] rounded-2xl overflow-hidden cursor-crosshair select-none" style={{ touchAction: 'none' }}>
-        <div className="absolute inset-0 rounded-2xl border border-border bg-muted flex flex-col items-center justify-center gap-2">
-          {reward.img
-            ? <img src={reward.img} alt="" className="w-14 h-14 object-contain opacity-60" draggable={false} />
-            : <Sparkles className="w-10 h-10 text-muted-foreground" />
-          }
+    <div className="flex flex-col items-center gap-1.5">
+      <div className="relative w-[100px] h-[100px] rounded-2xl overflow-hidden cursor-crosshair select-none" style={{ touchAction: 'none' }}>
+        <div className="absolute inset-0 bg-muted flex items-center justify-center">
+          {reward.img && <img src={reward.img} alt="" className="w-12 h-12 object-contain opacity-40" draggable={false} />}
         </div>
         <canvas
-          ref={canvasRef}
-          width={SIZE}
-          height={SIZE}
+          ref={canvasRef} width={SIZE} height={SIZE}
           className="absolute inset-0 w-full h-full rounded-2xl"
-          onMouseDown={e => { setScratching(true); lastPos.current = null; scratch(...Object.values(getPos(e, e.currentTarget)) as [number, number]) }}
-          onMouseMove={e => { if (scratching) scratch(...Object.values(getPos(e, e.currentTarget)) as [number, number]) }}
-          onMouseUp={() => { setScratching(false); lastPos.current = null }}
-          onMouseLeave={() => { setScratching(false); lastPos.current = null }}
+          onMouseDown={e => { lastPos.current = null; scratch(...Object.values(getPos(e, e.currentTarget)) as [number, number]) }}
+          onMouseMove={e => { if (e.buttons === 1) scratch(...Object.values(getPos(e, e.currentTarget)) as [number, number]) }}
+          onMouseUp={() => { lastPos.current = null }}
           onTouchStart={e => { e.preventDefault(); lastPos.current = null; scratch(...Object.values(getPos(e, e.currentTarget)) as [number, number]) }}
           onTouchMove={e => { e.preventDefault(); scratch(...Object.values(getPos(e, e.currentTarget)) as [number, number]) }}
           onTouchEnd={() => { lastPos.current = null }}
         />
       </div>
-      <p className="text-[10px] text-muted-foreground animate-pulse">{lang === 'fr' ? 'Gratte pour révéler' : 'Scratch to reveal'}</p>
+      <p className="text-[9px] text-muted-foreground/50 animate-pulse">{lang === 'fr' ? 'Gratte ici' : 'Scratch here'}</p>
     </div>
   )
 }
@@ -173,19 +152,21 @@ function QuestCard({ quest, lang, onClaim, onScratch, pinned, onDismiss }: {
   lang: 'fr' | 'en'
   onClaim: (id: number) => Promise<void>
   onScratch: (questId: number, slot: number) => Promise<void>
-  pinned?: boolean       // stay open even if allScratched
-  onDismiss?: () => void // called when user clicks "J'ai noté"
+  pinned?: boolean
+  onDismiss?: () => void
 }) {
   const [claiming, setClaiming] = useState(false)
-  const [expanded, setExpanded] = useState(false)
+  const [scratchOpen, setScratchOpen] = useState(pinned ?? false)
 
   const title = lang === 'fr' ? quest.title_fr : quest.title_en
   const desc = lang === 'fr' ? quest.desc_fr : quest.desc_en
   const pct = Math.min(100, Math.round((quest.progress / quest.target_value) * 100))
-  const isCompleted = quest.progress >= quest.target_value
+  const isReady = quest.progress >= quest.target_value
   const isClaimed = !!quest.claimed_at
   const hasRewards = quest.rewards.length > 0
   const allScratched = hasRewards && quest.rewards.every(r => !!r.scratched_at)
+  const isDone = !pinned && isClaimed && allScratched
+  const showScratch = isClaimed && (pinned || scratchOpen || !allScratched)
 
   const Icon = ICON_MAP[quest.icon] ?? Star
 
@@ -195,124 +176,145 @@ function QuestCard({ quest, lang, onClaim, onScratch, pinned, onDismiss }: {
     setClaiming(true)
     await onClaim(quest.id)
     setClaiming(false)
-    setExpanded(true)
+    setScratchOpen(true)
   }
 
-  const statusColor = isClaimed
-    ? (!pinned && allScratched) ? 'border-border' : 'border-primary/40 bg-primary/3'
-    : isCompleted ? 'border-amber-400/40 bg-amber-400/5' : 'border-border'
+  // State-based accent stripe color
+  const stripeClass = isDone
+    ? 'bg-muted-foreground/20'
+    : isClaimed && !allScratched
+    ? 'bg-primary'
+    : isReady
+    ? 'bg-amber-400'
+    : quest.is_daily
+    ? 'bg-sky-400'
+    : 'bg-transparent'
 
-  const isDone = !pinned && allScratched
+  // Icon bg
+  const iconBg = isDone
+    ? 'bg-muted text-muted-foreground/30'
+    : isClaimed
+    ? 'bg-primary/10 text-primary'
+    : isReady
+    ? 'bg-amber-400/15 text-amber-400'
+    : quest.is_daily
+    ? 'bg-sky-400/10 text-sky-400'
+    : 'bg-muted text-muted-foreground'
 
   return (
-    <div className={`rounded-2xl border overflow-hidden transition-colors ${statusColor}`}>
-      {/* Header row */}
-      <div
-        className="flex items-center gap-3 px-4 py-3.5 bg-card cursor-pointer active:bg-muted/40"
-        onClick={() => (isClaimed || !isCompleted) && setExpanded(v => !v)}
-      >
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-          isDone ? 'bg-muted' : isClaimed ? 'bg-primary/10' : isCompleted ? 'bg-amber-400/15' : 'bg-muted'
-        }`}>
-          {isDone
-            ? <CheckCircle2 className="w-4.5 h-4.5 text-muted-foreground/40" />
-            : isClaimed
-            ? <Icon className="w-4.5 h-4.5 text-primary" />
-            : isCompleted
-            ? <Icon className="w-4.5 h-4.5 text-amber-400" />
-            : <Icon className="w-4.5 h-4.5 text-muted-foreground" />
-          }
-        </div>
+    <div className={`rounded-2xl bg-card overflow-hidden ${isDone ? 'opacity-50' : ''}`}>
+      <div className="flex items-stretch">
+        {/* Accent stripe */}
+        <div className={`w-1 flex-shrink-0 ${stripeClass} rounded-l-2xl`} />
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <p className={`text-sm font-semibold leading-tight ${isDone ? 'text-muted-foreground/50 line-through' : 'text-foreground'}`}>
-              {title}
-            </p>
-            {quest.is_daily && (
-              <span className="text-[9px] font-bold text-sky-400 bg-sky-400/10 px-1.5 py-0.5 rounded-full flex-shrink-0 uppercase tracking-wide">
-                {lang === 'fr' ? 'Jour' : 'Day'}
-              </span>
-            )}
+        <div className="flex-1 min-w-0 px-3.5 py-3">
+          <div className="flex items-center gap-3">
+            {/* Icon */}
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${iconBg}`}>
+              {isDone
+                ? <CheckCircle2 className="w-4 h-4" />
+                : <Icon className="w-4 h-4" />}
+            </div>
+
+            {/* Text */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className={`text-sm font-semibold leading-tight ${isDone ? 'line-through' : 'text-foreground'}`}>
+                  {title}
+                </span>
+                {quest.is_daily && !isClaimed && (
+                  <span className="text-[9px] font-bold text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded-full uppercase tracking-widest leading-none">
+                    {lang === 'fr' ? '24h' : '24h'}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground/70 mt-0.5 leading-snug line-clamp-1">{desc}</p>
+            </div>
+
+            {/* Right side */}
+            <div className="flex-shrink-0 flex items-center gap-2">
+              {isClaimed && !allScratched ? (
+                <button
+                  onClick={() => setScratchOpen(v => !v)}
+                  className="text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full transition-colors hover:bg-primary/20"
+                >
+                  {lang === 'fr' ? 'Gratter' : 'Scratch'}
+                </button>
+              ) : isDone ? null : isReady ? null : (
+                <span className="text-xs font-bold tabular-nums text-muted-foreground/60">
+                  {quest.progress}<span className="opacity-40">/{quest.target_value}</span>
+                </span>
+              )}
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5 truncate">{desc}</p>
-        </div>
 
-        {isClaimed && !allScratched ? (
-          <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full flex-shrink-0">
-            {lang === 'fr' ? 'À gratter' : 'Scratch'}
-          </span>
-        ) : isDone ? (
-          <CheckCircle2 className="w-4 h-4 text-muted-foreground/30 flex-shrink-0" />
-        ) : isClaimed && pinned ? (
-          <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full flex-shrink-0">
-            {lang === 'fr' ? 'Gratté' : 'Scratched'}
-          </span>
-        ) : isCompleted ? (
-          <button
-            onClick={handleClaim}
-            disabled={claiming}
-            className="px-3 py-1.5 rounded-xl bg-amber-400 text-black text-xs font-bold flex-shrink-0 hover:bg-amber-300 transition-colors disabled:opacity-60 active:scale-95"
-          >
-            {claiming ? '...' : lang === 'fr' ? 'Réclamer' : 'Claim'}
-          </button>
-        ) : (
-          <span className="text-xs font-bold tabular-nums text-muted-foreground flex-shrink-0">
-            {quest.progress}/{quest.target_value}
-          </span>
-        )}
+          {/* Progress bar — only when in progress */}
+          {!isClaimed && (
+            <div className="mt-2.5 flex items-center gap-2">
+              <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{
+                    width: `${pct}%`,
+                    background: isReady
+                      ? 'rgb(251 191 36)'
+                      : quest.is_daily
+                      ? 'rgb(56 189 248)'
+                      : 'var(--primary)',
+                  }}
+                />
+              </div>
+              <span className="text-[10px] tabular-nums text-muted-foreground/50 w-7 text-right flex-shrink-0">
+                {pct}%
+              </span>
+            </div>
+          )}
+
+          {/* Claim button — full width when ready */}
+          {isReady && !isClaimed && (
+            <button
+              onClick={handleClaim}
+              disabled={claiming}
+              className="mt-2.5 w-full h-9 rounded-xl bg-amber-400 hover:bg-amber-300 active:scale-[0.98] text-black text-xs font-bold transition-all disabled:opacity-60 flex items-center justify-center gap-1.5"
+            >
+              <Trophy className="w-3.5 h-3.5" />
+              {claiming ? (lang === 'fr' ? 'En cours...' : 'Claiming...') : (lang === 'fr' ? 'Réclamer la récompense' : 'Claim reward')}
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Progress bar */}
-      {!isClaimed && !isCompleted && (
-        <div className="px-4 pb-3">
-          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${pct}%`, background: pct === 100 ? 'rgb(251 191 36)' : 'var(--primary)' }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Scratch cards panel — show when pinned (freshly scratched) or has unscratched cards */}
-      {isClaimed && (pinned || expanded || !allScratched) && hasRewards && (
-        <div className="px-4 pb-4 border-t border-border/50 pt-4">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
-            {lang === 'fr' ? 'Ta recette secrète' : 'Your secret recipe'}
-          </p>
+      {/* Scratch panel */}
+      {showScratch && hasRewards && (
+        <div className="border-t border-border/40 mx-3 pt-3 pb-4">
           {(() => {
             const anyReward = quest.rewards[0]
             const resultName = anyReward ? (lang === 'fr' ? anyReward.result_name_french : anyReward.result_name_english) : null
-            if (!resultName) return null
-            return (
-              <p className="text-xs text-muted-foreground mb-4">
+            return resultName ? (
+              <p className="text-[11px] text-muted-foreground mb-3 text-center">
                 {lang === 'fr' ? 'Pour créer : ' : 'To create: '}
-                <span className="font-semibold text-foreground">{resultName}</span>
+                <span className="font-bold text-foreground">{resultName}</span>
               </p>
-            )
+            ) : null
           })()}
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex items-center justify-center gap-3 flex-wrap">
             {quest.rewards.sort((a, b) => a.slot - b.slot).map((r, i) => (
               <div key={r.slot} className="flex items-center gap-3">
                 <ScratchCard reward={r} lang={lang} onScratched={(slot) => onScratch(quest.id, slot)} />
-                {i < quest.rewards.length - 1 && (
-                  <Plus className="w-5 h-5 text-muted-foreground/40 flex-shrink-0" />
-                )}
+                {i < quest.rewards.length - 1 && <Plus className="w-4 h-4 text-muted-foreground/30 flex-shrink-0" />}
               </div>
             ))}
           </div>
-          {/* "J'ai noté" — only after all scratched */}
           {allScratched && (
-            <div className="mt-4 flex flex-col items-center gap-2">
-              <p className="text-[11px] text-center text-muted-foreground/60 leading-relaxed">
+            <div className="mt-4 flex flex-col items-center gap-2.5">
+              <p className="text-[11px] text-center text-muted-foreground/60 leading-relaxed max-w-[220px]">
                 {lang === 'fr'
-                  ? 'Retiens bien cette combinaison et va créer cet élément sur le terrain !'
-                  : 'Remember this combo and create the element on the field!'}
+                  ? 'Retiens cette combinaison et va la créer sur le terrain !'
+                  : 'Remember this combo and try it on the field!'}
               </p>
               <button
-                onClick={() => { setExpanded(false); onDismiss?.() }}
-                className="mt-1 px-4 py-2 rounded-xl bg-primary/10 border border-primary/20 text-sm font-semibold text-primary active:bg-primary/20 transition-colors"
+                onClick={() => { setScratchOpen(false); onDismiss?.() }}
+                className="px-5 py-2 rounded-xl bg-primary/10 border border-primary/20 text-sm font-semibold text-primary hover:bg-primary/20 transition-colors active:scale-95"
               >
                 {lang === 'fr' ? "J'ai noté !" : 'Got it!'}
               </button>
@@ -324,14 +326,33 @@ function QuestCard({ quest, lang, onClaim, onScratch, pinned, onDismiss }: {
   )
 }
 
+// ─── Section Label ────────────────────────────────────────────────────────────
+
+function SectionLabel({ label, count, color = 'muted' }: { label: string; count?: number; color?: 'amber' | 'sky' | 'primary' | 'muted' }) {
+  const colorClass = {
+    amber: 'text-amber-400',
+    sky: 'text-sky-400',
+    primary: 'text-primary',
+    muted: 'text-muted-foreground/50',
+  }[color]
+
+  return (
+    <div className={`flex items-center gap-2 px-0.5 ${colorClass}`}>
+      <div className="flex-1 h-px bg-current opacity-20" />
+      <span className="text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">
+        {label}{count !== undefined ? ` · ${count}` : ''}
+      </span>
+      <div className="flex-1 h-px bg-current opacity-20" />
+    </div>
+  )
+}
+
 // ─── Main Panel ───────────────────────────────────────────────────────────────
 
 export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGoToPlay?: () => void }) {
   const [quests, setQuests] = useState<Quest[]>([])
   const [loading, setLoading] = useState(true)
-  // Quest IDs that were just fully scratched — stay pinned open until user clicks "J'ai noté"
   const [pinnedIds, setPinnedIds] = useState<Set<number>>(new Set())
-
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
   const fetchQuests = useCallback(async () => {
@@ -360,12 +381,10 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ quest_id: questId, slot }),
     })
-    // Refresh data but pin this quest so it doesn't vanish
     const res = await fetch('/api/quests')
     const data = await res.json()
     const updated: Quest[] = data.quests ?? []
     setQuests(updated)
-    // If all cards are now scratched, pin it
     const q = updated.find(q => q.id === questId)
     if (q && q.rewards.length > 0 && q.rewards.every(r => !!r.scratched_at)) {
       setPinnedIds(prev => new Set(prev).add(questId))
@@ -380,59 +399,46 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
   const daily = quests.filter(q => q.is_daily)
   const permanent = quests.filter(q => !q.is_daily)
 
-  const pending = permanent.filter(q => !q.claimed_at && q.progress < q.target_value)
-  const ready = [...daily.filter(q => !q.claimed_at && q.progress >= q.target_value),
-                 ...permanent.filter(q => !q.claimed_at && q.progress >= q.target_value)]
-  const claimed = permanent.filter(q => !!q.claimed_at)
-  const unscratched = claimed.filter(q => pinnedIds.has(q.id) || q.rewards.some(r => !r.scratched_at))
-  const done = claimed.filter(q => !pinnedIds.has(q.id) && q.rewards.every(r => !!r.scratched_at))
+  const readyDaily = daily.filter(q => !q.claimed_at && q.progress >= q.target_value)
+  const readyPermanent = permanent.filter(q => !q.claimed_at && q.progress >= q.target_value)
+  const pendingDaily = daily.filter(q => !q.claimed_at && q.progress < q.target_value)
+  const pendingPermanent = permanent.filter(q => !q.claimed_at && q.progress < q.target_value)
+  const claimedQuests = permanent.filter(q => !!q.claimed_at)
+  const unscratched = claimedQuests.filter(q => pinnedIds.has(q.id) || q.rewards.some(r => !r.scratched_at))
+  const done = claimedQuests.filter(q => !pinnedIds.has(q.id) && q.rewards.every(r => !!r.scratched_at))
+
+  const totalReady = readyDaily.length + readyPermanent.length
 
   return (
-    <div className="flex flex-col gap-4 py-1">
+    <div className="flex flex-col gap-5 py-1">
 
       {/* Header */}
-      <div className="flex items-center gap-2.5">
-        <div className="w-9 h-9 rounded-2xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center flex-shrink-0">
-          <Star className="w-4.5 h-4.5 text-amber-400" />
-        </div>
+      <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-base font-bold text-foreground">{t('Quêtes', 'Quests')}</h2>
-          <p className="text-xs text-muted-foreground">
-            {ready.length > 0
-              ? t(`${ready.length} quête${ready.length > 1 ? 's' : ''} à réclamer`, `${ready.length} quest${ready.length > 1 ? 's' : ''} ready`)
-              : t(`${pending.length} en cours`, `${pending.length} in progress`)
+          <h2 className="text-lg font-bold text-foreground">{t('Quêtes', 'Quests')}</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {loading ? '—' : totalReady > 0
+              ? <span className="text-amber-400 font-semibold">{totalReady} {t(totalReady > 1 ? 'récompenses prêtes' : 'récompense prête', totalReady > 1 ? 'rewards ready' : 'reward ready')}</span>
+              : t(`${pendingPermanent.length + pendingDaily.length} en cours`, `${pendingPermanent.length + pendingDaily.length} in progress`)
             }
           </p>
+        </div>
+        <div className="w-10 h-10 rounded-2xl bg-amber-400/10 border border-amber-400/15 flex items-center justify-center flex-shrink-0">
+          <Star className="w-4.5 h-4.5 text-amber-400" />
         </div>
       </div>
 
       {loading ? (
         <div className="flex justify-center py-10">
-          <div className="w-6 h-6 border-2 border-border border-t-foreground/40 rounded-full animate-spin" />
+          <div className="w-5 h-5 border-2 border-border border-t-foreground/40 rounded-full animate-spin" />
         </div>
       ) : (
-        <>
-          {/* Daily quests */}
-          {daily.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2 px-1">
-                <Sun className="w-3.5 h-3.5 text-sky-400" />
-                <p className="text-xs font-semibold text-sky-400 uppercase tracking-wide">
-                  {t('Quêtes journalières', 'Daily quests')}
-                </p>
-              </div>
-              {daily.map(q => (
-                <QuestCard key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={handleScratch} />
-              ))}
-            </div>
-          )}
+        <div className="flex flex-col gap-5">
 
-          {/* To scratch — highest priority */}
+          {/* Scratch rewards */}
           {unscratched.length > 0 && (
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-semibold text-primary uppercase tracking-wide px-1">
-                {t('Récompenses à gratter', 'Scratch rewards')}
-              </p>
+              <SectionLabel label={t('À gratter', 'Scratch rewards')} count={unscratched.length} color="primary" />
               {unscratched.map(q => (
                 <QuestCard key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={handleScratch}
                   pinned={pinnedIds.has(q.id)} onDismiss={() => handleDismiss(q.id)} />
@@ -440,25 +446,34 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
             </div>
           )}
 
-          {/* Ready to claim */}
-          {ready.length > 0 && (
+          {/* Daily */}
+          {(pendingDaily.length > 0 || readyDaily.length > 0) && (
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-semibold text-amber-400 uppercase tracking-wide px-1">
-                {t('Prêtes à réclamer', 'Ready to claim')}
-              </p>
-              {ready.map(q => (
+              <SectionLabel label={t('Journalières', 'Daily')} color="sky" />
+              {readyDaily.map(q => (
+                <QuestCard key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={handleScratch} />
+              ))}
+              {pendingDaily.map(q => (
+                <QuestCard key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={handleScratch} />
+              ))}
+            </div>
+          )}
+
+          {/* Ready permanent */}
+          {readyPermanent.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <SectionLabel label={t('Prêtes', 'Ready')} count={readyPermanent.length} color="amber" />
+              {readyPermanent.map(q => (
                 <QuestCard key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={handleScratch} />
               ))}
             </div>
           )}
 
           {/* In progress */}
-          {pending.length > 0 && (
+          {pendingPermanent.length > 0 && (
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
-                {t('En cours', 'In progress')}
-              </p>
-              {pending.map(q => (
+              <SectionLabel label={t('En cours', 'In progress')} count={pendingPermanent.length} />
+              {pendingPermanent.map(q => (
                 <QuestCard key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={handleScratch} />
               ))}
             </div>
@@ -467,15 +482,14 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
           {/* Completed */}
           {done.length > 0 && (
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-semibold text-muted-foreground/40 uppercase tracking-wide px-1">
-                {t('Terminées', 'Completed')}
-              </p>
+              <SectionLabel label={t('Terminées', 'Completed')} count={done.length} />
               {done.map(q => (
                 <QuestCard key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={handleScratch} />
               ))}
             </div>
           )}
-        </>
+
+        </div>
       )}
     </div>
   )
