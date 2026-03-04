@@ -127,7 +127,10 @@ export async function POST(req: NextRequest) {
   const [unlockCount] = await sql`SELECT COUNT(*)::int AS n FROM unlocks WHERE user_id = ${userId}`
 
   let liveProgress = 0
-  if (quest.type === 'discover_n' || quest.type === 'discover_n_daily') {
+  if (quest.type === 'discover_n_daily') {
+    const [r] = await sql`SELECT COUNT(*)::int AS n FROM unlocks WHERE user_id = ${userId} AND discovered_at >= NOW() - INTERVAL '24 hours'`
+    liveProgress = r?.n ?? 0
+  } else if (quest.type === 'discover_n') {
     liveProgress = unlockCount.n
   } else if (quest.type === 'combinations_n') {
     try {
