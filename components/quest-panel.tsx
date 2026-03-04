@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Sparkles, Star, Droplets, Flame, Wind, Mountain, Sun, Compass, Crown,
-  Gem, CheckCircle2, Microscope, FlaskConical, Plus, Lock, Trophy,
+  Gem, CheckCircle2, Microscope, FlaskConical, Plus, Lock, Trophy, ArrowLeft,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -349,8 +349,7 @@ function SectionLabel({ label, count, color = 'muted' }: { label: string; count?
 
 // ─── Main Panel ───────────────────────────────────────────────────────────────
 
-export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGoToPlay?: () => void }) {
-  const [quests, setQuests] = useState<Quest[]>([])
+export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGoToPlay?: () => void }) {  const [quests, setQuests] = useState<Quest[]>([])
   const [loading, setLoading] = useState(true)
   const [pinnedIds, setPinnedIds] = useState<Set<number>>(new Set())
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
@@ -396,13 +395,16 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
     onGoToPlay?.()
   }
 
+  const sortByPct = (a: Quest, b: Quest) =>
+    (b.progress / b.target_value) - (a.progress / a.target_value)
+
   const daily = quests.filter(q => q.is_daily)
   const permanent = quests.filter(q => !q.is_daily)
 
   const readyDaily = daily.filter(q => !q.claimed_at && q.progress >= q.target_value)
   const readyPermanent = permanent.filter(q => !q.claimed_at && q.progress >= q.target_value)
-  const pendingDaily = daily.filter(q => !q.claimed_at && q.progress < q.target_value)
-  const pendingPermanent = permanent.filter(q => !q.claimed_at && q.progress < q.target_value)
+  const pendingDaily = daily.filter(q => !q.claimed_at && q.progress < q.target_value).sort(sortByPct)
+  const pendingPermanent = permanent.filter(q => !q.claimed_at && q.progress < q.target_value).sort(sortByPct)
   const claimedQuests = permanent.filter(q => !!q.claimed_at)
   const unscratched = claimedQuests.filter(q => pinnedIds.has(q.id) || q.rewards.some(r => !r.scratched_at))
   const done = claimedQuests.filter(q => !pinnedIds.has(q.id) && q.rewards.every(r => !!r.scratched_at))
@@ -413,15 +415,24 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
     <div className="flex flex-col gap-5 py-1">
 
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-foreground">{t('Quêtes', 'Quests')}</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {loading ? '—' : totalReady > 0
-              ? <span className="text-amber-400 font-semibold">{totalReady} {t(totalReady > 1 ? 'récompenses prêtes' : 'récompense prête', totalReady > 1 ? 'rewards ready' : 'reward ready')}</span>
-              : t(`${pendingPermanent.length + pendingDaily.length} en cours`, `${pendingPermanent.length + pendingDaily.length} in progress`)
-            }
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onGoToPlay}
+            className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center hover:bg-muted/80 active:scale-95 transition-all flex-shrink-0"
+            aria-label={lang === 'fr' ? 'Retour' : 'Back'}
+          >
+            <ArrowLeft className="w-4 h-4 text-foreground/70" />
+          </button>
+          <div>
+            <h2 className="text-lg font-bold text-foreground leading-tight">{t('Quêtes', 'Quests')}</h2>
+            <p className="text-xs text-muted-foreground">
+              {loading ? '—' : totalReady > 0
+                ? <span className="text-amber-400 font-semibold">{totalReady} {t(totalReady > 1 ? 'récompenses prêtes' : 'récompense prête', totalReady > 1 ? 'rewards ready' : 'reward ready')}</span>
+                : t(`${pendingPermanent.length + pendingDaily.length} en cours`, `${pendingPermanent.length + pendingDaily.length} in progress`)
+              }
+            </p>
+          </div>
         </div>
         <div className="w-10 h-10 rounded-2xl bg-amber-400/10 border border-amber-400/15 flex items-center justify-center flex-shrink-0">
           <Star className="w-4.5 h-4.5 text-amber-400" />
@@ -435,13 +446,23 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
       ) : (
         <div className="flex flex-col gap-5">
 
-          {/* Scratch rewards */}
+          {/* Scratch rewards — highest priority */}
           {unscratched.length > 0 && (
             <div className="flex flex-col gap-2">
               <SectionLabel label={t('À gratter', 'Scratch rewards')} count={unscratched.length} color="primary" />
               {unscratched.map(q => (
                 <QuestCard key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={handleScratch}
                   pinned={pinnedIds.has(q.id)} onDismiss={() => handleDismiss(q.id)} />
+              ))}
+            </div>
+          )}
+
+          {/* Ready permanent — claim now */}
+          {readyPermanent.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <SectionLabel label={t('Prêtes', 'Ready')} count={readyPermanent.length} color="amber" />
+              {readyPermanent.map(q => (
+                <QuestCard key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={handleScratch} />
               ))}
             </div>
           )}
@@ -459,17 +480,7 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
             </div>
           )}
 
-          {/* Ready permanent */}
-          {readyPermanent.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <SectionLabel label={t('Prêtes', 'Ready')} count={readyPermanent.length} color="amber" />
-              {readyPermanent.map(q => (
-                <QuestCard key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={handleScratch} />
-              ))}
-            </div>
-          )}
-
-          {/* In progress */}
+          {/* In progress — sorted by % */}
           {pendingPermanent.length > 0 && (
             <div className="flex flex-col gap-2">
               <SectionLabel label={t('En cours', 'In progress')} count={pendingPermanent.length} />
