@@ -8,7 +8,7 @@ export async function GET() {
 
   try {
     const sql = neon(process.env.DATABASE_URL!)
-  const userId = session.user.id
+    const userId = session.user.id
 
   const quests = await sql`
     SELECT
