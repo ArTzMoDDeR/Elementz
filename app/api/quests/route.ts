@@ -165,27 +165,36 @@ export async function POST(req: NextRequest) {
   if (existing?.claimed_at) return NextResponse.json({ error: 'Already claimed' }, { status: 400 })
 
   // Pick a recipe where BOTH ingredients are already unlocked but result is NOT yet discovered
-  const candidates = await sql`
-    SELECT r.ingredient1_number, r.ingredient2_number, r.result_number,
-           e1.name_french AS ing1_fr, e1.name_english AS ing1_en, e1.img AS ing1_img,
-           e2.name_french AS ing2_fr, e2.name_english AS ing2_en, e2.img AS ing2_img,
-           er.name_french AS result_fr, er.name_english AS result_en, er.img AS result_img
+  let candidates = await sql`
+    SELECT r.ingredient1_number, r.ingredient2_number, r.result_number
     FROM recipes r
-    JOIN elements e1 ON e1.number = r.ingredient1_number
-    JOIN elements e2 ON e2.number = r.ingredient2_number
-    JOIN elements er ON er.number = r.result_number
     WHERE
-      -- both ingredients already unlocked
       r.ingredient1_number IN (SELECT element_number FROM unlocks WHERE user_id = ${userId})
       AND r.ingredient2_number IN (SELECT element_number FROM unlocks WHERE user_id = ${userId})
-      -- result not yet discovered
       AND r.result_number NOT IN (SELECT element_number FROM unlocks WHERE user_id = ${userId})
-      -- not already given as a quest reward for this user
       AND r.result_number NOT IN (SELECT result_number FROM quest_rewards WHERE user_id = ${userId} AND result_number IS NOT NULL)
     ORDER BY RANDOM()
     LIMIT 1
   `
-  if (candidates.length === 0) return NextResponse.json({ error: 'No recipes available to hint' }, { status: 400 })
+
+  // Fallback: any recipe with undiscovered result (ingredients may not be unlocked yet)
+  if (candidates.length === 0) {
+    candidates = await sql`
+      SELECT r.ingredient1_number, r.ingredient2_number, r.result_number
+      FROM recipes r
+      WHERE r.result_number NOT IN (SELECT element_number FROM unlocks WHERE user_id = ${userId})
+        AND r.result_number NOT IN (SELECT result_number FROM quest_rewards WHERE user_id = ${userId} AND result_number IS NOT NULL)
+      ORDER BY RANDOM()
+      LIMIT 1
+    `
+  }
+
+  // Last resort: any recipe at all
+  if (candidates.length === 0) {
+    candidates = await sql`SELECT ingredient1_number, ingredient2_number, result_number FROM recipes ORDER BY RANDOM() LIMIT 1`
+  }
+
+  if (candidates.length === 0) return NextResponse.json({ error: 'No recipes available' }, { status: 500 })
 
   const recipe = candidates[0]
 
