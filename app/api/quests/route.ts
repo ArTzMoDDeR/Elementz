@@ -10,104 +10,87 @@ export async function GET() {
     const sql = neon(process.env.DATABASE_URL!)
     const userId = session.user.id
 
-  const quests = await sql`
-    SELECT
-      qd.id,
-      qd.type,
-      qd.title_fr,
-      qd.title_en,
-      qd.desc_fr,
-      qd.desc_en,
-      qd.target_value,
-      qd.icon,
-      qd.sort_order,
-      qd.is_daily,
-      qd.reset_hours,
-      qd.required_element,
-      COALESCE(uq.progress, 0) AS progress,
-      uq.completed_at,
-      uq.claimed_at,
-      uq.reset_at
-    FROM quest_definitions qd
-    LEFT JOIN user_quests uq ON uq.quest_id = qd.id AND uq.user_id = ${userId}
-    ORDER BY qd.sort_order ASC
-  `
-
-  const rewards = await sql`
-    SELECT qr.quest_id, qr.slot, qr.scratched_at,
-           e.name_french AS name_french, e.name_english AS name_english, e.img,
-           er.name_french AS result_name_french, er.name_english AS result_name_english, er.img AS result_img,
-           qr.result_number
-    FROM quest_rewards qr
-    JOIN elements e ON e.number = qr.element_number
-    LEFT JOIN elements er ON er.number = qr.result_number
-    WHERE qr.user_id = ${userId}
-  `
-
-  // Live counts — gracefully handle missing tables
-  const [unlockCount] = await sql`SELECT COUNT(*)::int AS n FROM unlocks WHERE user_id = ${userId}`
-
-  let comboCount = { n: 0 }
-  try {
-    const [r] = await sql`SELECT COUNT(*)::int AS n FROM element_actions WHERE user_id = ${userId}`
-    if (r) comboCount = r
-  } catch {}
-
-  const [sessionCount] = await sql`
-    SELECT COUNT(DISTINCT DATE_TRUNC('day', discovered_at))::int AS n
-    FROM unlocks WHERE user_id = ${userId}
-  `
-
-  const rewardsByQuest: Record<number, typeof rewards> = {}
-  for (const r of rewards) {
-    if (!rewardsByQuest[r.quest_id]) rewardsByQuest[r.quest_id] = []
-    rewardsByQuest[r.quest_id].push(r)
-  }
-
-  const now = new Date()
-
-  const result = quests.map((q: any) => {
-    let liveProgress = q.progress
-
-    // For daily quests: reset if reset_at is past
-    const isExpired = q.is_daily && q.reset_at && new Date(q.reset_at) <= now
-    if (isExpired) liveProgress = 0
-
-    if (q.type === 'discover_n' || q.type === 'discover_n_daily') {
-      liveProgress = isExpired ? 0 : Math.min(unlockCount.n, q.target_value)
-    } else if (q.type === 'combinations_n') {
-      liveProgress = Math.min(comboCount.n, q.target_value)
-    } else if (q.type === 'session_n') {
-      liveProgress = Math.min(sessionCount.n, q.target_value)
-    } else if (q.type === 'specific_element') {
-      // Check if the required element is in unlocks
-      // required_element holds the element number
-      liveProgress = q.required_element ? 0 : 0 // resolved below
-    }
-
-    return {
-      ...q,
-      progress: liveProgress,
-      rewards: rewardsByQuest[q.id] ?? [],
-      is_expired: isExpired,
-    }
-  })
-
-  // Resolve specific_element progress (batch)
-  const specificQuests = result.filter((q: any) => q.type === 'specific_element' && q.required_element)
-  if (specificQuests.length > 0) {
-    const elementNums = specificQuests.map((q: any) => q.required_element)
-    const unlocked = await sql`
-      SELECT element_number FROM unlocks
-      WHERE user_id = ${userId} AND element_number = ANY(${elementNums})
+    const quests = await sql`
+      SELECT
+        qd.id, qd.type, qd.title_fr, qd.title_en, qd.desc_fr, qd.desc_en,
+        qd.target_value, qd.icon, qd.sort_order, qd.is_daily, qd.reset_hours,
+        qd.required_element,
+        COALESCE(uq.progress, 0) AS progress,
+        uq.completed_at, uq.claimed_at, uq.reset_at
+      FROM quest_definitions qd
+      LEFT JOIN user_quests uq ON uq.quest_id = qd.id AND uq.user_id = ${userId}
+      ORDER BY qd.sort_order ASC
     `
-    const unlockedSet = new Set(unlocked.map((r: any) => r.element_number))
-    for (const q of result as any[]) {
-      if (q.type === 'specific_element' && q.required_element) {
-        q.progress = unlockedSet.has(q.required_element) ? 1 : 0
+
+    const rewards = await sql`
+      SELECT qr.quest_id, qr.slot, qr.scratched_at,
+             e.name_french, e.name_english, e.img,
+             er.name_french AS result_name_french, er.name_english AS result_name_english,
+             er.img AS result_img, qr.result_number
+      FROM quest_rewards qr
+      JOIN elements e ON e.number = qr.element_number
+      LEFT JOIN elements er ON er.number = qr.result_number
+      WHERE qr.user_id = ${userId}
+    `
+
+    const [unlockCount] = await sql`SELECT COUNT(*)::int AS n FROM unlocks WHERE user_id = ${userId}`
+
+    let comboCount = { n: 0 }
+    try {
+      const [r] = await sql`SELECT COUNT(*)::int AS n FROM element_actions WHERE user_id = ${userId}`
+      if (r) comboCount = r
+    } catch {}
+
+    const [sessionCount] = await sql`
+      SELECT COUNT(DISTINCT DATE_TRUNC('day', discovered_at))::int AS n
+      FROM unlocks WHERE user_id = ${userId}
+    `
+
+    const rewardsByQuest: Record<number, typeof rewards> = {}
+    for (const r of rewards) {
+      if (!rewardsByQuest[r.quest_id]) rewardsByQuest[r.quest_id] = []
+      rewardsByQuest[r.quest_id].push(r)
+    }
+
+    const now = new Date()
+
+    const result = quests.map((q: any) => {
+      const isExpired = q.is_daily && q.reset_at && new Date(q.reset_at) <= now
+      let liveProgress: number
+
+      if (q.type === 'discover_n' || q.type === 'discover_n_daily') {
+        liveProgress = isExpired ? 0 : Math.min(unlockCount.n, q.target_value)
+      } else if (q.type === 'combinations_n') {
+        liveProgress = Math.min(comboCount.n, q.target_value)
+      } else if (q.type === 'session_n') {
+        liveProgress = Math.min(sessionCount.n, q.target_value)
+      } else {
+        liveProgress = q.progress
+      }
+
+      return {
+        ...q,
+        progress: liveProgress,
+        rewards: rewardsByQuest[q.id] ?? [],
+        is_expired: isExpired,
+      }
+    })
+
+    // Resolve specific_element progress in batch
+    const specificQuests = result.filter((q: any) => q.type === 'specific_element' && q.required_element)
+    if (specificQuests.length > 0) {
+      const elementNums = specificQuests.map((q: any) => q.required_element)
+      const unlocked = await sql`
+        SELECT element_number FROM unlocks
+        WHERE user_id = ${userId} AND element_number = ANY(${elementNums})
+      `
+      const unlockedSet = new Set(unlocked.map((r: any) => r.element_number))
+      for (const q of result as any[]) {
+        if (q.type === 'specific_element' && q.required_element) {
+          q.progress = unlockedSet.has(q.required_element) ? 1 : 0
+        }
       }
     }
-  }
 
     return NextResponse.json({ quests: result })
   } catch (err) {
