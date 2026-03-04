@@ -132,15 +132,32 @@ export async function POST(req: NextRequest) {
   const [quest] = await sql`SELECT * FROM quest_definitions WHERE id = ${quest_id}`
   if (!quest) return NextResponse.json({ error: 'Quest not found' }, { status: 404 })
 
-  // Verify completion — for discover_n check live count
+  // Verify completion using live counts for all quest types
   const [unlockCount] = await sql`SELECT COUNT(*)::int AS n FROM unlocks WHERE user_id = ${userId}`
-  let completed = false
-  if (quest.type === 'discover_n') completed = unlockCount.n >= quest.target_value
-  // For usage-based quests, trust the stored progress
-  else {
+
+  let liveProgress = 0
+  if (quest.type === 'discover_n' || quest.type === 'discover_n_daily') {
+    liveProgress = unlockCount.n
+  } else if (quest.type === 'combinations_n') {
+    try {
+      const [r] = await sql`SELECT COUNT(*)::int AS n FROM element_actions WHERE user_id = ${userId}`
+      liveProgress = r?.n ?? 0
+    } catch { liveProgress = 0 }
+  } else if (quest.type === 'session_n') {
+    const [r] = await sql`SELECT COUNT(DISTINCT DATE_TRUNC('day', discovered_at))::int AS n FROM unlocks WHERE user_id = ${userId}`
+    liveProgress = r?.n ?? 0
+  } else if (quest.type === 'specific_element') {
+    if (quest.required_element) {
+      const [r] = await sql`SELECT 1 FROM unlocks WHERE user_id = ${userId} AND element_number = ${quest.required_element} LIMIT 1`
+      liveProgress = r ? 1 : 0
+    }
+  } else {
+    // Fallback: check stored progress
     const [uq] = await sql`SELECT progress FROM user_quests WHERE user_id = ${userId} AND quest_id = ${quest_id}`
-    completed = uq && uq.progress >= quest.target_value
+    liveProgress = uq?.progress ?? 0
   }
+
+  const completed = liveProgress >= quest.target_value
   if (!completed) return NextResponse.json({ error: 'Quest not completed' }, { status: 400 })
 
   // Check not already claimed
