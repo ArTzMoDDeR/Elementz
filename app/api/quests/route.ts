@@ -6,7 +6,8 @@ export async function GET() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const sql = neon(process.env.DATABASE_URL!)
+  try {
+    const sql = neon(process.env.DATABASE_URL!)
   const userId = session.user.id
 
   const quests = await sql`
@@ -43,9 +44,15 @@ export async function GET() {
     WHERE qr.user_id = ${userId}
   `
 
-  // Live counts
+  // Live counts — gracefully handle missing tables
   const [unlockCount] = await sql`SELECT COUNT(*)::int AS n FROM unlocks WHERE user_id = ${userId}`
-  const [comboCount] = await sql`SELECT COUNT(*)::int AS n FROM element_actions WHERE user_id = ${userId}`
+
+  let comboCount = { n: 0 }
+  try {
+    const [r] = await sql`SELECT COUNT(*)::int AS n FROM element_actions WHERE user_id = ${userId}`
+    if (r) comboCount = r
+  } catch {}
+
   const [sessionCount] = await sql`
     SELECT COUNT(DISTINCT DATE_TRUNC('day', discovered_at))::int AS n
     FROM unlocks WHERE user_id = ${userId}
@@ -102,7 +109,11 @@ export async function GET() {
     }
   }
 
-  return NextResponse.json({ quests: result })
+    return NextResponse.json({ quests: result })
+  } catch (err) {
+    console.error('[quests GET]', err)
+    return NextResponse.json({ quests: [] })
+  }
 }
 
 
