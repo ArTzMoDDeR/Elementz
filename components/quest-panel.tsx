@@ -409,7 +409,7 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
   const readyPermanent = permanent.filter(q => !q.claimed_at && q.progress >= q.target_value)
   const pendingDaily = daily.filter(q => !q.claimed_at && q.progress < q.target_value).sort(sortByPct)
   const pendingPermanent = permanent.filter(q => !q.claimed_at && q.progress < q.target_value).sort(sortByPct)
-  const claimedQuests = permanent.filter(q => !!q.claimed_at)
+  const claimedQuests = quests.filter(q => !!q.claimed_at)
   const unscratched = claimedQuests.filter(q => pinnedIds.has(q.id) || q.rewards.some(r => !r.scratched_at))
   const done = claimedQuests.filter(q => !pinnedIds.has(q.id) && q.rewards.every(r => !!r.scratched_at))
 

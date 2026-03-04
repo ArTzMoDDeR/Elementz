@@ -1114,7 +1114,7 @@ function ChevronScrollBar({ scrollRef }: { scrollRef: React.RefObject<HTMLDivEle
 // ============================================================
 
 function LeaderboardInlinePanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: () => void }) {
-  const TOTAL = 593
+  const TOTAL = 592
   const [entries, setEntries] = useState<Array<{
     user_id: string
     username: string | null
@@ -1449,7 +1449,7 @@ function ProfileInlinePanel({ lang, sessionUser, elements, discovered, onAvatarC
   onAvatarChange?: (key: string) => void
   onOpenLeaderboard?: () => void
 }) {
-  const TOTAL_ELEMENTS = 593
+  const TOTAL_ELEMENTS = 592
   type ProfileData = {
     username: string | null
     show_in_leaderboard: boolean
