@@ -1,5 +1,5 @@
 import { neon } from '@neondatabase/serverless'
-import { RECIPE_DATA } from '../lib/recipes-raw'
+import { RAW_RECIPES } from '../lib/recipes-raw'
 import { parseRecipes } from '../lib/game-data'
 
 const databaseUrl = process.env.DATABASE_URL
@@ -28,7 +28,7 @@ async function main() {
   console.log('[v0] Parsing recipes to extract all elements...')
   
   // Parse recipes to get all elements
-  const { elements } = parseRecipes(RECIPE_DATA)
+  const { elements } = parseRecipes(RAW_RECIPES)
   const elementList = Array.from(elements.values())
   
   console.log(`[v0] Found ${elementList.length} elements`)
