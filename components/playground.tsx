@@ -1683,7 +1683,7 @@ function ProfileInlinePanel({ lang, sessionUser, elements, discovered, onAvatarC
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-muted p-1 border border-border">
                   {el.img
                     ? <img src={el.img} alt={name} className="w-full h-full object-contain pointer-events-none" draggable={false} />
-                    : <Atom className="w-4 h-4 text-muted-foreground" />
+                    : <AtomIcon className="w-4 h-4 text-muted-foreground" />
                   }
                 </div>
                 <span className="text-sm text-foreground font-medium flex-1 truncate">{name}</span>
