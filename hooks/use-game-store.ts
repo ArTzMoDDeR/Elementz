@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 
+import { useSession } from 'next-auth/react'
+
 /**
  * Preload a list of image URLs in parallel.
  * Resolves when all images have either loaded or errored (never rejects).
@@ -20,7 +22,6 @@ function preloadImages(urls: string[]): Promise<void> {
     ),
   ).then(() => undefined)
 }
-import { useSession } from 'next-auth/react'
 import { type ElementDef } from '@/lib/game-data'
 
 const STORAGE_KEY = 'alchemy-discovered-v3'
