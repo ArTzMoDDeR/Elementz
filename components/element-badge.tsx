@@ -64,7 +64,7 @@ const LABEL_BG = 'var(--element-badge-label)'
 const LABEL_TEXT = 'var(--element-badge-label-text)'
 
 function ElementBadgeInner({ element, size = 'md', fluid = false, className = '', style }: ElementBadgeProps) {
-  const hasIcon = ELEMENT_ICONS[element.name]
+  const hasIcon = ELEMENT_ICONS[element.name] as ((color: string) => React.ReactNode) | undefined
   const sizeClass = fluid ? 'w-full aspect-square' : FIXED_SIZE[size]
   // Use imageUrl directly — optimizeImageUrl was returning the same value anyway
   const imgSrc = element.imageUrl || null

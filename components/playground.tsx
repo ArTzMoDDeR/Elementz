@@ -4,7 +4,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { ElementBadge } from './element-badge'
 import { Search, X, ArrowUpDown, ArrowLeft, ChevronUp, ChevronDown, ChevronRight, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Hand, MousePointer, Medal, Atom as AtomIcon, Star, Shield, Trophy, Sun, Moon } from 'lucide-react'
 import { HouseSimple, Bell, Gear, Lifebuoy, Question, User, UserCircle, Scroll } from '@phosphor-icons/react'
-import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
+import type { ElementDef } from '@/lib/game-data'
+import type { PlaygroundItem } from '@/hooks/use-game-store'
 import { HelpModal } from './help-modal'
 import { LeaderboardModal } from './leaderboard-modal'
 import { ProfileModal } from './profile-modal'
@@ -799,13 +800,15 @@ export function Playground({
                             onClick: () => {
                               const rect = containerRef.current?.getBoundingClientRect()
                               if (!rect) return
-                              const COLS = 4
-                              const ROWS = 4 // 4x4 = 16 slots before fallback
-                              const BADGE_W = 72
-                              const BADGE_H = 72
-                              const GAP = 12
-                              const PAD_X = 0 // Flush left
-                              const PAD_Y = 16
+
+                              // Wider spacing on widescreen, tighter on mobile
+                              const COLS = isMobile ? 4 : 5
+                              const ROWS = isMobile ? 4 : 5
+                              const BADGE_W = isMobile ? 72 : 96
+                              const BADGE_H = isMobile ? 72 : 96
+                              const GAP = isMobile ? 12 : 24
+                              const PAD_X = isMobile ? 0 : 24
+                              const PAD_Y = isMobile ? 16 : 24
                               
                               // Find first empty slot that doesn't overlap existing items
                               const isSlotFree = (cx: number, cy: number) => {
