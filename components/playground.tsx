@@ -3,12 +3,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { ElementBadge } from './element-badge'
 import { Search, X, ArrowUpDown, ArrowLeft, ChevronUp, ChevronDown, ChevronRight, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Hand, MousePointer, Medal, Atom as AtomIcon, Star, Shield, Trophy, Sun, Moon } from 'lucide-react'
-import { HouseSimple, Bell, Gear, Lifebuoy, Question, User, UserCircle, Scroll } from '@phosphor-icons/react'
+import { HouseSimple, Bell, Gear, Lifebuoy, Question, User, UserCircle, Scroll, Books } from '@phosphor-icons/react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import { HelpModal } from './help-modal'
 import { LeaderboardModal } from './leaderboard-modal'
 import { ProfileModal } from './profile-modal'
 import { QuestInlinePanel } from './quest-panel'
+import { CodexInlinePanel } from './codex-panel'
 import EmailSignIn from '@/components/email-sign-in'
 import { signInWithGoogle, signInWithDiscord } from '@/app/actions/auth'
 import { signOut } from 'next-auth/react'
@@ -49,6 +50,7 @@ interface PlaygroundProps {
   hapticEnabled?: boolean
   onToggleHaptic?: () => void
   onTapModeChange?: (enabled: boolean) => void
+  recipeMap?: Map<string, string[]>
   // Mobile header notifications
   headerNotification?: {
     type: 'discovery' | 'hint' | 'progress' | 'tapMode' | 'hintsToggle'
@@ -273,7 +275,7 @@ export function Playground({
   lang, onSetLang,
   onDrop, onMove, onMerge, onDropAndMerge, onRemove, onClear, onReset,
   onUnlockAll, sessionUser, hintsEnabled, onToggleHints, onRequestHint, hintShouldPulse = false,
-  hapticEnabled = true, onToggleHaptic, onTapModeChange,
+  hapticEnabled = true, onToggleHaptic, onTapModeChange, recipeMap,
   headerNotification, onDismissNotification, playgroundItemsCount = 0,
 }: PlaygroundProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -338,7 +340,7 @@ export function Playground({
   const [helpOpen, setHelpOpen] = useState(false)
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'home' | 'quests' | 'settings' | 'help' | 'profile'>('home')
+  const [activeTab, setActiveTab] = useState<'home' | 'quests' | 'codex' | 'settings' | 'help' | 'profile'>('home')
   const [profileView, setProfileView] = useState<'profile' | 'leaderboard'>('profile')
   const [questBadge, setQuestBadge] = useState(false)
 
@@ -856,6 +858,16 @@ export function Playground({
             <div className="h-full overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div className="px-4 py-4">
                 {activeTab === 'quests' && sessionUser && <QuestInlinePanel lang={lang} onGoToPlay={() => setActiveTab('home')} />}
+                {activeTab === 'codex' && (
+                  <CodexInlinePanel
+                    lang={lang}
+                    elements={elements}
+                    discovered={discovered}
+                    totalElements={totalElements}
+                    recipeMap={recipeMap ?? new Map()}
+                    onGoToPlay={() => setActiveTab('home')}
+                  />
+                )}
                 {activeTab === 'quests' && !sessionUser && (
                   <div className="flex flex-col items-center gap-4 py-6">
                     <div className="w-14 h-14 rounded-2xl bg-muted/50 border border-border flex items-center justify-center">
@@ -988,6 +1000,7 @@ export function Playground({
             {([
               { id: 'home',     icon: HouseSimple, labelFr: 'Jeu',      labelEn: 'Play'     },
               { id: 'quests',   icon: Bell,        labelFr: 'Quêtes',   labelEn: 'Quests'   },
+              { id: 'codex',    icon: Books,       labelFr: 'Codex',    labelEn: 'Codex'    },
               { id: 'settings', icon: Gear,        labelFr: 'Réglages', labelEn: 'Settings' },
               { id: 'profile',  icon: User,        labelFr: 'Profil',   labelEn: 'Profile'  },
             ] as const).map(({ id, icon: Icon }) => {
