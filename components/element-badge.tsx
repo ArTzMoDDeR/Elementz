@@ -57,10 +57,11 @@ const LABEL_SIZE = {
   lg: 'text-xs',
 }
 
-// Single neutral background for all badges
-const BADGE_BG = 'rgba(255,255,255,0.06)'
-const BADGE_BORDER = 'rgba(255,255,255,0.12)'
-const LABEL_BG = 'rgba(0,0,0,0.55)'
+// Single neutral background for all badges — uses CSS vars for theme support
+const BADGE_BG = 'var(--element-badge-bg)'
+const BADGE_BORDER = 'var(--element-badge-border)'
+const LABEL_BG = 'var(--element-badge-label)'
+const LABEL_TEXT = 'var(--element-badge-label-text)'
 
 function ElementBadgeInner({ element, size = 'md', fluid = false, className = '', style }: ElementBadgeProps) {
   const hasIcon = ELEMENT_ICONS[element.name]
@@ -108,8 +109,9 @@ function ElementBadgeInner({ element, size = 'md', fluid = false, className = ''
         style={{ backgroundColor: LABEL_BG }}
       >
         <span
-          className={`${LABEL_SIZE[size]} font-semibold leading-tight text-center text-white w-full`}
+          className={`${LABEL_SIZE[size]} font-semibold leading-tight text-center w-full`}
           style={{
+            color: LABEL_TEXT,
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',

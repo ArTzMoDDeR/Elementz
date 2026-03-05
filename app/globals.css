@@ -23,25 +23,26 @@ input, textarea, [contenteditable] {
 }
 
 :root {
-  --background: oklch(0.98 0.002 80);
-  --foreground: oklch(0.18 0.01 60);
-  --card: oklch(0.99 0.001 80);
-  --card-foreground: oklch(0.18 0.01 60);
-  --popover: oklch(0.99 0.001 80);
-  --popover-foreground: oklch(0.18 0.01 60);
-  --primary: oklch(0.45 0.12 250);
-  --primary-foreground: oklch(0.98 0.002 80);
-  --secondary: oklch(0.95 0.005 80);
-  --secondary-foreground: oklch(0.25 0.01 60);
-  --muted: oklch(0.95 0.005 80);
-  --muted-foreground: oklch(0.52 0.01 60);
-  --accent: oklch(0.93 0.01 80);
-  --accent-foreground: oklch(0.25 0.01 60);
+  /* Light mode — warm stone, not blinding white */
+  --background: oklch(0.96 0.006 65);
+  --foreground: oklch(0.18 0.015 250);
+  --card: oklch(0.99 0.003 70);
+  --card-foreground: oklch(0.18 0.015 250);
+  --popover: oklch(0.99 0.003 70);
+  --popover-foreground: oklch(0.18 0.015 250);
+  --primary: oklch(0.50 0.16 250);
+  --primary-foreground: oklch(0.99 0.003 70);
+  --secondary: oklch(0.93 0.008 65);
+  --secondary-foreground: oklch(0.22 0.015 250);
+  --muted: oklch(0.93 0.008 65);
+  --muted-foreground: oklch(0.50 0.012 250);
+  --accent: oklch(0.91 0.012 65);
+  --accent-foreground: oklch(0.22 0.015 250);
   --destructive: oklch(0.55 0.22 25);
-  --destructive-foreground: oklch(0.98 0.002 80);
-  --border: oklch(0.91 0.005 80);
-  --input: oklch(0.91 0.005 80);
-  --ring: oklch(0.45 0.12 250);
+  --destructive-foreground: oklch(0.99 0.003 70);
+  --border: oklch(0.88 0.008 65);
+  --input: oklch(0.88 0.008 65);
+  --ring: oklch(0.50 0.16 250);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -56,6 +57,11 @@ input, textarea, [contenteditable] {
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* Element badge — light mode: soft stone card with visible border */
+  --element-badge-bg: oklch(0.985 0.003 70);
+  --element-badge-border: oklch(0.78 0.015 65);
+  --element-badge-label: rgba(235, 228, 218, 0.92);
+  --element-badge-label-text: oklch(0.15 0.015 250);
 }
 
 .dark {
@@ -91,6 +97,11 @@ input, textarea, [contenteditable] {
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
+  /* Element badge — dark mode: original semi-transparent white */
+  --element-badge-bg: rgba(255,255,255,0.06);
+  --element-badge-border: rgba(255,255,255,0.14);
+  --element-badge-label: rgba(0,0,0,0.55);
+  --element-badge-label-text: rgba(255,255,255,0.95);
 }
 
 @theme inline {
@@ -142,9 +153,15 @@ input, textarea, [contenteditable] {
     @apply bg-background text-foreground;
   }
   
-  /* Color shown below 100dvh in Safari browser (between app and toolbar) */
+  /* Fallback body bg for Safari overscroll area */
   body {
     background-color: #101418;
+  }
+  .dark body {
+    background-color: #101418;
+  }
+  :root:not(.dark) body {
+    background-color: #f5f0eb;
   }
 
   /* Only apply no-scroll on the game page, not admin */
