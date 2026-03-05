@@ -250,9 +250,10 @@ export function useGameStore() {
       const imageUrls = [...validDisc]
         .map(name => elMap.get(name)?.imageUrl)
         .filter((url): url is string => !!url)
-      await preloadImages(imageUrls)
 
-      setInitialized(true)
+      preloadImages(imageUrls).then(() => {
+        setInitialized(true)
+      })
     }).catch(() => {
       setDiscovered(new Set(BASE_ELEMENTS_EN))
       setInitialized(true)
