@@ -3,11 +3,6 @@ import Google from 'next-auth/providers/google'
 import Discord from 'next-auth/providers/discord'
 import Credentials from 'next-auth/providers/credentials'
 import { neon } from '@neondatabase/serverless'
-import { createHash } from 'crypto'
-
-function hashOtp(code: string): string {
-  return createHash('sha256').update(code).digest('hex')
-}
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: process.env.AUTH_SECRET,
@@ -34,12 +29,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!email || !code) return null
 
         const sql = neon(process.env.DATABASE_URL!)
-        const codeHash = hashOtp(code)
 
         const rows = await sql`
           SELECT id FROM email_otps
           WHERE email = ${email}
-            AND code = ${codeHash}
+            AND code = ${code}
             AND used = FALSE
             AND expires_at > NOW()
           ORDER BY created_at DESC
