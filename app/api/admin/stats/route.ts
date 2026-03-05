@@ -39,7 +39,8 @@ export async function GET() {
     LIMIT 5
   `
   const recentSignups = await sql`
-    SELECT id, email, name, created_at FROM users ORDER BY created_at DESC LIMIT 5
+    SELECT id, CONCAT(LEFT(email, 2), '***@', SPLIT_PART(email, '@', 2)) AS email_masked, name, created_at
+    FROM users ORDER BY created_at DESC LIMIT 5
   `
 
   return NextResponse.json({

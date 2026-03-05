@@ -4,26 +4,47 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+// In-memory rate limit: max 3 OTP requests per email per 10 minutes
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
+const OTP_WINDOW_MS = 10 * 60 * 1000 // 10 minutes
+const OTP_MAX_REQUESTS = 3
+
+function checkRateLimit(email: string): boolean {
+  const now = Date.now()
+  const entry = rateLimitMap.get(email)
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(email, { count: 1, resetAt: now + OTP_WINDOW_MS })
+    return true
+  }
+  if (entry.count >= OTP_MAX_REQUESTS) return false
+  entry.count++
+  return true
+}
+
 export async function POST(req: NextRequest) {
   const { email } = await req.json()
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: 'Invalid email' }, { status: 400 })
   }
 
+  // Rate limit: max 3 OTP requests per email per 10 minutes
+  if (!checkRateLimit(email.toLowerCase())) {
+    return NextResponse.json({ error: 'Too many requests. Please wait before requesting a new code.' }, { status: 429 })
+  }
+
   if (!process.env.RESEND_API_KEY) {
-    console.error('[v0] RESEND_API_KEY is not set')
     return NextResponse.json({ error: 'Email service not configured' }, { status: 500 })
   }
 
   const sql = neon(process.env.DATABASE_URL!)
   const code = String(Math.floor(100000 + Math.random() * 900000))
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
+  const expiresAt = new Date(Date.now() + OTP_WINDOW_MS)
 
   await sql`UPDATE email_otps SET used = TRUE WHERE email = ${email} AND used = FALSE`
   await sql`INSERT INTO email_otps (email, code, expires_at) VALUES (${email}, ${code}, ${expiresAt.toISOString()})`
 
   const from = process.env.EMAIL_FROM ?? 'onboarding@resend.dev'
-  console.log('[v0] Sending OTP to:', email, '| from:', from, '| code:', code)
+  // NOTE: never log the OTP code
 
   const { data, error } = await resend.emails.send({
     from,
@@ -42,10 +63,8 @@ export async function POST(req: NextRequest) {
   })
 
   if (error) {
-    console.error('[v0] Resend error:', JSON.stringify(error))
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
   }
 
-  console.log('[v0] Email sent successfully, id:', data?.id)
   return NextResponse.json({ ok: true })
 }

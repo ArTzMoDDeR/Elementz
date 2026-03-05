@@ -64,7 +64,24 @@ export async function PATCH(req: Request) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { username, show_in_leaderboard, avatar, haptic_feedback, theme, onboarding_done } = body
+  const { username, show_in_leaderboard, haptic_feedback, theme, onboarding_done } = body
+
+  // Validate and sanitize avatar — must be a short element name or null
+  let avatar: string | null | undefined = undefined
+  if (body.avatar !== undefined) {
+    if (body.avatar === null) {
+      avatar = null
+    } else if (typeof body.avatar === 'string' && body.avatar.length <= 50) {
+      avatar = body.avatar.trim() || null
+    } else {
+      return NextResponse.json({ error: 'Invalid avatar' }, { status: 400 })
+    }
+  }
+
+  // Validate theme
+  if (theme !== undefined && theme !== 'dark' && theme !== 'light') {
+    return NextResponse.json({ error: 'Invalid theme' }, { status: 400 })
+  }
 
   if (username !== undefined) {
     if (typeof username !== 'string') return NextResponse.json({ error: 'Invalid username' }, { status: 400 })
