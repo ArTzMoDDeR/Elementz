@@ -6,6 +6,7 @@ export interface ElementDef {
   imageUrl?: string | null
 }
 
+// PlaygroundItem is used by components/playground.tsx
 export interface PlaygroundItem {
   id: string
   name: string
