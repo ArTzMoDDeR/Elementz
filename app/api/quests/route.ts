@@ -84,8 +84,10 @@ export async function GET() {
       }
     })
 
-    // Resolve specific_element progress in batch
-    const specificQuests = result.filter((q: any) => q.type === 'specific_element' && q.required_element)
+    // Resolve discover_element / specific_element progress in batch
+    const specificQuests = result.filter((q: any) =>
+      (q.type === 'specific_element' || q.type === 'discover_element') && q.required_element
+    )
     if (specificQuests.length > 0) {
       const elementNums = specificQuests.map((q: any) => q.required_element)
       const unlocked = await sql`
@@ -94,7 +96,7 @@ export async function GET() {
       `
       const unlockedSet = new Set(unlocked.map((r: any) => r.element_number))
       for (const q of result as any[]) {
-        if (q.type === 'specific_element' && q.required_element) {
+        if ((q.type === 'specific_element' || q.type === 'discover_element') && q.required_element) {
           q.progress = unlockedSet.has(q.required_element) ? 1 : 0
         }
       }
@@ -140,7 +142,7 @@ export async function POST(req: NextRequest) {
   } else if (quest.type === 'session_n') {
     const [r] = await sql`SELECT COUNT(DISTINCT DATE_TRUNC('day', discovered_at))::int AS n FROM unlocks WHERE user_id = ${userId}`
     liveProgress = r?.n ?? 0
-  } else if (quest.type === 'specific_element') {
+  } else if (quest.type === 'specific_element' || quest.type === 'discover_element') {
     if (quest.required_element) {
       const [r] = await sql`SELECT 1 FROM unlocks WHERE user_id = ${userId} AND element_number = ${quest.required_element} LIMIT 1`
       liveProgress = r ? 1 : 0
