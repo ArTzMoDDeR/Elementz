@@ -1,3 +1,4 @@
+// onboarding-modal — single export
 'use client'
 
 import { useState } from 'react'
