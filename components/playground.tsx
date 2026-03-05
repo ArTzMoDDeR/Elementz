@@ -2,8 +2,8 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { ElementBadge } from './element-badge'
-import { Search, X, ArrowUpDown, ArrowLeft, ChevronUp, ChevronDown, ChevronRight, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Hand, MousePointer, Medal, Atom as AtomIcon, Star, Shield, Trophy, Sun, Moon, Lock } from 'lucide-react'
-import { HouseSimple, Bell, Gear, Lifebuoy, Question, User, UserCircle, Scroll, BookBookmark } from '@phosphor-icons/react'
+import { Search, X, ArrowUpDown, ArrowLeft, ChevronUp, ChevronDown, ChevronRight, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Hand, MousePointer, Medal, Atom as AtomIcon, Star, Shield, Trophy, Sun, Moon } from 'lucide-react'
+import { HouseSimple, Bell, Gear, Lifebuoy, Question, User, UserCircle, Scroll } from '@phosphor-icons/react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import { HelpModal } from './help-modal'
 import { LeaderboardModal } from './leaderboard-modal'
@@ -49,7 +49,6 @@ interface PlaygroundProps {
   hapticEnabled?: boolean
   onToggleHaptic?: () => void
   onTapModeChange?: (enabled: boolean) => void
-  recipeMap?: Map<string, string[]>
   // Mobile header notifications
   headerNotification?: {
     type: 'discovery' | 'hint' | 'progress' | 'tapMode' | 'hintsToggle'
@@ -274,7 +273,7 @@ export function Playground({
   lang, onSetLang,
   onDrop, onMove, onMerge, onDropAndMerge, onRemove, onClear, onReset,
   onUnlockAll, sessionUser, hintsEnabled, onToggleHints, onRequestHint, hintShouldPulse = false,
-  hapticEnabled = true, onToggleHaptic, onTapModeChange, recipeMap,
+  hapticEnabled = true, onToggleHaptic, onTapModeChange,
   headerNotification, onDismissNotification, playgroundItemsCount = 0,
 }: PlaygroundProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -339,7 +338,7 @@ export function Playground({
   const [helpOpen, setHelpOpen] = useState(false)
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'home' | 'quests' | 'codex' | 'settings' | 'help' | 'profile'>('home')
+  const [activeTab, setActiveTab] = useState<'home' | 'quests' | 'settings' | 'help' | 'profile'>('home')
   const [profileView, setProfileView] = useState<'profile' | 'leaderboard'>('profile')
   const [questBadge, setQuestBadge] = useState(false)
 
@@ -614,7 +613,6 @@ export function Playground({
         )
       })}
 
-
       {/* GHOST (inventory drag) */}
       {dragging?.source === 'inventory' && elements.get(dragging.elementName) && (
         <div
@@ -858,15 +856,6 @@ export function Playground({
             <div className="h-full overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div className="px-4 py-4">
                 {activeTab === 'quests' && sessionUser && <QuestInlinePanel lang={lang} onGoToPlay={() => setActiveTab('home')} />}
-                {activeTab === 'codex' && (
-                  <CodexPanel
-                    lang={lang}
-                    elements={elements}
-                    discovered={discovered}
-                    totalElements={totalElements}
-                    recipeMap={recipeMap}
-                  />
-                )}
                 {activeTab === 'quests' && !sessionUser && (
                   <div className="flex flex-col items-center gap-4 py-6">
                     <div className="w-14 h-14 rounded-2xl bg-muted/50 border border-border flex items-center justify-center">
@@ -999,7 +988,6 @@ export function Playground({
             {([
               { id: 'home',     icon: HouseSimple, labelFr: 'Jeu',      labelEn: 'Play'     },
               { id: 'quests',   icon: Bell,        labelFr: 'Quêtes',   labelEn: 'Quests'   },
-              { id: 'codex',    icon: BookBookmark, labelFr: 'Codex',   labelEn: 'Codex'    },
               { id: 'settings', icon: Gear,        labelFr: 'Réglages', labelEn: 'Settings' },
               { id: 'profile',  icon: User,        labelFr: 'Profil',   labelEn: 'Profile'  },
             ] as const).map(({ id, icon: Icon }) => {
@@ -1056,224 +1044,6 @@ export function Playground({
       {helpOpen && <HelpModal lang={lang} onSetLang={onSetLang} onClose={() => setHelpOpen(false)} />}
       {leaderboardOpen && <LeaderboardModal lang={lang} onClose={() => setLeaderboardOpen(false)} />}
       {profileOpen && sessionUser && <ProfileModal lang={lang} sessionUser={sessionUser} elements={elements} discovered={discovered} onClose={() => setProfileOpen(false)} onOpenLeaderboard={() => { setProfileOpen(false); setLeaderboardOpen(true) }} />}
-    </div>
-  )
-}
-
-// ============================================================
-// Codex Panel — Pokédex-style element catalogue
-// ============================================================
-
-function CodexPanel({
-  lang,
-  elements,
-  discovered,
-  totalElements,
-  recipeMap,
-}: {
-  lang: 'fr' | 'en'
-  elements: Map<string, ElementDef>
-  discovered: Set<string>
-  totalElements: number
-  recipeMap?: Map<string, string[]>
-}) {
-  const [selectedElement, setSelectedElement] = useState<string | null>(null)
-  const [codexSearch, setCodexSearch] = useState('')
-  const t = (fr: string, en: string) => lang === 'fr' ? fr : en
-
-  const allNames = Array.from(elements.keys()).sort((a, b) => a.localeCompare(b, lang))
-
-  const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '')
-  const filtered = codexSearch
-    ? allNames.filter(name => {
-        if (!discovered.has(name)) return false
-        return norm(name).includes(norm(codexSearch))
-      })
-    : allNames
-
-  const getRecipe = (name: string): [string, string] | null => {
-    if (!recipeMap) return null
-    for (const [key, results] of recipeMap.entries()) {
-      if (results.includes(name)) {
-        const [a, b] = key.split('|')
-        if (a <= b) return [a, b]
-      }
-    }
-    return null
-  }
-
-  const discoveredCount = discovered.size
-  const pct = totalElements > 0 ? Math.round((discoveredCount / totalElements) * 100) : 0
-  const selectedEl = selectedElement ? elements.get(selectedElement) : null
-  const selectedRecipe = selectedElement ? getRecipe(selectedElement) : null
-  const ingA = selectedRecipe ? elements.get(selectedRecipe[0]) : null
-  const ingB = selectedRecipe ? elements.get(selectedRecipe[1]) : null
-
-  return (
-    <div className="flex flex-col gap-4 py-1">
-
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div
-          className="w-9 h-9 rounded-2xl flex items-center justify-center flex-shrink-0"
-          style={{ background: 'linear-gradient(135deg, oklch(0.55 0.22 200 / 0.18), oklch(0.55 0.22 200 / 0.08))', border: '1px solid oklch(0.55 0.22 200 / 0.3)' }}
-        >
-          <BookBookmark size={18} weight="fill" style={{ color: 'oklch(0.72 0.2 200)' }} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-base font-bold text-foreground">Codex</h2>
-          <p className="text-xs text-muted-foreground">
-            <span className="font-semibold tabular-nums" style={{ color: 'oklch(0.72 0.2 200)' }}>{discoveredCount}</span>
-            <span className="opacity-50">/{totalElements}</span>
-            <span className="ml-1.5 opacity-50">·</span>
-            <span className="ml-1.5">{pct}%</span>
-          </p>
-        </div>
-      </div>
-
-      {/* Progress bar */}
-      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-        <div
-          className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${pct}%`, background: 'oklch(0.72 0.2 200)' }}
-        />
-      </div>
-
-      {/* Search bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-        <input
-          type="text"
-          value={codexSearch}
-          onChange={e => setCodexSearch(e.target.value)}
-          placeholder={t('Rechercher...', 'Search...')}
-          className="w-full h-9 pl-9 pr-8 bg-muted/50 border border-input rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-ring focus:bg-background transition-colors"
-          style={{ fontSize: '16px' }}
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck={false}
-        />
-        {codexSearch && (
-          <button onClick={() => setCodexSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-            <X className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
-
-      {/* Recipe detail card */}
-      {selectedEl && (
-        <div
-          className="rounded-2xl border overflow-hidden"
-          style={{ borderColor: `${selectedEl.color}40`, background: `${selectedEl.color}08` }}
-        >
-          <div className="flex items-center gap-4 px-4 py-4">
-            <div
-              className="w-14 h-14 rounded-2xl flex-shrink-0 flex items-center justify-center overflow-hidden p-1 border"
-              style={{ borderColor: `${selectedEl.color}50`, background: `${selectedEl.color}18` }}
-            >
-              {selectedEl.imageUrl
-                ? <img src={selectedEl.imageUrl} alt={selectedEl.name} className="w-full h-full object-contain" draggable={false} />
-                : <span className="text-xl font-bold text-white/70">{selectedEl.name[0].toUpperCase()}</span>
-              }
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-base font-bold text-foreground truncate">{selectedEl.name}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{t('Élément débloqué', 'Unlocked element')}</p>
-            </div>
-            <button
-              onClick={() => setSelectedElement(null)}
-              className="w-8 h-8 rounded-xl bg-muted/60 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          <div className="border-t px-4 py-3 flex items-center justify-center gap-3" style={{ borderColor: `${selectedEl.color}20` }}>
-            {selectedRecipe && ingA && ingB ? (
-              <>
-                <div className="flex flex-col items-center gap-1.5">
-                  <div className="w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden p-1 border" style={{ borderColor: `${ingA.color}40`, background: `${ingA.color}15` }}>
-                    {ingA.imageUrl ? <img src={ingA.imageUrl} alt={ingA.name} className="w-full h-full object-contain" draggable={false} /> : <span className="text-sm font-bold text-white/60">{ingA.name[0].toUpperCase()}</span>}
-                  </div>
-                  <span className="text-[9px] font-medium text-muted-foreground text-center leading-tight max-w-[52px] truncate">{ingA.name}</span>
-                </div>
-                <div className="w-7 h-7 rounded-full bg-muted border border-border flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-bold text-muted-foreground">+</span>
-                </div>
-                <div className="flex flex-col items-center gap-1.5">
-                  <div className="w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden p-1 border" style={{ borderColor: `${ingB.color}40`, background: `${ingB.color}15` }}>
-                    {ingB.imageUrl ? <img src={ingB.imageUrl} alt={ingB.name} className="w-full h-full object-contain" draggable={false} /> : <span className="text-sm font-bold text-white/60">{ingB.name[0].toUpperCase()}</span>}
-                  </div>
-                  <span className="text-[9px] font-medium text-muted-foreground text-center leading-tight max-w-[52px] truncate">{ingB.name}</span>
-                </div>
-                <div className="w-7 h-7 rounded-full bg-muted border border-border flex items-center justify-center flex-shrink-0">
-                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
-                </div>
-                <div className="flex flex-col items-center gap-1.5">
-                  <div className="w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden p-1 border-2" style={{ borderColor: `${selectedEl.color}70`, background: `${selectedEl.color}20` }}>
-                    {selectedEl.imageUrl ? <img src={selectedEl.imageUrl} alt={selectedEl.name} className="w-full h-full object-contain" draggable={false} /> : <span className="text-sm font-bold text-white/80">{selectedEl.name[0].toUpperCase()}</span>}
-                  </div>
-                  <span className="text-[9px] font-bold text-foreground text-center leading-tight max-w-[52px] truncate">{selectedEl.name}</span>
-                </div>
-              </>
-            ) : (
-              <p className="text-xs text-muted-foreground py-1">{t('Élément de base', 'Base element')}</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Grid */}
-      <div className="grid grid-cols-4 gap-2">
-        {filtered.map(name => {
-          const el = elements.get(name)
-          const isDiscovered = discovered.has(name)
-          const isSelected = selectedElement === name
-
-          if (!isDiscovered) {
-            return (
-              <div key={name} className="aspect-square rounded-xl flex flex-col items-center justify-center border border-border/50 bg-muted/30">
-                <Lock className="w-4 h-4 text-muted-foreground/30" />
-                <span className="text-[10px] font-bold text-muted-foreground/25 mt-1">?</span>
-              </div>
-            )
-          }
-
-          if (!el) return null
-
-          return (
-            <button
-              key={name}
-              onClick={() => setSelectedElement(prev => prev === name ? null : name)}
-              className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-1 transition-all active:scale-95 overflow-hidden p-1.5 border ${isSelected ? 'border-2 shadow-sm' : 'hover:opacity-80'}`}
-              style={{ borderColor: isSelected ? `${el.color}80` : `${el.color}25`, background: isSelected ? `${el.color}18` : `${el.color}0a` }}
-            >
-              <div className="w-[60%] aspect-square flex items-center justify-center flex-shrink-0">
-                {el.imageUrl
-                  ? <img src={el.imageUrl} alt={el.name} className="w-full h-full object-contain" draggable={false} />
-                  : <span className="text-xs font-bold text-white/60">{el.name[0].toUpperCase()}</span>
-                }
-              </div>
-              <span className="text-[8px] font-semibold leading-tight text-center w-full truncate px-0.5" style={{ color: isSelected ? el.color : 'var(--muted-foreground)' }}>
-                {el.name}
-              </span>
-            </button>
-          )
-        })}
-
-        {/* Locked teaser slots */}
-        {!codexSearch && (() => {
-          const slots = Math.min(totalElements - discoveredCount, 12)
-          return Array.from({ length: slots }).map((_, i) => (
-            <div key={`locked-${i}`} className="aspect-square rounded-xl flex flex-col items-center justify-center border border-border/30 bg-muted/20">
-              <Lock className="w-3.5 h-3.5 text-muted-foreground/20" />
-              <span className="text-[10px] font-bold text-muted-foreground/15 mt-0.5">?</span>
-            </div>
-          ))
-        })()}
-      </div>
-
     </div>
   )
 }
