@@ -44,7 +44,7 @@ export async function GET() {
     let comboCount = { n: 0 }
     try {
       const [r] = await sql`SELECT COUNT(*)::int AS n FROM element_actions WHERE user_id = ${userId}`
-      if (r) comboCount = r
+      if (r) comboCount = r as { n: number }
     } catch {}
 
     const [sessionCount] = await sql`
