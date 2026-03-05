@@ -1,6 +1,25 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
+
+/**
+ * Preload a list of image URLs in parallel.
+ * Resolves when all images have either loaded or errored (never rejects).
+ */
+function preloadImages(urls: string[]): Promise<void> {
+  if (typeof window === 'undefined' || urls.length === 0) return Promise.resolve()
+  return Promise.all(
+    urls.map(
+      url =>
+        new Promise<void>(resolve => {
+          const img = new window.Image()
+          img.onload = () => resolve()
+          img.onerror = () => resolve()
+          img.src = url
+        }),
+    ),
+  ).then(() => undefined)
+}
 import { useSession } from 'next-auth/react'
 import { type ElementDef } from '@/lib/game-data'
 
@@ -225,6 +244,14 @@ export function useGameStore() {
       }
 
       setDiscovered(validDisc)
+
+      // Preload images for discovered elements before showing the game
+      // so the UI never flashes broken/empty badges on first render.
+      const imageUrls = [...validDisc]
+        .map(name => elMap.get(name)?.imageUrl)
+        .filter((url): url is string => !!url)
+      await preloadImages(imageUrls)
+
       setInitialized(true)
     }).catch(() => {
       setDiscovered(new Set(BASE_ELEMENTS_EN))

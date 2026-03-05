@@ -1,6 +1,6 @@
 'use client'
 
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import { type ElementDef } from '@/lib/game-data'
 
 interface ElementBadgeProps {
@@ -64,10 +64,11 @@ const LABEL_BG = 'var(--element-badge-label)'
 const LABEL_TEXT = 'var(--element-badge-label-text)'
 
 function ElementBadgeInner({ element, size = 'md', fluid = false, className = '', style }: ElementBadgeProps) {
+  const [imgError, setImgError] = useState(false)
   const hasIcon = ELEMENT_ICONS[element.name] as ((color: string) => React.ReactNode) | undefined
   const sizeClass = fluid ? 'w-full aspect-square' : FIXED_SIZE[size]
   // Use imageUrl directly — optimizeImageUrl was returning the same value anyway
-  const imgSrc = element.imageUrl || null
+  const imgSrc = (!imgError && element.imageUrl) ? element.imageUrl : null
 
   return (
     <div
@@ -86,9 +87,10 @@ function ElementBadgeInner({ element, size = 'md', fluid = false, className = ''
               src={imgSrc}
               alt={element.name}
               draggable={false}
-              loading="lazy"
+              loading="eager"
               decoding="async"
               className="w-full h-full object-contain pointer-events-none"
+              onError={() => setImgError(true)}
             />
           ) : hasIcon ? (
             ELEMENT_ICONS[element.name](element.color)
