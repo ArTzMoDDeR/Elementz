@@ -1,3 +1,4 @@
+// onboarding-modal v2
 'use client'
 
 import { useState } from 'react'
@@ -14,7 +15,7 @@ type Step = typeof STEPS[number]
 export function OnboardingModal({ onComplete }: Props) {
   const [step, setStep] = useState<Step>('lang')
   const [lang, setLang] = useState<'fr' | 'en'>('en')
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+  const [selectedTheme, setSelectedTheme] = useState<'dark' | 'light'>('dark')
   const [haptic, setHaptic] = useState(true)
   const { setTheme: applyTheme } = useTheme()
 
@@ -22,12 +23,12 @@ export function OnboardingModal({ onComplete }: Props) {
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
   const handleNext = () => {
-    if (step === 'theme') applyTheme(theme)
+    if (step === 'theme') applyTheme(selectedTheme)
     const nextIndex = stepIndex + 1
     if (nextIndex < STEPS.length) {
       setStep(STEPS[nextIndex])
     } else {
-      onComplete({ lang, theme, haptic })
+      onComplete({ lang, theme: selectedTheme, haptic })
     }
   }
 
@@ -35,7 +36,6 @@ export function OnboardingModal({ onComplete }: Props) {
     if (stepIndex > 0) setStep(STEPS[stepIndex - 1])
   }
 
-  const isTutorialStep = ['combine', 'hint', 'clear', 'quests'].includes(step)
   const isLast = stepIndex === STEPS.length - 1
 
   return (
@@ -97,7 +97,7 @@ export function OnboardingModal({ onComplete }: Props) {
             <>
               <div className="flex flex-col gap-1 text-center">
                 <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-2">
-                  {theme === 'dark' ? <Moon className="w-6 h-6 text-primary" /> : <Sun className="w-6 h-6 text-primary" />}
+                  {selectedTheme === 'dark' ? <Moon className="w-6 h-6 text-primary" /> : <Sun className="w-6 h-6 text-primary" />}
                 </div>
                 <h2 className="text-xl font-bold text-foreground">
                   {t('Choisis ton thème', 'Choose your theme')}
@@ -110,16 +110,16 @@ export function OnboardingModal({ onComplete }: Props) {
                 {(['dark', 'light'] as const).map(th => (
                   <button
                     key={th}
-                    onClick={() => { setTheme(th); applyTheme(th) }}
+                    onClick={() => { setSelectedTheme(th); applyTheme(th) }}
                     className={`flex-1 py-4 rounded-2xl border-2 transition-all font-semibold text-base flex flex-col items-center gap-1.5 ${
-                      theme === th
+                      selectedTheme === th
                         ? 'border-primary bg-primary/8 text-primary'
                         : 'border-border bg-muted/40 text-muted-foreground hover:border-border/80'
                     }`}
                   >
                     {th === 'dark' ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6" />}
                     <span>{th === 'dark' ? t('Sombre', 'Dark') : t('Clair', 'Light')}</span>
-                    {theme === th && <Check className="w-3.5 h-3.5" />}
+                    {selectedTheme === th && <Check className="w-3.5 h-3.5" />}
                   </button>
                 ))}
               </div>
@@ -137,7 +137,7 @@ export function OnboardingModal({ onComplete }: Props) {
                   {t('Vibrations', 'Vibrations')}
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  {t('Vibrer lors d\'une nouvelle découverte ?', 'Vibrate when you discover something new?')}
+                  {t("Vibrer lors d'une nouvelle découverte ?", 'Vibrate when you discover something new?')}
                 </p>
               </div>
               <div className="flex gap-3">
@@ -166,7 +166,10 @@ export function OnboardingModal({ onComplete }: Props) {
               <div className="flex flex-col gap-1 text-center">
                 <h2 className="text-xl font-bold text-foreground">{t('Combine des éléments', 'Combine elements')}</h2>
                 <p className="text-sm text-muted-foreground">
-                  {t('Glisse un élément sur un autre pour les combiner et découvrir de nouveaux éléments.', 'Drag one element onto another to combine them and discover new ones.')}
+                  {t(
+                    'Glisse un élément sur un autre pour les combiner et découvrir de nouveaux éléments.',
+                    'Drag one element onto another to combine them and discover new ones.'
+                  )}
                 </p>
               </div>
               <div className="rounded-2xl overflow-hidden border border-border bg-muted/20">
@@ -185,7 +188,7 @@ export function OnboardingModal({ onComplete }: Props) {
                 <h2 className="text-xl font-bold text-foreground">{t('Indices', 'Hints')}</h2>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {t(
-                    'Si tu bloques, une suggestion apparaît automatiquement après 1 minute sans nouvelle découverte. Tu peux aussi demander un indice manuellement.',
+                    "Si tu bloques, une suggestion apparaît automatiquement après 1 minute sans nouvelle découverte. Tu peux aussi demander un indice manuellement.",
                     'If you get stuck, a suggestion appears automatically after 1 minute without a new discovery. You can also request a hint manually.'
                   )}
                 </p>
@@ -195,7 +198,7 @@ export function OnboardingModal({ onComplete }: Props) {
                   <Lightbulb className="w-5 h-5 text-amber-400" />
                 </div>
                 <p className="text-sm text-muted-foreground leading-snug">
-                  {t('Bouton en haut à droite de l\'écran de jeu', 'Button at the top right of the play screen')}
+                  {t("Bouton en haut à droite de l'écran de jeu", 'Button at the top right of the play screen')}
                 </p>
               </div>
             </>
@@ -221,7 +224,7 @@ export function OnboardingModal({ onComplete }: Props) {
                   <Trash2 className="w-5 h-5 text-muted-foreground" />
                 </div>
                 <p className="text-sm text-muted-foreground leading-snug">
-                  {t('Bouton en haut à gauche de l\'écran de jeu', 'Button at the top left of the play screen')}
+                  {t("Bouton en haut à gauche de l'écran de jeu", 'Button at the top left of the play screen')}
                 </p>
               </div>
             </>
@@ -237,7 +240,7 @@ export function OnboardingModal({ onComplete }: Props) {
                 <h2 className="text-xl font-bold text-foreground">{t('Quêtes', 'Quests')}</h2>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {t(
-                    'Accomplis des quêtes pour gagner des indices sur des recettes inconnues. Certaines quêtes sont quotidiennes, d\'autres sont permanentes.',
+                    "Accomplis des quêtes pour gagner des indices sur des recettes inconnues. Certaines quêtes sont quotidiennes, d'autres sont permanentes.",
                     'Complete quests to earn hints on unknown recipes. Some quests are daily, others are permanent.'
                   )}
                 </p>
@@ -279,4 +282,3 @@ export function OnboardingModal({ onComplete }: Props) {
     </div>
   )
 }
-
