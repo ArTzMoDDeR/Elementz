@@ -1,16 +1,18 @@
-// onboarding-modal v2
 'use client'
 
 import { useState } from 'react'
 import { useTheme } from 'next-themes'
 import { Globe, Vibrate, Sun, Moon, ChevronRight, Check, Lightbulb, Trash2, Scroll, ArrowLeft } from 'lucide-react'
 
-type Props = {
-  onComplete: (prefs: { lang: 'fr' | 'en'; theme: 'dark' | 'light'; haptic: boolean }) => void
-}
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type OnboardingPrefs = { lang: 'fr' | 'en'; theme: 'dark' | 'light'; haptic: boolean }
+type Props = { onComplete: (prefs: OnboardingPrefs) => void }
 
 const STEPS = ['lang', 'theme', 'haptic', 'combine', 'hint', 'clear', 'quests'] as const
-type Step = typeof STEPS[number]
+type Step = (typeof STEPS)[number]
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export function OnboardingModal({ onComplete }: Props) {
   const [step, setStep] = useState<Step>('lang')
@@ -20,23 +22,21 @@ export function OnboardingModal({ onComplete }: Props) {
   const { setTheme: applyTheme } = useTheme()
 
   const stepIndex = STEPS.indexOf(step)
-  const t = (fr: string, en: string) => lang === 'fr' ? fr : en
+  const isLast = stepIndex === STEPS.length - 1
+  const t = (fr: string, en: string) => (lang === 'fr' ? fr : en)
 
   const handleNext = () => {
     if (step === 'theme') applyTheme(selectedTheme)
-    const nextIndex = stepIndex + 1
-    if (nextIndex < STEPS.length) {
-      setStep(STEPS[nextIndex])
-    } else {
+    if (isLast) {
       onComplete({ lang, theme: selectedTheme, haptic })
+    } else {
+      setStep(STEPS[stepIndex + 1])
     }
   }
 
   const handleBack = () => {
     if (stepIndex > 0) setStep(STEPS[stepIndex - 1])
   }
-
-  const isLast = stepIndex === STEPS.length - 1
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center bg-black/60 backdrop-blur-sm">
@@ -49,8 +49,8 @@ export function OnboardingModal({ onComplete }: Props) {
               key={s}
               className={`h-1.5 rounded-full transition-all duration-300 ${
                 i === stepIndex ? 'w-6 bg-primary' :
-                i < stepIndex ? 'w-1.5 bg-primary/40' :
-                'w-1.5 bg-border'
+                i < stepIndex  ? 'w-1.5 bg-primary/40' :
+                                  'w-1.5 bg-border'
               }`}
             />
           ))}
@@ -97,7 +97,9 @@ export function OnboardingModal({ onComplete }: Props) {
             <>
               <div className="flex flex-col gap-1 text-center">
                 <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-2">
-                  {selectedTheme === 'dark' ? <Moon className="w-6 h-6 text-primary" /> : <Sun className="w-6 h-6 text-primary" />}
+                  {selectedTheme === 'dark'
+                    ? <Moon className="w-6 h-6 text-primary" />
+                    : <Sun  className="w-6 h-6 text-primary" />}
                 </div>
                 <h2 className="text-xl font-bold text-foreground">
                   {t('Choisis ton thème', 'Choose your theme')}
@@ -164,11 +166,13 @@ export function OnboardingModal({ onComplete }: Props) {
           {step === 'combine' && (
             <>
               <div className="flex flex-col gap-1 text-center">
-                <h2 className="text-xl font-bold text-foreground">{t('Combine des éléments', 'Combine elements')}</h2>
+                <h2 className="text-xl font-bold text-foreground">
+                  {t('Combine des éléments', 'Combine elements')}
+                </h2>
                 <p className="text-sm text-muted-foreground">
                   {t(
                     'Glisse un élément sur un autre pour les combiner et découvrir de nouveaux éléments.',
-                    'Drag one element onto another to combine them and discover new ones.'
+                    'Drag one element onto another to combine them and discover new ones.',
                   )}
                 </p>
               </div>
@@ -189,7 +193,7 @@ export function OnboardingModal({ onComplete }: Props) {
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {t(
                     "Si tu bloques, une suggestion apparaît automatiquement après 1 minute sans nouvelle découverte. Tu peux aussi demander un indice manuellement.",
-                    'If you get stuck, a suggestion appears automatically after 1 minute without a new discovery. You can also request a hint manually.'
+                    'If you get stuck, a suggestion appears automatically after 1 minute without a new discovery. You can also request a hint manually.',
                   )}
                 </p>
               </div>
@@ -215,7 +219,7 @@ export function OnboardingModal({ onComplete }: Props) {
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {t(
                     'Tu peux retirer tous les éléments posés sur le terrain en un seul clic grâce au bouton en haut à gauche.',
-                    'You can remove all elements placed on the board in one tap using the button at the top left.'
+                    'You can remove all elements placed on the board in one tap using the button at the top left.',
                   )}
                 </p>
               </div>
@@ -241,7 +245,7 @@ export function OnboardingModal({ onComplete }: Props) {
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {t(
                     "Accomplis des quêtes pour gagner des indices sur des recettes inconnues. Certaines quêtes sont quotidiennes, d'autres sont permanentes.",
-                    'Complete quests to earn hints on unknown recipes. Some quests are daily, others are permanent.'
+                    'Complete quests to earn hints on unknown recipes. Some quests are daily, others are permanent.',
                   )}
                 </p>
               </div>
