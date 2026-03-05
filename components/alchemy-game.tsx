@@ -256,6 +256,7 @@ export function AlchemyGame() {
         headerNotification={headerNotification}
         onDismissNotification={handleDismissNotification}
         playgroundItemsCount={playground.length}
+        recipeMap={recipeMap}
       />
 
       {/* Notification stack — desktop only (mobile shows in inventory header) */}
