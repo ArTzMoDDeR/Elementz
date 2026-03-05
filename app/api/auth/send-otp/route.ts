@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 import { Resend } from 'resend'
-import { createHash } from 'crypto'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 // In-memory rate limit: max 3 OTP requests per email per 10 minutes
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
-const OTP_WINDOW_MS = 10 * 60 * 1000
+const OTP_WINDOW_MS = 10 * 60 * 1000 // 10 minutes
 const OTP_MAX_REQUESTS = 3
 
 function checkRateLimit(email: string): boolean {
@@ -22,16 +21,13 @@ function checkRateLimit(email: string): boolean {
   return true
 }
 
-function hashOtp(code: string): string {
-  return createHash('sha256').update(code).digest('hex')
-}
-
 export async function POST(req: NextRequest) {
   const { email } = await req.json()
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: 'Invalid email' }, { status: 400 })
   }
 
+  // Rate limit: max 3 OTP requests per email per 10 minutes
   if (!checkRateLimit(email.toLowerCase())) {
     return NextResponse.json({ error: 'Too many requests. Please wait before requesting a new code.' }, { status: 429 })
   }
@@ -42,15 +38,15 @@ export async function POST(req: NextRequest) {
 
   const sql = neon(process.env.DATABASE_URL!)
   const code = String(Math.floor(100000 + Math.random() * 900000))
-  const codeHash = hashOtp(code) // store only the hash — never the raw code
   const expiresAt = new Date(Date.now() + OTP_WINDOW_MS)
 
   await sql`UPDATE email_otps SET used = TRUE WHERE email = ${email} AND used = FALSE`
-  await sql`INSERT INTO email_otps (email, code, expires_at) VALUES (${email}, ${codeHash}, ${expiresAt.toISOString()})`
+  await sql`INSERT INTO email_otps (email, code, expires_at) VALUES (${email}, ${code}, ${expiresAt.toISOString()})`
 
   const from = process.env.EMAIL_FROM ?? 'onboarding@resend.dev'
+  // NOTE: never log the OTP code
 
-  const { error } = await resend.emails.send({
+  const { data, error } = await resend.emails.send({
     from,
     to: email,
     subject: `${code} — ton code Elementz`,

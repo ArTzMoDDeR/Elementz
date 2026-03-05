@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { neon } from '@neondatabase/serverless'
-import type { Session } from 'next-auth'
 
-async function checkAdmin(session: Session | null): Promise<boolean> {
+async function checkAdmin(session: Awaited<ReturnType<typeof auth>>, sql: ReturnType<typeof neon>) {
   if (!session?.user?.id) return false
-  const sql = neon(process.env.DATABASE_URL!)
-  const rows = await sql`SELECT is_admin FROM users WHERE id = ${session.user.id}` as any[]
-  return !!(rows[0]?.is_admin)
+  const rows = await sql`SELECT is_admin FROM users WHERE id = ${session.user.id}`
+  return !!rows[0]?.is_admin
 }
 
 export async function GET(req: NextRequest) {
   const session = await auth()
-  if (!(await checkAdmin(session))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const sql = neon(process.env.DATABASE_URL!)
+  if (!(await checkAdmin(session, sql))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { searchParams } = new URL(req.url)
   const search = searchParams.get('q') ?? ''
@@ -48,8 +46,8 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   const session = await auth()
-  if (!(await checkAdmin(session))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const sql = neon(process.env.DATABASE_URL!)
+  if (!(await checkAdmin(session, sql))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { id, is_admin } = await req.json()
   await sql`UPDATE users SET is_admin = ${is_admin ? 1 : 0} WHERE id = ${id}`

@@ -23,18 +23,8 @@ export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
-  if (!Array.isArray(body.discovered)) return NextResponse.json({ error: 'Invalid' }, { status: 400 })
-
-  // Clamp array size and sanitize strings to prevent payload abuse
-  const MAX_BATCH = 50
-  const discovered: string[] = body.discovered
-    .slice(0, MAX_BATCH)
-    .filter((v: unknown) => typeof v === 'string' && v.length <= 100)
-
-  const combo_ingredients: string[] = Array.isArray(body.combo_ingredients)
-    ? body.combo_ingredients.slice(0, 2).filter((v: unknown) => typeof v === 'string' && v.length <= 100)
-    : []
+  const { discovered, combo_ingredients } = await req.json()
+  if (!Array.isArray(discovered)) return NextResponse.json({ error: 'Invalid' }, { status: 400 })
 
   const sql = neon(process.env.DATABASE_URL!)
 

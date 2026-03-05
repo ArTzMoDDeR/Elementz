@@ -1,12 +1,10 @@
 'use client'
-// build-cache-bust: fix PlaygroundItem import
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { ElementBadge } from './element-badge'
 import { Search, X, ArrowUpDown, ArrowLeft, ChevronUp, ChevronDown, ChevronRight, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Hand, MousePointer, Medal, Atom as AtomIcon, Star, Shield, Trophy, Sun, Moon } from 'lucide-react'
 import { HouseSimple, Bell, Gear, Lifebuoy, Question, User, UserCircle, Scroll } from '@phosphor-icons/react'
-import type { ElementDef } from '@/lib/game-data'
-import type { PlaygroundItem } from '@/hooks/use-game-store'
+import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import { HelpModal } from './help-modal'
 import { LeaderboardModal } from './leaderboard-modal'
 import { ProfileModal } from './profile-modal'
@@ -669,7 +667,7 @@ export function Playground({
           {/* Header — same layout on mobile and desktop: [clear] [logo+counter] [hint] */}
           <div className="flex items-center gap-2" style={{ transform: 'translateY(-3px)' }}>
 
-            {/* Clear button — always visible */}
+            {/* Clear button — always visible, attractive */}
             <button
               onPointerDown={e => e.stopPropagation()}
               onClick={e => { e.stopPropagation(); onClear() }}
@@ -801,15 +799,13 @@ export function Playground({
                             onClick: () => {
                               const rect = containerRef.current?.getBoundingClientRect()
                               if (!rect) return
-
-                              // Wider spacing on widescreen, tighter on mobile
-                              const COLS = isMobile ? 4 : 5
-                              const ROWS = isMobile ? 4 : 5
-                              const BADGE_W = isMobile ? 72 : 96
-                              const BADGE_H = isMobile ? 72 : 96
-                              const GAP = isMobile ? 12 : 24
-                              const PAD_X = isMobile ? 0 : 24
-                              const PAD_Y = isMobile ? 16 : 24
+                              const COLS = 4
+                              const ROWS = 4 // 4x4 = 16 slots before fallback
+                              const BADGE_W = 72
+                              const BADGE_H = 72
+                              const GAP = 12
+                              const PAD_X = 0 // Flush left
+                              const PAD_Y = 16
                               
                               // Find first empty slot that doesn't overlap existing items
                               const isSlotFree = (cx: number, cy: number) => {
@@ -1374,6 +1370,17 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
           <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${hintsEnabled ? 'left-[22px]' : 'left-0.5'}`} />
         </button>
       </div>
+      {/* Clear */}
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Vider le terrain' : 'Clear playground'}</span>
+          <p className="text-xs text-muted-foreground mt-0.5">{lang === 'fr' ? `${itemsCount} élément${itemsCount !== 1 ? 's' : ''} en jeu` : `${itemsCount} item${itemsCount !== 1 ? 's' : ''} on canvas`}</p>
+        </div>
+        <button onClick={onClear} disabled={itemsCount === 0} className="h-9 px-4 rounded-xl bg-muted/50 border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0">
+          {lang === 'fr' ? 'Vider' : 'Clear'}
+        </button>
+      </div>
+
       {/* How to play */}
       <div className="rounded-2xl border border-border overflow-hidden">
         <button
