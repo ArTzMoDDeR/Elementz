@@ -2,7 +2,9 @@
 
 import { useRef, useState, useEffect, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
+import { useTheme } from 'next-themes'
 import { Playground } from './playground'
+import { OnboardingModal } from './onboarding-modal'
 import { useGameStore } from '@/hooks/use-game-store'
 import { useHint } from '@/hooks/use-hint'
 import { Sparkles, Lightbulb, Trash2, BarChart2, Hand, MousePointer } from 'lucide-react'
@@ -12,6 +14,8 @@ const PROGRESS_MILESTONES = [10, 20, 50, 100, 150, 200, 300, 400, 500, 600, 700,
 export function AlchemyGame() {
   const [mounted, setMounted] = useState(false)
   const { data: session } = useSession()
+  const { setTheme } = useTheme()
+  const [showOnboarding, setShowOnboarding] = useState(false)
   const {
     lang,
     setLang,
@@ -153,6 +157,15 @@ export function AlchemyGame() {
     return null
   }, [hintVisible, currentHint, hintLabel, newlyDiscovered, progressToast, tapModeToast, hintsToast, lang, elements, frToElement, frToEn])
 
+  const handleOnboardingComplete = async (prefs: { lang: 'fr' | 'en'; theme: 'dark' | 'light'; haptic: boolean }) => {
+    setShowOnboarding(false)
+    setLang(prefs.lang)
+    setTheme(prefs.theme)
+    setHapticEnabled(prefs.haptic)
+    await fetch('/api/lang', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lang: prefs.lang }) })
+    await fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ theme: prefs.theme, haptic_feedback: prefs.haptic, onboarding_done: true }) })
+  }
+
   const handleDismissNotification = () => {
     // Dismiss based on type
     if (hintVisible) dismissHint()
@@ -163,6 +176,20 @@ export function AlchemyGame() {
   }
 
   useEffect(() => { setMounted(true) }, [])
+
+  // Load theme from DB and show onboarding on first login
+  useEffect(() => {
+    if (!session?.user?.id) return
+    fetch('/api/profile')
+      .then(r => r.json())
+      .then(d => {
+        // Apply saved theme
+        if (d.theme === 'light' || d.theme === 'dark') setTheme(d.theme)
+        // Show onboarding if never done
+        if (!d.onboarding_done) setShowOnboarding(true)
+      })
+      .catch(() => {})
+  }, [session?.user?.id])
 
   if (!mounted || !initialized) {
     return (
@@ -196,6 +223,7 @@ export function AlchemyGame() {
 
   return (
     <div className="game-container bg-background">
+      {showOnboarding && <OnboardingModal onComplete={handleOnboardingComplete} />}
       <Playground
         items={playground}
         elements={elements}

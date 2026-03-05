@@ -16,6 +16,8 @@ export async function GET() {
         up.show_in_leaderboard,
         up.haptic_feedback,
         up.avatar,
+        up.theme,
+        up.onboarding_done,
         COUNT(u.element_number)::int AS discovered_count,
         RANK() OVER (ORDER BY COUNT(u.element_number) DESC)::int AS rank
       FROM user_progress up
@@ -37,7 +39,7 @@ export async function GET() {
 
   const totalPlayers = await sql`SELECT COUNT(*)::int AS n FROM user_progress`
 
-  if (!rows.length) return NextResponse.json({ username: null, show_in_leaderboard: true, haptic_feedback: true, discovered_count: 0, avatar: null, rank: null, total_players: 1, last_discovered: [], is_admin: false })
+  if (!rows.length) return NextResponse.json({ username: null, show_in_leaderboard: true, haptic_feedback: true, discovered_count: 0, avatar: null, rank: null, total_players: 1, last_discovered: [], is_admin: false, theme: 'dark', onboarding_done: false })
   const row = rows[0]
 
   const adminRow = await sql`SELECT is_admin FROM users WHERE id = ${session.user.id}`
@@ -52,6 +54,8 @@ export async function GET() {
     total_players: totalPlayers[0]?.n ?? 1,
     last_discovered: lastDiscovered,
     is_admin: adminRow[0]?.is_admin === 1,
+    theme: row.theme ?? 'dark',
+    onboarding_done: row.onboarding_done ?? false,
   })
 }
 
@@ -60,7 +64,7 @@ export async function PATCH(req: Request) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { username, show_in_leaderboard, avatar, haptic_feedback } = body
+  const { username, show_in_leaderboard, avatar, haptic_feedback, theme, onboarding_done } = body
 
   if (username !== undefined) {
     if (typeof username !== 'string') return NextResponse.json({ error: 'Invalid username' }, { status: 400 })
@@ -81,13 +85,15 @@ export async function PATCH(req: Request) {
   }
 
   await sql`
-    INSERT INTO user_progress (user_id, username, show_in_leaderboard, avatar, haptic_feedback)
-    VALUES (${session.user.id}, ${username?.trim() ?? null}, ${show_in_leaderboard ?? true}, ${avatar ?? null}, ${haptic_feedback ?? true})
+    INSERT INTO user_progress (user_id, username, show_in_leaderboard, avatar, haptic_feedback, theme, onboarding_done)
+    VALUES (${session.user.id}, ${username?.trim() ?? null}, ${show_in_leaderboard ?? true}, ${avatar ?? null}, ${haptic_feedback ?? true}, ${theme ?? 'dark'}, ${onboarding_done ?? false})
     ON CONFLICT (user_id) DO UPDATE SET
       username = CASE WHEN ${username !== undefined} THEN EXCLUDED.username ELSE user_progress.username END,
       show_in_leaderboard = CASE WHEN ${show_in_leaderboard !== undefined} THEN EXCLUDED.show_in_leaderboard ELSE user_progress.show_in_leaderboard END,
       avatar = CASE WHEN ${avatar !== undefined} THEN EXCLUDED.avatar ELSE user_progress.avatar END,
-      haptic_feedback = CASE WHEN ${haptic_feedback !== undefined} THEN EXCLUDED.haptic_feedback ELSE user_progress.haptic_feedback END
+      haptic_feedback = CASE WHEN ${haptic_feedback !== undefined} THEN EXCLUDED.haptic_feedback ELSE user_progress.haptic_feedback END,
+      theme = CASE WHEN ${theme !== undefined} THEN EXCLUDED.theme ELSE user_progress.theme END,
+      onboarding_done = CASE WHEN ${onboarding_done !== undefined} THEN EXCLUDED.onboarding_done ELSE user_progress.onboarding_done END
   `
   return NextResponse.json({ ok: true })
 }

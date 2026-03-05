@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { ElementBadge } from './element-badge'
-import { Search, X, ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Hand, MousePointer, Medal, Atom as AtomIcon, Star, Shield, Trophy } from 'lucide-react'
+import { Search, X, ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Hand, MousePointer, Medal, Atom as AtomIcon, Star, Shield, Trophy, Sun, Moon } from 'lucide-react'
 import { HouseSimple, Bell, Gear, Lifebuoy, Question, User, UserCircle, Scroll } from '@phosphor-icons/react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import { HelpModal } from './help-modal'
@@ -12,6 +12,7 @@ import { QuestInlinePanel } from './quest-panel'
 import EmailSignIn from '@/components/email-sign-in'
 import { signInWithGoogle, signInWithDiscord } from '@/app/actions/auth'
 import { signOut } from 'next-auth/react'
+import { useTheme } from 'next-themes'
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false)
@@ -1268,6 +1269,13 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
   hapticEnabled?: boolean; onToggleHaptic?: () => void
   mergeFlashEnabled: boolean; onToggleMergeFlash: () => void
 }) {
+  const { theme, setTheme } = useTheme()
+  const isDark = theme === 'dark'
+  const toggleTheme = () => {
+    const next = isDark ? 'light' : 'dark'
+    setTheme(next)
+    fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ theme: next }) }).catch(() => {})
+  }
   return (
     <div className="space-y-5 py-1">
       {/* Language */}
@@ -1277,6 +1285,17 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
           <button className={`px-4 h-full text-sm font-semibold rounded-lg transition-colors ${lang === 'fr' ? 'bg-background shadow text-foreground' : 'text-muted-foreground'}`} onClick={() => onSetLang('fr')}>FR</button>
           <button className={`px-4 h-full text-sm font-semibold rounded-lg transition-colors ${lang === 'en' ? 'bg-background shadow text-foreground' : 'text-muted-foreground'}`} onClick={() => onSetLang('en')}>EN</button>
         </div>
+      </div>
+      {/* Theme */}
+      <div className="flex items-center justify-between gap-4">
+        <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Thème' : 'Theme'}</span>
+        <button
+          onClick={toggleTheme}
+          className="flex items-center gap-2 h-9 px-3 rounded-xl bg-muted/50 border border-border text-sm font-medium text-foreground hover:bg-muted transition-colors"
+        >
+          {isDark ? <Moon className="w-4 h-4 text-primary" /> : <Sun className="w-4 h-4 text-amber-400" />}
+          <span className="text-sm font-semibold">{isDark ? (lang === 'fr' ? 'Sombre' : 'Dark') : (lang === 'fr' ? 'Clair' : 'Light')}</span>
+        </button>
       </div>
       {/* Grid columns */}
       <div className="flex items-center justify-between gap-4">
