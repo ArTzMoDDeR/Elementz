@@ -402,14 +402,15 @@ export function Playground({
     return { x: clientX - rect.left, y: clientY - rect.top }
   }, [])
 
-  const findNearestItem = useCallback((x: number, y: number, excludeId?: string) => {
+  const findNearestItem = useCallback((x: number, y: number, excludeId?: string): PlaygroundItem | null => {
     let nearest: { item: PlaygroundItem; dist: number } | null = null
     items.forEach(item => {
       if (item.id === excludeId) return
       const dist = Math.sqrt((x - item.x) ** 2 + (y - item.y) ** 2)
       if (dist < 80 && (!nearest || dist < nearest.dist)) nearest = { item, dist }
     })
-    return nearest?.item || null
+    if (!nearest) return null
+    return (nearest as { item: PlaygroundItem; dist: number }).item
   }, [items])
 
   // === INVENTORY DRAG — immediate capture, no delay, no direction detection ===

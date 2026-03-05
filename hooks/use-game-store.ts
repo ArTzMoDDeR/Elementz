@@ -250,7 +250,7 @@ export function useGameStore() {
       // so the UI never flashes broken/empty badges on first render.
       const imageUrls = [...validDisc]
         .map(name => elMap.get(name)?.imageUrl)
-        .filter((url): url is string => !!url)
+        .filter((url): url is string => Boolean(url))
 
       preloadImages(imageUrls).then(() => {
         setInitialized(true)
