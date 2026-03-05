@@ -1380,6 +1380,35 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
           {lang === 'fr' ? 'Vider' : 'Clear'}
         </button>
       </div>
+
+      {/* How to play */}
+      <div className="rounded-2xl border border-border overflow-hidden">
+        <button
+          onClick={onOpenHelp}
+          className="w-full flex items-center gap-3 px-4 py-3.5 bg-card hover:bg-muted/40 active:bg-muted/60 transition-colors cursor-pointer"
+        >
+          <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
+            <Question size={16} weight="regular" className="text-foreground/70" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className="text-sm font-medium text-foreground">{t('Comment jouer', 'How to play')}</span>
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0" />
+        </button>
+      </div>
+
+      {/* Sign out */}
+      <div className="rounded-2xl border border-border overflow-hidden">
+        <button
+          onClick={() => { try { localStorage.removeItem('alchemy-discovered-v3') } catch {} signOut({ callbackUrl: '/' }) }}
+          className="w-full flex items-center gap-3 px-4 py-3.5 bg-card hover:bg-red-500/5 active:bg-red-500/10 transition-colors cursor-pointer"
+        >
+          <div className="w-8 h-8 rounded-xl bg-red-500/10 flex items-center justify-center flex-shrink-0">
+            <LogOut className="w-4 h-4 text-red-400" />
+          </div>
+          <span className="text-sm font-medium text-red-400">{t('Se déconnecter', 'Sign out')}</span>
+        </button>
+      </div>
     </div>
   )
 }
