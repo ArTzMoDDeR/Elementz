@@ -799,13 +799,16 @@ export function Playground({
                             onClick: () => {
                               const rect = containerRef.current?.getBoundingClientRect()
                               if (!rect) return
-                              const COLS = 4
-                              const ROWS = 4 // 4x4 = 16 slots before fallback
+                              // On desktop the canvas excludes the sidebar (300px or 400px)
+                              // Use a wider grid with more spacing on large screens
+                              const isDesktop = !isMobile
+                              const COLS = isDesktop ? 5 : 4
+                              const ROWS = isDesktop ? 4 : 4
                               const BADGE_W = 72
                               const BADGE_H = 72
-                              const GAP = 12
-                              const PAD_X = 0 // Flush left
-                              const PAD_Y = 16
+                              const GAP = isDesktop ? 28 : 12
+                              const PAD_X = isDesktop ? 20 : 0
+                              const PAD_Y = isDesktop ? 24 : 16
                               
                               // Find first empty slot that doesn't overlap existing items
                               const isSlotFree = (cx: number, cy: number) => {
@@ -831,8 +834,9 @@ export function Playground({
                               
                               // Fallback: place at a random position if all slots occupied
                               if (!placed) {
-                                const cx = PAD + Math.random() * (rect.width - PAD * 2 - BADGE_W)
-                                const cy = PAD + Math.random() * (rect.height * 0.4)
+                                const fallbackPad = PAD_X + 20
+                                const cx = fallbackPad + Math.random() * (rect.width - fallbackPad * 2 - BADGE_W)
+                                const cy = PAD_Y + Math.random() * (rect.height * 0.4)
                                 onDrop(element.name, cx, cy)
                               }
                             },
