@@ -1272,6 +1272,7 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
 }) {
   const { theme, setTheme } = useTheme()
   const isDark = theme === 'dark'
+  const t = (fr: string, en: string) => lang === 'fr' ? fr : en
   const toggleTheme = () => {
     const next = isDark ? 'light' : 'dark'
     setTheme(next)
