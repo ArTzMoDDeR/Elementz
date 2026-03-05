@@ -664,19 +664,8 @@ export function Playground({
           onPointerDown={isMobile ? handleDragHandlePointerDown : undefined}
           style={isMobile ? { cursor: 'row-resize', touchAction: 'none' } : undefined}
         >
-          {/* Header — same layout on mobile and desktop: [clear] [logo+counter] [hint] */}
+          {/* Header — same layout on mobile and desktop: [logo+counter] [hint] */}
           <div className="flex items-center gap-2" style={{ transform: 'translateY(-3px)' }}>
-
-            {/* Clear button — always visible, attractive */}
-            <button
-              onPointerDown={e => e.stopPropagation()}
-              onClick={e => { e.stopPropagation(); onClear() }}
-              className="flex-shrink-0 flex items-center gap-1.5 h-10 px-3 rounded-2xl transition-all bg-muted border border-border text-foreground/70 hover:text-foreground hover:bg-muted/80 hover:border-foreground/20 active:scale-95"
-              title={lang === 'fr' ? 'Vider le terrain' : 'Clear field'}
-            >
-              <Trash2 className="w-4 h-4 flex-shrink-0" />
-              <span className="text-xs font-semibold hidden sm:inline">{lang === 'fr' ? 'Vider' : 'Clear'}</span>
-            </button>
 
             {/* Center: logo + title + counter — or notification */}
             {headerNotification ? (
