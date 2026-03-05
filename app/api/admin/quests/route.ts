@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { neon } from '@neondatabase/serverless'
+import type { Session } from 'next-auth'
 
-async function checkAdmin(session: Awaited<ReturnType<typeof auth>>, sql: ReturnType<typeof neon>) {
+async function checkAdmin(session: Session | null, sql: ReturnType<typeof neon>) {
   if (!session?.user?.id) return false
   const rows = await sql`SELECT is_admin FROM users WHERE id = ${session.user.id}`
   return !!rows[0]?.is_admin
