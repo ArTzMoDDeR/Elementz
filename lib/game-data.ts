@@ -6,6 +6,13 @@ export interface ElementDef {
   imageUrl?: string | null
 }
 
+export interface PlaygroundItem {
+  id: string
+  name: string
+  x: number
+  y: number
+}
+
 export interface Recipe {
   ingredient1: string
   ingredient2: string
