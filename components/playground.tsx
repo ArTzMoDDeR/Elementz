@@ -836,8 +836,8 @@ export function Playground({
                               
                               // Fallback: place at a random position if all slots occupied
                               if (!placed) {
-                                const cx = PAD + Math.random() * (rect.width - PAD * 2 - BADGE_W)
-                                const cy = PAD + Math.random() * (rect.height * 0.4)
+                                const cx = PAD_X + Math.random() * (rect.width - PAD_X * 2 - BADGE_W)
+                                const cy = PAD_Y + Math.random() * (rect.height * 0.4)
                                 onDrop(element.name, cx, cy)
                               }
                             },

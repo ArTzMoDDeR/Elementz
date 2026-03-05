@@ -4,9 +4,11 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 
 import { useSession } from 'next-auth/react'
 
+import { type ElementDef } from '@/lib/game-data'
+
 /**
  * Preload a list of image URLs in parallel.
- * Resolves when all images have either loaded or errored (never rejects).
+ * Resolves when all images have either loaded or errored — never rejects.
  */
 function preloadImages(urls: string[]): Promise<void> {
   if (typeof window === 'undefined' || urls.length === 0) return Promise.resolve()
@@ -22,7 +24,6 @@ function preloadImages(urls: string[]): Promise<void> {
     ),
   ).then(() => undefined)
 }
-import { type ElementDef } from '@/lib/game-data'
 
 const STORAGE_KEY = 'alchemy-discovered-v3'
 const LANG_KEY = 'alchemy-lang'
@@ -124,7 +125,7 @@ export function useGameStore() {
   const [lastUnlockTime, setLastUnlockTime] = useState(Date.now())
   const idCounter = useRef(0)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const hapticEnabledRef = useRef(true) // ref so it's readable inside useCallback without deps
+  const hapticEnabledRef = useRef(true)
   const [hapticEnabled, setHapticEnabledState] = useState(true)
 
   // Load lang — DB takes priority if logged in, else localStorage, else 'en'
@@ -137,7 +138,6 @@ export function useGameStore() {
           if (serverLang === 'fr' || serverLang === 'en') setLangState(serverLang)
         })
         .catch(() => {})
-      // Load haptic preference from profile
       fetch('/api/profile')
         .then(r => r.json())
         .then(d => {
@@ -160,10 +160,8 @@ export function useGameStore() {
     }
   }, [sessionStatus, session?.user?.id])
 
-  // Stable ref to setLang so the StorageEvent listener can call it without stale closure
   const setLangRef = useRef<((l: Lang) => void) | null>(null)
 
-  // Listen for lang changes from /settings page — calls setLang so elements + recipeMap rebuild
   useEffect(() => {
     const handler = (e: StorageEvent) => {
       if (e.key === LANG_KEY && (e.newValue === 'fr' || e.newValue === 'en')) {
@@ -199,7 +197,6 @@ export function useGameStore() {
       setElements(elMap)
       setRecipeMap(buildRecipeMap(recipes, savedLang))
 
-      // Always build a French-keyed element map and frToEn for hint lookups
       const frElMap = buildElementMap(rows, 'fr')
       setFrToElement(frElMap)
       const frEnMap = new Map<string, string>()
@@ -208,7 +205,6 @@ export function useGameStore() {
       }
       setFrToEn(frEnMap)
 
-      // Build a name→name mapping so server names (any lang) can be resolved to current lang
       const anyNameToCurrentLang = new Map<string, string>()
       for (const row of rows) {
         const currentName = savedLang === 'fr'
@@ -222,16 +218,13 @@ export function useGameStore() {
       const baseElements = savedLang === 'fr' ? BASE_ELEMENTS_FR : BASE_ELEMENTS_EN
       const validDisc = new Set<string>(baseElements.filter(b => elMap.has(b)))
 
-      // Server progress: translate any language name to current lang before checking elMap
       if (progressData?.discovered && Array.isArray(progressData.discovered)) {
         progressData.discovered.forEach((name: string) => {
           const resolved = anyNameToCurrentLang.get(name) ?? name
           if (elMap.has(resolved)) validDisc.add(resolved)
         })
-        // Logged-in: overwrite localStorage with server state so next logout starts fresh
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...validDisc])) } catch {}
       } else {
-        // Not logged in: merge localStorage
         try {
           const saved = localStorage.getItem(STORAGE_KEY)
           if (saved) {
@@ -262,7 +255,8 @@ export function useGameStore() {
   }, [sessionStatus, session?.user?.id])
 
   // Rebuild elements + recipes when lang changes
-  const setLang = useCallback((newLang: Lang) => {    if (dbRows.length === 0) return
+  const setLang = useCallback((newLang: Lang) => {
+    if (dbRows.length === 0) return
     setLangState(newLang)
     try { localStorage.setItem(LANG_KEY, newLang) } catch {}
     if (session?.user?.id) {
@@ -277,7 +271,6 @@ export function useGameStore() {
     setElements(newElMap)
     setRecipeMap(buildRecipeMap(dbRecipes, newLang))
 
-    // Translate discovered names and playground items
     const frToEn = new Map<string, string>()
     const enToFr = new Map<string, string>()
     for (const row of dbRows) {
@@ -301,10 +294,8 @@ export function useGameStore() {
     }))
   }, [dbRows, dbRecipes])
 
-  // Keep ref in sync so the StorageEvent listener always has the latest setLang
   useEffect(() => { setLangRef.current = setLang }, [setLang])
 
-  // Save discovered progress — localStorage always, server if logged in (debounced)
   useEffect(() => {
     if (!initialized || discovered.size === 0) return
     const arr = [...discovered]
@@ -337,7 +328,6 @@ export function useGameStore() {
       const others = prev.filter(item => item.id !== id)
       const target = prev.find(item => item.id === id)
       if (!target) return prev
-      // Move dragged item to end of array so it renders on top (last = highest paint order)
       return [...others, { ...target, x, y }]
     })
   }, [])
@@ -355,12 +345,10 @@ export function useGameStore() {
     const results = findRecipes(recipeMap, item1.element, item2.element)
     if (results.length === 0) return null
 
-    // Place result at the stationary target (item2) position
     const tx = item2.x
     const ty = item2.y
     const spread = 60
 
-    // Remove the two source items, add all results
     setPlayground(prev => {
       const filtered = prev.filter(i => i.id !== id1 && i.id !== id2)
       const newItems = results.map((res, idx) => {
@@ -388,7 +376,6 @@ export function useGameStore() {
       }
     })
 
-    // Track combo ingredients for quest progress (element-usage quests)
     if (session?.user?.id) {
       fetch('/api/progress', {
         method: 'POST',
@@ -437,7 +424,6 @@ export function useGameStore() {
       }
     })
 
-    // Track combo ingredients for quest progress
     if (session?.user?.id) {
       fetch('/api/progress', {
         method: 'POST',
