@@ -1,6 +1,5 @@
 import { neon } from '@neondatabase/serverless'
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 
 export async function GET() {
   try {
@@ -15,27 +14,22 @@ export async function GET() {
       ORDER BY e.number
     `
     return NextResponse.json(elements)
-  } catch {
+  } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch elements' }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
-  // Only admins can create elements
-  const session = await auth()
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const sql = neon(process.env.DATABASE_URL!)
-  const rows = await sql`SELECT is_admin FROM users WHERE id = ${session.user.id}`
-  if (!rows[0]?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-
   try {
+    if (!process.env.DATABASE_URL) return NextResponse.json({ error: 'No DB' }, { status: 500 })
+
     const body = await request.json()
     const nameFr = String(body.name_french ?? '').trim()
     const nameEn = String(body.name_english ?? '').trim() || null
 
     if (!nameFr) return NextResponse.json({ error: 'name_french required' }, { status: 400 })
 
+    const sql = neon(process.env.DATABASE_URL)
     const maxResult = await sql`SELECT COALESCE(MAX(number), 0)::int as max FROM elements`
     const nextNumber = Number(maxResult[0].max) + 1
 
