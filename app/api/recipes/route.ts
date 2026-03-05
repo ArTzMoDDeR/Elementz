@@ -1,13 +1,9 @@
 import { neon } from '@neondatabase/serverless'
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  const session = await auth()
-  if (!session?.user?.id) return NextResponse.json([], { status: 401 })
-
   try {
     const sql = neon(process.env.DATABASE_URL!)
     const rows = await sql`
