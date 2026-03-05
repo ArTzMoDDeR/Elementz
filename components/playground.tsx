@@ -806,9 +806,9 @@ export function Playground({
                               const ROWS = isDesktop ? 4 : 4
                               const BADGE_W = 72
                               const BADGE_H = 72
-                              const GAP = isDesktop ? 28 : 12
-                              const PAD_X = isDesktop ? 20 : 0
-                              const PAD_Y = isDesktop ? 24 : 16
+                              const GAP = isDesktop ? 36 : 12
+                              const PAD_X = isDesktop ? 24 : 0
+                              const PAD_Y = isDesktop ? 28 : 16
                               
                               // Find first empty slot that doesn't overlap existing items
                               const isSlotFree = (cx: number, cy: number) => {
