@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Search, X, ChevronRight, ArrowLeft, Lock } from 'lucide-react'
 import { Books } from '@phosphor-icons/react'
 import type { ElementDef } from '@/lib/game-data'
@@ -179,7 +179,7 @@ function LockedCard() {
   )
 }
 
-// ─── Main panel ───────────────────────────────────────────────────────────────
+// ─── Main panel ───────────────────────────────────────���───────────────────────
 
 export function CodexInlinePanel({
   lang,
@@ -198,7 +198,16 @@ export function CodexInlinePanel({
 }) {
   const [selected, setSelected] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const topRef = useRef<HTMLDivElement>(null)
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
+
+  // Scroll to top whenever an element is selected
+  useEffect(() => {
+    if (selected !== null) {
+      const scrollContainer = topRef.current?.closest('.overflow-y-auto') as HTMLElement | null
+      scrollContainer?.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [selected])
 
   const discoveredCount = discovered.size
   const pct = totalElements > 0 ? Math.round((discoveredCount / totalElements) * 100) : 0
@@ -238,7 +247,7 @@ export function CodexInlinePanel({
   const ingB = selectedRecipe ? elements.get(selectedRecipe[1]) ?? null : null
 
   return (
-    <div className="flex flex-col gap-5 py-1">
+    <div ref={topRef} className="flex flex-col gap-5 py-1">
 
       {/* Header */}
       <div className="flex items-center justify-between">
