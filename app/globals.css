@@ -57,11 +57,11 @@ input, textarea, [contenteditable] {
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  /* Element badge — light mode: soft stone card with visible border */
-  --element-badge-bg: oklch(0.985 0.003 70);
+  /* Element badge — light mode */
+  --element-badge-bg: rgba(255, 255, 255, 0.55);
   --element-badge-border: oklch(0.78 0.015 65);
-  --element-badge-label: rgba(235, 228, 218, 0.92);
-  --element-badge-label-text: oklch(0.15 0.015 250);
+  --element-badge-label: rgba(60, 55, 70, 0.82);
+  --element-badge-label-text: rgba(255, 255, 255, 0.95);
 }
 
 .dark {
