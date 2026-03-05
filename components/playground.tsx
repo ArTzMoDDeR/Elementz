@@ -667,7 +667,7 @@ export function Playground({
           {/* Header — same layout on mobile and desktop: [clear] [logo+counter] [hint] */}
           <div className="flex items-center gap-2" style={{ transform: 'translateY(-3px)' }}>
 
-            {/* Clear button — always visible, attractive */}
+            {/* Clear button — always visible */}
             <button
               onPointerDown={e => e.stopPropagation()}
               onClick={e => { e.stopPropagation(); onClear() }}
@@ -1370,17 +1370,6 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
           <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${hintsEnabled ? 'left-[22px]' : 'left-0.5'}`} />
         </button>
       </div>
-      {/* Clear */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Vider le terrain' : 'Clear playground'}</span>
-          <p className="text-xs text-muted-foreground mt-0.5">{lang === 'fr' ? `${itemsCount} élément${itemsCount !== 1 ? 's' : ''} en jeu` : `${itemsCount} item${itemsCount !== 1 ? 's' : ''} on canvas`}</p>
-        </div>
-        <button onClick={onClear} disabled={itemsCount === 0} className="h-9 px-4 rounded-xl bg-muted/50 border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0">
-          {lang === 'fr' ? 'Vider' : 'Clear'}
-        </button>
-      </div>
-
       {/* How to play */}
       <div className="rounded-2xl border border-border overflow-hidden">
         <button
