@@ -906,10 +906,11 @@ export function Playground({
                     onToggleHaptic={onToggleHaptic}
                     mergeFlashEnabled={mergeFlashEnabled}
                     onToggleMergeFlash={() => setMergeFlashEnabled(!mergeFlashEnabled)}
+                    onOpenHelp={() => setActiveTab('help')}
                   />
                 )}
                 {activeTab === 'help' && (
-                  <HelpPanel lang={lang} />
+                  <HelpPanel lang={lang} onBack={() => setActiveTab('settings')} />
                 )}
                 {activeTab === 'profile' && sessionUser && (
                   profileView === 'leaderboard'
@@ -984,7 +985,6 @@ export function Playground({
               { id: 'home',     icon: HouseSimple, labelFr: 'Jeu',      labelEn: 'Play'     },
               { id: 'quests',   icon: Bell,        labelFr: 'Quêtes',   labelEn: 'Quests'   },
               { id: 'settings', icon: Gear,        labelFr: 'Réglages', labelEn: 'Settings' },
-              { id: 'help',     icon: Lifebuoy,    labelFr: 'Aide',     labelEn: 'Help'     },
               { id: 'profile',  icon: User,        labelFr: 'Profil',   labelEn: 'Profile'  },
             ] as const).map(({ id, icon: Icon }) => {
               const isActive = activeTab === id
@@ -1260,7 +1260,7 @@ function LeaderboardInlinePanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: 
   )
 }
 
-function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, itemsCount, gridCols, onSetGridCols, tapMode, onToggleTapMode, hapticEnabled, onToggleHaptic, mergeFlashEnabled, onToggleMergeFlash }: {
+function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, itemsCount, gridCols, onSetGridCols, tapMode, onToggleTapMode, hapticEnabled, onToggleHaptic, mergeFlashEnabled, onToggleMergeFlash, onOpenHelp }: {
   lang: 'fr' | 'en'; onSetLang: (l: 'fr' | 'en') => void
   hintsEnabled?: boolean; onToggleHints?: () => void
   onClear: () => void; itemsCount: number
@@ -1268,6 +1268,7 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
   tapMode: boolean; onToggleTapMode: () => void
   hapticEnabled?: boolean; onToggleHaptic?: () => void
   mergeFlashEnabled: boolean; onToggleMergeFlash: () => void
+  onOpenHelp?: () => void
 }) {
   const { theme, setTheme } = useTheme()
   const isDark = theme === 'dark'
@@ -1382,19 +1383,30 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
   )
 }
 
-function HelpPanel({ lang }: { lang: 'fr' | 'en' }) {
+function HelpPanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: () => void }) {
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
   return (
     <div className="flex flex-col gap-4 py-1">
 
       {/* Header */}
-      <div className="flex items-center gap-2.5">
-        <div className="w-9 h-9 rounded-2xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
-          <Question size={18} weight="regular" className="text-foreground/70" />
-        </div>
-        <div>
-          <h2 className="text-base font-bold text-foreground">{t('Comment jouer', 'How to play')}</h2>
-          <p className="text-xs text-muted-foreground">{t('Alchimie en 3 minutes', 'Alchemy in 3 minutes')}</p>
+      <div className="flex items-center gap-3">
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center hover:bg-muted/80 active:scale-95 transition-all flex-shrink-0"
+            aria-label={lang === 'fr' ? 'Retour' : 'Back'}
+          >
+            <ArrowLeft className="w-4 h-4 text-foreground/70" />
+          </button>
+        )}
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-2xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
+            <Question size={18} weight="regular" className="text-foreground/70" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-foreground">{t('Comment jouer', 'How to play')}</h2>
+            <p className="text-xs text-muted-foreground">{t('Alchimie en 3 minutes', 'Alchemy in 3 minutes')}</p>
+          </div>
         </div>
       </div>
 
@@ -1710,6 +1722,22 @@ function ProfileInlinePanel({ lang, sessionUser, elements, discovered, onAvatarC
           </a>
         </div>
       )}
+
+      {/* How to play */}
+      <div className="rounded-2xl border border-border overflow-hidden">
+        <button
+          onClick={onOpenHelp}
+          className="w-full flex items-center gap-3 px-4 py-3.5 bg-card cursor-pointer active:bg-muted/60"
+        >
+          <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
+            <Question size={16} weight="regular" className="text-foreground/70" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className="text-sm font-medium text-foreground">{t('Comment jouer', 'How to play')}</span>
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0" />
+        </button>
+      </div>
 
       {/* Sign out */}
       <div className="rounded-2xl border border-border overflow-hidden">
