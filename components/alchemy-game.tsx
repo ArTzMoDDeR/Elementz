@@ -258,18 +258,6 @@ export function AlchemyGame() {
         playgroundItemsCount={playground.length}
       />
 
-      {/* Clear button — desktop only (mobile has it in inventory header) */}
-      {playground.length > 0 && (
-        <button
-          onClick={clearPlayground}
-          className="hidden md:flex fixed left-3 z-40 items-center justify-center w-9 h-9 rounded-xl bg-card/80 border border-border backdrop-blur-sm text-muted-foreground hover:text-foreground hover:bg-card transition-colors shadow-sm"
-          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
-          title={lang === 'fr' ? 'Vider le terrain' : 'Clear playground'}
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
-      )}
-
       {/* Notification stack — desktop only (mobile shows in inventory header) */}
       <div
         className="hidden md:flex fixed left-3 z-50 flex-col gap-2 pointer-events-none"
