@@ -961,6 +961,7 @@ export function Playground({
                     mergeFlashEnabled={mergeFlashEnabled}
                     onToggleMergeFlash={() => setMergeFlashEnabled(!mergeFlashEnabled)}
                     onOpenHelp={() => setActiveTab('help')}
+                    sessionUser={sessionUser}
                   />
                 )}
                 {activeTab === 'help' && (
@@ -1315,7 +1316,7 @@ function LeaderboardInlinePanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: 
   )
 }
 
-function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, itemsCount, gridCols, onSetGridCols, tapMode, onToggleTapMode, hapticEnabled, onToggleHaptic, mergeFlashEnabled, onToggleMergeFlash, onOpenHelp }: {
+function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, itemsCount, gridCols, onSetGridCols, tapMode, onToggleTapMode, hapticEnabled, onToggleHaptic, mergeFlashEnabled, onToggleMergeFlash, onOpenHelp, sessionUser }: {
   lang: 'fr' | 'en'; onSetLang: (l: 'fr' | 'en') => void
   hintsEnabled?: boolean; onToggleHints?: () => void
   onClear: () => void; itemsCount: number
@@ -1324,10 +1325,13 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
   hapticEnabled?: boolean; onToggleHaptic?: () => void
   mergeFlashEnabled: boolean; onToggleMergeFlash: () => void
   onOpenHelp?: () => void
+  sessionUser?: { id?: string | null; name?: string | null; email?: string | null } | null
 }) {
   const { theme, setTheme } = useTheme()
   const isDark = theme === 'dark'
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
+  const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0)
+  const [deleting, setDeleting] = useState(false)
   const toggleTheme = () => {
     const next = isDark ? 'light' : 'dark'
     setTheme(next)
@@ -1436,8 +1440,8 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
         </button>
       </div>
 
-      {/* How to play */}
-      <div className="rounded-2xl border border-border overflow-hidden">
+      {/* How to play + Legal links */}
+      <div className="rounded-2xl border border-border overflow-hidden divide-y divide-border">
         <button
           onClick={onOpenHelp}
           className="w-full flex items-center gap-3 px-4 py-3.5 bg-card hover:bg-muted/40 active:bg-muted/60 transition-colors cursor-pointer"
@@ -1450,7 +1454,117 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
           </div>
           <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0" />
         </button>
+        <a
+          href="/privacy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center gap-3 px-4 py-3.5 bg-card hover:bg-muted/40 active:bg-muted/60 transition-colors cursor-pointer"
+        >
+          <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
+            <Shield className="w-4 h-4 text-foreground/70" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className="text-sm font-medium text-foreground">{t('Politique de confidentialité', 'Privacy Policy')}</span>
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0" />
+        </a>
+        <a
+          href="/legal"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center gap-3 px-4 py-3.5 bg-card hover:bg-muted/40 active:bg-muted/60 transition-colors cursor-pointer"
+        >
+          <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
+            <Scroll size={16} weight="regular" className="text-foreground/70" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className="text-sm font-medium text-foreground">{t('Mentions légales', 'Legal Notice')}</span>
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0" />
+        </a>
+        <a
+          href="/terms"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center gap-3 px-4 py-3.5 bg-card hover:bg-muted/40 active:bg-muted/60 transition-colors cursor-pointer"
+        >
+          <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
+            <Star className="w-4 h-4 text-foreground/70" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className="text-sm font-medium text-foreground">{t("Conditions d'utilisation", 'Terms of Service')}</span>
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0" />
+        </a>
       </div>
+
+      {/* Delete account (logged in only) */}
+      {sessionUser && (
+        <div className="rounded-2xl border border-border overflow-hidden">
+          {deleteStep === 0 && (
+            <button
+              onClick={() => setDeleteStep(1)}
+              className="w-full flex items-center gap-3 px-4 py-3.5 bg-card hover:bg-red-500/5 active:bg-red-500/10 transition-colors cursor-pointer"
+            >
+              <div className="w-8 h-8 rounded-xl bg-red-500/10 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-4 h-4 text-red-400" />
+              </div>
+              <span className="text-sm font-medium text-red-400">{t('Supprimer mon compte', 'Delete my account')}</span>
+            </button>
+          )}
+          {deleteStep === 1 && (
+            <div className="px-4 py-4 bg-red-500/5 flex flex-col gap-3">
+              <p className="text-sm font-semibold text-red-400">{t('Supprimer définitivement ?', 'Delete permanently?')}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">{t('Toutes tes données (progression, découvertes, profil) seront effacées. Cette action est irréversible.', 'All your data (progress, discoveries, profile) will be erased. This action is irreversible.')}</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setDeleteStep(0)}
+                  className="flex-1 h-9 rounded-xl bg-muted border border-border text-sm font-medium text-foreground hover:bg-muted/80 transition-colors"
+                >
+                  {t('Annuler', 'Cancel')}
+                </button>
+                <button
+                  onClick={() => setDeleteStep(2)}
+                  className="flex-1 h-9 rounded-xl bg-red-500/20 border border-red-500/30 text-sm font-semibold text-red-400 hover:bg-red-500/30 transition-colors"
+                >
+                  {t('Continuer', 'Continue')}
+                </button>
+              </div>
+            </div>
+          )}
+          {deleteStep === 2 && (
+            <div className="px-4 py-4 bg-red-500/10 flex flex-col gap-3">
+              <p className="text-sm font-bold text-red-400">{t('Derniere confirmation', 'Final confirmation')}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">{t('Clique sur "Supprimer" pour confirmer. Il n\'y a pas de retour en arrière possible.', 'Click "Delete" to confirm. There is no going back.')}</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setDeleteStep(0)}
+                  className="flex-1 h-9 rounded-xl bg-muted border border-border text-sm font-medium text-foreground hover:bg-muted/80 transition-colors"
+                >
+                  {t('Annuler', 'Cancel')}
+                </button>
+                <button
+                  disabled={deleting}
+                  onClick={async () => {
+                    setDeleting(true)
+                    try {
+                      await fetch('/api/account/delete', { method: 'DELETE' })
+                      try { localStorage.removeItem('alchemy-discovered-v3') } catch {}
+                      signOut({ callbackUrl: '/' })
+                    } catch {
+                      setDeleting(false)
+                      setDeleteStep(0)
+                    }
+                  }}
+                  className="flex-1 h-9 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 active:scale-95 transition-all disabled:opacity-50"
+                >
+                  {deleting ? (t('Suppression...', 'Deleting...')) : (t('Supprimer', 'Delete'))}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Sign out */}
       <div className="rounded-2xl border border-border overflow-hidden">
