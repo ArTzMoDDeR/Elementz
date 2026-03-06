@@ -4,6 +4,9 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+const OTP_RATE_LIMIT = 3        // max requests per window
+const OTP_WINDOW_MINUTES = 10   // rolling window in minutes
+
 export async function POST(req: NextRequest) {
   const { email } = await req.json()
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -11,19 +14,31 @@ export async function POST(req: NextRequest) {
   }
 
   if (!process.env.RESEND_API_KEY) {
-    console.error('[v0] RESEND_API_KEY is not set')
     return NextResponse.json({ error: 'Email service not configured' }, { status: 500 })
   }
 
   const sql = neon(process.env.DATABASE_URL!)
+
+  // Rate limit: count recent OTP requests for this email in the rolling window
+  const [rateCheck] = await sql`
+    SELECT COUNT(*)::int AS n FROM email_otps
+    WHERE email = ${email}
+      AND created_at > NOW() - INTERVAL '${OTP_WINDOW_MINUTES} minutes'
+  `
+  if ((rateCheck?.n ?? 0) >= OTP_RATE_LIMIT) {
+    return NextResponse.json(
+      { error: `Too many requests. Please wait before requesting a new code.` },
+      { status: 429 }
+    )
+  }
+
   const code = String(Math.floor(100000 + Math.random() * 900000))
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
+  const expiresAt = new Date(Date.now() + OTP_WINDOW_MINUTES * 60 * 1000)
 
   await sql`UPDATE email_otps SET used = TRUE WHERE email = ${email} AND used = FALSE`
   await sql`INSERT INTO email_otps (email, code, expires_at) VALUES (${email}, ${code}, ${expiresAt.toISOString()})`
 
   const from = process.env.EMAIL_FROM ?? 'onboarding@resend.dev'
-  console.log('[v0] Sending OTP to:', email, '| from:', from, '| code:', code)
 
   const { data, error } = await resend.emails.send({
     from,
@@ -42,10 +57,8 @@ export async function POST(req: NextRequest) {
   })
 
   if (error) {
-    console.error('[v0] Resend error:', JSON.stringify(error))
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  console.log('[v0] Email sent successfully, id:', data?.id)
   return NextResponse.json({ ok: true })
 }
