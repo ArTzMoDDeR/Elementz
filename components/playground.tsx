@@ -1449,10 +1449,8 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
           <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
             <Question size={16} weight="regular" className="text-foreground/70" />
           </div>
-          <div className="flex-1 min-w-0">
-            <span className="text-sm font-medium text-foreground">{t('Comment jouer', 'How to play')}</span>
-          </div>
-          <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0" />
+          <span className="text-sm font-medium text-foreground">{t('Comment jouer', 'How to play')}</span>
+          <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0 ml-auto" />
         </button>
         <a
           href="/privacy"
@@ -1463,10 +1461,8 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
           <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
             <Shield className="w-4 h-4 text-foreground/70" />
           </div>
-          <div className="flex-1 min-w-0">
-            <span className="text-sm font-medium text-foreground">{t('Politique de confidentialité', 'Privacy Policy')}</span>
-          </div>
-          <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0" />
+          <span className="text-sm font-medium text-foreground">{t('Politique de confidentialité', 'Privacy Policy')}</span>
+          <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0 ml-auto" />
         </a>
         <a
           href="/legal"
@@ -1477,10 +1473,8 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
           <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
             <Scroll size={16} weight="regular" className="text-foreground/70" />
           </div>
-          <div className="flex-1 min-w-0">
-            <span className="text-sm font-medium text-foreground">{t('Mentions légales', 'Legal Notice')}</span>
-          </div>
-          <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0" />
+          <span className="text-sm font-medium text-foreground">{t('Mentions légales', 'Legal Notice')}</span>
+          <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0 ml-auto" />
         </a>
         <a
           href="/terms"
@@ -1491,10 +1485,8 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
           <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
             <Star className="w-4 h-4 text-foreground/70" />
           </div>
-          <div className="flex-1 min-w-0">
-            <span className="text-sm font-medium text-foreground">{t("Conditions d'utilisation", 'Terms of Service')}</span>
-          </div>
-          <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0" />
+          <span className="text-sm font-medium text-foreground">{t("Conditions d'utilisation", 'Terms of Service')}</span>
+          <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0 ml-auto" />
         </a>
       </div>
 
@@ -1566,7 +1558,8 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
         </div>
       )}
 
-      {/* Sign out */}
+      {/* Sign out (logged in only) */}
+      {sessionUser && (
       <div className="rounded-2xl border border-border overflow-hidden">
         <button
           onClick={() => { try { localStorage.removeItem('alchemy-discovered-v3') } catch {} signOut({ callbackUrl: '/' }) }}
@@ -1578,6 +1571,7 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
           <span className="text-sm font-medium text-red-400">{t('Se déconnecter', 'Sign out')}</span>
         </button>
       </div>
+      )}
     </div>
   )
 }
