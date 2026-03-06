@@ -48,7 +48,18 @@ export function AlchemyGame() {
     lang,
   )
 
-  // Auto-dismiss hint when the hinted element is discovered
+  // Preload all element images once the elements map is ready so they are
+  // already cached when rendered in the inventory, playground, or codex tab.
+  useEffect(() => {
+    if (!elements || elements.size === 0) return
+    elements.forEach(el => {
+      if (el.imageUrl) {
+        const img = new Image()
+        img.src = el.imageUrl
+      }
+    })
+  }, [elements])
+
   useEffect(() => {
     if (!newlyDiscovered || !currentHint || !hintVisible) return
     // currentHint.result is always FR name, newlyDiscovered is lang-dependent

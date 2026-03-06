@@ -86,7 +86,7 @@ function ElementBadgeInner({ element, size = 'md', fluid = false, className = ''
               src={imgSrc}
               alt={element.name}
               draggable={false}
-              loading="lazy"
+              loading="eager"
               decoding="async"
               className="w-full h-full object-contain pointer-events-none"
             />
