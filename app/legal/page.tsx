@@ -32,7 +32,7 @@ export default function LegalPage() {
             <p>
               <strong className="text-foreground">Elementz</strong> est un service édité par :<br />
               Eugène Garcia<br />
-              France<br />
+              Paris, France<br />
               Contact : <a href={`mailto:${contact}`} className="underline text-foreground">{contact}</a>
             </p>
           </section>
@@ -52,7 +52,8 @@ export default function LegalPage() {
 
           <section className="flex flex-col gap-3">
             <h2 className="text-base font-semibold text-foreground">Propriété intellectuelle</h2>
-            <p>L&apos;ensemble du contenu du site (design, textes, images, code) est la propriété exclusive d&apos;Eugène Garcia, sauf mention contraire. Toute reproduction, même partielle, est interdite sans autorisation préalable.</p>
+            <p>L&apos;ensemble du contenu du site (design, textes, code) est la propriété exclusive d&apos;Eugène Garcia, sauf mention contraire. Toute reproduction, même partielle, est interdite sans autorisation préalable.</p>
+            <p>Certains pictogrammes utilisés dans l&apos;application proviennent du projet <strong className="text-foreground">Twemoji</strong> de Twitter, Inc. et sont utilisés sous licence <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer" className="underline text-foreground">Creative Commons Attribution 4.0 International (CC BY 4.0)</a>. Ces éléments ne sont pas la propriété d&apos;Elementz.</p>
           </section>
 
           <section className="flex flex-col gap-3">

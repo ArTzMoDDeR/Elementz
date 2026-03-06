@@ -28,7 +28,7 @@ export default function PrivacyPage() {
 
           <section className="flex flex-col gap-3">
             <h2 className="text-base font-semibold text-foreground">1. Who we are</h2>
-            <p>{appName} is a browser and mobile game available at <a href={domain} className="underline text-foreground">{domain}</a>. The service is operated by Eugène Garcia (&ldquo;we&rdquo;, &ldquo;us&rdquo;).</p>
+            <p>{appName} is a browser and mobile game available at <a href={domain} className="underline text-foreground">{domain}</a>. The service is operated by Eugène Garcia (&ldquo;we&rdquo;, &ldquo;us&rdquo;), based in Paris, France.</p>
           </section>
 
           <section className="flex flex-col gap-3">
@@ -87,7 +87,12 @@ export default function PrivacyPage() {
           </section>
 
           <section className="flex flex-col gap-3">
-            <h2 className="text-base font-semibold text-foreground">9. Contact</h2>
+            <h2 className="text-base font-semibold text-foreground">9. Third-party assets</h2>
+            <p>Some pictograms used in the application come from the <strong className="text-foreground">Twemoji</strong> project by Twitter, Inc. and are used under the <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer" className="underline text-foreground">Creative Commons Attribution 4.0 International (CC BY 4.0)</a> licence. These assets are not the property of {appName}.</p>
+          </section>
+
+          <section className="flex flex-col gap-3">
+            <h2 className="text-base font-semibold text-foreground">10. Contact</h2>
             <p>Questions or requests: <a href={`mailto:${contact}`} className="underline text-foreground">{contact}</a></p>
           </section>
 

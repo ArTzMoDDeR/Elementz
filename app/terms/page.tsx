@@ -60,7 +60,8 @@ export default function TermsPage() {
 
           <section className="flex flex-col gap-3">
             <h2 className="text-base font-semibold text-foreground">5. Intellectual property</h2>
-            <p>All game content, design, and code are the exclusive property of Eugène Garcia. You are granted a personal, non-transferable, non-exclusive licence to use the service for personal entertainment. You may not reproduce or distribute any part of the service without prior written permission.</p>
+            <p>All game content, design, and code are the exclusive property of Eugène Garcia, based in Paris, France. You are granted a personal, non-transferable, non-exclusive licence to use the service for personal entertainment. You may not reproduce or distribute any part of the service without prior written permission.</p>
+            <p>Some pictograms used in the application come from the <strong className="text-foreground">Twemoji</strong> project by Twitter, Inc. and are used under the <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer" className="underline text-foreground">Creative Commons Attribution 4.0 International (CC BY 4.0)</a> licence. These assets are not the property of {appName}.</p>
           </section>
 
           <section className="flex flex-col gap-3">
