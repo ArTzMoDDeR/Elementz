@@ -29,24 +29,24 @@ function SectionLabel({ label, count, color = 'muted' }: { label: string; count?
 
 interface FetchedRecipe {
   ing1_name: string
-  ing1_img: string | null
   ing2_name: string
-  ing2_img: string | null
 }
 
 function RecipeCard({
   element,
+  elements,
   lang,
   onClose,
 }: {
   element: ElementDef
+  elements: Map<string, ElementDef>
   lang: 'fr' | 'en'
   onClose: () => void
 }) {
   const [recipe, setRecipe] = useState<FetchedRecipe | null | undefined>(undefined)
 
   useEffect(() => {
-    setRecipe(undefined) // reset on element change
+    setRecipe(undefined)
     fetch(`/api/codex/recipe/${encodeURIComponent(element.name)}`)
       .then(r => r.json())
       .then(data => setRecipe(data.recipe ?? null))
@@ -56,14 +56,9 @@ function RecipeCard({
   const loading = recipe === undefined
   const isBase = recipe === null
 
-  // Build ElementDef-like objects from fetched names for IngredientPill
-  const makeEl = (name: string, img: string | null): ElementDef => ({
-    name,
-    icon: '',
-    color: '#94A3B8',
-    category: '',
-    imageUrl: img ?? undefined,
-  })
+  // Resolve ingredient ElementDefs from the client-side map (has images)
+  const ingA = recipe ? (elements.get(recipe.ing1_name) ?? { name: recipe.ing1_name, icon: '', color: '#94A3B8', category: '' }) : null
+  const ingB = recipe ? (elements.get(recipe.ing2_name) ?? { name: recipe.ing2_name, icon: '', color: '#94A3B8', category: '' }) : null
 
   return (
     <div
@@ -112,13 +107,13 @@ function RecipeCard({
             {lang === 'fr' ? 'Aucune recette — élément originel' : 'No recipe — primordial element'}
           </p>
         )}
-        {!loading && recipe && (
+        {!loading && recipe && ingA && ingB && (
           <>
-            <IngredientPill element={makeEl(recipe.ing1_name, recipe.ing1_img)} />
+            <IngredientPill element={ingA} />
             <div className="w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center flex-shrink-0">
               <span className="text-xs font-bold text-muted-foreground">+</span>
             </div>
-            <IngredientPill element={makeEl(recipe.ing2_name, recipe.ing2_img)} />
+            <IngredientPill element={ingB} />
             <div className="w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center flex-shrink-0">
               <ChevronRight className="w-3 h-3 text-muted-foreground" />
             </div>
@@ -324,6 +319,7 @@ export function CodexInlinePanel({
       {selectedEl && (
         <RecipeCard
           element={selectedEl}
+          elements={elements}
           lang={lang}
           onClose={() => setSelected(null)}
         />
