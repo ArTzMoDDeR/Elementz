@@ -26,15 +26,22 @@ export async function POST(req: NextRequest) {
   const { discovered, combo_ingredients } = await req.json()
   if (!Array.isArray(discovered)) return NextResponse.json({ error: 'Invalid' }, { status: 400 })
 
+  // Enforce: max 2 elements per call (one combination at a time)
+  if (discovered.length > 2) return NextResponse.json({ error: 'Invalid' }, { status: 400 })
+
   const sql = neon(process.env.DATABASE_URL!)
 
-  // Insert new unlocks
+  // Validate: only insert elements that actually exist AND are valid recipe results.
+  // The JOIN against recipes ensures the client cannot invent arbitrary unlocks.
   if (discovered.length > 0) {
     await sql`
       INSERT INTO unlocks (user_id, element_number, discovered_at)
       SELECT ${session.user.id}, e.number, NOW()
       FROM unnest(${discovered}::text[]) AS d(name)
-      JOIN elements e ON e.name_french = d.name OR e.name_english = d.name
+      JOIN elements e ON (e.name_french = d.name OR e.name_english = d.name)
+      WHERE EXISTS (
+        SELECT 1 FROM recipes r WHERE r.result_number = e.number
+      )
       ON CONFLICT DO NOTHING
     `
   }
