@@ -1254,7 +1254,6 @@ function LeaderboardInlinePanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: 
                       style={{ height: `${height + 40}px`, borderColor: rank === 1 ? 'rgb(250 204 21 / 0.3)' : rank === 2 ? 'rgb(161 161 170 / 0.2)' : 'rgb(217 119 6 / 0.2)' }}>
                       <span className={`text-base font-bold tabular-nums ${rankColors[rank]}`}>#{rank}</span>
                       <span className="text-xs font-bold text-foreground tabular-nums">{entry.count}</span>
-                      <span className="text-[10px] text-muted-foreground">{pct}%</span>
                     </div>
                   </div>
                 )
