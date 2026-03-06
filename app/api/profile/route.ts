@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { neon } from '@neondatabase/serverless'
 
-const sql = neon(process.env.DATABASE_URL!)
-
 export async function GET() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const sql = neon(process.env.DATABASE_URL!)
 
   const rows = await sql`
     WITH rankings AS (
@@ -62,6 +62,8 @@ export async function GET() {
 export async function PATCH(req: Request) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const sql = neon(process.env.DATABASE_URL!)
 
   const body = await req.json()
   const { username, show_in_leaderboard, avatar, haptic_feedback, theme, onboarding_done } = body
