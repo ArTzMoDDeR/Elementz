@@ -3,23 +3,27 @@
 import { useState } from 'react'
 import Link from 'next/link'
 
-type Lang = 'fr' | 'en'
-
-interface Section {
-  title: string
-  content: React.ReactNode
-}
-
 interface LegalLayoutProps {
-  defaultLang?: Lang
-  sections: (lang: Lang) => Section[]
-  title: (lang: Lang) => string
-  lastUpdated: (lang: Lang) => string
-  footer: (lang: Lang) => React.ReactNode
+  defaultLang?: 'fr' | 'en'
+  titleFr: string
+  titleEn: string
+  lastUpdatedFr: string
+  lastUpdatedEn: string
+  footerFr: React.ReactNode
+  footerEn: React.ReactNode
+  contentFr: React.ReactNode
+  contentEn: React.ReactNode
 }
 
-export default function LegalLayout({ defaultLang = 'fr', sections, title, lastUpdated, footer }: LegalLayoutProps) {
-  const [lang, setLang] = useState<Lang>(defaultLang)
+export default function LegalLayout({
+  defaultLang = 'fr',
+  titleFr, titleEn,
+  lastUpdatedFr, lastUpdatedEn,
+  footerFr, footerEn,
+  contentFr, contentEn,
+}: LegalLayoutProps) {
+  const [lang, setLang] = useState<'fr' | 'en'>(defaultLang)
+  const isFr = lang === 'fr'
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -32,14 +36,11 @@ export default function LegalLayout({ defaultLang = 'fr', sections, title, lastU
             Elementz
           </Link>
 
-          {/* Language toggle */}
           <div className="flex items-center gap-1 p-1 rounded-xl bg-muted border border-border">
             <button
               onClick={() => setLang('fr')}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                lang === 'fr'
-                  ? 'bg-background text-foreground shadow-sm border border-border'
-                  : 'text-muted-foreground hover:text-foreground'
+                isFr ? 'bg-background text-foreground shadow-sm border border-border' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               FR
@@ -47,9 +48,7 @@ export default function LegalLayout({ defaultLang = 'fr', sections, title, lastU
             <button
               onClick={() => setLang('en')}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                lang === 'en'
-                  ? 'bg-background text-foreground shadow-sm border border-border'
-                  : 'text-muted-foreground hover:text-foreground'
+                !isFr ? 'bg-background text-foreground shadow-sm border border-border' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               EN
@@ -57,22 +56,18 @@ export default function LegalLayout({ defaultLang = 'fr', sections, title, lastU
           </div>
         </div>
 
-        <h1 className="text-3xl font-bold text-foreground mb-2">{title(lang)}</h1>
+        <h1 className="text-3xl font-bold text-foreground mb-2">{isFr ? titleFr : titleEn}</h1>
         <p className="text-sm text-muted-foreground mb-10">
-          {lang === 'fr' ? 'Dernière mise à jour : ' : 'Last updated: '}{lastUpdated(lang)}
+          {isFr ? `Dernière mise à jour : ${lastUpdatedFr}` : `Last updated: ${lastUpdatedEn}`}
         </p>
 
         <div className="flex flex-col gap-8 text-sm leading-relaxed text-foreground/80">
-          {sections(lang).map((s, i) => (
-            <section key={i} className="flex flex-col gap-3">
-              <h2 className="text-base font-semibold text-foreground">{s.title}</h2>
-              {s.content}
-            </section>
-          ))}
+          <div className={isFr ? 'flex flex-col gap-8' : 'hidden'}>{contentFr}</div>
+          <div className={!isFr ? 'flex flex-col gap-8' : 'hidden'}>{contentEn}</div>
         </div>
 
         <div className="mt-12 pt-8 border-t border-border flex gap-4 text-xs text-muted-foreground">
-          {footer(lang)}
+          {isFr ? footerFr : footerEn}
         </div>
       </div>
     </main>
