@@ -1,34 +1,56 @@
-// onboarding-modal v2
 'use client'
 
 import { useState } from 'react'
 import { useTheme } from 'next-themes'
-import { Globe, Vibrate, Sun, Moon, ChevronRight, Check, Lightbulb, Trash2, Scroll, ArrowLeft } from 'lucide-react'
+import { Globe, Sun, Moon, ChevronRight, Check, Lightbulb, Trash2, Scroll, ArrowLeft, User, Smile } from 'lucide-react'
 
 type Props = {
-  onComplete: (prefs: { lang: 'fr' | 'en'; theme: 'dark' | 'light'; haptic: boolean }) => void
+  onComplete: (prefs: { lang: 'fr' | 'en'; theme: 'dark' | 'light'; haptic: boolean; username: string; avatar: string }) => void
 }
 
-const STEPS = ['lang', 'theme', 'haptic', 'combine', 'hint', 'clear', 'quests'] as const
+const STARTERS = ['eau', 'feu', 'terre', 'air'] as const
+const STARTER_LABELS: Record<string, { fr: string; en: string; emoji: string }> = {
+  eau:   { fr: 'Eau',  en: 'Water', emoji: '💧' },
+  feu:   { fr: 'Feu',  en: 'Fire',  emoji: '🔥' },
+  terre: { fr: 'Terre',en: 'Earth', emoji: '🌍' },
+  air:   { fr: 'Air',  en: 'Air',   emoji: '💨' },
+}
+
+const STEPS = ['lang', 'theme', 'combine', 'hint', 'clear', 'quests', 'username', 'avatar'] as const
 type Step = typeof STEPS[number]
 
 export function OnboardingModal({ onComplete }: Props) {
   const [step, setStep] = useState<Step>('lang')
   const [lang, setLang] = useState<'fr' | 'en'>('en')
   const [selectedTheme, setSelectedTheme] = useState<'dark' | 'light'>('dark')
-  const [haptic, setHaptic] = useState(true)
+  const [username, setUsername] = useState('')
+  const [usernameError, setUsernameError] = useState('')
+  const [avatar, setAvatar] = useState<string>('feu')
   const { setTheme: applyTheme } = useTheme()
 
   const stepIndex = STEPS.indexOf(step)
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
+  const validateUsername = (val: string) => {
+    const trimmed = val.trim()
+    if (trimmed.length > 20) return t('Max 20 caractères', 'Max 20 characters')
+    if (trimmed.length > 0 && !/^[a-zA-Z0-9_\- ]+$/.test(trimmed)) {
+      return t('Lettres, chiffres, _ et - uniquement', 'Letters, numbers, _ and - only')
+    }
+    return ''
+  }
+
   const handleNext = () => {
     if (step === 'theme') applyTheme(selectedTheme)
+    if (step === 'username') {
+      const err = validateUsername(username)
+      if (err) { setUsernameError(err); return }
+    }
     const nextIndex = stepIndex + 1
     if (nextIndex < STEPS.length) {
       setStep(STEPS[nextIndex])
     } else {
-      onComplete({ lang, theme: selectedTheme, haptic })
+      onComplete({ lang, theme: selectedTheme, haptic: false, username: username.trim(), avatar })
     }
   }
 
@@ -126,41 +148,7 @@ export function OnboardingModal({ onComplete }: Props) {
             </>
           )}
 
-          {/* STEP: Haptic */}
-          {step === 'haptic' && (
-            <>
-              <div className="flex flex-col gap-1 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-2">
-                  <Vibrate className="w-6 h-6 text-primary" />
-                </div>
-                <h2 className="text-xl font-bold text-foreground">
-                  {t('Vibrations', 'Vibrations')}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  {t("Vibrer lors d'une nouvelle découverte ?", 'Vibrate when you discover something new?')}
-                </p>
-              </div>
-              <div className="flex gap-3">
-                {([true, false] as const).map(h => (
-                  <button
-                    key={String(h)}
-                    onClick={() => setHaptic(h)}
-                    className={`flex-1 py-4 rounded-2xl border-2 transition-all font-semibold text-base flex flex-col items-center gap-1.5 ${
-                      haptic === h
-                        ? 'border-primary bg-primary/8 text-primary'
-                        : 'border-border bg-muted/40 text-muted-foreground hover:border-border/80'
-                    }`}
-                  >
-                    <span className="text-xl">{h ? '📳' : '🔕'}</span>
-                    <span>{h ? t('Activé', 'On') : t('Désactivé', 'Off')}</span>
-                    {haptic === h && <Check className="w-3.5 h-3.5" />}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* STEP: Combine (video) */}
+          {/* STEP: Combine */}
           {step === 'combine' && (
             <>
               <div className="flex flex-col gap-1 text-center">
@@ -252,6 +240,83 @@ export function OnboardingModal({ onComplete }: Props) {
                 <p className="text-sm text-muted-foreground leading-snug">
                   {t('Onglet Quêtes dans la barre de navigation', 'Quests tab in the navigation bar')}
                 </p>
+              </div>
+            </>
+          )}
+
+          {/* STEP: Username */}
+          {step === 'username' && (
+            <>
+              <div className="flex flex-col gap-1 text-center">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-2">
+                  <User className="w-6 h-6 text-primary" />
+                </div>
+                <h2 className="text-xl font-bold text-foreground">{t('Choisis ton pseudo', 'Choose your username')}</h2>
+                <p className="text-sm text-muted-foreground">
+                  {t('Il apparaîtra dans le classement. Tu pourras le modifier plus tard.', 'It will appear in the leaderboard. You can change it later.')}
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <input
+                  type="text"
+                  value={username}
+                  maxLength={20}
+                  placeholder={t('Ton pseudo...', 'Your username...')}
+                  onChange={e => { setUsername(e.target.value); setUsernameError('') }}
+                  onKeyDown={e => e.key === 'Enter' && handleNext()}
+                  className="w-full h-12 px-4 rounded-2xl bg-muted/50 border border-border text-foreground placeholder:text-muted-foreground text-sm font-medium focus:outline-none focus:border-primary transition-colors"
+                  autoFocus
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                />
+                {usernameError && (
+                  <p className="text-xs text-red-400 px-1">{usernameError}</p>
+                )}
+                <p className="text-xs text-muted-foreground px-1">
+                  {t('Lettres, chiffres, _ et - uniquement. Max 20 caractères.', 'Letters, numbers, _ and - only. Max 20 characters.')}
+                </p>
+              </div>
+            </>
+          )}
+
+          {/* STEP: Avatar */}
+          {step === 'avatar' && (
+            <>
+              <div className="flex flex-col gap-1 text-center">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-2">
+                  <Smile className="w-6 h-6 text-primary" />
+                </div>
+                <h2 className="text-xl font-bold text-foreground">{t('Choisis ton avatar', 'Choose your avatar')}</h2>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {t(
+                    "Commence avec un élément de base. Dans l'onglet Profil, tu pourras le changer par n'importe quel élément que tu as débloqué.",
+                    "Start with a base element. In the Profile tab, you'll be able to change it to any element you've unlocked."
+                  )}
+                </p>
+              </div>
+              <div className="grid grid-cols-4 gap-3">
+                {STARTERS.map(key => {
+                  const info = STARTER_LABELS[key]
+                  const selected = avatar === key
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setAvatar(key)}
+                      className={`flex flex-col items-center gap-2 py-4 rounded-2xl border-2 transition-all ${
+                        selected
+                          ? 'border-primary bg-primary/8'
+                          : 'border-border bg-muted/40 hover:border-border/80'
+                      }`}
+                    >
+                      <span className="text-3xl leading-none">{info.emoji}</span>
+                      <span className={`text-xs font-semibold ${selected ? 'text-primary' : 'text-muted-foreground'}`}>
+                        {lang === 'fr' ? info.fr : info.en}
+                      </span>
+                      {selected && <Check className="w-3 h-3 text-primary" />}
+                    </button>
+                  )
+                })}
               </div>
             </>
           )}
