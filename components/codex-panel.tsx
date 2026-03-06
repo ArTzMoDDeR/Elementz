@@ -273,7 +273,7 @@ export function CodexInlinePanel({
             <ArrowLeft className="w-4 h-4 text-foreground/70" />
           </button>
           <div>
-            <h2 className="text-lg font-bold text-foreground leading-tight">Codex</h2>
+            <h2 className="text-lg font-bold text-foreground leading-tight">{t('Recettes', 'Recipes')}</h2>
             <p className="text-xs text-muted-foreground">
               <span className="font-semibold" style={{ color: 'var(--primary)' }}>{discoveredCount}</span>
               <span className="opacity-50">/{totalElements}</span>
