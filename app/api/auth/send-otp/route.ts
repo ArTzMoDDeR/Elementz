@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   const [rateCheck] = await sql`
     SELECT COUNT(*)::int AS n FROM email_otps
     WHERE email = ${email}
-      AND created_at > NOW() - INTERVAL '${OTP_WINDOW_MINUTES} minutes'
+      AND created_at > NOW() - INTERVAL '10 minutes'
   `
   if ((rateCheck?.n ?? 0) >= OTP_RATE_LIMIT) {
     return NextResponse.json(
