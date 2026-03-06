@@ -168,13 +168,23 @@ export function AlchemyGame() {
     return null
   }, [hintVisible, currentHint, hintLabel, newlyDiscovered, progressToast, tapModeToast, hintsToast, lang, elements, frToElement, frToEn])
 
-  const handleOnboardingComplete = async (prefs: { lang: 'fr' | 'en'; theme: 'dark' | 'light'; haptic: boolean }) => {
+  const handleOnboardingComplete = async (prefs: { lang: 'fr' | 'en'; theme: 'dark' | 'light'; haptic: boolean; username: string; avatar: string }) => {
     setShowOnboarding(false)
     setLang(prefs.lang)
     setTheme(prefs.theme)
     setHapticEnabled(prefs.haptic)
     await fetch('/api/lang', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lang: prefs.lang }) })
-    await fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ theme: prefs.theme, haptic_feedback: prefs.haptic, onboarding_done: true }) })
+    await fetch('/api/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        theme: prefs.theme,
+        haptic_feedback: prefs.haptic,
+        onboarding_done: true,
+        username: prefs.username || null,
+        avatar: prefs.avatar,
+      }),
+    })
   }
 
   const handleDismissNotification = () => {
