@@ -28,8 +28,10 @@ function SectionLabel({ label, count, color = 'muted' }: { label: string; count?
 // ─── Recipe card ─────────────────────────────────────────────────────────────
 
 interface FetchedRecipe {
-  ing1_name: string
-  ing2_name: string
+  ing1_name_fr: string
+  ing1_name_en: string
+  ing2_name_fr: string
+  ing2_name_en: string
 }
 
 function RecipeCard({
@@ -56,9 +58,12 @@ function RecipeCard({
   const loading = recipe === undefined
   const isBase = recipe === null
 
-  // Resolve ingredient ElementDefs from the client-side map (has images)
-  const ingA = recipe ? (elements.get(recipe.ing1_name) ?? { name: recipe.ing1_name, icon: '', color: '#94A3B8', category: '' }) : null
-  const ingB = recipe ? (elements.get(recipe.ing2_name) ?? { name: recipe.ing2_name, icon: '', color: '#94A3B8', category: '' }) : null
+  // Try both FR and EN name to find the element in the map (lang-dependent keys)
+  const resolveEl = (nameFr: string, nameEn: string): ElementDef =>
+    elements.get(nameFr) ?? elements.get(nameEn) ?? { name: nameFr, icon: '', color: '#94A3B8', category: '' }
+
+  const ingA = recipe ? resolveEl(recipe.ing1_name_fr, recipe.ing1_name_en) : null
+  const ingB = recipe ? resolveEl(recipe.ing2_name_fr, recipe.ing2_name_en) : null
 
   return (
     <div

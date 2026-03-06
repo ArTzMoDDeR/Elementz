@@ -26,8 +26,10 @@ export async function GET(
       // Return first recipe where BOTH ingredients are unlocked by this user
       const rows = await sql`
         SELECT
-          e1.name_french AS ing1_name,
-          e2.name_french AS ing2_name
+          e1.name_french AS ing1_name_fr,
+          e1.name_english AS ing1_name_en,
+          e2.name_french AS ing2_name_fr,
+          e2.name_english AS ing2_name_en
         FROM recipes r
         JOIN elements e1 ON e1.number = r.ingredient1_number
         JOIN elements e2 ON e2.number = r.ingredient2_number
@@ -43,8 +45,10 @@ export async function GET(
     // Guest: return first available recipe
     const rows = await sql`
       SELECT
-        e1.name_french AS ing1_name,
-        e2.name_french AS ing2_name
+        e1.name_french AS ing1_name_fr,
+        e1.name_english AS ing1_name_en,
+        e2.name_french AS ing2_name_fr,
+        e2.name_english AS ing2_name_en
       FROM recipes r
       JOIN elements e1 ON e1.number = r.ingredient1_number
       JOIN elements e2 ON e2.number = r.ingredient2_number
