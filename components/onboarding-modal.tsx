@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import { useTheme } from 'next-themes'
 import { Globe, Sun, Moon, ChevronRight, Check, Lightbulb, Trash2, Scroll, ArrowLeft, User, Smile } from 'lucide-react'
+import type { ElementDef } from '@/lib/game-data'
 
 type Props = {
+  elements: Map<string, ElementDef>
   onComplete: (prefs: { lang: 'fr' | 'en'; theme: 'dark' | 'light'; haptic: boolean; username: string; avatar: string }) => void
 }
 
@@ -19,7 +21,7 @@ const STARTER_LABELS: Record<string, { fr: string; en: string; emoji: string }> 
 const STEPS = ['lang', 'theme', 'combine', 'hint', 'clear', 'quests', 'username', 'avatar'] as const
 type Step = typeof STEPS[number]
 
-export function OnboardingModal({ onComplete }: Props) {
+export function OnboardingModal({ elements, onComplete }: Props) {
   const [step, setStep] = useState<Step>('lang')
   const [lang, setLang] = useState<'fr' | 'en'>('en')
   const [selectedTheme, setSelectedTheme] = useState<'dark' | 'light'>('dark')
@@ -298,6 +300,9 @@ export function OnboardingModal({ onComplete }: Props) {
               <div className="grid grid-cols-4 gap-3">
                 {STARTERS.map(key => {
                   const info = STARTER_LABELS[key]
+                  const el = elements.get(lang === 'fr' ? info.fr.toLowerCase() : info.en.toLowerCase())
+                    ?? elements.get(info.fr.toLowerCase())
+                    ?? elements.get(info.en.toLowerCase())
                   const selected = avatar === key
                   return (
                     <button
@@ -309,7 +314,21 @@ export function OnboardingModal({ onComplete }: Props) {
                           : 'border-border bg-muted/40 hover:border-border/80'
                       }`}
                     >
-                      <span className="text-3xl leading-none">{info.emoji}</span>
+                      {el?.imageUrl ? (
+                        <div
+                          className="w-10 h-10 rounded-xl flex items-center justify-center p-1.5"
+                          style={{ background: `${el.color}25` }}
+                        >
+                          <img
+                            src={el.imageUrl}
+                            alt={el.name}
+                            className="w-full h-full object-contain pointer-events-none"
+                            draggable={false}
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-3xl leading-none">{info.emoji}</span>
+                      )}
                       <span className={`text-xs font-semibold ${selected ? 'text-primary' : 'text-muted-foreground'}`}>
                         {lang === 'fr' ? info.fr : info.en}
                       </span>
