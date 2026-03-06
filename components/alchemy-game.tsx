@@ -244,7 +244,7 @@ export function AlchemyGame() {
 
   return (
     <div className="game-container bg-background">
-      {showOnboarding && <OnboardingModal onComplete={handleOnboardingComplete} />}
+      {showOnboarding && <OnboardingModal elements={elements} onComplete={handleOnboardingComplete} />}
       <Playground
         items={playground}
         elements={elements}
