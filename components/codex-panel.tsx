@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Search, X, ChevronRight, ArrowLeft, Lock } from 'lucide-react'
+import { Search, X, ChevronRight, ArrowLeft, Lock, Loader2 } from 'lucide-react'
 import { Books } from '@phosphor-icons/react'
 import type { ElementDef } from '@/lib/game-data'
 
@@ -27,20 +27,43 @@ function SectionLabel({ label, count, color = 'muted' }: { label: string; count?
 
 // ─── Recipe card ─────────────────────────────────────────────────────────────
 
+interface FetchedRecipe {
+  ing1_name: string
+  ing1_img: string | null
+  ing2_name: string
+  ing2_img: string | null
+}
+
 function RecipeCard({
   element,
-  ingA,
-  ingB,
   lang,
   onClose,
 }: {
   element: ElementDef
-  ingA: ElementDef | null
-  ingB: ElementDef | null
   lang: 'fr' | 'en'
   onClose: () => void
 }) {
-  const isBase = !ingA || !ingB
+  const [recipe, setRecipe] = useState<FetchedRecipe | null | undefined>(undefined)
+
+  useEffect(() => {
+    setRecipe(undefined) // reset on element change
+    fetch(`/api/codex/recipe/${encodeURIComponent(element.name)}`)
+      .then(r => r.json())
+      .then(data => setRecipe(data.recipe ?? null))
+      .catch(() => setRecipe(null))
+  }, [element.name])
+
+  const loading = recipe === undefined
+  const isBase = recipe === null
+
+  // Build ElementDef-like objects from fetched names for IngredientPill
+  const makeEl = (name: string, img: string | null): ElementDef => ({
+    name,
+    icon: '',
+    color: '#94A3B8',
+    category: '',
+    imageUrl: img ?? undefined,
+  })
 
   return (
     <div
@@ -61,9 +84,11 @@ function RecipeCard({
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-foreground truncate">{element.name}</p>
           <p className="text-[11px] text-muted-foreground mt-0.5">
-            {isBase
-              ? (lang === 'fr' ? 'Élément de base' : 'Base element')
-              : (lang === 'fr' ? 'Recette de création' : 'Creation recipe')}
+            {loading
+              ? (lang === 'fr' ? 'Chargement...' : 'Loading...')
+              : isBase
+                ? (lang === 'fr' ? 'Élément de base' : 'Base element')
+                : (lang === 'fr' ? 'Recette de création' : 'Creation recipe')}
           </p>
         </div>
         <button
@@ -76,24 +101,27 @@ function RecipeCard({
 
       {/* Recipe row */}
       <div
-        className="border-t px-4 py-3 flex items-center justify-center gap-2.5"
+        className="border-t px-4 py-3 flex items-center justify-center gap-2.5 min-h-[72px]"
         style={{ borderColor: `${element.color}20` }}
       >
-        {isBase ? (
+        {loading && (
+          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground/40" />
+        )}
+        {!loading && isBase && (
           <p className="text-xs text-muted-foreground/60 py-0.5">
             {lang === 'fr' ? 'Aucune recette — élément originel' : 'No recipe — primordial element'}
           </p>
-        ) : (
+        )}
+        {!loading && recipe && (
           <>
-            <IngredientPill element={ingA!} />
+            <IngredientPill element={makeEl(recipe.ing1_name, recipe.ing1_img)} />
             <div className="w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center flex-shrink-0">
               <span className="text-xs font-bold text-muted-foreground">+</span>
             </div>
-            <IngredientPill element={ingB!} />
+            <IngredientPill element={makeEl(recipe.ing2_name, recipe.ing2_img)} />
             <div className="w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center flex-shrink-0">
               <ChevronRight className="w-3 h-3 text-muted-foreground" />
             </div>
-            {/* Result */}
             <div className="flex flex-col items-center gap-1">
               <div
                 className="w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden p-1 border-2"
@@ -229,22 +257,7 @@ export function CodexInlinePanel({
   const discoveredInFilter = filteredNames.filter(n => discovered.has(n))
   const undiscoveredInFilter = search ? [] : filteredNames.filter(n => !discovered.has(n))
 
-  // Lookup recipe: find the key a|b where results includes `name`
-  const getRecipe = (name: string): [string, string] | null => {
-    for (const [key, results] of recipeMap.entries()) {
-      if (results.includes(name)) {
-        const parts = key.split('|')
-        // Only process the canonical key (a <= b) to avoid duplicates
-        if (parts[0] <= parts[1]) return [parts[0], parts[1]]
-      }
-    }
-    return null
-  }
-
   const selectedEl = selected ? elements.get(selected) ?? null : null
-  const selectedRecipe = selected ? getRecipe(selected) : null
-  const ingA = selectedRecipe ? elements.get(selectedRecipe[0]) ?? null : null
-  const ingB = selectedRecipe ? elements.get(selectedRecipe[1]) ?? null : null
 
   return (
     <div ref={topRef} className="flex flex-col gap-5 py-1">
@@ -311,8 +324,6 @@ export function CodexInlinePanel({
       {selectedEl && (
         <RecipeCard
           element={selectedEl}
-          ingA={ingA}
-          ingB={ingB}
           lang={lang}
           onClose={() => setSelected(null)}
         />
