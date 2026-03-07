@@ -67,6 +67,15 @@ function getColor(name: string): string {
   return colors[hash % colors.length]
 }
 
+function proxyImg(url: string | null): string | null {
+  if (!url) return null
+  // Route through our proxy to avoid Blob store CORS / allowed-origin blocks
+  if (url.includes('.blob.vercel-storage.com')) {
+    return `/api/img?url=${encodeURIComponent(url)}`
+  }
+  return url
+}
+
 function buildElementMap(
   rows: Array<{ number: number; name_french: string; name_english: string; img: string | null }>,
   lang: Lang
@@ -80,7 +89,7 @@ function buildElementMap(
       icon: name.substring(0, 2).toUpperCase(),
       color: getColor(name),
       category: 'base',
-      imageUrl: row.img ?? null,
+      imageUrl: proxyImg(row.img),
     })
   }
   return map
