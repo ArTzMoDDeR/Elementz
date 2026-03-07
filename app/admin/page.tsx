@@ -984,6 +984,157 @@ function ElementsTab() {
 type EmailUser = { id: string; email: string; display: string; email_subscribed: boolean }
 type SendResult = { sent: number; failed: { email: string; error?: string }[]; total: number } | null
 
+type BlockType = 'text' | 'image' | 'button' | 'divider' | 'heading'
+type EmailBlock = {
+  id: string
+  type: BlockType
+  // text / heading
+  content?: string
+  align?: 'left' | 'center' | 'right'
+  // image
+  url?: string
+  uploading?: boolean
+  // button
+  label?: string
+  href?: string
+  color?: string
+}
+
+function uid() { return Math.random().toString(36).slice(2) }
+
+function blockToHtml(b: EmailBlock, displayName: string, unsubUrl: string): string {
+  const sub = (s: string) => s.replace(/\{username\}/gi, displayName)
+  switch (b.type) {
+    case 'heading': return `<h2 style="margin:0 0 20px;font-size:22px;font-weight:800;color:#e5e5e5;text-align:${b.align ?? 'left'};letter-spacing:-0.3px;">${sub(b.content ?? '')}</h2>`
+    case 'text': return `<p style="margin:0 0 16px;line-height:1.75;font-size:15px;color:#c0c0c0;text-align:${b.align ?? 'left'};">${sub(b.content ?? '').split('\n').join('<br/>')}</p>`
+    case 'image': return b.url ? `<img src="${b.url}" alt="" style="width:100%;max-width:520px;border-radius:12px;display:block;margin:0 0 20px;" />` : ''
+    case 'button': return `<div style="text-align:${b.align ?? 'center'};margin:0 0 20px;"><a href="${sub(b.href ?? '#')}" style="display:inline-block;padding:12px 28px;background:${b.color ?? '#ffffff'};color:#000000;font-weight:700;font-size:14px;border-radius:10px;text-decoration:none;">${sub(b.label ?? 'Cliquer ici')}</a></div>`
+    case 'divider': return `<hr style="border:none;border-top:1px solid #2a2a2a;margin:8px 0 24px;" />`
+    default: return ''
+  }
+}
+
+function BlockEditor({ block, onChange, onDelete, onMoveUp, onMoveDown, isFirst, isLast }: {
+  block: EmailBlock; onChange: (b: EmailBlock) => void; onDelete: () => void
+  onMoveUp: () => void; onMoveDown: () => void; isFirst: boolean; isLast: boolean
+}) {
+  const uploadImage = async (file: File) => {
+    onChange({ ...block, uploading: true })
+    const fd = new FormData(); fd.append('file', file)
+    const res = await fetch('/api/admin/email-image', { method: 'POST', body: fd })
+    const data = await res.json()
+    onChange({ ...block, url: data.url, uploading: false })
+  }
+
+  return (
+    <div className="border border-border rounded-xl bg-card overflow-hidden">
+      {/* Header bar */}
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/20">
+        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+          {block.type === 'text' ? 'Texte' : block.type === 'image' ? 'Image' : block.type === 'button' ? 'Bouton' : block.type === 'heading' ? 'Titre' : 'Séparateur'}
+        </span>
+        <div className="flex items-center gap-1">
+          <button disabled={isFirst} onClick={onMoveUp} className="p-1 rounded hover:bg-muted/60 disabled:opacity-30 transition-colors"><ChevronLeft className="w-3 h-3 rotate-90" /></button>
+          <button disabled={isLast} onClick={onMoveDown} className="p-1 rounded hover:bg-muted/60 disabled:opacity-30 transition-colors"><ChevronRight className="w-3 h-3 rotate-90" /></button>
+          <button onClick={onDelete} className="p-1 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors"><X className="w-3.5 h-3.5" /></button>
+        </div>
+      </div>
+
+      <div className="p-3 space-y-2">
+        {/* Align (text, heading, button) */}
+        {(block.type === 'text' || block.type === 'heading' || block.type === 'button') && (
+          <div className="flex items-center gap-1">
+            {(['left', 'center', 'right'] as const).map(a => (
+              <button key={a} onClick={() => onChange({ ...block, align: a })}
+                className={`flex-1 py-1 text-xs rounded border transition-colors ${block.align === a ? 'bg-foreground text-background border-foreground' : 'border-border text-muted-foreground hover:border-foreground/40'}`}>
+                {a === 'left' ? 'Gauche' : a === 'center' ? 'Centre' : 'Droite'}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Content */}
+        {(block.type === 'text' || block.type === 'heading') && (
+          <textarea
+            placeholder={block.type === 'heading' ? 'Titre...' : 'Texte... ({username} sera remplacé)'}
+            value={block.content ?? ''}
+            onChange={e => onChange({ ...block, content: e.target.value })}
+            rows={block.type === 'heading' ? 1 : 4}
+            className="w-full rounded-lg border border-input bg-background px-2.5 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground leading-relaxed"
+          />
+        )}
+
+        {/* Image */}
+        {block.type === 'image' && (
+          <div className="space-y-2">
+            <label className={`flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-xl p-6 cursor-pointer transition-colors ${block.url ? 'border-border' : 'border-border hover:border-foreground/30'}`}>
+              {block.uploading ? (
+                <Spinner size="md" />
+              ) : block.url ? (
+                <img src={block.url} alt="" className="max-h-32 rounded-lg object-contain" />
+              ) : (
+                <>
+                  <Upload className="w-6 h-6 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Cliquer pour uploader (max 5 Mo)</span>
+                </>
+              )}
+              <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadImage(f) }} />
+            </label>
+            {block.url && (
+              <button onClick={() => onChange({ ...block, url: undefined })} className="text-xs text-red-400 hover:underline">Supprimer l&apos;image</button>
+            )}
+          </div>
+        )}
+
+        {/* Button */}
+        {block.type === 'button' && (
+          <div className="space-y-2">
+            <Input placeholder="Texte du bouton" value={block.label ?? ''} onChange={e => onChange({ ...block, label: e.target.value })} className="h-8 text-sm" />
+            <Input placeholder="URL (https://...)" value={block.href ?? ''} onChange={e => onChange({ ...block, href: e.target.value })} className="h-8 text-sm font-mono" />
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Couleur :</span>
+              <input type="color" value={block.color ?? '#ffffff'} onChange={e => onChange({ ...block, color: e.target.value })} className="w-8 h-7 rounded border border-border bg-transparent cursor-pointer" />
+              <span className="text-xs text-muted-foreground font-mono">{block.color ?? '#ffffff'}</span>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function EmailPreview({ blocks, subject }: { blocks: EmailBlock[]; subject: string }) {
+  const bodyHtml = blocks.map(b => blockToHtml(b, '{username}', '#')).join('')
+  return (
+    <div className="bg-[#0a0a0a] rounded-xl border border-border overflow-hidden">
+      <div className="px-4 py-2 border-b border-border flex items-center gap-2">
+        <div className="flex gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
+          <div className="w-2.5 h-2.5 rounded-full bg-amber-500/60" />
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/60" />
+        </div>
+        <span className="text-xs text-muted-foreground truncate">{subject || 'Aperçu de l\'e-mail'}</span>
+      </div>
+      <div className="p-4 overflow-auto max-h-[500px]">
+        <div className="max-w-[520px] mx-auto bg-[#141414] rounded-2xl border border-[#2a2a2a] overflow-hidden">
+          <div className="px-8 py-6 border-b border-[#2a2a2a]">
+            <span className="text-lg font-bold text-white">Elementz</span>
+          </div>
+          <div className="px-8 py-6"
+            dangerouslySetInnerHTML={{ __html: bodyHtml || '<p style="color:#555;font-size:14px;">Ajoutez des blocs pour prévisualiser...</p>' }}
+          />
+          <div className="px-8 py-5 border-t border-[#2a2a2a]">
+            <p style={{ margin: 0, fontSize: 11, color: '#555', lineHeight: 1.6 }}>
+              Tu reçois cet e-mail car tu as un compte sur elementz.fun.{' '}
+              <span style={{ color: '#555', textDecoration: 'underline' }}>Se désabonner</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function EmailTab() {
   const [users, setUsers] = useState<EmailUser[]>([])
   const [loading, setLoading] = useState(true)
@@ -991,10 +1142,10 @@ function EmailTab() {
   const [search, setSearch] = useState('')
   const [showUnsub, setShowUnsub] = useState(false)
   const [subject, setSubject] = useState('')
-  const [body, setBody] = useState('')
-  const [images, setImages] = useState<string[]>([''])
+  const [blocks, setBlocks] = useState<EmailBlock[]>([{ id: uid(), type: 'text', content: '', align: 'left' }])
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState<SendResult>(null)
+  const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit')
 
   useEffect(() => {
     fetch('/api/admin/email')
@@ -1005,13 +1156,11 @@ function EmailTab() {
 
   const subscribedUsers = users.filter(u => u.email_subscribed)
   const unsubCount = users.length - subscribedUsers.length
-
   const filtered = (showUnsub ? users : subscribedUsers).filter(u =>
     u.email.toLowerCase().includes(search.toLowerCase()) ||
     (u.display ?? '').toLowerCase().includes(search.toLowerCase())
   )
-
-  const allSelected = filtered.length > 0 && filtered.every(u => selected.has(u.email))
+  const allSelected = filtered.length > 0 && filtered.filter(u => u.email_subscribed).every(u => selected.has(u.email))
 
   const toggleAll = () => {
     const next = new Set(selected)
@@ -1019,58 +1168,54 @@ function EmailTab() {
     else filtered.forEach(u => { if (u.email_subscribed) next.add(u.email) })
     setSelected(next)
   }
-
   const toggle = (u: EmailUser) => {
     if (!u.email_subscribed) return
-    const next = new Set(selected)
-    next.has(u.email) ? next.delete(u.email) : next.add(u.email)
-    setSelected(next)
+    const next = new Set(selected); next.has(u.email) ? next.delete(u.email) : next.add(u.email); setSelected(next)
   }
 
-  const insertVar = (v: string) => setBody(b => b + v)
+  const addBlock = (type: BlockType) => setBlocks(prev => [...prev, { id: uid(), type, content: '', align: 'left', label: 'Cliquer ici', color: '#ffffff' }])
+  const updateBlock = (id: string, b: EmailBlock) => setBlocks(prev => prev.map(x => x.id === id ? b : x))
+  const deleteBlock = (id: string) => setBlocks(prev => prev.filter(x => x.id !== id))
+  const moveBlock = (id: string, dir: -1 | 1) => setBlocks(prev => {
+    const i = prev.findIndex(x => x.id === id); if (i < 0) return prev
+    const next = [...prev]; const [item] = next.splice(i, 1); next.splice(i + dir, 0, item); return next
+  })
 
-  const updateImage = (i: number, val: string) => {
-    setImages(prev => prev.map((img, idx) => idx === i ? val : img))
-  }
-  const addImage = () => setImages(prev => [...prev, ''])
-  const removeImage = (i: number) => setImages(prev => prev.filter((_, idx) => idx !== i))
+  const hasContent = blocks.some(b => b.type === 'divider' || (b.type === 'image' && b.url) || ((b.content ?? '').trim().length > 0) || ((b.label ?? '').trim().length > 0))
+  const canSend = selected.size > 0 && subject.trim().length > 0 && hasContent
 
   const send = async () => {
-    if (selected.size === 0 || !subject.trim() || !body.trim()) return
-    setSending(true)
-    setResult(null)
+    if (!canSend) return
+    setSending(true); setResult(null)
     try {
       const res = await fetch('/api/admin/email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: Array.from(selected),
-          subject,
-          bodyText: body,
-          images: images.filter(url => url.trim().startsWith('http')),
-        }),
+        body: JSON.stringify({ to: Array.from(selected), subject, blocks }),
       })
       setResult(await res.json())
-    } catch {
-      setResult({ sent: 0, failed: [], total: 0 })
-    }
+    } catch { setResult({ sent: 0, failed: [], total: 0 }) }
     setSending(false)
   }
 
-  const canSend = selected.size > 0 && subject.trim().length > 0 && body.trim().length > 0
+  const BLOCK_TYPES: { type: BlockType; label: string; icon: React.ElementType }[] = [
+    { type: 'heading', label: 'Titre', icon: Hash },
+    { type: 'text', label: 'Texte', icon: Pencil },
+    { type: 'image', label: 'Image', icon: Upload },
+    { type: 'button', label: 'Bouton', icon: ChevronRight },
+    { type: 'divider', label: 'Séparateur', icon: ArrowDownAZ },
+  ]
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Left — recipient picker */}
+    <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-6">
+      {/* Left — recipients */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold">Destinataires</p>
           <div className="flex items-center gap-2">
             {unsubCount > 0 && (
-              <button
-                onClick={() => setShowUnsub(v => !v)}
-                className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${showUnsub ? 'bg-amber-500/15 border-amber-500/30 text-amber-400' : 'border-border text-muted-foreground hover:text-foreground'}`}
-              >
+              <button onClick={() => setShowUnsub(v => !v)}
+                className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${showUnsub ? 'bg-amber-500/15 border-amber-500/30 text-amber-400' : 'border-border text-muted-foreground hover:text-foreground'}`}>
                 {unsubCount} désabonné{unsubCount > 1 ? 's' : ''}
               </button>
             )}
@@ -1084,29 +1229,22 @@ function EmailTab() {
         </div>
 
         <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <button
-            onClick={toggleAll}
-            className="w-full flex items-center gap-3 px-4 py-2.5 border-b border-border hover:bg-muted/30 transition-colors text-left"
-          >
-            <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${allSelected ? 'bg-foreground border-foreground' : 'border-border'}`}>
+          <button onClick={toggleAll}
+            className="w-full flex items-center gap-3 px-4 py-2.5 border-b border-border hover:bg-muted/30 transition-colors text-left">
+            <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${allSelected ? 'bg-foreground border-foreground' : 'border-border'}`}>
               {allSelected && <Check className="w-2.5 h-2.5 text-background" />}
             </div>
             <span className="text-xs font-medium text-muted-foreground">Tout sélectionner ({filtered.filter(u => u.email_subscribed).length})</span>
           </button>
-
-          <div className="max-h-80 overflow-y-auto divide-y divide-border/50">
+          <div className="max-h-72 overflow-y-auto divide-y divide-border/50">
             {loading ? (
               <div className="flex justify-center py-8"><Spinner size="md" /></div>
             ) : filtered.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">Aucun utilisateur</p>
             ) : filtered.map(u => (
-              <button
-                key={u.email}
-                onClick={() => toggle(u)}
-                disabled={!u.email_subscribed}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 transition-colors text-left ${u.email_subscribed ? 'hover:bg-muted/20' : 'opacity-40 cursor-not-allowed'}`}
-              >
-                <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${selected.has(u.email) ? 'bg-foreground border-foreground' : 'border-border'}`}>
+              <button key={u.email} onClick={() => toggle(u)} disabled={!u.email_subscribed}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 transition-colors text-left ${u.email_subscribed ? 'hover:bg-muted/20' : 'opacity-40 cursor-not-allowed'}`}>
+                <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${selected.has(u.email) ? 'bg-foreground border-foreground' : 'border-border'}`}>
                   {selected.has(u.email) && <Check className="w-2.5 h-2.5 text-background" />}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -1120,93 +1258,77 @@ function EmailTab() {
         </div>
       </div>
 
-      {/* Right — compose */}
-      <div className="space-y-4">
-        <p className="text-sm font-semibold">Composer le message</p>
+      {/* Right — email builder */}
+      <div className="space-y-4 min-w-0">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold">Composer l&apos;e-mail</p>
+          <div className="flex items-center gap-1 bg-muted/30 rounded-lg p-0.5 border border-border">
+            {(['edit', 'preview'] as const).map(t => (
+              <button key={t} onClick={() => setActiveTab(t)}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${activeTab === t ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                {t === 'edit' ? 'Éditer' : 'Aperçu'}
+              </button>
+            ))}
+          </div>
+        </div>
 
+        {/* Subject */}
         <div>
           <label className="text-xs text-muted-foreground mb-1.5 block">Sujet</label>
           <Input placeholder="Sujet de l'e-mail..." value={subject} onChange={e => setSubject(e.target.value)} className="h-9 text-sm" />
         </div>
 
-        {/* Variable chips */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-muted-foreground">Variables :</span>
-          {['{username}'].map(v => (
-            <button
-              key={v}
-              onClick={() => insertVar(v)}
-              className="text-xs px-2 py-0.5 rounded-md bg-muted border border-border hover:bg-muted/70 transition-colors font-mono"
-            >
-              {v}
-            </button>
-          ))}
-        </div>
-
-        <div>
-          <label className="text-xs text-muted-foreground mb-1.5 block">Corps du message</label>
-          <textarea
-            placeholder="Salut {username}, ..."
-            value={body}
-            onChange={e => setBody(e.target.value)}
-            rows={8}
-            className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground leading-relaxed"
-          />
-        </div>
-
-        {/* Images */}
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="text-xs text-muted-foreground">Images (URL publiques)</label>
-            <button onClick={addImage} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">
-              <Plus className="w-3 h-3" />Ajouter
-            </button>
-          </div>
-          <div className="space-y-2">
-            {images.map((url, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <Input
-                  placeholder="https://..."
-                  value={url}
-                  onChange={e => updateImage(i, e.target.value)}
-                  className="h-8 text-xs font-mono"
-                />
-                {images.length > 1 && (
-                  <button onClick={() => removeImage(i)} className="text-muted-foreground hover:text-red-400 transition-colors flex-shrink-0">
-                    <X className="w-4 h-4" />
+        {activeTab === 'edit' ? (
+          <>
+            {/* Add block buttons */}
+            <div>
+              <p className="text-xs text-muted-foreground mb-2">Ajouter un bloc</p>
+              <div className="flex flex-wrap gap-1.5">
+                {BLOCK_TYPES.map(({ type, label, icon: Icon }) => (
+                  <button key={type} onClick={() => addBlock(type)}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-card hover:bg-muted/40 transition-colors text-xs font-medium text-foreground">
+                    <Icon className="w-3 h-3 text-muted-foreground" />{label}
                   </button>
-                )}
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
 
-        {/* Result banner */}
+            {/* Blocks */}
+            <div className="space-y-2">
+              {blocks.length === 0 ? (
+                <div className="border-2 border-dashed border-border rounded-xl p-8 text-center">
+                  <p className="text-sm text-muted-foreground">Ajoutez des blocs ci-dessus pour composer votre e-mail</p>
+                </div>
+              ) : blocks.map((b, i) => (
+                <BlockEditor key={b.id} block={b}
+                  onChange={nb => updateBlock(b.id, nb)}
+                  onDelete={() => deleteBlock(b.id)}
+                  onMoveUp={() => moveBlock(b.id, -1)}
+                  onMoveDown={() => moveBlock(b.id, 1)}
+                  isFirst={i === 0} isLast={i === blocks.length - 1}
+                />
+              ))}
+            </div>
+          </>
+        ) : (
+          <EmailPreview blocks={blocks} subject={subject} />
+        )}
+
+        {/* Result */}
         {result && (
           <div className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-sm ${result.sent > 0 && result.failed.length === 0 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'}`}>
-            {result.failed.length === 0
-              ? <CheckCheck className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              : <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            }
+            {result.failed.length === 0 ? <CheckCheck className="w-4 h-4 flex-shrink-0 mt-0.5" /> : <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />}
             <div>
               <p className="font-semibold">{result.sent}/{result.total} e-mail{result.sent !== 1 ? 's' : ''} envoyé{result.sent !== 1 ? 's' : ''}</p>
-              {result.failed.length > 0 && (
-                <p className="text-xs mt-0.5 opacity-80">Echecs : {result.failed.map(f => f.email).join(', ')}</p>
-              )}
+              {result.failed.length > 0 && <p className="text-xs mt-0.5 opacity-80">Echecs : {result.failed.map(f => f.email).join(', ')}</p>}
             </div>
           </div>
         )}
 
         <Button className="w-full h-10" disabled={!canSend || sending} onClick={send}>
-          {sending
-            ? <><Spinner /><span className="ml-2">Envoi en cours...</span></>
-            : <><Send className="w-4 h-4 mr-2" />Envoyer à {selected.size} destinataire{selected.size !== 1 ? 's' : ''}</>
-          }
+          {sending ? <><Spinner /><span className="ml-2">Envoi en cours...</span></> : <><Send className="w-4 h-4 mr-2" />Envoyer à {selected.size} destinataire{selected.size !== 1 ? 's' : ''}</>}
         </Button>
-
-        <p className="text-xs text-muted-foreground text-center">
-          Envoi via Resend · max 50 par envoi · lien de désabonnement inclus automatiquement
-        </p>
+        <p className="text-xs text-muted-foreground text-center">Via Resend · max 50 par envoi · désabonnement inclus automatiquement</p>
       </div>
     </div>
   )
