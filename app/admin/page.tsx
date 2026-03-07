@@ -981,7 +981,7 @@ function ElementsTab() {
 
 // ─── Tab: Email ──────────────────────────────────────────────────────────────
 
-type EmailUser = { id: string; email: string; name: string | null; display: string }
+type EmailUser = { id: string; email: string; display: string; email_subscribed: boolean }
 type SendResult = { sent: number; failed: { email: string; error?: string }[]; total: number } | null
 
 function EmailTab() {
@@ -989,8 +989,10 @@ function EmailTab() {
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState('')
+  const [showUnsub, setShowUnsub] = useState(false)
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
+  const [images, setImages] = useState<string[]>([''])
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState<SendResult>(null)
 
@@ -1001,24 +1003,37 @@ function EmailTab() {
       .catch(() => setLoading(false))
   }, [])
 
-  const filtered = users.filter(u =>
+  const subscribedUsers = users.filter(u => u.email_subscribed)
+  const unsubCount = users.length - subscribedUsers.length
+
+  const filtered = (showUnsub ? users : subscribedUsers).filter(u =>
     u.email.toLowerCase().includes(search.toLowerCase()) ||
     (u.display ?? '').toLowerCase().includes(search.toLowerCase())
   )
 
-  const toggleAll = () => {
-    if (selected.size === filtered.length) {
-      setSelected(new Set())
-    } else {
-      setSelected(new Set(filtered.map(u => u.email)))
-    }
-  }
+  const allSelected = filtered.length > 0 && filtered.every(u => selected.has(u.email))
 
-  const toggle = (email: string) => {
+  const toggleAll = () => {
     const next = new Set(selected)
-    next.has(email) ? next.delete(email) : next.add(email)
+    if (allSelected) filtered.forEach(u => next.delete(u.email))
+    else filtered.forEach(u => { if (u.email_subscribed) next.add(u.email) })
     setSelected(next)
   }
+
+  const toggle = (u: EmailUser) => {
+    if (!u.email_subscribed) return
+    const next = new Set(selected)
+    next.has(u.email) ? next.delete(u.email) : next.add(u.email)
+    setSelected(next)
+  }
+
+  const insertVar = (v: string) => setBody(b => b + v)
+
+  const updateImage = (i: number, val: string) => {
+    setImages(prev => prev.map((img, idx) => idx === i ? val : img))
+  }
+  const addImage = () => setImages(prev => [...prev, ''])
+  const removeImage = (i: number) => setImages(prev => prev.filter((_, idx) => idx !== i))
 
   const send = async () => {
     if (selected.size === 0 || !subject.trim() || !body.trim()) return
@@ -1028,7 +1043,12 @@ function EmailTab() {
       const res = await fetch('/api/admin/email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: Array.from(selected), subject, body }),
+        body: JSON.stringify({
+          to: Array.from(selected),
+          subject,
+          bodyText: body,
+          images: images.filter(url => url.trim().startsWith('http')),
+        }),
       })
       setResult(await res.json())
     } catch {
@@ -1045,7 +1065,17 @@ function EmailTab() {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold">Destinataires</p>
-          <span className="text-xs text-muted-foreground">{selected.size} sélectionné{selected.size !== 1 ? 's' : ''} / {users.length}</span>
+          <div className="flex items-center gap-2">
+            {unsubCount > 0 && (
+              <button
+                onClick={() => setShowUnsub(v => !v)}
+                className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${showUnsub ? 'bg-amber-500/15 border-amber-500/30 text-amber-400' : 'border-border text-muted-foreground hover:text-foreground'}`}
+              >
+                {unsubCount} désabonné{unsubCount > 1 ? 's' : ''}
+              </button>
+            )}
+            <span className="text-xs text-muted-foreground">{selected.size} / {subscribedUsers.length}</span>
+          </div>
         </div>
 
         <div className="relative">
@@ -1054,18 +1084,16 @@ function EmailTab() {
         </div>
 
         <div className="bg-card border border-border rounded-xl overflow-hidden">
-          {/* Select all row */}
           <button
             onClick={toggleAll}
             className="w-full flex items-center gap-3 px-4 py-2.5 border-b border-border hover:bg-muted/30 transition-colors text-left"
           >
-            <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${selected.size === filtered.length && filtered.length > 0 ? 'bg-foreground border-foreground' : 'border-border'}`}>
-              {selected.size === filtered.length && filtered.length > 0 && <Check className="w-2.5 h-2.5 text-background" />}
+            <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${allSelected ? 'bg-foreground border-foreground' : 'border-border'}`}>
+              {allSelected && <Check className="w-2.5 h-2.5 text-background" />}
             </div>
-            <span className="text-xs font-medium text-muted-foreground">Tout sélectionner ({filtered.length})</span>
+            <span className="text-xs font-medium text-muted-foreground">Tout sélectionner ({filtered.filter(u => u.email_subscribed).length})</span>
           </button>
 
-          {/* User list */}
           <div className="max-h-80 overflow-y-auto divide-y divide-border/50">
             {loading ? (
               <div className="flex justify-center py-8"><Spinner size="md" /></div>
@@ -1074,8 +1102,9 @@ function EmailTab() {
             ) : filtered.map(u => (
               <button
                 key={u.email}
-                onClick={() => toggle(u.email)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/20 transition-colors text-left"
+                onClick={() => toggle(u)}
+                disabled={!u.email_subscribed}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 transition-colors text-left ${u.email_subscribed ? 'hover:bg-muted/20' : 'opacity-40 cursor-not-allowed'}`}
               >
                 <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${selected.has(u.email) ? 'bg-foreground border-foreground' : 'border-border'}`}>
                   {selected.has(u.email) && <Check className="w-2.5 h-2.5 text-background" />}
@@ -1084,6 +1113,7 @@ function EmailTab() {
                   <p className="text-sm font-medium truncate">{u.display}</p>
                   {u.display !== u.email && <p className="text-xs text-muted-foreground truncate">{u.email}</p>}
                 </div>
+                {!u.email_subscribed && <span className="text-[10px] text-muted-foreground flex-shrink-0">désabonné</span>}
               </button>
             ))}
           </div>
@@ -1091,36 +1121,70 @@ function EmailTab() {
       </div>
 
       {/* Right — compose */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         <p className="text-sm font-semibold">Composer le message</p>
 
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Sujet</label>
-            <Input
-              placeholder="Sujet de l'e-mail..."
-              value={subject}
-              onChange={e => setSubject(e.target.value)}
-              className="h-9 text-sm"
-            />
-          </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1.5 block">Sujet</label>
+          <Input placeholder="Sujet de l'e-mail..." value={subject} onChange={e => setSubject(e.target.value)} className="h-9 text-sm" />
+        </div>
 
-          <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Corps du message</label>
-            <textarea
-              placeholder="Écris ton message ici..."
-              value={body}
-              onChange={e => setBody(e.target.value)}
-              rows={10}
-              className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground leading-relaxed"
-            />
+        {/* Variable chips */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-muted-foreground">Variables :</span>
+          {['{username}'].map(v => (
+            <button
+              key={v}
+              onClick={() => insertVar(v)}
+              className="text-xs px-2 py-0.5 rounded-md bg-muted border border-border hover:bg-muted/70 transition-colors font-mono"
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+
+        <div>
+          <label className="text-xs text-muted-foreground mb-1.5 block">Corps du message</label>
+          <textarea
+            placeholder="Salut {username}, ..."
+            value={body}
+            onChange={e => setBody(e.target.value)}
+            rows={8}
+            className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground leading-relaxed"
+          />
+        </div>
+
+        {/* Images */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-xs text-muted-foreground">Images (URL publiques)</label>
+            <button onClick={addImage} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">
+              <Plus className="w-3 h-3" />Ajouter
+            </button>
+          </div>
+          <div className="space-y-2">
+            {images.map((url, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <Input
+                  placeholder="https://..."
+                  value={url}
+                  onChange={e => updateImage(i, e.target.value)}
+                  className="h-8 text-xs font-mono"
+                />
+                {images.length > 1 && (
+                  <button onClick={() => removeImage(i)} className="text-muted-foreground hover:text-red-400 transition-colors flex-shrink-0">
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
         </div>
 
         {/* Result banner */}
         {result && (
-          <div className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-sm ${result.sent === result.total ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'}`}>
-            {result.sent === result.total
+          <div className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-sm ${result.sent > 0 && result.failed.length === 0 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'}`}>
+            {result.failed.length === 0
               ? <CheckCheck className="w-4 h-4 flex-shrink-0 mt-0.5" />
               : <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
             }
@@ -1133,11 +1197,7 @@ function EmailTab() {
           </div>
         )}
 
-        <Button
-          className="w-full h-10"
-          disabled={!canSend || sending}
-          onClick={send}
-        >
+        <Button className="w-full h-10" disabled={!canSend || sending} onClick={send}>
           {sending
             ? <><Spinner /><span className="ml-2">Envoi en cours...</span></>
             : <><Send className="w-4 h-4 mr-2" />Envoyer à {selected.size} destinataire{selected.size !== 1 ? 's' : ''}</>
@@ -1145,7 +1205,7 @@ function EmailTab() {
         </Button>
 
         <p className="text-xs text-muted-foreground text-center">
-          Les e-mails sont envoyés un par un via Resend. Maximum 50 par envoi.
+          Envoi via Resend · max 50 par envoi · lien de désabonnement inclus automatiquement
         </p>
       </div>
     </div>
