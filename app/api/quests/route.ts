@@ -10,6 +10,26 @@ export async function GET() {
     const sql = neon(process.env.DATABASE_URL!)
     const userId = session.user.id
 
+    // Auto-reset expired daily quests so they can be reclaimed
+    await sql`
+      DELETE FROM quest_rewards
+      WHERE user_id = ${userId}
+        AND quest_id IN (
+          SELECT uq.quest_id FROM user_quests uq
+          JOIN quest_definitions qd ON qd.id = uq.quest_id
+          WHERE uq.user_id = ${userId} AND qd.is_daily = TRUE AND uq.reset_at IS NOT NULL AND uq.reset_at <= NOW()
+        )
+    `
+    await sql`
+      DELETE FROM user_quests
+      WHERE user_id = ${userId}
+        AND quest_id IN (
+          SELECT qd.id FROM quest_definitions qd
+          WHERE qd.is_daily = TRUE
+        )
+        AND reset_at IS NOT NULL AND reset_at <= NOW()
+    `
+
     const quests = await sql`
       SELECT
         qd.id, qd.type, qd.title_fr, qd.title_en, qd.desc_fr, qd.desc_en,
@@ -81,6 +101,10 @@ export async function GET() {
         progress: liveProgress,
         rewards: rewardsByQuest[q.id] ?? [],
         is_expired: isExpired,
+        // If daily is expired, expose it as unclaimed so the UI shows it fresh
+        claimed_at: isExpired ? null : q.claimed_at,
+        completed_at: isExpired ? null : q.completed_at,
+        reset_at: isExpired ? null : q.reset_at,
       }
     })
 
@@ -202,11 +226,15 @@ export async function POST(req: NextRequest) {
 
   const recipe = candidates[0]
 
-  // Mark quest as claimed
+  // Mark quest as claimed, and set reset_at for daily quests
+  const resetAt = quest.is_daily && quest.reset_hours
+    ? new Date(Date.now() + quest.reset_hours * 60 * 60 * 1000)
+    : null
+
   await sql`
-    INSERT INTO user_quests (user_id, quest_id, progress, completed_at, claimed_at)
-    VALUES (${userId}, ${quest_id}, ${quest.target_value}, NOW(), NOW())
-    ON CONFLICT (user_id, quest_id) DO UPDATE SET claimed_at = NOW(), completed_at = COALESCE(user_quests.completed_at, NOW())
+    INSERT INTO user_quests (user_id, quest_id, progress, completed_at, claimed_at, reset_at)
+    VALUES (${userId}, ${quest_id}, ${quest.target_value}, NOW(), NOW(), ${resetAt})
+    ON CONFLICT (user_id, quest_id) DO UPDATE SET claimed_at = NOW(), completed_at = COALESCE(user_quests.completed_at, NOW()), reset_at = ${resetAt}
   `
 
   // Store slot 1 = ingredient1, slot 2 = ingredient2, both with result_number
