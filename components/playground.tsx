@@ -695,7 +695,7 @@ export function Playground({
               </div>
             ) : (
               <div className="flex-1 flex items-center justify-center gap-2">
-                <img src="/logo.png" alt="Elementz" className="w-6 h-6 rounded-full flex-shrink-0 pointer-events-none select-none" draggable={false} />
+                <img src="/logo.svg" alt="Elementz" className="w-6 h-6 rounded-full flex-shrink-0 pointer-events-none select-none" draggable={false} onError={e => { (e.target as HTMLImageElement).src = '/logo.png' }} />
                 <span className="font-bold text-sm tracking-tight">Elementz</span>
                 <span className="text-xs tabular-nums text-muted-foreground" suppressHydrationWarning>
                   {discovered.size}<span className="opacity-40">/{totalElements}</span>
