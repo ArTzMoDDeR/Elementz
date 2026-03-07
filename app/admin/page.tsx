@@ -5,7 +5,7 @@ import { useTheme } from 'next-themes'
 import {
   Search, Upload, Check, FileUp, Moon, Sun, Plus, X, Trash2, Save, Hash,
   ArrowDownAZ, Pencil, ChevronLeft, ChevronRight, RefreshCw, Shield, ShieldOff,
-  Users, Layers, Scroll, BarChart3, AlertCircle, CheckCircle2, Clock,
+  Users, Layers, Scroll, BarChart3, AlertCircle, CheckCircle2, Clock, Mail, Send, CheckCheck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -979,15 +979,189 @@ function ElementsTab() {
   )
 }
 
+// ─── Tab: Email ──────────────────────────────────────────────────────────────
+
+type EmailUser = { id: string; email: string; name: string | null; display: string }
+type SendResult = { sent: number; failed: { email: string; error?: string }[]; total: number } | null
+
+function EmailTab() {
+  const [users, setUsers] = useState<EmailUser[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [search, setSearch] = useState('')
+  const [subject, setSubject] = useState('')
+  const [body, setBody] = useState('')
+  const [sending, setSending] = useState(false)
+  const [result, setResult] = useState<SendResult>(null)
+
+  useEffect(() => {
+    fetch('/api/admin/email')
+      .then(r => r.json())
+      .then(d => { setUsers(d.users ?? []); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [])
+
+  const filtered = users.filter(u =>
+    u.email.toLowerCase().includes(search.toLowerCase()) ||
+    (u.display ?? '').toLowerCase().includes(search.toLowerCase())
+  )
+
+  const toggleAll = () => {
+    if (selected.size === filtered.length) {
+      setSelected(new Set())
+    } else {
+      setSelected(new Set(filtered.map(u => u.email)))
+    }
+  }
+
+  const toggle = (email: string) => {
+    const next = new Set(selected)
+    next.has(email) ? next.delete(email) : next.add(email)
+    setSelected(next)
+  }
+
+  const send = async () => {
+    if (selected.size === 0 || !subject.trim() || !body.trim()) return
+    setSending(true)
+    setResult(null)
+    try {
+      const res = await fetch('/api/admin/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: Array.from(selected), subject, body }),
+      })
+      setResult(await res.json())
+    } catch {
+      setResult({ sent: 0, failed: [], total: 0 })
+    }
+    setSending(false)
+  }
+
+  const canSend = selected.size > 0 && subject.trim().length > 0 && body.trim().length > 0
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Left — recipient picker */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold">Destinataires</p>
+          <span className="text-xs text-muted-foreground">{selected.size} sélectionné{selected.size !== 1 ? 's' : ''} / {users.length}</span>
+        </div>
+
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+          <Input placeholder="Filtrer..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 text-sm" />
+        </div>
+
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          {/* Select all row */}
+          <button
+            onClick={toggleAll}
+            className="w-full flex items-center gap-3 px-4 py-2.5 border-b border-border hover:bg-muted/30 transition-colors text-left"
+          >
+            <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${selected.size === filtered.length && filtered.length > 0 ? 'bg-foreground border-foreground' : 'border-border'}`}>
+              {selected.size === filtered.length && filtered.length > 0 && <Check className="w-2.5 h-2.5 text-background" />}
+            </div>
+            <span className="text-xs font-medium text-muted-foreground">Tout sélectionner ({filtered.length})</span>
+          </button>
+
+          {/* User list */}
+          <div className="max-h-80 overflow-y-auto divide-y divide-border/50">
+            {loading ? (
+              <div className="flex justify-center py-8"><Spinner size="md" /></div>
+            ) : filtered.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Aucun utilisateur</p>
+            ) : filtered.map(u => (
+              <button
+                key={u.email}
+                onClick={() => toggle(u.email)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/20 transition-colors text-left"
+              >
+                <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${selected.has(u.email) ? 'bg-foreground border-foreground' : 'border-border'}`}>
+                  {selected.has(u.email) && <Check className="w-2.5 h-2.5 text-background" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium truncate">{u.display}</p>
+                  {u.display !== u.email && <p className="text-xs text-muted-foreground truncate">{u.email}</p>}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Right — compose */}
+      <div className="space-y-3">
+        <p className="text-sm font-semibold">Composer le message</p>
+
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Sujet</label>
+            <Input
+              placeholder="Sujet de l'e-mail..."
+              value={subject}
+              onChange={e => setSubject(e.target.value)}
+              className="h-9 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Corps du message</label>
+            <textarea
+              placeholder="Écris ton message ici..."
+              value={body}
+              onChange={e => setBody(e.target.value)}
+              rows={10}
+              className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground leading-relaxed"
+            />
+          </div>
+        </div>
+
+        {/* Result banner */}
+        {result && (
+          <div className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-sm ${result.sent === result.total ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'}`}>
+            {result.sent === result.total
+              ? <CheckCheck className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              : <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            }
+            <div>
+              <p className="font-semibold">{result.sent}/{result.total} e-mail{result.sent !== 1 ? 's' : ''} envoyé{result.sent !== 1 ? 's' : ''}</p>
+              {result.failed.length > 0 && (
+                <p className="text-xs mt-0.5 opacity-80">Echecs : {result.failed.map(f => f.email).join(', ')}</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        <Button
+          className="w-full h-10"
+          disabled={!canSend || sending}
+          onClick={send}
+        >
+          {sending
+            ? <><Spinner /><span className="ml-2">Envoi en cours...</span></>
+            : <><Send className="w-4 h-4 mr-2" />Envoyer à {selected.size} destinataire{selected.size !== 1 ? 's' : ''}</>
+          }
+        </Button>
+
+        <p className="text-xs text-muted-foreground text-center">
+          Les e-mails sont envoyés un par un via Resend. Maximum 50 par envoi.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Admin Page ──────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'elements' | 'quests' | 'users'
+type Tab = 'overview' | 'elements' | 'quests' | 'users' | 'email'
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'overview', label: 'Vue d\'ensemble', icon: BarChart3 },
   { id: 'elements', label: 'Éléments', icon: Layers },
   { id: 'quests', label: 'Quêtes', icon: Scroll },
   { id: 'users', label: 'Utilisateurs', icon: Users },
+  { id: 'email', label: 'E-mail', icon: Mail },
 ]
 
 export default function AdminPanel() {
@@ -1016,7 +1190,7 @@ export default function AdminPanel() {
           </div>
 
           {/* Tab nav — equal-width on mobile, auto on desktop */}
-          <nav className="grid grid-cols-4 sm:flex sm:items-center sm:gap-1 -mb-px">
+          <nav className="grid grid-cols-5 sm:flex sm:items-center sm:gap-1 -mb-px">
             {TABS.map(t => {
               const Icon = t.icon
               const isActive = tab === t.id
@@ -1041,6 +1215,7 @@ export default function AdminPanel() {
         {tab === 'elements' && <ElementsTab />}
         {tab === 'quests' && <QuestsTab />}
         {tab === 'users' && <UsersTab />}
+        {tab === 'email' && <EmailTab />}
       </main>
     </div>
   )
