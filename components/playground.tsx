@@ -694,11 +694,11 @@ export function Playground({
                 )}
               </div>
             ) : (
-              <div className="flex-1 flex items-center justify-center gap-2.5">
+              <div className="flex-1 flex items-center justify-center gap-2">
                 <img src="/logo.svg" alt="Elementz" className="w-6 h-6 rounded-full flex-shrink-0 pointer-events-none select-none" draggable={false} onError={e => { (e.target as HTMLImageElement).src = '/logo.png' }} />
                 <span className="font-bold text-sm tracking-tight">Elementz</span>
-                <span className="inline-flex items-baseline gap-0.5 text-sm font-bold tabular-nums text-foreground" suppressHydrationWarning>
-                  {discovered.size}<span className="text-xs font-normal text-muted-foreground opacity-60">/{totalElements}</span>
+                <span className="text-xs tabular-nums text-muted-foreground" suppressHydrationWarning>
+                  {discovered.size}<span className="opacity-40">/{totalElements}</span>
                 </span>
               </div>
             )}
