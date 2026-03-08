@@ -237,7 +237,6 @@ export function Inventory({
             {discoveredElements.map(element => (
               <div
                 key={element.name}
-                data-element={element.name}
                 draggable
                 onDragStart={e => handleDragStart(e, element)}
                 onDragEnd={handleDragEnd}
