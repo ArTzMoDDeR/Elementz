@@ -1338,55 +1338,63 @@ function EmailTab() {
 // ─── Tab: Stats ──────────────────────────────────────────────────────────────
 
 type DayCount = { day: string; count: number }
-type TopElement = { number: number; name_french: string; name_english: string; img: string | null; count: number }
+type PlayerDistribution = { casual: number; engaged: number; active: number; hardcore: number }
+type TopPlayer = { name: string; discoveries: number }
 type UsageStats = {
   discoveriesPerDay: DayCount[]
   signupsPerDay: DayCount[]
   activePerDay: DayCount[]
-  topElements: TopElement[]
   retention: { d1: number | null; d7: number | null; d30: number | null }
   combosToday: number
   combosYesterday: number
   avgDiscoveries: number
-  neverPlayed: number
+  medianDiscoveries: number
+  playerDistribution: PlayerDistribution
+  topPlayers: TopPlayer[]
 }
 
-function MiniBarChart({ data, color = 'bg-foreground', label }: { data: DayCount[]; color?: string; label: string }) {
-  if (!data.length) return <p className="text-xs text-muted-foreground py-4 text-center">Pas de données</p>
-
-  // Fill last 14 days
+function MiniBarChart({ data }: { data: DayCount[] }) {
+  // Fill last 14 days with zeros for missing days
   const days: DayCount[] = []
   for (let i = 13; i >= 0; i--) {
-    const d = new Date(); d.setDate(d.getDate() - i)
+    const d = new Date()
+    d.setUTCDate(d.getUTCDate() - i)
     const key = d.toISOString().split('T')[0]
-    const found = data.find(r => r.day.startsWith(key))
-    days.push({ day: key, count: found?.count ?? 0 })
+    const found = data.find(r => String(r.day) === key)
+    days.push({ day: key, count: found ? Number(found.count) : 0 })
   }
 
   const max = Math.max(...days.map(d => d.count), 1)
 
   return (
-    <div>
-      <p className="text-xs text-muted-foreground mb-3 font-medium">{label}</p>
-      <div className="flex items-end gap-1 h-20">
+    <div className="pt-2">
+      <div className="flex items-end gap-[3px] h-24">
         {days.map((d, i) => {
           const pct = (d.count / max) * 100
-          const date = new Date(d.day + 'T12:00:00')
+          const date = new Date(d.day + 'T12:00:00Z')
           const dayLabel = date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+          const isToday = i === 13
           return (
-            <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
-              <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-popover border border-border rounded px-1.5 py-0.5 text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
-                {dayLabel} — {d.count}
+            <div key={i} className="flex-1 flex flex-col items-center group relative">
+              <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 bg-popover border border-border rounded-md px-2 py-1 text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none shadow-md">
+                <span className="font-medium">{d.count}</span> — {dayLabel}
               </div>
-              <div className="w-full rounded-sm transition-all" style={{ height: `${Math.max(pct, 2)}%`, background: 'currentColor' }} />
+              <div
+                className={`w-full rounded-sm transition-all ${isToday ? 'opacity-100' : 'opacity-70'}`}
+                style={{ height: `${Math.max(pct, 3)}%`, background: 'currentColor' }}
+              />
             </div>
           )
         })}
       </div>
-      <div className="flex justify-between mt-1">
+      <div className="flex justify-between mt-2">
         {[0, 6, 13].map(i => {
-          const date = new Date(days[i].day + 'T12:00:00')
-          return <span key={i} className="text-[10px] text-muted-foreground/60">{date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+          const date = new Date(days[i].day + 'T12:00:00Z')
+          return (
+            <span key={i} className="text-[10px] text-muted-foreground/50">
+              {date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+            </span>
+          )
         })}
       </div>
     </div>
@@ -1398,10 +1406,10 @@ function RetentionBar({ label, value }: { label: string; value: number | null })
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold">{label}</span>
-        <span className="text-xs tabular-nums text-muted-foreground">{pct == null ? '—' : `${pct}%`}</span>
+        <span className="text-xs font-medium">{label}</span>
+        <span className="text-xs tabular-nums font-semibold">{pct == null ? '—' : `${pct}%`}</span>
       </div>
-      <div className="h-2 bg-muted rounded-full overflow-hidden">
+      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all ${pct == null ? '' : pct >= 30 ? 'bg-emerald-500' : pct >= 15 ? 'bg-amber-500' : 'bg-red-500'}`}
           style={{ width: `${pct ?? 0}%` }}
@@ -1427,28 +1435,38 @@ function StatsTab() {
   if (!stats) return <p className="text-sm text-muted-foreground text-center py-20">Erreur de chargement</p>
 
   const comboDelta = stats.combosToday - stats.combosYesterday
-  const topMax = stats.topElements[0]?.count ?? 1
+  const dist = stats.playerDistribution
+  const totalPlayers = (dist.casual + dist.engaged + dist.active + dist.hardcore) || 1
+
+  const DISTRIBUTION_TIERS = [
+    { key: 'hardcore' as const, label: 'Hardcore', range: '150+', color: 'bg-violet-500' },
+    { key: 'active' as const, label: 'Actif', range: '51–150', color: 'bg-emerald-500' },
+    { key: 'engaged' as const, label: 'Engagé', range: '11–50', color: 'bg-blue-500' },
+    { key: 'casual' as const, label: 'Casual', range: '1–10', color: 'bg-amber-500' },
+  ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* KPI row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard
           label="Découvertes aujourd'hui"
           value={stats.combosToday.toLocaleString('fr')}
-          sub={comboDelta >= 0 ? `+${comboDelta} vs hier` : `${comboDelta} vs hier`}
-          color={comboDelta >= 0 ? 'text-emerald-400' : 'text-red-400'}
+          sub={comboDelta === 0 ? 'identique à hier' : comboDelta > 0 ? `+${comboDelta} vs hier` : `${comboDelta} vs hier`}
+          color={comboDelta > 0 ? 'text-emerald-400' : comboDelta < 0 ? 'text-red-400' : undefined}
         />
         <StatCard
           label="Moy. découvertes / joueur"
           value={stats.avgDiscoveries ?? '—'}
-          sub="sur tous les joueurs actifs"
+          sub={`médiane : ${stats.medianDiscoveries ?? '—'}`}
         />
         <StatCard
-          label="Jamais joué"
-          value={stats.neverPlayed}
-          sub="inscrits sans aucune découverte"
-          color="text-amber-400"
+          label="Joueurs actifs (14j)"
+          value={(stats.activePerDay.reduce((s, d) => {
+            // count unique days with activity
+            return s + (Number(d.count) > 0 ? 1 : 0)
+          }, 0))}
+          sub="jours avec activité"
         />
         <StatCard
           label="Rétention D1"
@@ -1461,17 +1479,17 @@ function StatsTab() {
       {/* Charts + retention */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Bar chart */}
-        <div className="lg:col-span-2 bg-card border border-border rounded-xl p-5 space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="lg:col-span-2 bg-card border border-border rounded-xl p-5">
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
             <p className="text-sm font-semibold">Activité (14 derniers jours)</p>
-            <div className="flex items-center gap-1 bg-muted/30 rounded-lg p-0.5 border border-border text-muted-foreground">
+            <div className="flex items-center gap-0.5 bg-muted/40 rounded-lg p-0.5 border border-border">
               {([
                 { id: 'discoveries', label: 'Découvertes', icon: TrendingUp },
                 { id: 'signups', label: 'Inscriptions', icon: Users },
-                { id: 'active', label: 'Joueurs actifs', icon: Activity },
+                { id: 'active', label: 'Actifs', icon: Activity },
               ] as const).map(({ id, label, icon: Icon }) => (
                 <button key={id} onClick={() => setPeriod(id)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${period === id ? 'bg-card text-foreground shadow-sm' : 'hover:text-foreground'}`}>
+                  className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${period === id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
                   <Icon className="w-3 h-3" />{label}
                 </button>
               ))}
@@ -1480,51 +1498,88 @@ function StatsTab() {
           <div className={period === 'discoveries' ? 'text-emerald-400' : period === 'signups' ? 'text-blue-400' : 'text-amber-400'}>
             <MiniBarChart
               data={period === 'discoveries' ? stats.discoveriesPerDay : period === 'signups' ? stats.signupsPerDay : stats.activePerDay}
-              label=""
             />
           </div>
         </div>
 
         {/* Retention */}
-        <div className="bg-card border border-border rounded-xl p-5 space-y-5">
+        <div className="bg-card border border-border rounded-xl p-5 space-y-4">
           <div className="flex items-center gap-2">
             <Repeat2 className="w-4 h-4 text-muted-foreground" />
             <p className="text-sm font-semibold">Rétention</p>
           </div>
-          <div className="space-y-4">
-            <RetentionBar label="Jour 1 (revient J+1)" value={stats.retention.d1} />
-            <RetentionBar label="Jour 7 (revient J+7)" value={stats.retention.d7} />
-            <RetentionBar label="Jour 30 (revient J+30)" value={stats.retention.d30} />
+          <div className="space-y-3.5">
+            <RetentionBar label="Jour 1" value={stats.retention.d1} />
+            <RetentionBar label="Jour 7" value={stats.retention.d7} />
+            <RetentionBar label="Jour 30" value={stats.retention.d30} />
           </div>
-          <div className="pt-2 border-t border-border space-y-1.5">
-            <p className="text-[11px] text-muted-foreground">Lecture : % de joueurs inscrits il y a N jours qui ont joué exactement au Nième jour.</p>
-          </div>
+          <p className="text-[10px] text-muted-foreground leading-relaxed pt-1 border-t border-border">% de joueurs inscrits il y a N jours qui ont rejoué exactement au Nième jour.</p>
         </div>
       </div>
 
-      {/* Top elements */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-border flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 text-muted-foreground" />
-          <p className="text-sm font-semibold">Top 15 éléments les plus découverts</p>
-        </div>
-        <div className="divide-y divide-border/50">
-          {stats.topElements.map((el, i) => (
-            <div key={el.number} className="flex items-center gap-3 px-5 py-2.5">
-              <span className="text-xs tabular-nums text-muted-foreground w-5 flex-shrink-0 text-right">{i + 1}</span>
-              {el.img
-                ? <img src={`/api/img?url=${encodeURIComponent(el.img)}`} alt="" className="w-7 h-7 rounded-lg object-cover flex-shrink-0" />
-                : <div className="w-7 h-7 rounded-lg bg-muted flex-shrink-0" />
-              }
-              <span className="text-sm font-medium flex-1 truncate">{el.name_french || el.name_english}</span>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden hidden sm:block">
-                  <div className="h-full bg-foreground/60 rounded-full" style={{ width: `${(el.count / topMax) * 100}%` }} />
+      {/* Bottom row: player distribution + leaderboard */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Engagement funnel */}
+        <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+          <div className="flex items-center gap-2">
+            <Activity className="w-4 h-4 text-muted-foreground" />
+            <p className="text-sm font-semibold">Distribution des joueurs</p>
+            <span className="ml-auto text-xs text-muted-foreground">{totalPlayers} joueurs</span>
+          </div>
+
+          {/* Stacked bar */}
+          <div className="flex rounded-lg overflow-hidden h-3">
+            {DISTRIBUTION_TIERS.map(t => {
+              const pct = (dist[t.key] / totalPlayers) * 100
+              return pct > 0 ? (
+                <div key={t.key} className={`${t.color} transition-all`} style={{ width: `${pct}%` }} title={`${t.label}: ${dist[t.key]}`} />
+              ) : null
+            })}
+          </div>
+
+          {/* Legend rows */}
+          <div className="space-y-2.5">
+            {DISTRIBUTION_TIERS.map(t => {
+              const pct = Math.round((dist[t.key] / totalPlayers) * 100)
+              return (
+                <div key={t.key} className="flex items-center gap-3">
+                  <div className={`w-2.5 h-2.5 rounded-sm flex-shrink-0 ${t.color}`} />
+                  <span className="text-sm flex-1">{t.label}</span>
+                  <span className="text-xs text-muted-foreground">{t.range} éléments</span>
+                  <span className="text-xs tabular-nums w-8 text-right font-medium">{dist[t.key]}</span>
+                  <span className="text-xs tabular-nums w-8 text-right text-muted-foreground">{pct}%</span>
                 </div>
-                <span className="text-xs tabular-nums text-muted-foreground w-12 text-right">{el.count.toLocaleString('fr')}</span>
-              </div>
-            </div>
-          ))}
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Top players */}
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-border flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-muted-foreground" />
+            <p className="text-sm font-semibold">Top joueurs</p>
+          </div>
+          <div className="divide-y divide-border/50">
+            {stats.topPlayers.map((p, i) => {
+              const maxD = stats.topPlayers[0]?.discoveries ?? 1
+              const medals = ['🥇', '🥈', '🥉']
+              return (
+                <div key={i} className="flex items-center gap-3 px-5 py-2.5">
+                  <span className="text-sm w-5 flex-shrink-0 text-center">
+                    {i < 3 ? medals[i] : <span className="text-xs tabular-nums text-muted-foreground">{i + 1}</span>}
+                  </span>
+                  <span className="text-sm flex-1 truncate font-medium">{p.name ?? '—'}</span>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden hidden sm:block">
+                      <div className="h-full bg-foreground/50 rounded-full" style={{ width: `${(p.discoveries / maxD) * 100}%` }} />
+                    </div>
+                    <span className="text-xs tabular-nums text-muted-foreground w-10 text-right">{p.discoveries.toLocaleString('fr')}</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
     </div>
