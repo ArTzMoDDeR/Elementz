@@ -6,6 +6,7 @@ import {
   Search, Upload, Check, FileUp, Moon, Sun, Plus, X, Trash2, Save, Hash,
   ArrowDownAZ, Pencil, ChevronLeft, ChevronRight, RefreshCw, Shield, ShieldOff,
   Users, Layers, Scroll, BarChart3, AlertCircle, CheckCircle2, Clock, Mail, Send, CheckCheck,
+  TrendingUp, Activity, Repeat2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -1334,12 +1335,209 @@ function EmailTab() {
   )
 }
 
+// ─── Tab: Stats ──────────────────────────────────────────────────────────────
+
+type DayCount = { day: string; count: number }
+type TopElement = { number: number; name_french: string; name_english: string; img: string | null; count: number }
+type UsageStats = {
+  discoveriesPerDay: DayCount[]
+  signupsPerDay: DayCount[]
+  activePerDay: DayCount[]
+  topElements: TopElement[]
+  retention: { d1: number | null; d7: number | null; d30: number | null }
+  combosToday: number
+  combosYesterday: number
+  avgDiscoveries: number
+  neverPlayed: number
+}
+
+function MiniBarChart({ data, color = 'bg-foreground', label }: { data: DayCount[]; color?: string; label: string }) {
+  if (!data.length) return <p className="text-xs text-muted-foreground py-4 text-center">Pas de données</p>
+
+  // Fill last 14 days
+  const days: DayCount[] = []
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i)
+    const key = d.toISOString().split('T')[0]
+    const found = data.find(r => r.day.startsWith(key))
+    days.push({ day: key, count: found?.count ?? 0 })
+  }
+
+  const max = Math.max(...days.map(d => d.count), 1)
+
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground mb-3 font-medium">{label}</p>
+      <div className="flex items-end gap-1 h-20">
+        {days.map((d, i) => {
+          const pct = (d.count / max) * 100
+          const date = new Date(d.day + 'T12:00:00')
+          const dayLabel = date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+          return (
+            <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
+              <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-popover border border-border rounded px-1.5 py-0.5 text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+                {dayLabel} — {d.count}
+              </div>
+              <div className="w-full rounded-sm transition-all" style={{ height: `${Math.max(pct, 2)}%`, background: 'currentColor' }} />
+            </div>
+          )
+        })}
+      </div>
+      <div className="flex justify-between mt-1">
+        {[0, 6, 13].map(i => {
+          const date = new Date(days[i].day + 'T12:00:00')
+          return <span key={i} className="text-[10px] text-muted-foreground/60">{date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+        })}
+      </div>
+    </div>
+  )
+}
+
+function RetentionBar({ label, value }: { label: string; value: number | null }) {
+  const pct = value == null ? null : Math.round(value * 100)
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold">{label}</span>
+        <span className="text-xs tabular-nums text-muted-foreground">{pct == null ? '—' : `${pct}%`}</span>
+      </div>
+      <div className="h-2 bg-muted rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${pct == null ? '' : pct >= 30 ? 'bg-emerald-500' : pct >= 15 ? 'bg-amber-500' : 'bg-red-500'}`}
+          style={{ width: `${pct ?? 0}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
+function StatsTab() {
+  const [stats, setStats] = useState<UsageStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [period, setPeriod] = useState<'discoveries' | 'signups' | 'active'>('discoveries')
+
+  useEffect(() => {
+    fetch('/api/admin/usage')
+      .then(r => r.json())
+      .then(d => { setStats(d); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [])
+
+  if (loading) return <div className="flex justify-center py-20"><Spinner size="md" /></div>
+  if (!stats) return <p className="text-sm text-muted-foreground text-center py-20">Erreur de chargement</p>
+
+  const comboDelta = stats.combosToday - stats.combosYesterday
+  const topMax = stats.topElements[0]?.count ?? 1
+
+  return (
+    <div className="space-y-6">
+      {/* KPI row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatCard
+          label="Découvertes aujourd'hui"
+          value={stats.combosToday.toLocaleString('fr')}
+          sub={comboDelta >= 0 ? `+${comboDelta} vs hier` : `${comboDelta} vs hier`}
+          color={comboDelta >= 0 ? 'text-emerald-400' : 'text-red-400'}
+        />
+        <StatCard
+          label="Moy. découvertes / joueur"
+          value={stats.avgDiscoveries ?? '—'}
+          sub="sur tous les joueurs actifs"
+        />
+        <StatCard
+          label="Jamais joué"
+          value={stats.neverPlayed}
+          sub="inscrits sans aucune découverte"
+          color="text-amber-400"
+        />
+        <StatCard
+          label="Rétention D1"
+          value={stats.retention.d1 == null ? '—' : `${Math.round(stats.retention.d1 * 100)}%`}
+          sub="reviennent le lendemain"
+          color={stats.retention.d1 != null && stats.retention.d1 >= 0.3 ? 'text-emerald-400' : 'text-amber-400'}
+        />
+      </div>
+
+      {/* Charts + retention */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Bar chart */}
+        <div className="lg:col-span-2 bg-card border border-border rounded-xl p-5 space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <p className="text-sm font-semibold">Activité (14 derniers jours)</p>
+            <div className="flex items-center gap-1 bg-muted/30 rounded-lg p-0.5 border border-border text-muted-foreground">
+              {([
+                { id: 'discoveries', label: 'Découvertes', icon: TrendingUp },
+                { id: 'signups', label: 'Inscriptions', icon: Users },
+                { id: 'active', label: 'Joueurs actifs', icon: Activity },
+              ] as const).map(({ id, label, icon: Icon }) => (
+                <button key={id} onClick={() => setPeriod(id)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${period === id ? 'bg-card text-foreground shadow-sm' : 'hover:text-foreground'}`}>
+                  <Icon className="w-3 h-3" />{label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className={period === 'discoveries' ? 'text-emerald-400' : period === 'signups' ? 'text-blue-400' : 'text-amber-400'}>
+            <MiniBarChart
+              data={period === 'discoveries' ? stats.discoveriesPerDay : period === 'signups' ? stats.signupsPerDay : stats.activePerDay}
+              label=""
+            />
+          </div>
+        </div>
+
+        {/* Retention */}
+        <div className="bg-card border border-border rounded-xl p-5 space-y-5">
+          <div className="flex items-center gap-2">
+            <Repeat2 className="w-4 h-4 text-muted-foreground" />
+            <p className="text-sm font-semibold">Rétention</p>
+          </div>
+          <div className="space-y-4">
+            <RetentionBar label="Jour 1 (revient J+1)" value={stats.retention.d1} />
+            <RetentionBar label="Jour 7 (revient J+7)" value={stats.retention.d7} />
+            <RetentionBar label="Jour 30 (revient J+30)" value={stats.retention.d30} />
+          </div>
+          <div className="pt-2 border-t border-border space-y-1.5">
+            <p className="text-[11px] text-muted-foreground">Lecture : % de joueurs inscrits il y a N jours qui ont joué exactement au Nième jour.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Top elements */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-border flex items-center gap-2">
+          <BarChart3 className="w-4 h-4 text-muted-foreground" />
+          <p className="text-sm font-semibold">Top 15 éléments les plus découverts</p>
+        </div>
+        <div className="divide-y divide-border/50">
+          {stats.topElements.map((el, i) => (
+            <div key={el.number} className="flex items-center gap-3 px-5 py-2.5">
+              <span className="text-xs tabular-nums text-muted-foreground w-5 flex-shrink-0 text-right">{i + 1}</span>
+              {el.img
+                ? <img src={`/api/img?url=${encodeURIComponent(el.img)}`} alt="" className="w-7 h-7 rounded-lg object-cover flex-shrink-0" />
+                : <div className="w-7 h-7 rounded-lg bg-muted flex-shrink-0" />
+              }
+              <span className="text-sm font-medium flex-1 truncate">{el.name_french || el.name_english}</span>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden hidden sm:block">
+                  <div className="h-full bg-foreground/60 rounded-full" style={{ width: `${(el.count / topMax) * 100}%` }} />
+                </div>
+                <span className="text-xs tabular-nums text-muted-foreground w-12 text-right">{el.count.toLocaleString('fr')}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Admin Page ──────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'elements' | 'quests' | 'users' | 'email'
+type Tab = 'overview' | 'elements' | 'quests' | 'users' | 'email' | 'stats'
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'overview', label: 'Vue d\'ensemble', icon: BarChart3 },
+  { id: 'stats', label: 'Statistiques', icon: TrendingUp },
   { id: 'elements', label: 'Éléments', icon: Layers },
   { id: 'quests', label: 'Quêtes', icon: Scroll },
   { id: 'users', label: 'Utilisateurs', icon: Users },
@@ -1372,7 +1570,7 @@ export default function AdminPanel() {
           </div>
 
           {/* Tab nav — equal-width on mobile, auto on desktop */}
-          <nav className="grid grid-cols-5 sm:flex sm:items-center sm:gap-1 -mb-px">
+          <nav className="grid grid-cols-6 sm:flex sm:items-center sm:gap-1 -mb-px">
             {TABS.map(t => {
               const Icon = t.icon
               const isActive = tab === t.id
@@ -1394,6 +1592,7 @@ export default function AdminPanel() {
         style={{ paddingLeft: 'max(1rem, env(safe-area-inset-left))', paddingRight: 'max(1rem, env(safe-area-inset-right))' }}
       >
         {tab === 'overview' && <OverviewTab />}
+        {tab === 'stats' && <StatsTab />}
         {tab === 'elements' && <ElementsTab />}
         {tab === 'quests' && <QuestsTab />}
         {tab === 'users' && <UsersTab />}
