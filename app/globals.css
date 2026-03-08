@@ -3,6 +3,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@keyframes tutorialPulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(255,255,255,0.7), 0 0 12px 4px rgba(255,255,255,0.15); }
+  50%       { box-shadow: 0 0 0 4px rgba(255,255,255,0.9), 0 0 20px 8px rgba(255,255,255,0.25); }
+}
+
 /* Prevent text selection on long-press — native app feel */
 * {
   -webkit-user-select: none;

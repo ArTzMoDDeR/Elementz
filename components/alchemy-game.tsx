@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useTheme } from 'next-themes'
 import { Playground } from './playground'
 import { OnboardingModal } from './onboarding-modal'
+import { TutorialOverlay } from './tutorial-overlay'
 import { useGameStore } from '@/hooks/use-game-store'
 import { useHint } from '@/hooks/use-hint'
 import { Sparkles, Lightbulb, Trash2, BarChart2, Hand, MousePointer } from 'lucide-react'
@@ -16,6 +17,7 @@ export function AlchemyGame() {
   const { data: session } = useSession()
   const { setTheme } = useTheme()
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [showTutorial, setShowTutorial] = useState(false)
   const {
     lang,
     setLang,
@@ -185,6 +187,8 @@ export function AlchemyGame() {
         avatar: prefs.avatar,
       }),
     })
+    // Show interactive tutorial right after onboarding
+    setShowTutorial(true)
   }
 
   const handleDismissNotification = () => {
@@ -245,6 +249,13 @@ export function AlchemyGame() {
   return (
     <div className="game-container bg-background">
       {showOnboarding && <OnboardingModal elements={elements} onComplete={handleOnboardingComplete} />}
+      {showTutorial && !showOnboarding && (
+        <TutorialOverlay
+          lang={lang}
+          discoveredCount={discovered.size}
+          onDismiss={() => setShowTutorial(false)}
+        />
+      )}
       <Playground
         items={playground}
         elements={elements}
