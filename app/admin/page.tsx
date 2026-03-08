@@ -1354,13 +1354,16 @@ type UsageStats = {
 }
 
 function MiniBarChart({ data }: { data: DayCount[] }) {
+  const BAR_HEIGHT = 80 // px
+
   // Fill last 14 days with zeros for missing days
   const days: DayCount[] = []
   for (let i = 13; i >= 0; i--) {
     const d = new Date()
     d.setUTCDate(d.getUTCDate() - i)
     const key = d.toISOString().split('T')[0]
-    const found = data.find(r => String(r.day) === key)
+    // DB returns "YYYY-MM-DD" strings via TO_CHAR — compare directly
+    const found = data.find(r => r.day === key)
     days.push({ day: key, count: found ? Number(found.count) : 0 })
   }
 
@@ -1368,20 +1371,20 @@ function MiniBarChart({ data }: { data: DayCount[] }) {
 
   return (
     <div className="pt-2">
-      <div className="flex items-end gap-[3px] h-24">
+      <div className="flex items-end gap-[3px]" style={{ height: BAR_HEIGHT }}>
         {days.map((d, i) => {
-          const pct = (d.count / max) * 100
+          const h = Math.max(Math.round((d.count / max) * BAR_HEIGHT), d.count > 0 ? 3 : 1)
           const date = new Date(d.day + 'T12:00:00Z')
           const dayLabel = date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
           const isToday = i === 13
           return (
-            <div key={i} className="flex-1 flex flex-col items-center group relative">
+            <div key={i} className="flex-1 group relative flex items-end" style={{ height: BAR_HEIGHT }}>
               <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 bg-popover border border-border rounded-md px-2 py-1 text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none shadow-md">
                 <span className="font-medium">{d.count}</span> — {dayLabel}
               </div>
               <div
-                className={`w-full rounded-sm transition-all ${isToday ? 'opacity-100' : 'opacity-70'}`}
-                style={{ height: `${Math.max(pct, 3)}%`, background: 'currentColor' }}
+                className={`w-full rounded-sm transition-all ${isToday ? 'opacity-100' : 'opacity-60'}`}
+                style={{ height: h, background: 'currentColor' }}
               />
             </div>
           )
