@@ -1354,7 +1354,7 @@ type UsageStats = {
 }
 
 function MiniBarChart({ data }: { data: DayCount[] }) {
-  const BAR_HEIGHT = 80 // px
+  const BAR_HEIGHT = 140 // px — full usable area
 
   // Fill last 14 days with zeros for missing days
   const days: DayCount[] = []
@@ -1362,35 +1362,54 @@ function MiniBarChart({ data }: { data: DayCount[] }) {
     const d = new Date()
     d.setUTCDate(d.getUTCDate() - i)
     const key = d.toISOString().split('T')[0]
-    // DB returns "YYYY-MM-DD" strings via TO_CHAR — compare directly
     const found = data.find(r => r.day === key)
     days.push({ day: key, count: found ? Number(found.count) : 0 })
   }
 
   const max = Math.max(...days.map(d => d.count), 1)
+  // Percentile thresholds for color grading
+  const nonZero = days.map(d => d.count).filter(c => c > 0).sort((a, b) => a - b)
+  const p50 = nonZero[Math.floor(nonZero.length * 0.5)] ?? 0
+  const p75 = nonZero[Math.floor(nonZero.length * 0.75)] ?? 0
+
+  function barColor(count: number): string {
+    if (count === 0) return 'rgba(255,255,255,0.08)'
+    if (count >= p75) return '#22c55e'   // green-500 — top performance
+    if (count >= p50) return '#f59e0b'   // amber-500 — mid performance
+    return '#ef4444'                      // red-500   — low performance
+  }
 
   return (
-    <div className="pt-2">
-      <div className="flex items-end gap-[3px]" style={{ height: BAR_HEIGHT }}>
+    <div className="pt-3">
+      <div className="flex items-end gap-[4px]" style={{ height: BAR_HEIGHT }}>
         {days.map((d, i) => {
-          const h = Math.max(Math.round((d.count / max) * BAR_HEIGHT), d.count > 0 ? 3 : 1)
+          const h = d.count === 0
+            ? 2
+            : Math.max(Math.round((d.count / max) * BAR_HEIGHT), 4)
           const date = new Date(d.day + 'T12:00:00Z')
           const dayLabel = date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
-          const isToday = i === 13
           return (
             <div key={i} className="flex-1 group relative flex items-end" style={{ height: BAR_HEIGHT }}>
-              <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 bg-popover border border-border rounded-md px-2 py-1 text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none shadow-md">
-                <span className="font-medium">{d.count}</span> — {dayLabel}
+              {/* Tooltip */}
+              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-popover border border-border rounded-md px-2 py-1 text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none shadow-lg">
+                <span className="font-semibold">{d.count}</span>
+                <span className="text-muted-foreground ml-1">— {dayLabel}</span>
               </div>
+              {/* Bar */}
               <div
-                className={`w-full rounded-sm transition-all ${isToday ? 'opacity-100' : 'opacity-60'}`}
-                style={{ height: h, background: 'currentColor' }}
+                className="w-full rounded-sm transition-all duration-300"
+                style={{
+                  height: h,
+                  background: barColor(d.count),
+                  opacity: d.count === 0 ? 1 : 0.85,
+                }}
               />
             </div>
           )
         })}
       </div>
-      <div className="flex justify-between mt-2">
+      {/* X axis labels */}
+      <div className="flex justify-between mt-2.5 border-t border-border/30 pt-2">
         {[0, 6, 13].map(i => {
           const date = new Date(days[i].day + 'T12:00:00Z')
           return (
