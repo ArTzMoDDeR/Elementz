@@ -9,9 +9,9 @@ export async function GET() {
   const rows = await sql`SELECT is_admin FROM users WHERE id = ${session.user.id}`
   if (!rows[0]?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  // Discoveries per day — last 14 days
+  // Discoveries per day — last 14 days, returned as ISO string
   const discoveriesPerDay = await sql`
-    SELECT discovered_at::date AS day, COUNT(*)::int AS count
+    SELECT TO_CHAR(discovered_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS day, COUNT(*)::int AS count
     FROM unlocks
     WHERE discovered_at >= NOW() - INTERVAL '14 days'
     GROUP BY day ORDER BY day ASC
@@ -19,57 +19,47 @@ export async function GET() {
 
   // New users per day — last 14 days
   const signupsPerDay = await sql`
-    SELECT created_at::date AS day, COUNT(*)::int AS count
+    SELECT TO_CHAR(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS day, COUNT(*)::int AS count
     FROM users
     WHERE created_at >= NOW() - INTERVAL '14 days'
     GROUP BY day ORDER BY day ASC
   `
 
-  // Active users per day (had at least 1 discovery) — last 14 days
+  // Active users per day (at least 1 discovery) — last 14 days
   const activePerDay = await sql`
-    SELECT discovered_at::date AS day, COUNT(DISTINCT user_id)::int AS count
+    SELECT TO_CHAR(discovered_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS day, COUNT(DISTINCT user_id)::int AS count
     FROM unlocks
     WHERE discovered_at >= NOW() - INTERVAL '14 days'
     GROUP BY day ORDER BY day ASC
   `
 
-  // Top 15 most discovered elements
-  const topElements = await sql`
-    SELECT e.number, e.name_french, e.name_english, e.img, COUNT(ul.user_id)::int AS count
-    FROM elements e
-    JOIN unlocks ul ON ul.element_number = e.number
-    GROUP BY e.number, e.name_french, e.name_english, e.img
-    ORDER BY count DESC
-    LIMIT 15
-  `
-
-  // Retention: among users created N+ days ago, how many were active in the last N days
+  // Retention D1/D7/D30
   const retention = await sql`
     SELECT
-      -- D1: users created 2+ days ago who were active yesterday or today
       (
-        SELECT COUNT(DISTINCT u.id)::float / NULLIF(COUNT(DISTINCT u2.id)::float, 0)
+        SELECT COUNT(DISTINCT u.id)::float / NULLIF((SELECT COUNT(*)::float FROM users WHERE created_at <= NOW() - INTERVAL '2 days'), 0)
         FROM users u
-        JOIN unlocks ul ON ul.user_id = u.id AND ul.discovered_at >= u.created_at + INTERVAL '1 day' AND ul.discovered_at < u.created_at + INTERVAL '2 days'
-        JOIN users u2 ON u2.created_at <= NOW() - INTERVAL '2 days'
+        JOIN unlocks ul ON ul.user_id = u.id
+          AND ul.discovered_at >= u.created_at + INTERVAL '1 day'
+          AND ul.discovered_at < u.created_at + INTERVAL '2 days'
       ) AS d1,
-      -- D7
       (
-        SELECT COUNT(DISTINCT u.id)::float / NULLIF(COUNT(DISTINCT u2.id)::float, 0)
+        SELECT COUNT(DISTINCT u.id)::float / NULLIF((SELECT COUNT(*)::float FROM users WHERE created_at <= NOW() - INTERVAL '8 days'), 0)
         FROM users u
-        JOIN unlocks ul ON ul.user_id = u.id AND ul.discovered_at >= u.created_at + INTERVAL '7 days' AND ul.discovered_at < u.created_at + INTERVAL '8 days'
-        JOIN users u2 ON u2.created_at <= NOW() - INTERVAL '8 days'
+        JOIN unlocks ul ON ul.user_id = u.id
+          AND ul.discovered_at >= u.created_at + INTERVAL '7 days'
+          AND ul.discovered_at < u.created_at + INTERVAL '8 days'
       ) AS d7,
-      -- D30
       (
-        SELECT COUNT(DISTINCT u.id)::float / NULLIF(COUNT(DISTINCT u2.id)::float, 0)
+        SELECT COUNT(DISTINCT u.id)::float / NULLIF((SELECT COUNT(*)::float FROM users WHERE created_at <= NOW() - INTERVAL '31 days'), 0)
         FROM users u
-        JOIN unlocks ul ON ul.user_id = u.id AND ul.discovered_at >= u.created_at + INTERVAL '30 days' AND ul.discovered_at < u.created_at + INTERVAL '31 days'
-        JOIN users u2 ON u2.created_at <= NOW() - INTERVAL '31 days'
+        JOIN unlocks ul ON ul.user_id = u.id
+          AND ul.discovered_at >= u.created_at + INTERVAL '30 days'
+          AND ul.discovered_at < u.created_at + INTERVAL '31 days'
       ) AS d30
   `
 
-  // Total combinations tried today vs yesterday
+  // Today vs yesterday discoveries
   const combosStats = await sql`
     SELECT
       COUNT(*) FILTER (WHERE discovered_at::date = CURRENT_DATE)::int AS today,
@@ -77,28 +67,44 @@ export async function GET() {
     FROM unlocks
   `
 
-  // Average discoveries per active user
-  const avgDiscoveries = await sql`
-    SELECT ROUND(AVG(cnt))::int AS avg FROM (
-      SELECT COUNT(*)::int AS cnt FROM unlocks GROUP BY user_id
-    ) sub
+  // Average + median discoveries per active player
+  const playerStats = await sql`
+    SELECT
+      ROUND(AVG(cnt))::int AS avg_discoveries,
+      PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY cnt)::int AS median_discoveries
+    FROM (SELECT user_id, COUNT(*) AS cnt FROM unlocks GROUP BY user_id) sub
   `
 
-  // Users with 0 discoveries (registered but never played)
-  const neverPlayed = await sql`
-    SELECT COUNT(*)::int AS n FROM users u
-    WHERE NOT EXISTS (SELECT 1 FROM unlocks ul WHERE ul.user_id = u.id)
+  // Player distribution by engagement level
+  const playerDistribution = await sql`
+    SELECT
+      SUM(CASE WHEN cnt BETWEEN 1 AND 10 THEN 1 ELSE 0 END)::int AS casual,
+      SUM(CASE WHEN cnt BETWEEN 11 AND 50 THEN 1 ELSE 0 END)::int AS engaged,
+      SUM(CASE WHEN cnt BETWEEN 51 AND 150 THEN 1 ELSE 0 END)::int AS active,
+      SUM(CASE WHEN cnt > 150 THEN 1 ELSE 0 END)::int AS hardcore
+    FROM (SELECT user_id, COUNT(*) AS cnt FROM unlocks GROUP BY user_id) sub
+  `
+
+  // Top 10 players by discoveries
+  const topPlayers = await sql`
+    SELECT u.name, COUNT(ul.element_number)::int AS discoveries
+    FROM unlocks ul
+    JOIN users u ON u.id = ul.user_id
+    GROUP BY u.id, u.name
+    ORDER BY discoveries DESC
+    LIMIT 10
   `
 
   return NextResponse.json({
     discoveriesPerDay,
     signupsPerDay,
     activePerDay,
-    topElements,
     retention: retention[0],
     combosToday: combosStats[0].today,
     combosYesterday: combosStats[0].yesterday,
-    avgDiscoveries: avgDiscoveries[0].avg,
-    neverPlayed: neverPlayed[0].n,
+    avgDiscoveries: playerStats[0].avg_discoveries,
+    medianDiscoveries: playerStats[0].median_discoveries,
+    playerDistribution: playerDistribution[0],
+    topPlayers,
   })
 }
