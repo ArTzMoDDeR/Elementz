@@ -6,8 +6,13 @@ import {
   Search, Upload, Check, FileUp, Moon, Sun, Plus, X, Trash2, Save, Hash,
   ArrowDownAZ, Pencil, ChevronLeft, ChevronRight, RefreshCw, Shield, ShieldOff,
   Users, Layers, Scroll, BarChart3, AlertCircle, CheckCircle2, Clock, Mail, Send, CheckCheck,
-  TrendingUp, Activity, Repeat2,
+  TrendingUp, Activity, Repeat2, ArrowUpRight, ArrowDownRight, Minus,
 } from 'lucide-react'
+import {
+  AreaChart, Area, BarChart, Bar, LineChart, Line,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  PieChart, Pie, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis,
+} from 'recharts'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -1338,9 +1343,12 @@ function EmailTab() {
 // ─── Tab: Stats ──────────────────────────────────────────────────────────────
 
 type DayCount = { day: string; count: number }
-type PlayerDistribution = { casual: number; engaged: number; active: number; hardcore: number }
-type TopPlayer = { name: string; discoveries: number }
+type Granularity = 'hour' | 'day' | 'week'
+type SeriesKey = 'discoveries' | 'signups' | 'active'
+type ChartType = 'area' | 'bar' | 'line'
+
 type UsageStats = {
+  gran: Granularity
   discoveriesPerDay: DayCount[]
   signupsPerDay: DayCount[]
   activePerDay: DayCount[]
@@ -1349,8 +1357,421 @@ type UsageStats = {
   combosYesterday: number
   avgDiscoveries: number
   medianDiscoveries: number
-  playerDistribution: PlayerDistribution
-  topPlayers: TopPlayer[]
+  playerDistribution: { casual: number; engaged: number; active: number; hardcore: number }
+  topPlayers: { name: string; discoveries: number }[]
+  newUsersMonth: number
+  totalUsers: number
+  totalUnlocks: number
+}
+
+// ── KPI card ──────────────────────────────────────────────────────────────────
+function KpiCard({ label, value, sub, delta, color }: {
+  label: string; value: string | number; sub?: string; delta?: number; color?: string
+}) {
+  const DeltaIcon = delta == null ? null : delta > 0 ? ArrowUpRight : delta < 0 ? ArrowDownRight : Minus
+  const deltaColor = delta == null ? '' : delta > 0 ? 'text-emerald-400' : delta < 0 ? 'text-red-400' : 'text-muted-foreground'
+  return (
+    <div className="bg-card border border-border rounded-xl p-4 flex flex-col gap-2 min-w-0">
+      <p className="text-xs text-muted-foreground font-medium leading-tight">{label}</p>
+      <div className="flex items-end gap-2">
+        <p className={`text-2xl font-bold tabular-nums leading-none ${color ?? ''}`}>{value}</p>
+        {DeltaIcon && (
+          <span className={`flex items-center gap-0.5 text-xs font-semibold mb-0.5 ${deltaColor}`}>
+            <DeltaIcon className="w-3 h-3" />
+            {Math.abs(delta!)}
+          </span>
+        )}
+      </div>
+      {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
+    </div>
+  )
+}
+
+// ── Custom recharts tooltip ───────────────────────────────────────────────────
+function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="bg-popover border border-border rounded-xl px-3 py-2.5 shadow-xl text-xs space-y-1 min-w-[130px]">
+      <p className="text-muted-foreground font-medium mb-1.5">{label}</p>
+      {payload.map((p, i) => (
+        <div key={i} className="flex items-center gap-2 justify-between">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: p.color }} />
+            <span className="text-muted-foreground">{p.name}</span>
+          </div>
+          <span className="font-bold tabular-nums">{p.value.toLocaleString('fr')}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Build merged time-series ──────────────────────────────────────────────────
+function buildTimeSeries(
+  gran: Granularity,
+  discoveries: DayCount[],
+  signups: DayCount[],
+  active: DayCount[],
+) {
+  // Generate all buckets for the range
+  const buckets: string[] = []
+  const now = new Date()
+
+  if (gran === 'hour') {
+    for (let i = 23; i >= 0; i--) {
+      const d = new Date(now)
+      d.setUTCHours(d.getUTCHours() - i, 0, 0, 0)
+      const yyyy = d.getUTCFullYear()
+      const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
+      const dd = String(d.getUTCDate()).padStart(2, '0')
+      const hh = String(d.getUTCHours()).padStart(2, '0')
+      buckets.push(`${yyyy}-${mm}-${dd} ${hh}:00`)
+    }
+  } else if (gran === 'week') {
+    // last 13 full weeks
+    const monday = new Date(now)
+    monday.setUTCDate(monday.getUTCDate() - monday.getUTCDay() + 1)
+    for (let i = 12; i >= 0; i--) {
+      const d = new Date(monday)
+      d.setUTCDate(d.getUTCDate() - i * 7)
+      buckets.push(d.toISOString().split('T')[0])
+    }
+  } else {
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(now)
+      d.setUTCDate(d.getUTCDate() - i)
+      buckets.push(d.toISOString().split('T')[0])
+    }
+  }
+
+  const find = (arr: DayCount[], key: string) => Number(arr.find(r => r.day === key)?.count ?? 0)
+
+  return buckets.map(key => ({
+    key,
+    label: gran === 'hour'
+      ? key.slice(11, 16)        // "14:00"
+      : gran === 'week'
+      ? (() => {
+          const d = new Date(key + 'T12:00:00Z')
+          return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+        })()
+      : (() => {
+          const d = new Date(key + 'T12:00:00Z')
+          return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+        })(),
+    discoveries: find(discoveries, key),
+    signups: find(signups, key),
+    active: find(active, key),
+  }))
+}
+
+// ── Series config ─────────────────────────────────────────────────────────────
+const SERIES: { key: SeriesKey; label: string; color: string }[] = [
+  { key: 'discoveries', label: 'Découvertes', color: '#22c55e' },
+  { key: 'signups',     label: 'Inscriptions', color: '#3b82f6' },
+  { key: 'active',      label: 'Joueurs actifs', color: '#f59e0b' },
+]
+
+const GRAN_OPTIONS: { id: Granularity; label: string }[] = [
+  { id: 'hour', label: '24h' },
+  { id: 'day',  label: '14j' },
+  { id: 'week', label: '13 sem.' },
+]
+
+const CHART_OPTIONS: { id: ChartType; label: string }[] = [
+  { id: 'area', label: 'Aire' },
+  { id: 'bar',  label: 'Barres' },
+  { id: 'line', label: 'Lignes' },
+]
+
+const PIE_COLORS = ['#f59e0b', '#3b82f6', '#22c55e', '#8b5cf6']
+
+function StatsTab() {
+  const [stats, setStats] = useState<UsageStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [gran, setGran] = useState<Granularity>('day')
+  const [activeSeries, setActiveSeries] = useState<Set<SeriesKey>>(new Set(['discoveries', 'signups', 'active']))
+  const [chartType, setChartType] = useState<ChartType>('area')
+
+  const fetchStats = useCallback((g: Granularity) => {
+    setLoading(true)
+    fetch(`/api/admin/usage?gran=${g}`)
+      .then(r => r.json())
+      .then(d => { setStats(d); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [])
+
+  useEffect(() => { fetchStats(gran) }, [gran, fetchStats])
+
+  const toggleSeries = (key: SeriesKey) => {
+    setActiveSeries(prev => {
+      const next = new Set(prev)
+      if (next.has(key) && next.size > 1) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  if (!stats && loading) return <div className="flex justify-center py-20"><Spinner size="md" /></div>
+  if (!stats) return <p className="text-sm text-muted-foreground text-center py-20">Erreur de chargement</p>
+
+  const comboDelta = stats.combosToday - stats.combosYesterday
+  const dist = stats.playerDistribution
+  const totalPlayers = (dist.casual + dist.engaged + dist.active + dist.hardcore) || 1
+  const timeSeries = buildTimeSeries(gran, stats.discoveriesPerDay, stats.signupsPerDay, stats.activePerDay)
+
+  const retentionData = [
+    { label: 'D1', value: stats.retention.d1 == null ? 0 : Math.round(stats.retention.d1 * 100) },
+    { label: 'D7', value: stats.retention.d7 == null ? 0 : Math.round(stats.retention.d7 * 100) },
+    { label: 'D30', value: stats.retention.d30 == null ? 0 : Math.round(stats.retention.d30 * 100) },
+  ]
+
+  const pieData = [
+    { name: 'Casual (1–10)', value: dist.casual },
+    { name: 'Engagé (11–50)', value: dist.engaged },
+    { name: 'Actif (51–150)', value: dist.active },
+    { name: 'Hardcore (150+)', value: dist.hardcore },
+  ].filter(d => d.value > 0)
+
+  const maxDiscoveries = stats.topPlayers[0]?.discoveries ?? 1
+
+  return (
+    <div className="space-y-6">
+
+      {/* ── KPI row ─────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <KpiCard
+          label="Découvertes aujourd'hui"
+          value={stats.combosToday.toLocaleString('fr')}
+          delta={comboDelta}
+          sub="vs hier"
+        />
+        <KpiCard
+          label="Total joueurs"
+          value={stats.totalUsers.toLocaleString('fr')}
+          sub={`+${stats.newUsersMonth} ce mois`}
+        />
+        <KpiCard
+          label="Total découvertes"
+          value={stats.totalUnlocks.toLocaleString('fr')}
+          sub={`moy. ${stats.avgDiscoveries ?? '—'} / joueur`}
+        />
+        <KpiCard
+          label="Rétention J1"
+          value={stats.retention.d1 == null ? '—' : `${Math.round(stats.retention.d1 * 100)}%`}
+          sub="reviennent le lendemain"
+          color={stats.retention.d1 != null && stats.retention.d1 >= 0.3 ? 'text-emerald-400' : 'text-amber-400'}
+        />
+      </div>
+
+      {/* ── Main chart ──────────────────────────────────────────────────── */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-border">
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Granularity */}
+            <div className="flex items-center gap-0.5 bg-muted/50 rounded-lg p-0.5 border border-border">
+              {GRAN_OPTIONS.map(g => (
+                <button key={g.id} onClick={() => setGran(g.id)}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${gran === g.id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                  {g.label}
+                </button>
+              ))}
+            </div>
+            {/* Chart type */}
+            <div className="flex items-center gap-0.5 bg-muted/50 rounded-lg p-0.5 border border-border">
+              {CHART_OPTIONS.map(c => (
+                <button key={c.id} onClick={() => setChartType(c.id)}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${chartType === c.id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Series toggles */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {SERIES.map(s => (
+              <button key={s.key} onClick={() => toggleSeries(s.key)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                  activeSeries.has(s.key)
+                    ? 'border-transparent text-foreground'
+                    : 'border-border text-muted-foreground opacity-50'
+                }`}
+                style={activeSeries.has(s.key) ? { background: `${s.color}18`, borderColor: `${s.color}50` } : undefined}
+              >
+                <div className="w-2 h-2 rounded-full" style={{ background: s.color }} />
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Chart area */}
+        <div className="px-2 pt-4 pb-2" style={{ height: 320 }}>
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <Spinner size="md" />
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              {chartType === 'bar' ? (
+                <BarChart data={timeSeries} barGap={2} barCategoryGap="25%">
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'oklch(0.6 0 0)' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                  <YAxis tick={{ fontSize: 10, fill: 'oklch(0.6 0 0)' }} axisLine={false} tickLine={false} width={36} />
+                  <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+                  {SERIES.filter(s => activeSeries.has(s.key)).map(s => (
+                    <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[3, 3, 0, 0]} opacity={0.85} />
+                  ))}
+                </BarChart>
+              ) : chartType === 'line' ? (
+                <LineChart data={timeSeries}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'oklch(0.6 0 0)' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                  <YAxis tick={{ fontSize: 10, fill: 'oklch(0.6 0 0)' }} axisLine={false} tickLine={false} width={36} />
+                  <Tooltip content={<ChartTooltip />} />
+                  {SERIES.filter(s => activeSeries.has(s.key)).map(s => (
+                    <Line key={s.key} type="monotone" dataKey={s.key} name={s.label} stroke={s.color}
+                      strokeWidth={2} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+                  ))}
+                </LineChart>
+              ) : (
+                <AreaChart data={timeSeries}>
+                  <defs>
+                    {SERIES.map(s => (
+                      <linearGradient key={s.key} id={`grad-${s.key}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={s.color} stopOpacity={0.3} />
+                        <stop offset="100%" stopColor={s.color} stopOpacity={0.02} />
+                      </linearGradient>
+                    ))}
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'oklch(0.6 0 0)' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                  <YAxis tick={{ fontSize: 10, fill: 'oklch(0.6 0 0)' }} axisLine={false} tickLine={false} width={36} />
+                  <Tooltip content={<ChartTooltip />} />
+                  {SERIES.filter(s => activeSeries.has(s.key)).map(s => (
+                    <Area key={s.key} type="monotone" dataKey={s.key} name={s.label}
+                      stroke={s.color} strokeWidth={2} fill={`url(#grad-${s.key})`}
+                      dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+                  ))}
+                </AreaChart>
+              )}
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
+      {/* ── Second row: retention bars + player pie ──────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        {/* Retention chart */}
+        <div className="bg-card border border-border rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-5">
+            <Repeat2 className="w-4 h-4 text-muted-foreground" />
+            <p className="text-sm font-semibold">Rétention</p>
+          </div>
+          <div style={{ height: 180 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={retentionData} layout="vertical" barCategoryGap="30%">
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: 'oklch(0.6 0 0)' }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
+                <YAxis type="category" dataKey="label" tick={{ fontSize: 12, fontWeight: 600, fill: 'oklch(0.85 0 0)' }} axisLine={false} tickLine={false} width={28} />
+                <Tooltip content={({ active, payload, label }) =>
+                  active && payload?.length ? (
+                    <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-xl text-xs">
+                      <span className="text-muted-foreground">{label} : </span>
+                      <span className="font-bold">{payload[0].value}%</span>
+                    </div>
+                  ) : null
+                } cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+                <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                  {retentionData.map((r, i) => (
+                    <Cell key={i} fill={r.value >= 30 ? '#22c55e' : r.value >= 15 ? '#f59e0b' : '#ef4444'} opacity={0.85} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-3 leading-relaxed border-t border-border pt-3">% de joueurs inscrits il y a N jours qui ont rejoué exactement au N-ième jour.</p>
+        </div>
+
+        {/* Player distribution pie */}
+        <div className="bg-card border border-border rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Activity className="w-4 h-4 text-muted-foreground" />
+            <p className="text-sm font-semibold">Distribution des joueurs</p>
+            <span className="ml-auto text-xs text-muted-foreground tabular-nums">{totalPlayers.toLocaleString('fr')} total</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <div style={{ width: 140, height: 140, flexShrink: 0 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={pieData} dataKey="value" cx="50%" cy="50%" innerRadius={38} outerRadius={62} paddingAngle={2} strokeWidth={0}>
+                    {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} opacity={0.9} />)}
+                  </Pie>
+                  <Tooltip content={({ active, payload }) =>
+                    active && payload?.length ? (
+                      <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-xl text-xs">
+                        <p className="font-semibold">{payload[0].name}</p>
+                        <p className="text-muted-foreground">{payload[0].value} joueurs</p>
+                      </div>
+                    ) : null
+                  } />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex-1 space-y-2.5 min-w-0">
+              {pieData.map((d, i) => {
+                const pct = Math.round((d.value / totalPlayers) * 100)
+                return (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                    <span className="text-xs flex-1 truncate text-muted-foreground">{d.name}</span>
+                    <span className="text-xs tabular-nums font-semibold w-8 text-right">{d.value}</span>
+                    <span className="text-[10px] tabular-nums text-muted-foreground w-6 text-right">{pct}%</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Third row: top players full width ───────────────────────────── */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-border flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-muted-foreground" />
+          <p className="text-sm font-semibold">Top joueurs</p>
+        </div>
+        <div style={{ height: 220 }} className="p-4">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={stats.topPlayers.map(p => ({ ...p, name: p.name ?? 'Anonyme' }))} layout="vertical" barCategoryGap="20%">
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 10, fill: 'oklch(0.6 0 0)' }} axisLine={false} tickLine={false} tickFormatter={v => v.toLocaleString('fr')} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: 'oklch(0.85 0 0)' }} axisLine={false} tickLine={false} width={90} />
+              <Tooltip content={({ active, payload, label }) =>
+                active && payload?.length ? (
+                  <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-xl text-xs">
+                    <p className="font-semibold mb-1">{label}</p>
+                    <p className="text-muted-foreground">{payload[0].value!.toLocaleString('fr')} découvertes</p>
+                  </div>
+                ) : null
+              } cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+              <Bar dataKey="discoveries" radius={[0, 4, 4, 0]}>
+                {stats.topPlayers.map((_, i) => (
+                  <Cell key={i}
+                    fill={i === 0 ? '#f59e0b' : i === 1 ? '#94a3b8' : i === 2 ? '#92400e' : '#22c55e'}
+                    opacity={0.85 - i * 0.04}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+    </div>
+  )
 }
 
 function MiniBarChart({ data }: { data: DayCount[] }) {
