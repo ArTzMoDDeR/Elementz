@@ -561,15 +561,8 @@ export function Playground({
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: 'radial-gradient(circle, oklch(0.6 0.01 250 / 0.22) 1.5px, transparent 1.5px)',
+            backgroundImage: 'radial-gradient(circle, oklch(0.6 0.01 250 / 0.18) 1.5px, transparent 1.5px)',
             backgroundSize: '28px 28px',
-          }}
-        />
-        {/* Radial vignette for depth focus */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'radial-gradient(ellipse 70% 70% at 50% 40%, transparent 40%, color-mix(in oklch, var(--background) 40%, transparent) 100%)',
           }}
         />
         {/* Merge flash — only within the play area */}
@@ -607,7 +600,7 @@ export function Playground({
               transform: `translate(${x}px, ${y}px) scale(${scale})`,
               zIndex: isDragging ? 1000 : 10 + index,
               transition: isDragging ? 'none' : 'transform 0.15s',
-              filter: isNear ? `drop-shadow(0 0 12px ${el.color}90)` : undefined,
+              filter: isNear ? `drop-shadow(0 0 10px ${el.color}80)` : undefined,
               willChange: isDragging ? 'transform' : undefined,
               contain: 'layout style',
             }}
@@ -632,69 +625,20 @@ export function Playground({
         </div>
       )}
 
-      {/* MERGE ANIMATION — radial burst with 8 particles + expanding ring */}
+      {/* MERGE ANIMATION - flash ring only, no badge duplicate */}
       {mergeAnimation && (
         <div
           className="absolute pointer-events-none"
-          style={{ left: mergeAnimation.x, top: mergeAnimation.y, zIndex: 250 }}
+          style={{ left: mergeAnimation.x, top: mergeAnimation.y, zIndex: 250, transform: 'translate(-50%, -50%)' }}
         >
-          {/* Central expanding ring */}
-          <div
-            className="absolute w-14 h-14 rounded-full border-2 border-white/60"
-            style={{ animation: 'burstRing 0.55s ease-out forwards' }}
-          />
-          <div
-            className="absolute w-8 h-8 rounded-full border border-white/40"
-            style={{ animation: 'burstRing 0.45s ease-out 0.06s forwards' }}
-          />
-          {/* 8 particles flung in all directions */}
-          {[0, 45, 90, 135, 180, 225, 270, 315].map((deg, i) => {
-            const rad = (deg * Math.PI) / 180
-            const dist = 36 + (i % 2) * 14
-            return (
-              <div
-                key={deg}
-                className="absolute w-2 h-2 rounded-full bg-white/70"
-                style={{
-                  top: -4, left: -4,
-                  '--tx': `${Math.cos(rad) * dist}px`,
-                  '--ty': `${Math.sin(rad) * dist}px`,
-                  animation: `particle 0.5s ease-out ${i * 18}ms forwards`,
-                } as React.CSSProperties}
-              />
-            )
-          })}
-        </div>
-      )}
-
-
-
-      {/* FLOATING DISCOVERY TOAST — centered above the play area */}
-      {headerNotification && headerNotification.type === 'discovery' && (
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            top: 16,
-            left: '50%',
-            zIndex: 300,
-            animation: 'toastIn 0.3s cubic-bezier(0.16,1,0.3,1) both',
-          }}
-        >
-          <div
-            className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-amber-400/25 bg-card/95 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.35)]"
-            onClick={onDismissNotification}
-            style={{ pointerEvents: 'auto', cursor: 'pointer' }}
-          >
-            {headerNotification.image ? (
-              <img src={headerNotification.image} alt="" className="w-7 h-7 object-contain flex-shrink-0 rounded-lg" />
-            ) : headerNotification.icon ? (
-              <div className="text-amber-400 flex-shrink-0">{headerNotification.icon}</div>
-            ) : null}
-            <span className="text-sm font-semibold text-foreground whitespace-nowrap">{headerNotification.message}</span>
-            <div className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0 animate-pulse" />
+          <div className="relative flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full animate-ping" style={{ backgroundColor: 'white', opacity: 0.15 }} />
+            <div className="absolute w-10 h-10 rounded-full animate-ping" style={{ backgroundColor: 'white', opacity: 0.25, animationDelay: '80ms' }} />
           </div>
         </div>
       )}
+
+
 
       {/* INVENTORY PANEL */}
       <div
@@ -736,14 +680,28 @@ export function Playground({
               <span className="text-xs font-semibold hidden sm:inline">{lang === 'fr' ? 'Vider' : 'Clear'}</span>
             </button>
 
-            {/* Center: logo + title + counter — always shown */}
-            <div className="flex-1 flex items-center justify-center gap-2">
-              <img src="/logo.svg" alt="Elementz" className="w-6 h-6 rounded-full flex-shrink-0 pointer-events-none select-none" draggable={false} onError={e => { (e.target as HTMLImageElement).src = '/logo.png' }} />
-              <span className="font-bold text-sm tracking-tight">Elementz</span>
-              <span className="text-xs tabular-nums text-muted-foreground" suppressHydrationWarning>
-                {discovered.size}<span className="opacity-40">/{totalElements}</span>
-              </span>
-            </div>
+            {/* Center: logo + title + counter — or notification */}
+            {headerNotification ? (
+              <div
+                className="flex-1 flex items-center justify-center gap-2 min-w-0 cursor-pointer"
+                onPointerDown={e => e.stopPropagation()}
+                onClick={onDismissNotification}
+              >
+                {headerNotification.icon}
+                <span className="text-xs text-muted-foreground truncate">{headerNotification.message}</span>
+                {headerNotification.image && (
+                  <img src={headerNotification.image} alt="" className="w-5 h-5 object-contain flex-shrink-0" />
+                )}
+              </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center gap-2">
+                <img src="/logo.svg" alt="Elementz" className="w-6 h-6 rounded-full flex-shrink-0 pointer-events-none select-none" draggable={false} onError={e => { (e.target as HTMLImageElement).src = '/logo.png' }} />
+                <span className="font-bold text-sm tracking-tight">Elementz</span>
+                <span className="text-xs tabular-nums text-muted-foreground" suppressHydrationWarning>
+                  {discovered.size}<span className="opacity-40">/{totalElements}</span>
+                </span>
+              </div>
+            )}
 
             {/* Hint button — always amber-tinted, pulses + glows after 1 min without discovery */}
             <button
@@ -890,7 +848,7 @@ export function Playground({
                           }
                       )}
                     >
-                      <ElementBadge element={element} size={isMobile ? 'sm' : 'md'} fluid interactive />
+                      <ElementBadge element={element} size={isMobile ? 'sm' : 'md'} fluid />
                     </div>
                   ))}
                 </div>
@@ -898,7 +856,7 @@ export function Playground({
             </div>
           ) : (
             <div className="h-full overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <div className="px-4 py-4 animate-tab-in">
+              <div className="px-4 py-4">
                 {activeTab === 'quests' && sessionUser && <QuestInlinePanel lang={lang} onGoToPlay={() => setActiveTab('home')} />}
                 {activeTab === 'codex' && sessionUser && (
                   <CodexInlinePanel
@@ -1098,20 +1056,13 @@ export function Playground({
                     })
                     if (id === 'quests') setQuestBadge(false)
                   }}
-                  className="flex-1 flex flex-col items-center justify-center py-2.5 relative transition-colors"
+                  className="flex-1 flex flex-col items-center justify-center py-3 relative transition-colors"
                 >
-                  {/* Active pill indicator */}
-                  {isActive && (
-                    <span
-                      className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] rounded-full bg-foreground"
-                      style={{ animation: 'tabSlideIn 0.2s ease-out both' }}
-                    />
-                  )}
                   {isProfileWithUser ? (() => {
                     const tabEl = tabAvatarKey ? elements.get(tabAvatarKey) : null
                     return (
                       <div
-                        className={`w-8 h-8 rounded-full overflow-hidden border-2 transition-all flex-shrink-0 bg-muted flex items-center justify-center ${isActive ? 'border-foreground scale-110' : 'border-muted-foreground/30'}`}
+                        className={`w-8 h-8 rounded-full overflow-hidden border-2 transition-all flex-shrink-0 bg-muted flex items-center justify-center ${isActive ? 'border-foreground' : 'border-muted-foreground/30'}`}
                         style={tabEl?.color ? { backgroundColor: `${tabEl.color}22` } : undefined}
                       >
                         {tabEl?.imageUrl ? (
@@ -1124,10 +1075,9 @@ export function Playground({
                   })() : (
                     <div className="relative">
                       <Icon
-                        size={26}
+                        size={28}
                         weight={isActive ? 'fill' : 'regular'}
-                        className={`transition-all duration-200 ${isActive ? 'text-foreground scale-110' : 'text-muted-foreground hover:text-foreground/70'}`}
-                        style={{ transform: isActive ? 'scale(1.12)' : 'scale(1)' }}
+                        className={`transition-all ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}
                       />
                       {id === 'quests' && questBadge && !isActive && (
                         <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 border border-card animate-pulse" />
