@@ -9,6 +9,10 @@ interface ElementBadgeProps {
   fluid?: boolean
   className?: string
   style?: React.CSSProperties
+  /** Apply hover-lift + brightness effect (inventory items) */
+  interactive?: boolean
+  /** Briefly plays a shimmer sweep — set true right after discovery */
+  isNew?: boolean
 }
 
 const ELEMENT_ICONS: Record<string, (color: string) => React.ReactNode> = {
@@ -63,7 +67,7 @@ const BADGE_BORDER = 'var(--element-badge-border)'
 const LABEL_BG = 'var(--element-badge-label)'
 const LABEL_TEXT = 'var(--element-badge-label-text)'
 
-function ElementBadgeInner({ element, size = 'md', fluid = false, className = '', style }: ElementBadgeProps) {
+function ElementBadgeInner({ element, size = 'md', fluid = false, className = '', style, interactive = false, isNew = false }: ElementBadgeProps) {
   const hasIcon = ELEMENT_ICONS[element.name]
   const sizeClass = fluid ? 'w-full aspect-square' : FIXED_SIZE[size]
   // Use imageUrl directly — optimizeImageUrl was returning the same value anyway
@@ -71,7 +75,7 @@ function ElementBadgeInner({ element, size = 'md', fluid = false, className = ''
 
   return (
     <div
-      className={`${sizeClass} flex flex-col items-center justify-between rounded-xl select-none overflow-hidden ${className}`}
+      className={`${sizeClass} flex flex-col items-center justify-between rounded-xl select-none overflow-hidden ${interactive ? 'badge-interactive' : ''} ${isNew ? 'badge-new-shimmer' : ''} ${className}`}
       style={{
         backgroundColor: BADGE_BG,
         border: `1px solid ${BADGE_BORDER}`,

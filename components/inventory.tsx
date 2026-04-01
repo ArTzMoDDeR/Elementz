@@ -174,7 +174,7 @@ export function Inventory({
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Rechercher..."
-            className="w-full h-10 pl-10 pr-10 bg-background border border-input rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-shadow"
+            className="w-full h-10 pl-10 pr-10 bg-background border border-input rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary/50 transition-all"
           />
           {search && (
             <button
@@ -190,10 +190,10 @@ export function Inventory({
         <div className="flex gap-2">
           <button
             onClick={() => handleSort('name')}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all active:scale-95 ${
               sortBy === 'name'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
             }`}
           >
             Nom
@@ -201,10 +201,10 @@ export function Inventory({
           </button>
           <button
             onClick={() => handleSort('recent')}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all active:scale-95 ${
               sortBy === 'recent'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
             }`}
           >
             Recent
@@ -212,10 +212,10 @@ export function Inventory({
           </button>
           <button
             onClick={() => handleSort('category')}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all active:scale-95 ${
               sortBy === 'category'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
             }`}
           >
             Type
@@ -244,7 +244,7 @@ export function Inventory({
                 className="cursor-grab active:cursor-grabbing"
               >
                 <div data-element-badge>
-                  <ElementBadge element={element} size="lg" className="hover:opacity-80 transition-opacity" />
+                  <ElementBadge element={element} size="lg" interactive />
                 </div>
               </div>
             ))}
