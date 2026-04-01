@@ -69,7 +69,9 @@ function getColor(name: string): string {
 
 function proxyImg(url: string | null): string | null {
   if (!url) return null
-  // Route through our proxy to avoid Blob store CORS / allowed-origin blocks
+  // Cloudinary URLs are public — serve directly
+  if (url.includes('cloudinary.com') || url.includes('res.cloudinary.com')) return url
+  // Legacy Vercel Blob URLs — proxy server-side to avoid "store blocked" errors
   if (url.includes('.blob.vercel-storage.com')) {
     return `/api/img?url=${encodeURIComponent(url)}`
   }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { neon } from '@neondatabase/serverless'
-import { put } from '@vercel/blob'
+import { uploadToCloudinary } from '@/lib/cloudinary'
 
 async function checkAdmin() {
   const session = await auth()
@@ -20,9 +20,7 @@ export async function POST(req: NextRequest) {
   if (!file.type.startsWith('image/')) return NextResponse.json({ error: 'Must be an image' }, { status: 400 })
   if (file.size > 5 * 1024 * 1024) return NextResponse.json({ error: 'Max 5 MB' }, { status: 400 })
 
-  const ext = file.name.split('.').pop() ?? 'jpg'
-  const filename = `email-images/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-  const blob = await put(filename, file, { access: 'public' })
+  const { url } = await uploadToCloudinary(file, { folder: 'elementz/email-images' })
 
-  return NextResponse.json({ url: blob.url })
+  return NextResponse.json({ url })
 }

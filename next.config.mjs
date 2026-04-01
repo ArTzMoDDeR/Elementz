@@ -34,6 +34,11 @@ const nextConfig = {
         hostname: '*.public.blob.vercel-storage.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        pathname: '/**',
+      },
     ],
     formats: ['image/webp'],
     minimumCacheTTL: 2592000, // 30 days
