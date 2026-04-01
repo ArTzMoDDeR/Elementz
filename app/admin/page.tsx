@@ -1663,7 +1663,7 @@ export default function AdminPanel() {
                 <button key={t.id} onClick={() => setTab(t.id)}
                   className={`flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-2 px-2 sm:px-3 py-2.5 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${isActive ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>
                   <Icon className="w-4 h-4 flex-shrink-0" />
-                  <span className="leading-none">{t.label}</span>
+                  <span className="leading-none hidden sm:inline">{t.label}</span>
                 </button>
               )
             })}
