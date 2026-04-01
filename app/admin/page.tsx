@@ -1560,7 +1560,7 @@ function StatsTab() {
         </div>
 
         {/* Chart */}
-        <div style={{ height: 300 }} className="px-2 pt-4 pb-2">
+        <div style={{ height: 420 }} className="px-2 pt-4 pb-2">
           {loading ? (
             <div className="flex items-center justify-center h-full"><Spinner size="md" /></div>
           ) : (
