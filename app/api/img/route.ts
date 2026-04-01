@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 /**
- * Proxy element images from Vercel Blob.
- * This avoids "Your store is blocked" CDN errors when the app domain
- * is not in the Blob store's allowed origins.
+ * Proxy element images from Vercel Blob (legacy).
+ * New images are on Cloudinary and served directly — no proxy needed.
  *
  * Usage: /api/img?url=https://...blob.vercel-storage.com/elements/1.jpg
  */
@@ -11,7 +10,6 @@ export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get('url')
   if (!url) return new NextResponse('Missing url', { status: 400 })
 
-  // Only allow Vercel Blob URLs
   let parsed: URL
   try {
     parsed = new URL(url)
@@ -19,7 +17,11 @@ export async function GET(req: NextRequest) {
     return new NextResponse('Invalid url', { status: 400 })
   }
 
-  if (!parsed.hostname.endsWith('.blob.vercel-storage.com')) {
+  // Allow Vercel Blob (legacy) and Cloudinary URLs
+  const isBlob = parsed.hostname.endsWith('.blob.vercel-storage.com')
+  const isCloudinary = parsed.hostname.endsWith('cloudinary.com') || parsed.hostname.endsWith('res.cloudinary.com')
+
+  if (!isBlob && !isCloudinary) {
     return new NextResponse('Forbidden', { status: 403 })
   }
 

@@ -227,9 +227,14 @@ export async function POST(req: NextRequest) {
   const recipe = candidates[0]
 
   // Mark quest as claimed, and set reset_at for daily quests
-  const resetAt = quest.is_daily && quest.reset_hours
-    ? new Date(Date.now() + quest.reset_hours * 60 * 60 * 1000)
-    : null
+  // Daily quests reset at midnight UTC (00:00:00 the next day)
+  let resetAt = null
+  if (quest.is_daily) {
+    const tomorrow = new Date()
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1)
+    tomorrow.setUTCHours(0, 0, 0, 0)
+    resetAt = tomorrow
+  }
 
   await sql`
     INSERT INTO user_quests (user_id, quest_id, progress, completed_at, claimed_at, reset_at)

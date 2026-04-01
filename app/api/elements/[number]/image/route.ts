@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless'
-import { put } from '@vercel/blob'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
+import { uploadToCloudinary } from '@/lib/cloudinary'
 
 export async function POST(
   request: NextRequest,
@@ -12,11 +12,6 @@ export async function POST(
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
     }
 
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      return NextResponse.json({ error: 'Blob storage not configured' }, { status: 500 })
-    }
-
-    // Only admins can upload element images
     const session = await auth()
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const sql = neon(process.env.DATABASE_URL)
@@ -31,19 +26,19 @@ export async function POST(
     const file = formData.get('file') as File
     if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       return NextResponse.json({ error: 'File must be an image' }, { status: 400 })
     }
 
-    // Upload to Vercel Blob
-    const blob = await put(`elements/${elementNumber}.jpg`, file, {
-      access: 'public',
+    // Upload to Cloudinary under elementz/elements/ folder, overwrite by publicId
+    const { url } = await uploadToCloudinary(file, {
+      folder: 'elementz/elements',
+      publicId: `element-${elementNumber}`,
     })
 
-    await sql`UPDATE elements SET img = ${blob.url} WHERE number = ${elementNumber}`
+    await sql`UPDATE elements SET img = ${url} WHERE number = ${elementNumber}`
 
-    return NextResponse.json({ success: true, url: blob.url, number: elementNumber })
+    return NextResponse.json({ success: true, url, number: elementNumber })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json({ error: 'Upload failed', details: errorMessage }, { status: 500 })
