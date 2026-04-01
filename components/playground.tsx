@@ -600,7 +600,6 @@ export function Playground({
               transform: `translate(${x}px, ${y}px) scale(${scale})`,
               zIndex: isDragging ? 1000 : 10 + index,
               transition: isDragging ? 'none' : 'transform 0.15s',
-              filter: isNear ? `drop-shadow(0 0 10px ${el.color}80)` : undefined,
               willChange: isDragging ? 'transform' : undefined,
               contain: 'layout style',
             }}
