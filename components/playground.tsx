@@ -585,16 +585,8 @@ export function Playground({
         if (!el) return null
         const isDragging = dragging?.source === 'playground' && dragging.itemId === item.id
         const isNear = nearMergeId === item.id
-
-        // When this item is the merge target, check if the dragged element actually
-        // produces a known recipe with it — green = valid combo, red = no combo known.
-        const draggedElement = isNear && dragging ? dragging.elementName : null
-        const canMerge = draggedElement
-          ? !!(recipeMap?.get(`${draggedElement}|${item.element}`) || recipeMap?.get(`${item.element}|${draggedElement}`))
-          : false
-        const glowColor = isNear ? (canMerge ? '#22c55e' : '#ef4444') : undefined
         const isShaking = shakeId === item.id
-        const scale = isDragging ? 1.08 : (isNear && canMerge) ? 1.1 : isNear ? 1.04 : 1
+        const scale = isDragging ? 1.08 : isNear ? 1.05 : 1
         // While dragging, use live dragging coords — avoids flash when setDragging(null) and store update are in different render cycles
         const x = isDragging ? dragging.x : item.x
         const y = isDragging ? dragging.y : item.y
@@ -608,7 +600,6 @@ export function Playground({
               transform: `translate(${x}px, ${y}px) scale(${scale})`,
               zIndex: isDragging ? 1000 : 10 + index,
               transition: isDragging ? 'none' : 'transform 0.15s',
-              filter: isNear ? `drop-shadow(0 0 12px ${glowColor})` : undefined,
               willChange: isDragging ? 'transform' : undefined,
               contain: 'layout style',
             }}
