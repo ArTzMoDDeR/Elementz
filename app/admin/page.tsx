@@ -1335,7 +1335,7 @@ function EmailTab() {
   )
 }
 
-// ─── Tab: Stats ──────────────────────────────────────────────────────────────
+// ─── Tab: Stats ──���───────────────────────────────────────────────────────────
 
 type DayCount = { day: string; count: number }
 
@@ -1406,9 +1406,15 @@ type UsageStats = {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 10, fill: 'oklch(0.55 0 0)' }} axisLine={false} tickLine={false} tickFormatter={v => Number(v).toLocaleString('fr')} />
               <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: 'oklch(0.85 0 0)' }} axisLine={false} tickLine={false} width={90} />
-              <Tooltip content={({ active, payload, label }) => active && payload?.length
-                ? <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-xl text-xs"><p className="font-semibold mb-1">{label}</p><p className="text-muted-foreground">{Number(payload[0].value).toLocaleString('fr')} découvertes</p></div>
-                : null} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+              <Tooltip content={({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) => {
+                if (!active || !payload?.length) return null
+                return (
+                  <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-xl text-xs">
+                    <p className="font-semibold mb-1">{label}</p>
+                    <p className="text-muted-foreground">{Number(payload[0].value).toLocaleString('fr')} d&eacute;couvertes</p>
+                  </div>
+                )
+              }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
               <Bar dataKey="discoveries" radius={[0,4,4,0]}>
                 {stats.topPlayers.map((_, i) => (
                   <Cell key={i} fill={i === 0 ? '#f59e0b' : i === 1 ? '#94a3b8' : i === 2 ? '#b45309' : '#22c55e'} opacity={0.9 - i * 0.04} />
