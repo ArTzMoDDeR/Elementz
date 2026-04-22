@@ -6,6 +6,8 @@ import { type ElementDef } from '@/lib/game-data'
 
 const STORAGE_KEY = 'alchemy-discovered-v3'
 const LANG_KEY = 'alchemy-lang'
+// How long to batch new discoveries before flushing to DB (ms)
+const SYNC_DEBOUNCE_MS = 30_000
 
 // Base element names in both languages — must match DB exactly
 const BASE_ELEMENTS_FR = ['eau', 'feu', 'terre', 'air']
@@ -116,6 +118,9 @@ export function useGameStore() {
   const idCounter = useRef(0)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hapticEnabledRef = useRef(true) // ref so it's readable inside useCallback without deps
+  // Buffer of newly discovered elements + combo ingredients waiting to be flushed to DB
+  const pendingDiscovered = useRef<Set<string>>(new Set())
+  const pendingIngredients = useRef<string[][]>([])
   const [hapticEnabled, setHapticEnabledState] = useState(true)
 
   // Load lang — DB takes priority if logged in, else localStorage, else 'en'
@@ -286,22 +291,50 @@ export function useGameStore() {
   // Keep ref in sync so the StorageEvent listener always has the latest setLang
   useEffect(() => { setLangRef.current = setLang }, [setLang])
 
-  // Save discovered progress — localStorage always, server if logged in (debounced)
+  // Flush pending discoveries to DB — called on debounce timer or page unload
+  const flushToDb = useCallback((userId: string) => {
+    const newItems = [...pendingDiscovered.current]
+    const ingredients = [...pendingIngredients.current]
+    if (newItems.length === 0 && ingredients.length === 0) return
+    pendingDiscovered.current = new Set()
+    pendingIngredients.current = []
+    // Flatten all ingredient pairs used during this batch
+    const allIngredients = ingredients.flat()
+    fetch('/api/progress', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discovered: newItems, combo_ingredients: allIngredients }),
+    }).catch(() => {})
+  }, [])
+
+  // Save discovered progress — localStorage always, server batched every 30s
   useEffect(() => {
     if (!initialized || discovered.size === 0) return
     const arr = [...discovered]
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)) } catch {}
-    if (session?.user?.id) {
+  }, [discovered, initialized])
+
+  // Set up 30s debounce flush + page unload flush
+  useEffect(() => {
+    if (!session?.user?.id) return
+    const userId = session.user.id
+
+    const startTimer = () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
-      saveTimeoutRef.current = setTimeout(() => {
-        fetch('/api/progress', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ discovered: arr }),
-        }).catch(() => {})
-      }, 1500)
+      saveTimeoutRef.current = setTimeout(() => flushToDb(userId), SYNC_DEBOUNCE_MS)
     }
-  }, [discovered, initialized, session?.user?.id])
+
+    const handleUnload = () => flushToDb(userId)
+    window.addEventListener('beforeunload', handleUnload)
+
+    // Kick off the recurring timer
+    startTimer()
+
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload)
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+    }
+  }, [session?.user?.id, flushToDb])
 
   const generateId = useCallback(() => {
     idCounter.current += 1
@@ -370,13 +403,12 @@ export function useGameStore() {
       }
     })
 
-    // Track combo ingredients for quest progress (element-usage quests)
+    // Buffer new discoveries + ingredients — will be flushed to DB in batch every 30s
     if (session?.user?.id) {
-      fetch('/api/progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ discovered: results, combo_ingredients: [item1.element, item2.element] }),
-      }).catch(() => {})
+      results.forEach(res => {
+        if (!discovered.has(res)) pendingDiscovered.current.add(res)
+      })
+      pendingIngredients.current.push([item1.element, item2.element])
     }
 
     return results[0]
@@ -419,13 +451,12 @@ export function useGameStore() {
       }
     })
 
-    // Track combo ingredients for quest progress
+    // Buffer new discoveries + ingredients — will be flushed to DB in batch every 30s
     if (session?.user?.id) {
-      fetch('/api/progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ discovered: results, combo_ingredients: [element, target.element] }),
-      }).catch(() => {})
+      results.forEach(res => {
+        if (!discovered.has(res)) pendingDiscovered.current.add(res)
+      })
+      pendingIngredients.current.push([element, target.element])
     }
 
     return results[0]

@@ -4,15 +4,18 @@ import { neon } from '@neondatabase/serverless'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
   const sql = neon(process.env.DATABASE_URL!)
   const rows = await sql`SELECT is_admin FROM users WHERE id = ${session.user.id}`
-  if (!rows[0]?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!rows[0]?.is_admin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const gran = (req.nextUrl.searchParams.get('gran') ?? 'day') as 'hour' | 'day' | 'week'
 
   // ── Time-series ───────────────────────────────────────────────────────────
-
   let discoveriesPerDay, signupsPerDay, activePerDay
 
   if (gran === 'hour') {
@@ -92,8 +95,10 @@ export async function GET(req: NextRequest) {
     GROUP BY u.id, u.name ORDER BY discoveries DESC LIMIT 10`
 
   const totals = await sql`
-    SELECT (SELECT COUNT(*)::int FROM users) AS total_users, (SELECT COUNT(*)::int FROM unlocks) AS total_unlocks,
-    (SELECT COUNT(*)::int FROM users WHERE created_at >= NOW() - INTERVAL '30 days') AS new_users_month`
+    SELECT
+      (SELECT COUNT(*)::int FROM users) AS total_users,
+      (SELECT COUNT(*)::int FROM unlocks) AS total_unlocks,
+      (SELECT COUNT(*)::int FROM users WHERE created_at >= NOW() - INTERVAL '30 days') AS new_users_month`
 
   return NextResponse.json({
     gran,

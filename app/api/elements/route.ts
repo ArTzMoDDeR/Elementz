@@ -14,7 +14,9 @@ export async function GET() {
       GROUP BY e.number, e.name_english, e.name_french, e.img
       ORDER BY e.number
     `
-    return NextResponse.json(elements)
+    return NextResponse.json(elements, {
+      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' },
+    })
   } catch {
     return NextResponse.json({ error: 'Failed to fetch elements' }, { status: 500 })
   }

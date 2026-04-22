@@ -1335,7 +1335,7 @@ function EmailTab() {
   )
 }
 
-// ─── Tab: Stats ──────────────────────────────────────────────────────────────
+// ─── Tab: Stats ──���───────────────────────────────────────────────────────────
 
 type DayCount = { day: string; count: number }
 
@@ -1361,6 +1361,73 @@ type UsageStats = {
 
 
 
+        <div className="bg-card border border-border rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Activity className="w-4 h-4 text-muted-foreground" />
+            <p className="text-sm font-semibold">Distribution joueurs</p>
+            <span className="ml-auto text-xs text-muted-foreground">{totalPlayers.toLocaleString('fr')} total</span>
+          </div>
+          <div className="flex items-center gap-5">
+            <div style={{ width: 130, height: 130, flexShrink: 0 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={pieData} dataKey="value" cx="50%" cy="50%" innerRadius={36} outerRadius={58} paddingAngle={2} strokeWidth={0}>
+                    {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} opacity={0.9} />)}
+                  </Pie>
+                  <Tooltip content={({ active, payload }) => active && payload?.length
+                    ? <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-xl text-xs"><p className="font-semibold">{payload[0].name}</p><p className="text-muted-foreground">{Number(payload[0].value).toLocaleString('fr')} joueurs</p></div>
+                    : null} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex-1 space-y-2.5 min-w-0">
+              {pieData.map((d, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                  <span className="text-xs flex-1 truncate text-muted-foreground">{d.name}</span>
+                  <span className="text-xs tabular-nums font-semibold w-8 text-right">{d.value}</span>
+                  <span className="text-[10px] text-muted-foreground w-6 text-right">{Math.round((d.value / totalPlayers) * 100)}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Top players */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-border flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-muted-foreground" />
+          <p className="text-sm font-semibold">Top joueurs</p>
+        </div>
+        <div style={{ height: 220 }} className="p-4">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={stats.topPlayers.map(p => ({ ...p, name: p.name ?? 'Anonyme' }))} layout="vertical" barCategoryGap="20%">
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 10, fill: 'oklch(0.55 0 0)' }} axisLine={false} tickLine={false} tickFormatter={v => Number(v).toLocaleString('fr')} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: 'oklch(0.85 0 0)' }} axisLine={false} tickLine={false} width={90} />
+              <Tooltip content={({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) => {
+                if (!active || !payload?.length) return null
+                return (
+                  <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-xl text-xs">
+                    <p className="font-semibold mb-1">{label}</p>
+                    <p className="text-muted-foreground">{Number(payload[0].value).toLocaleString('fr')} d&eacute;couvertes</p>
+                  </div>
+                )
+              }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+              <Bar dataKey="discoveries" radius={[0,4,4,0]}>
+                {stats.topPlayers.map((_, i) => (
+                  <Cell key={i} fill={i === 0 ? '#f59e0b' : i === 1 ? '#94a3b8' : i === 2 ? '#b45309' : '#22c55e'} opacity={0.9 - i * 0.04} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+    </div>
+  )
+}
 function MiniBarChart({ data }: { data: DayCount[] }) {
   const BAR_HEIGHT = 140 // px — full usable area
 
@@ -1468,153 +1535,7 @@ function StatsTab() {
   const dist = stats.playerDistribution
   const totalPlayers = (dist.casual + dist.engaged + dist.active + dist.hardcore) || 1
 
-  const DISTRIBUTION_TIERS = [
-    { key: 'hardcore' as const, label: 'Hardcore', range: '150+', color: 'bg-violet-500' },
-    { key: 'active' as const, label: 'Actif', range: '51–150', color: 'bg-emerald-500' },
-    { key: 'engaged' as const, label: 'Engagé', range: '11–50', color: 'bg-blue-500' },
-    { key: 'casual' as const, label: 'Casual', range: '1–10', color: 'bg-amber-500' },
-  ]
 
-  return (
-    <div className="space-y-5">
-      {/* KPI row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard
-          label="Découvertes aujourd'hui"
-          value={stats.combosToday.toLocaleString('fr')}
-          sub={comboDelta === 0 ? 'identique à hier' : comboDelta > 0 ? `+${comboDelta} vs hier` : `${comboDelta} vs hier`}
-          color={comboDelta > 0 ? 'text-emerald-400' : comboDelta < 0 ? 'text-red-400' : undefined}
-        />
-        <StatCard
-          label="Moy. découvertes / joueur"
-          value={stats.avgDiscoveries ?? '—'}
-          sub={`médiane : ${stats.medianDiscoveries ?? '—'}`}
-        />
-        <StatCard
-          label="Joueurs actifs (14j)"
-          value={(stats.activePerDay.reduce((s, d) => {
-            // count unique days with activity
-            return s + (Number(d.count) > 0 ? 1 : 0)
-          }, 0))}
-          sub="jours avec activité"
-        />
-        <StatCard
-          label="Rétention D1"
-          value={stats.retention.d1 == null ? '—' : `${Math.round(stats.retention.d1 * 100)}%`}
-          sub="reviennent le lendemain"
-          color={stats.retention.d1 != null && stats.retention.d1 >= 0.3 ? 'text-emerald-400' : 'text-amber-400'}
-        />
-      </div>
-
-      {/* Charts + retention */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Bar chart */}
-        <div className="lg:col-span-2 bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
-            <p className="text-sm font-semibold">Activité (14 derniers jours)</p>
-            <div className="flex items-center gap-0.5 bg-muted/40 rounded-lg p-0.5 border border-border">
-              {([
-                { id: 'discoveries', label: 'Découvertes', icon: TrendingUp },
-                { id: 'signups', label: 'Inscriptions', icon: Users },
-                { id: 'active', label: 'Actifs', icon: Activity },
-              ] as const).map(({ id, label, icon: Icon }) => (
-                <button key={id} onClick={() => setPeriod(id)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${period === id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                  <Icon className="w-3 h-3" />{label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className={period === 'discoveries' ? 'text-emerald-400' : period === 'signups' ? 'text-blue-400' : 'text-amber-400'}>
-            <MiniBarChart
-              data={period === 'discoveries' ? stats.discoveriesPerDay : period === 'signups' ? stats.signupsPerDay : stats.activePerDay}
-            />
-          </div>
-        </div>
-
-        {/* Retention */}
-        <div className="bg-card border border-border rounded-xl p-5 space-y-4">
-          <div className="flex items-center gap-2">
-            <Repeat2 className="w-4 h-4 text-muted-foreground" />
-            <p className="text-sm font-semibold">Rétention</p>
-          </div>
-          <div className="space-y-3.5">
-            <RetentionBar label="Jour 1" value={stats.retention.d1} />
-            <RetentionBar label="Jour 7" value={stats.retention.d7} />
-            <RetentionBar label="Jour 30" value={stats.retention.d30} />
-          </div>
-          <p className="text-[10px] text-muted-foreground leading-relaxed pt-1 border-t border-border">% de joueurs inscrits il y a N jours qui ont rejoué exactement au Nième jour.</p>
-        </div>
-      </div>
-
-      {/* Bottom row: player distribution + leaderboard */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Engagement funnel */}
-        <div className="bg-card border border-border rounded-xl p-5 space-y-4">
-          <div className="flex items-center gap-2">
-            <Activity className="w-4 h-4 text-muted-foreground" />
-            <p className="text-sm font-semibold">Distribution des joueurs</p>
-            <span className="ml-auto text-xs text-muted-foreground">{totalPlayers} joueurs</span>
-          </div>
-
-          {/* Stacked bar */}
-          <div className="flex rounded-lg overflow-hidden h-3">
-            {DISTRIBUTION_TIERS.map(t => {
-              const pct = (dist[t.key] / totalPlayers) * 100
-              return pct > 0 ? (
-                <div key={t.key} className={`${t.color} transition-all`} style={{ width: `${pct}%` }} title={`${t.label}: ${dist[t.key]}`} />
-              ) : null
-            })}
-          </div>
-
-          {/* Legend rows */}
-          <div className="space-y-2.5">
-            {DISTRIBUTION_TIERS.map(t => {
-              const pct = Math.round((dist[t.key] / totalPlayers) * 100)
-              return (
-                <div key={t.key} className="flex items-center gap-3">
-                  <div className={`w-2.5 h-2.5 rounded-sm flex-shrink-0 ${t.color}`} />
-                  <span className="text-sm flex-1">{t.label}</span>
-                  <span className="text-xs text-muted-foreground">{t.range} éléments</span>
-                  <span className="text-xs tabular-nums w-8 text-right font-medium">{dist[t.key]}</span>
-                  <span className="text-xs tabular-nums w-8 text-right text-muted-foreground">{pct}%</span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Top players */}
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-border flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-muted-foreground" />
-            <p className="text-sm font-semibold">Top joueurs</p>
-          </div>
-          <div className="divide-y divide-border/50">
-            {stats.topPlayers.map((p, i) => {
-              const maxD = stats.topPlayers[0]?.discoveries ?? 1
-              const medals = ['🥇', '🥈', '🥉']
-              return (
-                <div key={i} className="flex items-center gap-3 px-5 py-2.5">
-                  <span className="text-sm w-5 flex-shrink-0 text-center">
-                    {i < 3 ? medals[i] : <span className="text-xs tabular-nums text-muted-foreground">{i + 1}</span>}
-                  </span>
-                  <span className="text-sm flex-1 truncate font-medium">{p.name ?? '—'}</span>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden hidden sm:block">
-                      <div className="h-full bg-foreground/50 rounded-full" style={{ width: `${(p.discoveries / maxD) * 100}%` }} />
-                    </div>
-                    <span className="text-xs tabular-nums text-muted-foreground w-10 text-right">{p.discoveries.toLocaleString('fr')}</span>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // ─── Main Admin Page ──────────────────────────────────────────────────────────
 
