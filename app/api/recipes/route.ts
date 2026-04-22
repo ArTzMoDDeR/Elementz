@@ -1,8 +1,6 @@
 import { neon } from '@neondatabase/serverless'
 import { NextResponse } from 'next/server'
 
-export const dynamic = 'force-dynamic'
-
 export async function GET() {
   try {
     const sql = neon(process.env.DATABASE_URL!)
@@ -19,7 +17,9 @@ export async function GET() {
       JOIN elements e2 ON e2.number = r.ingredient2_number
       JOIN elements e3 ON e3.number = r.result_number
     `
-    return NextResponse.json(rows)
+    return NextResponse.json(rows, {
+      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' },
+    })
   } catch {
     return NextResponse.json([], { status: 200 })
   }

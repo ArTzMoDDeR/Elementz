@@ -26,8 +26,8 @@ export async function POST(req: NextRequest) {
   const { discovered, combo_ingredients } = await req.json()
   if (!Array.isArray(discovered)) return NextResponse.json({ error: 'Invalid' }, { status: 400 })
 
-  // Enforce: max 2 elements per call (one combination at a time)
-  if (discovered.length > 2) return NextResponse.json({ error: 'Invalid' }, { status: 400 })
+  // Allow batched discoveries (multiple combos per flush)
+  if (discovered.length > 500) return NextResponse.json({ error: 'Invalid' }, { status: 400 })
 
   const sql = neon(process.env.DATABASE_URL!)
 
