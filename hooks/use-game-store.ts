@@ -387,27 +387,22 @@ export function useGameStore() {
       return [...filtered, ...newItems]
     })
 
-    let firstNew: string | null = null
-    results.forEach(res => {
-      if (!discovered.has(res)) {
-        setDiscovered(prev => new Set([...prev, res]))
-        if (!firstNew) {
-          firstNew = res
-          setNewlyDiscovered(res)
-          setLastUnlockTime(Date.now())
-          setTimeout(() => setNewlyDiscovered(null), 3000)
-          if (hapticEnabledRef.current && typeof navigator !== 'undefined' && navigator.vibrate) {
-            navigator.vibrate([30, 20, 60])
-          }
-        }
+    const newResults = results.filter(res => !discovered.has(res))
+    if (newResults.length > 0) {
+      // Single setDiscovered call to avoid React batching dropping intermediate results
+      setDiscovered(prev => new Set([...prev, ...newResults]))
+      const firstNew = newResults[0]
+      setNewlyDiscovered(firstNew)
+      setLastUnlockTime(Date.now())
+      setTimeout(() => setNewlyDiscovered(null), 3000)
+      if (hapticEnabledRef.current && typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate([30, 20, 60])
       }
-    })
+    }
 
     // Buffer new discoveries + ingredients — will be flushed to DB in batch every 30s
     if (session?.user?.id) {
-      results.forEach(res => {
-        if (!discovered.has(res)) pendingDiscovered.current.add(res)
-      })
+      newResults.forEach(res => pendingDiscovered.current.add(res))
       pendingIngredients.current.push([item1.element, item2.element])
     }
 
@@ -435,27 +430,22 @@ export function useGameStore() {
       return [...filtered, ...newItems]
     })
 
-    let firstNew: string | null = null
-    results.forEach(res => {
-      if (!discovered.has(res)) {
-        setDiscovered(prev => new Set([...prev, res]))
-        if (!firstNew) {
-          firstNew = res
-          setNewlyDiscovered(res)
-          setLastUnlockTime(Date.now())
-          setTimeout(() => setNewlyDiscovered(null), 3000)
-          if (hapticEnabledRef.current && typeof navigator !== 'undefined' && navigator.vibrate) {
-            navigator.vibrate([30, 20, 60])
-          }
-        }
+    const newResults = results.filter(res => !discovered.has(res))
+    if (newResults.length > 0) {
+      // Single setDiscovered call to avoid React batching dropping intermediate results
+      setDiscovered(prev => new Set([...prev, ...newResults]))
+      const firstNew = newResults[0]
+      setNewlyDiscovered(firstNew)
+      setLastUnlockTime(Date.now())
+      setTimeout(() => setNewlyDiscovered(null), 3000)
+      if (hapticEnabledRef.current && typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate([30, 20, 60])
       }
-    })
+    }
 
     // Buffer new discoveries + ingredients — will be flushed to DB in batch every 30s
     if (session?.user?.id) {
-      results.forEach(res => {
-        if (!discovered.has(res)) pendingDiscovered.current.add(res)
-      })
+      newResults.forEach(res => pendingDiscovered.current.add(res))
       pendingIngredients.current.push([element, target.element])
     }
 
