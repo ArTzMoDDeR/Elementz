@@ -57,6 +57,16 @@ const LABEL_SIZE = {
   lg: 'text-xs',
 }
 
+// Returns a font-size in px that shrinks for longer names so text always fits
+function labelFontSize(size: 'xs' | 'sm' | 'md' | 'lg', nameLength: number): string {
+  const base: Record<string, number> = { xs: 8, sm: 9, md: 11, lg: 12 }
+  const b = base[size]
+  if (nameLength <= 10) return `${b}px`
+  if (nameLength <= 14) return `${b - 1}px`
+  if (nameLength <= 18) return `${b - 1.5}px`
+  return `${b - 2}px`
+}
+
 // Single neutral background for all badges — uses CSS vars for theme support
 const BADGE_BG = 'var(--element-badge-bg)'
 const BADGE_BORDER = 'var(--element-badge-border)'
@@ -109,9 +119,10 @@ function ElementBadgeInner({ element, size = 'md', fluid = false, className = ''
         style={{ backgroundColor: LABEL_BG }}
       >
         <span
-          className={`${LABEL_SIZE[size]} font-semibold leading-tight text-center w-full`}
+          className="font-semibold leading-tight text-center w-full"
           style={{
             color: LABEL_TEXT,
+            fontSize: labelFontSize(size, element.name.length),
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
