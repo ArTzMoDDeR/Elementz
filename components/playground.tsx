@@ -677,18 +677,17 @@ export function Playground({
           {/* Header — same layout on mobile and desktop: [clear] [logo+counter] [hint] */}
           <div className="flex items-center gap-2" style={{ transform: 'translateY(-3px)' }}>
 
-            {/* Clear button — only visible when there is at least 1 element on the playground */}
-            {items.length > 0 && (
-              <button
-                onPointerDown={e => e.stopPropagation()}
-                onClick={e => { e.stopPropagation(); onClear() }}
-                className="flex-shrink-0 flex items-center gap-1.5 h-10 px-3 rounded-2xl transition-all bg-muted border border-border text-foreground/70 hover:text-foreground hover:bg-muted/80 hover:border-foreground/20 active:scale-95"
-                title={lang === 'fr' ? 'Vider le terrain' : 'Clear field'}
-              >
-                <Trash2 className="w-4 h-4 flex-shrink-0" />
-                <span className="text-xs font-semibold hidden sm:inline">{lang === 'fr' ? 'Vider' : 'Clear'}</span>
-              </button>
-            )}
+            {/* Clear button — always visible, disabled when playground is empty */}
+            <button
+              onPointerDown={e => e.stopPropagation()}
+              onClick={e => { e.stopPropagation(); if (items.length > 0) onClear() }}
+              disabled={items.length === 0}
+              className="flex-shrink-0 flex items-center gap-1.5 h-10 px-3 rounded-2xl transition-all bg-muted border border-border text-foreground/70 hover:text-foreground hover:bg-muted/80 hover:border-foreground/20 active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
+              title={lang === 'fr' ? 'Vider le terrain' : 'Clear field'}
+            >
+              <Trash2 className="w-4 h-4 flex-shrink-0" />
+              <span className="text-xs font-semibold hidden sm:inline">{lang === 'fr' ? 'Vider' : 'Clear'}</span>
+            </button>
 
             {/* Center: logo + title + counter — or notification */}
             {headerNotification ? (
