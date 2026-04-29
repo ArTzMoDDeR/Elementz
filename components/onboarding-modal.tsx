@@ -6,7 +6,8 @@ import { Globe, Sun, Moon, ChevronRight, Check, Lightbulb, Trash2, Scroll, Arrow
 import type { ElementDef } from '@/lib/game-data'
 
 type Props = {
-  elements: Map<string, ElementDef>
+  /** Keyed by current-lang name (+ FR fallback keys) for avatar lookups */
+  elementsByName: Map<string, ElementDef>
   onComplete: (prefs: { lang: 'fr' | 'en'; theme: 'dark' | 'light'; haptic: boolean; username: string; avatar: string }) => void
 }
 
@@ -21,7 +22,7 @@ const STARTER_LABELS: Record<string, { fr: string; en: string; emoji: string }> 
 const STEPS = ['lang', 'theme', 'combine', 'hint', 'clear', 'quests', 'username', 'avatar'] as const
 type Step = typeof STEPS[number]
 
-export function OnboardingModal({ elements, onComplete }: Props) {
+export function OnboardingModal({ elementsByName, onComplete }: Props) {
   const [step, setStep] = useState<Step>('lang')
   const [lang, setLang] = useState<'fr' | 'en'>('en')
   const [selectedTheme, setSelectedTheme] = useState<'dark' | 'light'>('dark')
@@ -300,9 +301,9 @@ export function OnboardingModal({ elements, onComplete }: Props) {
               <div className="grid grid-cols-4 gap-3">
                 {STARTERS.map(key => {
                   const info = STARTER_LABELS[key]
-                  const el = elements.get(lang === 'fr' ? info.fr.toLowerCase() : info.en.toLowerCase())
-                    ?? elements.get(info.fr.toLowerCase())
-                    ?? elements.get(info.en.toLowerCase())
+                  const el = elementsByName.get(lang === 'fr' ? info.fr.toLowerCase() : info.en.toLowerCase())
+                    ?? elementsByName.get(info.fr.toLowerCase())
+                    ?? elementsByName.get(info.en.toLowerCase())
                   const selected = avatar === key
                   return (
                     <button

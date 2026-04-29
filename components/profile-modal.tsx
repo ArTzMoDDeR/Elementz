@@ -30,8 +30,9 @@ interface ProfileData {
 interface ProfileModalProps {
   lang: Lang
   sessionUser: { name?: string | null; email?: string | null; image?: string | null }
-  elements: Map<string, ElementDef>
-  discovered: Set<string>
+  /** Keyed by current-lang name (+ FR fallback) — avatarKey is stored as a name string in the DB */
+  elementsByName: Map<string, ElementDef>
+  discovered: Set<number>
   onClose: () => void
   onOpenLeaderboard?: () => void
 }
@@ -79,7 +80,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
   )
 }
 
-export function ProfileModal({ lang, sessionUser, elements, discovered, onClose, onOpenLeaderboard }: ProfileModalProps) {
+export function ProfileModal({ lang, sessionUser, elementsByName, discovered, onClose, onOpenLeaderboard }: ProfileModalProps) {
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState('')
@@ -101,13 +102,13 @@ export function ProfileModal({ lang, sessionUser, elements, discovered, onClose,
   const displayName = profile?.username || sessionUser.name?.split(' ')[0] || 'Player'
   const pct = profile ? Math.round((profile.discovered_count / TOTAL_ELEMENTS) * 100) : 0
 
-  // Avatar
+  // Avatar key is a FR name string stored in the DB — look up via elementsByName
   const STARTERS = ['eau', 'feu', 'terre', 'air']
   const avatarKey = profile?.avatar ?? STARTERS[Math.abs(hashStr(sessionUser.email ?? 'x')) % 4]
-  const avatarEl = elements.get(avatarKey)
+  const avatarEl = elementsByName.get(avatarKey)
 
-  // Only unlocked elements for avatar picker
-  const allDiscovered = Array.from(elements.values()).filter(e => e.imageUrl && discovered.has(e.name))
+  // Avatar picker: only elements the player has discovered that have an image
+  const allDiscovered = Array.from(elementsByName.values()).filter(e => e.imageUrl && discovered.has(e.number))
 
   const saveName = async () => {
     if (!profile) return

@@ -872,7 +872,6 @@ export function Playground({
                     elements={elements}
                     discovered={discovered}
                     totalElements={totalElements}
-                    recipeMap={recipeMap ?? new Map()}
                     onGoToPlay={() => setActiveTab('home')}
                   />
                 )}
@@ -981,7 +980,7 @@ export function Playground({
                     : <ProfileInlinePanel
                         lang={lang}
                         sessionUser={sessionUser}
-                        elements={elements}
+                        elementsByName={elementsByName}
                         discovered={discovered}
                         onAvatarChange={setTabAvatarKey}
                         onOpenLeaderboard={() => setProfileView('leaderboard')}
@@ -1104,7 +1103,7 @@ export function Playground({
       {/* Modals */}
       {helpOpen && <HelpModal lang={lang} onSetLang={onSetLang} onClose={() => setHelpOpen(false)} />}
       {leaderboardOpen && <LeaderboardModal lang={lang} onClose={() => setLeaderboardOpen(false)} />}
-      {profileOpen && sessionUser && <ProfileModal lang={lang} sessionUser={sessionUser} elements={elements} discovered={discovered} onClose={() => setProfileOpen(false)} onOpenLeaderboard={() => { setProfileOpen(false); setLeaderboardOpen(true) }} />}
+      {profileOpen && sessionUser && <ProfileModal lang={lang} sessionUser={sessionUser} elementsByName={elementsByName} discovered={discovered} onClose={() => setProfileOpen(false)} onOpenLeaderboard={() => { setProfileOpen(false); setLeaderboardOpen(true) }} />}
     </div>
   )
 }
@@ -1664,11 +1663,12 @@ function HelpPanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: () => void })
   )
 }
 
-function ProfileInlinePanel({ lang, sessionUser, elements, discovered, onAvatarChange, onOpenLeaderboard }: {
+function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, onAvatarChange, onOpenLeaderboard }: {
   lang: 'fr' | 'en'
   sessionUser: { name?: string | null; email?: string | null; image?: string | null }
-  elements: Map<string, ElementDef>
-  discovered: Set<string>
+  /** Keyed by current-lang name (+ FR fallback) — used for avatar display and picker */
+  elementsByName: Map<string, ElementDef>
+  discovered: Set<number>
   onAvatarChange?: (key: string) => void
   onOpenLeaderboard?: () => void
 }) {
@@ -1703,10 +1703,10 @@ function ProfileInlinePanel({ lang, sessionUser, elements, discovered, onAvatarC
   function hashStr(s: string) { let h = 0; for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0; return h }
   const STARTERS = ['eau', 'feu', 'terre', 'air']
   const avatarKey = profile?.avatar ?? STARTERS[Math.abs(hashStr(sessionUser.email ?? 'x')) % 4]
-  const avatarEl = elements.get(avatarKey)
+  const avatarEl = elementsByName.get(avatarKey)
   const displayName = profile?.username || sessionUser.name?.split(' ')[0] || t('Joueur', 'Player')
   const pct = profile ? Math.round((profile.discovered_count / TOTAL_ELEMENTS) * 100) : 0
-  const allDiscovered = Array.from(elements.values()).filter(e => e.imageUrl && discovered.has(e.name))
+  const allDiscovered = Array.from(elementsByName.values()).filter(e => e.imageUrl && discovered.has(e.number))
 
   const saveName = async () => {
     if (!profile) return
