@@ -20,8 +20,7 @@ export function AlchemyGame() {
     lang,
     setLang,
     elements,
-    frToElement,
-    frToEn,
+    elementsByName,
     hapticEnabled,
     setHapticEnabled,
     discovered,
@@ -61,14 +60,9 @@ export function AlchemyGame() {
   }, [elements])
 
   useEffect(() => {
-    if (!newlyDiscovered || !currentHint || !hintVisible) return
-    // currentHint.result is always FR name, newlyDiscovered is lang-dependent
-    // Check both FR and EN names to be safe
-    const hintedFr = currentHint.result
-    const hintedEn = frToEn.get(hintedFr) ?? hintedFr
-    if (newlyDiscovered === hintedFr || newlyDiscovered === hintedEn) {
-      dismissHint()
-    }
+    // Both newlyDiscovered and currentHint.result are element numbers now — direct comparison
+    if (newlyDiscovered == null || !currentHint || !hintVisible) return
+    if (newlyDiscovered === currentHint.result) dismissHint()
   }, [newlyDiscovered, currentHint, hintVisible, dismissHint])
 
   // Toast when hints toggled
@@ -110,19 +104,17 @@ export function AlchemyGame() {
   const headerNotification = useMemo(() => {
     // Hint notification (persistent until dismissed)
     if (hintVisible && currentHint && hintLabel) {
-      const el = frToElement.get(currentHint.result) ?? elements.get(currentHint.result)
-      const displayName = lang === 'en'
-        ? (frToEn.get(currentHint.result) ?? currentHint.result)
-        : currentHint.result
+      // currentHint.result is now a DB number — look up directly from elements Map
+      const el = elements.get(currentHint.result)
       return {
         type: 'hint' as const,
-        message: `${hintLabel} ${displayName}`,
+        message: `${hintLabel} ${el?.name ?? ''}`,
         icon: <Lightbulb className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />,
         image: el?.imageUrl || undefined,
       }
     }
     // New discovery
-    if (newlyDiscovered) {
+    if (newlyDiscovered != null) {
       const el = elements.get(newlyDiscovered)
       if (el) {
         return {
@@ -166,7 +158,7 @@ export function AlchemyGame() {
       }
     }
     return null
-  }, [hintVisible, currentHint, hintLabel, newlyDiscovered, progressToast, tapModeToast, hintsToast, lang, elements, frToElement, frToEn])
+  }, [hintVisible, currentHint, hintLabel, newlyDiscovered, progressToast, tapModeToast, hintsToast, lang, elements])
 
   const handleOnboardingComplete = async (prefs: { lang: 'fr' | 'en'; theme: 'dark' | 'light'; haptic: boolean; username: string; avatar: string }) => {
     setShowOnboarding(false)
@@ -301,7 +293,7 @@ export function AlchemyGame() {
         )}
 
         {/* New element */}
-        {newlyDiscovered && (() => {
+        {newlyDiscovered != null && (() => {
           const el = elements.get(newlyDiscovered)
           if (!el) return null
           return (
@@ -353,12 +345,9 @@ export function AlchemyGame() {
 
         {/* Hint */}
         {hintVisible && currentHint && hintLabel && (() => {
-          // currentHint.result is always a French name (recipeMap uses FR keys)
-          // Look up image via frToElement, display name via frToEn when in EN mode
-          const el = frToElement.get(currentHint.result) ?? elements.get(currentHint.result)
-          const displayName = lang === 'en'
-            ? (frToEn.get(currentHint.result) ?? currentHint.result)
-            : currentHint.result
+          // currentHint.result is now a DB number — look up directly
+          const el = elements.get(currentHint.result)
+          const displayName = el?.name ?? ''
           return (
             <div
               className="animate-in slide-in-from-left-4 fade-in duration-200 pointer-events-auto cursor-pointer"

@@ -29,15 +29,17 @@ function useIsMobile() {
 
 interface PlaygroundProps {
   items: PlaygroundItem[]
-  elements: Map<string, ElementDef>
-  discovered: Set<string>
+  elements: Map<number, ElementDef>
+  /** Keyed by current-lang name — used for AvatarButton and other name-based lookups */
+  elementsByName: Map<string, ElementDef>
+  discovered: Set<number>
   totalElements: number
   lang: 'fr' | 'en'
   onSetLang: (l: 'fr' | 'en') => void
-  onDrop: (element: string, x: number, y: number) => string
+  onDrop: (elementNum: number, x: number, y: number) => string
   onMove: (id: string, x: number, y: number) => void
-  onMerge: (id1: string, id2: string) => string | null
-  onDropAndMerge: (element: string, x: number, y: number, targetId: string) => string | null
+  onMerge: (id1: string, id2: string) => number | null
+  onDropAndMerge: (elementNum: number, x: number, y: number, targetId: string) => number | null
   onRemove: (id: string) => void
   onClear: () => void
   onReset: () => void
@@ -50,7 +52,7 @@ interface PlaygroundProps {
   hapticEnabled?: boolean
   onToggleHaptic?: () => void
   onTapModeChange?: (enabled: boolean) => void
-  recipeMap?: Map<string, string[]>
+  recipeMap?: Map<string, number[]>
   // Mobile header notifications
   headerNotification?: {
     type: 'discovery' | 'hint' | 'progress' | 'tapMode' | 'hintsToggle'
@@ -67,7 +69,7 @@ type SortType = 'name' | 'recent'
 
 interface DragState {
   source: 'inventory' | 'playground'
-  elementName: string
+  elementNumber: number
   itemId?: string
   x: number
   y: number
@@ -226,10 +228,10 @@ function hashStr(s: string) {
 }
 
 function AvatarButton({
-  sessionUser, elements, onClick, lang,
+  sessionUser, elementsByName, onClick, lang,
 }: {
   sessionUser: { name?: string | null; email?: string | null; image?: string | null }
-  elements: Map<string, ElementDef>
+  elementsByName: Map<string, ElementDef>
   onClick: () => void
   lang: 'fr' | 'en'
 }) {
@@ -250,7 +252,8 @@ function AvatarButton({
       })
   }, [lang, sessionUser.email])
 
-  const el = avatarKey ? elements.get(avatarKey) : null
+  // Avatar key is a name string (stored as 'eau', 'feu', etc.) — use name index for lookup
+  const el = avatarKey ? elementsByName.get(avatarKey) : null
 
   return (
     <button
@@ -271,7 +274,7 @@ function AvatarButton({
 // Playground component
 // ============================================================
 export function Playground({
-  items, elements, discovered, totalElements,
+  items, elements, elementsByName, discovered, totalElements,
   lang, onSetLang,
   onDrop, onMove, onMerge, onDropAndMerge, onRemove, onClear, onReset,
   onUnlockAll, sessionUser, hintsEnabled, onToggleHints, onRequestHint, hintShouldPulse = false,
@@ -413,13 +416,13 @@ export function Playground({
   }, [items])
 
   // === INVENTORY DRAG — immediate capture, no delay, no direction detection ===
-  const handleInventoryPointerDown = useCallback((e: React.PointerEvent, elementName: string) => {
+  const handleInventoryPointerDown = useCallback((e: React.PointerEvent, elementNumber: number) => {
     e.stopPropagation()
     e.preventDefault()
     const pos = getRelativePos(e.clientX, e.clientY)
     setDragging({
       source: 'inventory',
-      elementName,
+      elementNumber,
       x: pos.x - 40,
       y: pos.y - 40,
       offsetX: 40,
@@ -429,7 +432,7 @@ export function Playground({
   }, [getRelativePos])
 
   // === PLAYGROUND ITEM DRAG ===
-  const handlePointerDown = useCallback((e: React.PointerEvent, elementName: string, itemId: string) => {
+  const handlePointerDown = useCallback((e: React.PointerEvent, elementNumber: number, itemId: string) => {
     e.preventDefault()
     e.stopPropagation()
     const item = items.find(i => i.id === itemId)
@@ -437,7 +440,7 @@ export function Playground({
     const pos = getRelativePos(e.clientX, e.clientY)
     setDragging({
       source: 'playground',
-      elementName,
+      elementNumber,
       itemId,
       x: item.x,
       y: item.y,
@@ -481,19 +484,19 @@ export function Playground({
       }
       const nearest = findNearestItem(dragging.x, dragging.y)
       if (nearest) {
-        const result = onDropAndMerge(dragging.elementName, dragging.x, dragging.y, nearest.id)
-        if (result) {
+        const result = onDropAndMerge(dragging.elementNumber, dragging.x, dragging.y, nearest.id)
+        if (result != null) {
           setMergeAnimation({ x: nearest.x, y: nearest.y })
           setPlaygroundFlash('success')
           setTimeout(() => { setMergeAnimation(null); setPlaygroundFlash(null) }, 600)
         } else {
-          const newId = onDrop(dragging.elementName, dragging.x, dragging.y)
+          const newId = onDrop(dragging.elementNumber, dragging.x, dragging.y)
           setShakeId(newId)
           setPlaygroundFlash('fail')
           setTimeout(() => { setShakeId(null); setPlaygroundFlash(null) }, 500)
         }
       } else {
-        onDrop(dragging.elementName, dragging.x, dragging.y)
+        onDrop(dragging.elementNumber, dragging.x, dragging.y)
       }
     } else if (dragging.source === 'playground' && dragging.itemId) {
       // Always commit drag position to store first — item.x/y was never updated during drag
@@ -501,7 +504,7 @@ export function Playground({
       const nearest = findNearestItem(dragging.x, dragging.y, dragging.itemId)
       if (nearest) {
         const result = onMerge(dragging.itemId, nearest.id)
-        if (result) {
+        if (result != null) {
           setMergeAnimation({ x: nearest.x, y: nearest.y })
           setPlaygroundFlash('success')
           setTimeout(() => { setMergeAnimation(null); setPlaygroundFlash(null) }, 600)
@@ -518,9 +521,10 @@ export function Playground({
   }, [dragging, findNearestItem, onDrop, onMerge, onDropAndMerge])
 
   // === SORT ===
+  // discovered is Set<number> — map numbers to ElementDef for display
   const discoveredOrder = Array.from(discovered)
   const discoveredElements = discoveredOrder
-    .map(name => elements.get(name))
+    .map(num => elements.get(num))
     .filter((el): el is ElementDef => el !== undefined)
     .filter(el => {
       const n = (s: string) => s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '')
@@ -531,8 +535,9 @@ export function Playground({
         const cmp = a.name.localeCompare(b.name, 'fr')
         return sortReverse ? -cmp : cmp
       }
-      const ia = discoveredOrder.indexOf(a.name)
-      const ib = discoveredOrder.indexOf(b.name)
+      // Recent sort: order by position in discoveredOrder (Set insertion order)
+      const ia = discoveredOrder.indexOf(a.number)
+      const ib = discoveredOrder.indexOf(b.number)
       const cmp = ib - ia
       return sortReverse ? -cmp : cmp
     })
@@ -615,14 +620,18 @@ export function Playground({
       })}
 
       {/* GHOST (inventory drag) */}
-      {dragging?.source === 'inventory' && elements.get(dragging.elementName) && (
-        <div
-          className="absolute pointer-events-none"
-          style={{ left: 0, top: 0, transform: `translate(${dragging.x}px, ${dragging.y}px) scale(1.05)`, zIndex: 9999, opacity: 0.9, willChange: 'transform' }}
-        >
-              <ElementBadge element={elements.get(dragging.elementName)!} size={playgroundBadgeSize} />
-        </div>
-      )}
+      {dragging?.source === 'inventory' && (() => {
+        const ghostEl = elements.get(dragging.elementNumber)
+        if (!ghostEl) return null
+        return (
+          <div
+            className="absolute pointer-events-none"
+            style={{ left: 0, top: 0, transform: `translate(${dragging.x}px, ${dragging.y}px) scale(1.05)`, zIndex: 9999, opacity: 0.9, willChange: 'transform' }}
+          >
+            <ElementBadge element={ghostEl} size={playgroundBadgeSize} />
+          </div>
+        )
+      })()}
 
       {/* MERGE ANIMATION - flash ring only, no badge duplicate */}
       {mergeAnimation && (
@@ -827,7 +836,7 @@ export function Playground({
                                   const cx = PAD_X + col * (BADGE_W + GAP) + BADGE_W / 2
                                   const cy = PAD_Y + row * (BADGE_H + GAP) + BADGE_H / 2
                                   if (isSlotFree(cx, cy)) {
-                                    onDrop(element.name, cx, cy)
+                                    onDrop(element.number, cx, cy)
                                     placed = true
                                   }
                                 }
@@ -838,12 +847,12 @@ export function Playground({
                                 const fallbackPad = PAD_X + 20
                                 const cx = fallbackPad + Math.random() * (rect.width - fallbackPad * 2 - BADGE_W)
                                 const cy = PAD_Y + Math.random() * (rect.height * 0.4)
-                                onDrop(element.name, cx, cy)
+                                onDrop(element.number, cx, cy)
                               }
                             },
                           }
                         : {
-                            onPointerDown: (e: React.PointerEvent) => handleInventoryPointerDown(e, element.name),
+                            onPointerDown: (e: React.PointerEvent) => handleInventoryPointerDown(e, element.number),
                           }
                       )}
                     >
@@ -1058,7 +1067,8 @@ export function Playground({
                   className="flex-1 flex flex-col items-center justify-center py-3 relative transition-colors"
                 >
                   {isProfileWithUser ? (() => {
-                    const tabEl = tabAvatarKey ? elements.get(tabAvatarKey) : null
+                    // tabAvatarKey is a name string — use elementsByName for lookup
+                    const tabEl = tabAvatarKey ? elementsByName.get(tabAvatarKey) : null
                     return (
                       <div
                         className={`w-8 h-8 rounded-full overflow-hidden border-2 transition-all flex-shrink-0 bg-muted flex items-center justify-center ${isActive ? 'border-foreground' : 'border-muted-foreground/30'}`}
