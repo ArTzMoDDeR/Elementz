@@ -10,6 +10,11 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  ResponsiveContainer, AreaChart, BarChart, LineChart,
+  Area, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  PieChart, Pie, Cell,
+} from 'recharts'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
