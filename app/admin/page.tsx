@@ -230,7 +230,7 @@ function MissingElementsModal({ user, onClose }: { user: AdminUser; onClose: () 
   useEffect(() => {
     fetch(`/api/admin/users/missing?userId=${user.id}`)
       .then(r => r.json())
-      .then(d => { setItems(Array.isArray(d) ? d : []); setLoading(false) })
+      .then(d => { setItems(Array.isArray(d.missing) ? d.missing : []); setLoading(false) })
       .catch(() => setLoading(false))
   }, [user.id])
 

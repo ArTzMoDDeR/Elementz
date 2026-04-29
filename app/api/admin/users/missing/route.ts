@@ -23,5 +23,7 @@ export async function GET(req: NextRequest) {
     ORDER BY e.number ASC
   `
 
-  return NextResponse.json(rows)
+  const total = await sql`SELECT COUNT(*)::int AS count FROM elements`
+
+  return NextResponse.json({ missing: rows, total: total[0].count })
 }
