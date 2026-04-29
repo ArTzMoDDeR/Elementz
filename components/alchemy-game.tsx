@@ -240,6 +240,7 @@ export function AlchemyGame() {
       <Playground
         items={playground}
         elements={elements}
+        elementsByName={elementsByName}
         discovered={discovered}
         totalElements={totalElements}
         lang={lang}
