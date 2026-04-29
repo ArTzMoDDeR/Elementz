@@ -135,7 +135,7 @@ function OverviewTab() {
         <StatCard label="Éléments" value={stats.elements} sub={`${stats.noImg} sans image`} />
         <StatCard label="Recettes" value={stats.recipes} sub={`${stats.noRecipe} éléments sans recette`} />
         <StatCard label="Joueurs" value={stats.users} sub={`+${stats.newUsersToday} aujourd'hui`} color="text-blue-400" />
-        <StatCard label="Découvertes" value={stats.unlocks.toLocaleString('fr')} sub={`${stats.activeToday} joueurs actifs aujourd'hui`} color="text-emerald-400" />
+              <StatCard label="Decouvertes" value={stats.unlocks.toLocaleString()} sub={stats.activeToday + " joueurs actifs aujourd'hui"} color="text-emerald-400" />
       </div>
 
       {/* Progress bars */}
@@ -1431,105 +1431,6 @@ function EmailTab() {
   )
 }
 
-// ─── Tab: Stats ──�����───────────────────────────────────────────────────────────
-
-type DayCount = { day: string; count: number }
-
-type UsageStats = {
-  gran: 'hour' | 'day' | 'week'
-  discoveriesPerDay: DayCount[]
-  signupsPerDay: DayCount[]
-  activePerDay: DayCount[]
-  retention: { d1: number | null; d7: number | null; d30: number | null }
-  combosToday: number
-  combosYesterday: number
-  avgDiscoveries: number
-  medianDiscoveries: number
-  playerDistribution: { casual: number; engaged: number; active: number; hardcore: number }
-  topPlayers: { name: string; discoveries: number }[]
-  totalUsers: number
-  totalUnlocks: number
-  newUsersMonth: number
-}
-
-
-
-
-
-
-        <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Activity className="w-4 h-4 text-muted-foreground" />
-            <p className="text-sm font-semibold">Distribution joueurs</p>
-            <span className="ml-auto text-xs text-muted-foreground">{totalPlayers.toLocaleString('fr')} total</span>
-          </div>
-          <div className="flex items-center gap-5">
-            <div style={{ width: 130, height: 130, flexShrink: 0 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pieData} dataKey="value" cx="50%" cy="50%" innerRadius={36} outerRadius={58} paddingAngle={2} strokeWidth={0}>
-                    {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} opacity={0.9} />)}
-                  </Pie>
-                  <Tooltip content={({ active, payload }: { active?: boolean; payload?: { name: string; value: number }[] }) => {
-                    if (!active || !payload?.length) return null
-                    return (
-                      <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-xl text-xs">
-                        <p className="font-semibold">{payload[0].name}</p>
-                        <p className="text-muted-foreground">{Number(payload[0].value).toLocaleString('fr')} joueurs</p>
-                      </div>
-                    )
-                  }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex-1 space-y-2.5 min-w-0">
-              {pieData.map((d, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                  <span className="text-xs flex-1 truncate text-muted-foreground">{d.name}</span>
-                  <span className="text-xs tabular-nums font-semibold w-8 text-right">{d.value}</span>
-                  <span className="text-[10px] text-muted-foreground w-6 text-right">{Math.round((d.value / totalPlayers) * 100) + '%'}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Top players */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-border flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-muted-foreground" />
-          <p className="text-sm font-semibold">Top joueurs</p>
-        </div>
-        <div style={{ height: 220 }} className="p-4">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={stats.topPlayers.map(p => ({ ...p, name: p.name ?? 'Anonyme' }))} layout="vertical" barCategoryGap="20%">
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 10, fill: 'oklch(0.55 0 0)' }} axisLine={false} tickLine={false} tickFormatter={v => Number(v).toLocaleString('fr')} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: 'oklch(0.85 0 0)' }} axisLine={false} tickLine={false} width={90} />
-              <Tooltip content={({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) => {
-                if (!active || !payload?.length) return null
-                return (
-                  <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-xl text-xs">
-                    <p className="font-semibold mb-1">{label}</p>
-                    <p className="text-muted-foreground">{Number(payload[0].value).toLocaleString('fr')} d&eacute;couvertes</p>
-                  </div>
-                )
-              }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-              <Bar dataKey="discoveries" radius={[0,4,4,0]}>
-                {stats.topPlayers.map((_, i) => (
-                  <Cell key={i} fill={i === 0 ? '#f59e0b' : i === 1 ? '#94a3b8' : i === 2 ? '#b45309' : '#22c55e'} opacity={0.9 - i * 0.04} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-    </div>
-  )
-}
 // ─── Tab: Stats ──────────────────────────────────────────────────────────────
 
 type DayCount = { day: string; count: number }
@@ -1765,7 +1666,7 @@ function StatsTab() {
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               {chartKind === 'bar' ? (
-                <BarChart data={series} barGap={2} barCategoryGap="28%">
+                <BarChart data={series} barGap={2} barCategoryGap={28}>
                   {gridEl}{xEl}{yEl}
                   <Tooltip content={<StatsTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
                   {activeSer.map(s => <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[3, 3, 0, 0]} opacity={0.85} />)}
@@ -1809,7 +1710,7 @@ function StatsTab() {
           </div>
           <div style={{ height: 160 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={retentionData} layout="vertical" barCategoryGap="30%">
+              <BarChart data={retentionData} layout="vertical" barCategoryGap={30}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
                 <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: 'oklch(0.55 0 0)' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => v + '%'} />
                 <YAxis type="category" dataKey="label" tick={{ fontSize: 12, fontWeight: 600, fill: 'oklch(0.85 0 0)' }} axisLine={false} tickLine={false} width={28} />
@@ -1884,7 +1785,7 @@ function StatsTab() {
         </div>
         <div style={{ height: 220 }} className="p-4">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={stats.topPlayers.map(p => ({ ...p, name: p.name ?? 'Anonyme' }))} layout="vertical" barCategoryGap="20%">
+            <BarChart data={stats.topPlayers.map(p => ({ ...p, name: p.name ?? 'Anonyme' }))} layout="vertical" barSize={14}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 10, fill: 'oklch(0.55 0 0)' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => Number(v).toLocaleString()} />
               <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: 'oklch(0.85 0 0)' }} axisLine={false} tickLine={false} width={90} />
@@ -1894,7 +1795,7 @@ function StatsTab() {
                   return (
                     <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-xl text-xs">
                       <p className="font-semibold mb-1">{label}</p>
-                      <p className="text-muted-foreground">{Number(payload[0].value).toLocaleString()} decouvertes</p>
+                      <p className="text-muted-foreground">{Number(payload[0].value).toLocaleString()} decouverts</p>
                     </div>
                   )
                 }}
