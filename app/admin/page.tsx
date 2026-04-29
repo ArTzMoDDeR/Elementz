@@ -1530,114 +1530,388 @@ type UsageStats = {
     </div>
   )
 }
-function MiniBarChart({ data }: { data: DayCount[] }) {
-  const BAR_HEIGHT = 140 // px — full usable area
+// ─── Tab: Stats ──────────────────────────────────────────────────────────────
 
-  // Fill last 14 days with zeros for missing days
-  const days: DayCount[] = []
-  for (let i = 13; i >= 0; i--) {
-    const d = new Date()
-    d.setUTCDate(d.getUTCDate() - i)
-    const key = d.toISOString().split('T')[0]
-    const found = data.find(r => r.day === key)
-    days.push({ day: key, count: found ? Number(found.count) : 0 })
-  }
+type DayCount = { day: string; count: number }
+type Granularity = 'hour' | 'day' | 'week'
+type SeriesKey = 'discoveries' | 'signups' | 'active'
+type ChartKind = 'area' | 'bar' | 'line'
+type UsageStats = {
+  gran: Granularity
+  discoveriesPerDay: DayCount[]
+  signupsPerDay: DayCount[]
+  activePerDay: DayCount[]
+  retention: { d1: number | null; d7: number | null; d30: number | null }
+  combosToday: number
+  combosYesterday: number
+  avgDiscoveries: number
+  medianDiscoveries: number
+  playerDistribution: { casual: number; engaged: number; active: number; hardcore: number }
+  topPlayers: { name: string; discoveries: number }[]
+  totalUsers: number
+  totalUnlocks: number
+  newUsersMonth: number
+}
 
-  const max = Math.max(...days.map(d => d.count), 1)
-  // Percentile thresholds for color grading
-  const nonZero = days.map(d => d.count).filter(c => c > 0).sort((a, b) => a - b)
-  const p50 = nonZero[Math.floor(nonZero.length * 0.5)] ?? 0
-  const p75 = nonZero[Math.floor(nonZero.length * 0.75)] ?? 0
-
-  function barColor(count: number): string {
-    if (count === 0) return 'rgba(255,255,255,0.08)'
-    if (count >= p75) return '#22c55e'   // green-500 — top performance
-    if (count >= p50) return '#f59e0b'   // amber-500 — mid performance
-    return '#ef4444'                      // red-500   — low performance
-  }
-
+function KpiCard({ label, value, sub, color }: { label: string; value: string | number; sub?: string; color?: string }) {
   return (
-    <div className="pt-3">
-      <div className="flex items-end gap-[4px]" style={{ height: BAR_HEIGHT }}>
-        {days.map((d, i) => {
-          const h = d.count === 0
-            ? 2
-            : Math.max(Math.round((d.count / max) * BAR_HEIGHT), 4)
-          const date = new Date(d.day + 'T12:00:00Z')
-          const dayLabel = date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
-          return (
-            <div key={i} className="flex-1 group relative flex items-end" style={{ height: BAR_HEIGHT }}>
-              {/* Tooltip */}
-              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-popover border border-border rounded-md px-2 py-1 text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none shadow-lg">
-                <span className="font-semibold">{d.count}</span>
-                <span className="text-muted-foreground ml-1">— {dayLabel}</span>
-              </div>
-              {/* Bar */}
-              <div
-                className="w-full rounded-sm transition-all duration-300"
-                style={{
-                  height: h,
-                  background: barColor(d.count),
-                  opacity: d.count === 0 ? 1 : 0.85,
-                }}
-              />
-            </div>
-          )
-        })}
-      </div>
-      {/* X axis labels */}
-      <div className="flex justify-between mt-2.5 border-t border-border/30 pt-2">
-        {[0, 6, 13].map(i => {
-          const date = new Date(days[i].day + 'T12:00:00Z')
-          return (
-            <span key={i} className="text-[10px] text-muted-foreground/50">
-              {date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-            </span>
-          )
-        })}
-      </div>
+    <div className="bg-card border border-border rounded-xl p-4 flex flex-col gap-1.5">
+      <p className="text-xs text-muted-foreground font-medium">{label}</p>
+      <p className={['text-2xl font-bold tabular-nums leading-none', color].filter(Boolean).join(' ')}>{value}</p>
+      {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
     </div>
   )
 }
 
-function RetentionBar({ label, value }: { label: string; value: number | null }) {
-  const pct = value == null ? null : Math.round(value * 100)
+function StatsTooltip({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) {
+  if (!active || !payload?.length) return null
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium">{label}</span>
-        <span className="text-xs tabular-nums font-semibold">{pct == null ? '—' : `${pct}%`}</span>
-      </div>
-      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all ${pct == null ? '' : pct >= 30 ? 'bg-emerald-500' : pct >= 15 ? 'bg-amber-500' : 'bg-red-500'}`}
-          style={{ width: `${pct ?? 0}%` }}
-        />
-      </div>
+    <div className="bg-popover border border-border rounded-xl px-3 py-2.5 shadow-xl text-xs space-y-1 min-w-[140px]">
+      <p className="text-muted-foreground font-medium mb-1.5">{label}</p>
+      {payload.map((p, i) => (
+        <div key={i} className="flex items-center gap-2 justify-between">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full" style={{ background: p.color }} />
+            <span className="text-muted-foreground">{p.name}</span>
+          </div>
+          <span className="font-bold tabular-nums">{Number(p.value).toLocaleString()}</span>
+        </div>
+      ))}
     </div>
   )
 }
+
+function buildSeries(gran: Granularity, discoveries: DayCount[], signups: DayCount[], activeData: DayCount[]) {
+  const now = new Date()
+  const buckets: { key: string; label: string }[] = []
+  if (gran === 'hour') {
+    for (let i = 23; i >= 0; i--) {
+      const d = new Date(now)
+      d.setUTCHours(d.getUTCHours() - i, 0, 0, 0)
+      const y = d.getUTCFullYear()
+      const mo = String(d.getUTCMonth() + 1).padStart(2, '0')
+      const dd = String(d.getUTCDate()).padStart(2, '0')
+      const hh = String(d.getUTCHours()).padStart(2, '0')
+      buckets.push({ key: y + '-' + mo + '-' + dd + ' ' + hh + ':00', label: hh + 'h' })
+    }
+  } else if (gran === 'week') {
+    for (let i = 12; i >= 0; i--) {
+      const d = new Date(now)
+      d.setUTCDate(d.getUTCDate() - d.getUTCDay() + 1 - i * 7)
+      const key = d.toISOString().split('T')[0]
+      const dt = new Date(key + 'T12:00:00Z')
+      buckets.push({ key, label: dt.getDate() + '/' + (dt.getMonth() + 1) })
+    }
+  } else {
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(now)
+      d.setUTCDate(d.getUTCDate() - i)
+      const key = d.toISOString().split('T')[0]
+      const dt = new Date(key + 'T12:00:00Z')
+      buckets.push({ key, label: dt.getDate() + '/' + (dt.getMonth() + 1) })
+    }
+  }
+  const find = (arr: DayCount[], k: string) => Number(arr.find(r => r.day === k)?.count ?? 0)
+  return buckets.map(b => ({
+    label: b.label,
+    discoveries: find(discoveries, b.key),
+    signups: find(signups, b.key),
+    active: find(activeData, b.key),
+  }))
+}
+
+const SERIES_CFG: { key: SeriesKey; label: string; color: string }[] = [
+  { key: 'discoveries', label: 'Decouvertes', color: '#22c55e' },
+  { key: 'signups', label: 'Inscriptions', color: '#3b82f6' },
+  { key: 'active', label: 'Actifs', color: '#f59e0b' },
+]
+const PIE_COLORS = ['#f59e0b', '#3b82f6', '#22c55e', '#8b5cf6']
 
 function StatsTab() {
   const [stats, setStats] = useState<UsageStats | null>(null)
   const [loading, setLoading] = useState(true)
-  const [period, setPeriod] = useState<'discoveries' | 'signups' | 'active'>('discoveries')
+  const [gran, setGran] = useState<Granularity>('day')
+  const [activeSeries, setActiveSeries] = useState<Set<SeriesKey>>(new Set(['discoveries', 'signups', 'active']))
+  const [chartKind, setChartKind] = useState<ChartKind>('area')
 
-  useEffect(() => {
-    fetch('/api/admin/usage')
+  const load = useCallback((g: Granularity) => {
+    setLoading(true)
+    fetch('/api/admin/usage?gran=' + g)
       .then(r => r.json())
       .then(d => { setStats(d); setLoading(false) })
       .catch(() => setLoading(false))
   }, [])
 
-  if (loading) return <div className="flex justify-center py-20"><Spinner size="md" /></div>
+  useEffect(() => { load(gran) }, [gran, load])
+
+  const toggleSeries = (key: SeriesKey) => {
+    setActiveSeries(prev => {
+      const next = new Set(prev)
+      if (next.has(key) && next.size > 1) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  if (!stats && loading) return <div className="flex justify-center py-20"><Spinner size="md" /></div>
   if (!stats) return <p className="text-sm text-muted-foreground text-center py-20">Erreur de chargement</p>
 
   const comboDelta = stats.combosToday - stats.combosYesterday
   const dist = stats.playerDistribution
-  const totalPlayers = (dist.casual + dist.engaged + dist.active + dist.hardcore) || 1
+  const totalPlayers = Math.max(dist.casual + dist.engaged + dist.active + dist.hardcore, 1)
+  const series = buildSeries(gran, stats.discoveriesPerDay, stats.signupsPerDay, stats.activePerDay)
+  const activeSer = SERIES_CFG.filter(s => activeSeries.has(s.key))
 
+  const retentionData = [
+    { label: 'D1', value: stats.retention.d1 == null ? 0 : Math.round(stats.retention.d1 * 100) },
+    { label: 'D7', value: stats.retention.d7 == null ? 0 : Math.round(stats.retention.d7 * 100) },
+    { label: 'D30', value: stats.retention.d30 == null ? 0 : Math.round(stats.retention.d30 * 100) },
+  ]
 
+  const pieData = [
+    { name: 'Casual 1-10', value: dist.casual },
+    { name: 'Engage 11-50', value: dist.engaged },
+    { name: 'Actif 51-150', value: dist.active },
+    { name: 'Hardcore 150+', value: dist.hardcore },
+  ].filter(d => d.value > 0)
+
+  const gridEl = <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+  const xEl = <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'oklch(0.55 0 0)' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+  const yEl = <YAxis tick={{ fontSize: 10, fill: 'oklch(0.55 0 0)' }} axisLine={false} tickLine={false} width={36} />
+
+  const retentionColor = (v: number) => {
+    if (v >= 30) return '#22c55e'
+    if (v >= 15) return '#f59e0b'
+    return '#ef4444'
+  }
+
+  const topPlayerColor = (i: number) => {
+    if (i === 0) return '#f59e0b'
+    if (i === 1) return '#94a3b8'
+    if (i === 2) return '#b45309'
+    return '#22c55e'
+  }
+
+  const d1Pct = stats.retention.d1 == null ? null : Math.round(stats.retention.d1 * 100)
+
+  return (
+    <div className="space-y-5">
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <KpiCard
+          label="Decouvertes aujourd'hui"
+          value={stats.combosToday.toLocaleString()}
+          sub={'vs hier: ' + (comboDelta > 0 ? '+' : '') + comboDelta}
+        />
+        <KpiCard
+          label="Total joueurs"
+          value={stats.totalUsers.toLocaleString()}
+          sub={'+' + stats.newUsersMonth + ' ce mois'}
+        />
+        <KpiCard
+          label="Total decouvertes"
+          value={stats.totalUnlocks.toLocaleString()}
+          sub={'moy. ' + (stats.avgDiscoveries ?? '0') + '/joueur'}
+        />
+        <KpiCard
+          label="Retention D1"
+          value={d1Pct == null ? '—' : d1Pct + '%'}
+          sub="reviennent le lendemain"
+          color={d1Pct != null && d1Pct >= 30 ? 'text-emerald-400' : 'text-amber-400'}
+        />
+      </div>
+
+      {/* Main chart */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 border-b border-border">
+          <div className="flex items-center gap-1 bg-muted/60 rounded-lg p-0.5 border border-border">
+            {(['hour', 'day', 'week'] as Granularity[]).map(g => {
+              const labels: Record<Granularity, string> = { hour: '24h', day: '14 jours', week: '13 sem.' }
+              return (
+                <button key={g} onClick={() => setGran(g)}
+                  className={'px-3 py-1.5 text-xs font-semibold rounded-md transition-all ' + (gran === g ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+                  {labels[g]}
+                </button>
+              )
+            })}
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-1 bg-muted/60 rounded-lg p-0.5 border border-border">
+              {(['area', 'bar', 'line'] as ChartKind[]).map(c => {
+                const labels: Record<ChartKind, string> = { area: 'Aire', bar: 'Barres', line: 'Lignes' }
+                return (
+                  <button key={c} onClick={() => setChartKind(c)}
+                    className={'px-3 py-1.5 text-xs font-semibold rounded-md transition-all ' + (chartKind === c ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+                    {labels[c]}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {SERIES_CFG.map(s => (
+                <button key={s.key} onClick={() => toggleSeries(s.key)}
+                  className={'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ' + (activeSeries.has(s.key) ? 'text-foreground' : 'border-border text-muted-foreground opacity-40')}
+                  style={activeSeries.has(s.key) ? { background: s.color + '15', borderColor: s.color + '45' } : undefined}>
+                  <div className="w-2 h-2 rounded-full" style={{ background: s.color }} />
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div style={{ height: 420 }} className="px-2 pt-4 pb-2">
+          {loading ? (
+            <div className="flex items-center justify-center h-full"><Spinner size="md" /></div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              {chartKind === 'bar' ? (
+                <BarChart data={series} barGap={2} barCategoryGap="28%">
+                  {gridEl}{xEl}{yEl}
+                  <Tooltip content={<StatsTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+                  {activeSer.map(s => <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[3, 3, 0, 0]} opacity={0.85} />)}
+                </BarChart>
+              ) : chartKind === 'line' ? (
+                <LineChart data={series}>
+                  {gridEl}{xEl}{yEl}
+                  <Tooltip content={<StatsTooltip />} />
+                  {activeSer.map(s => <Line key={s.key} type="monotone" dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={2} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />)}
+                </LineChart>
+              ) : (
+                <AreaChart data={series}>
+                  <defs>
+                    {SERIES_CFG.map(s => (
+                      <linearGradient key={s.key} id={'sg-' + s.key} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={s.color} stopOpacity={0.28} />
+                        <stop offset="100%" stopColor={s.color} stopOpacity={0.02} />
+                      </linearGradient>
+                    ))}
+                  </defs>
+                  {gridEl}{xEl}{yEl}
+                  <Tooltip content={<StatsTooltip />} />
+                  {activeSer.map(s => (
+                    <Area key={s.key} type="monotone" dataKey={s.key} name={s.label}
+                      stroke={s.color} strokeWidth={2} fill={'url(#sg-' + s.key + ')'}
+                      dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+                  ))}
+                </AreaChart>
+              )}
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
+      {/* Retention + Pie */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-card border border-border rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-5">
+            <Repeat2 className="w-4 h-4 text-muted-foreground" />
+            <p className="text-sm font-semibold">Retention</p>
+          </div>
+          <div style={{ height: 160 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={retentionData} layout="vertical" barCategoryGap="30%">
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: 'oklch(0.55 0 0)' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => v + '%'} />
+                <YAxis type="category" dataKey="label" tick={{ fontSize: 12, fontWeight: 600, fill: 'oklch(0.85 0 0)' }} axisLine={false} tickLine={false} width={28} />
+                <Tooltip
+                  content={({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) => {
+                    if (!active || !payload?.length) return null
+                    return (
+                      <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-xl text-xs">
+                        <span className="text-muted-foreground">{label}: </span>
+                        <span className="font-bold">{payload[0].value}%</span>
+                      </div>
+                    )
+                  }}
+                  cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                />
+                <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                  {retentionData.map((r, i) => <Cell key={i} fill={retentionColor(r.value)} opacity={0.85} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Activity className="w-4 h-4 text-muted-foreground" />
+            <p className="text-sm font-semibold">Distribution joueurs</p>
+          </div>
+          <div className="flex items-center gap-5">
+            <div style={{ width: 130, height: 130, flexShrink: 0 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={pieData} dataKey="value" cx="50%" cy="50%" innerRadius={36} outerRadius={58} paddingAngle={2} strokeWidth={0}>
+                    {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} opacity={0.9} />)}
+                  </Pie>
+                  <Tooltip
+                    content={({ active, payload }: { active?: boolean; payload?: { name: string; value: number }[] }) => {
+                      if (!active || !payload?.length) return null
+                      return (
+                        <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-xl text-xs">
+                          <p className="font-semibold">{payload[0].name}</p>
+                          <p className="text-muted-foreground">{Number(payload[0].value).toLocaleString()} joueurs</p>
+                        </div>
+                      )
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex-1 space-y-2.5 min-w-0">
+              {pieData.map((d, i) => {
+                const pct = Math.round((d.value / totalPlayers) * 100)
+                return (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                    <span className="text-xs flex-1 truncate text-muted-foreground">{d.name}</span>
+                    <span className="text-xs tabular-nums font-semibold w-8 text-right">{d.value}</span>
+                    <span className="text-[10px] text-muted-foreground w-6 text-right">{pct + '%'}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Top players */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-border flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-muted-foreground" />
+          <p className="text-sm font-semibold">Top joueurs</p>
+        </div>
+        <div style={{ height: 220 }} className="p-4">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={stats.topPlayers.map(p => ({ ...p, name: p.name ?? 'Anonyme' }))} layout="vertical" barCategoryGap="20%">
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 10, fill: 'oklch(0.55 0 0)' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => Number(v).toLocaleString()} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: 'oklch(0.85 0 0)' }} axisLine={false} tickLine={false} width={90} />
+              <Tooltip
+                content={({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) => {
+                  if (!active || !payload?.length) return null
+                  return (
+                    <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-xl text-xs">
+                      <p className="font-semibold mb-1">{label}</p>
+                      <p className="text-muted-foreground">{Number(payload[0].value).toLocaleString()} decouvertes</p>
+                    </div>
+                  )
+                }}
+                cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+              />
+              <Bar dataKey="discoveries" radius={[0, 4, 4, 0]}>
+                {stats.topPlayers.map((_, i) => (
+                  <Cell key={i} fill={topPlayerColor(i)} opacity={Math.max(0.9 - i * 0.04, 0.5)} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ─── Main Admin Page ──────────────────────────────────────────────────────────
 
