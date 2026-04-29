@@ -101,11 +101,11 @@ function Spinner({ size = 'sm' }: { size?: 'sm' | 'md' }) {
 
 function Badge({ color, label }: { color: 'green' | 'amber' | 'red' | 'blue' | 'zinc'; label: string }) {
   const colors = {
-    green: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    red: 'bg-red-500/10 text-red-400 border-red-500/20',
-    blue: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    zinc: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20',
+    green: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+    amber: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+    red: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20',
+    blue: 'bg-primary/10 text-primary border-primary/20',
+    zinc: 'bg-muted text-muted-foreground border-border',
   }
   return <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border ${colors[color]}`}>{label}</span>
 }
@@ -134,8 +134,8 @@ function OverviewTab() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard label="Éléments" value={stats.elements} sub={`${stats.noImg} sans image`} />
         <StatCard label="Recettes" value={stats.recipes} sub={`${stats.noRecipe} éléments sans recette`} />
-        <StatCard label="Joueurs" value={stats.users} sub={`+${stats.newUsersToday} aujourd'hui`} color="text-blue-400" />
-              <StatCard label="Decouvertes" value={stats.unlocks.toLocaleString()} sub={stats.activeToday + " joueurs actifs aujourd'hui"} color="text-emerald-400" />
+        <StatCard label="Joueurs" value={stats.users} sub={`+${stats.newUsersToday} aujourd'hui`} color="text-primary" />
+        <StatCard label="Découvertes" value={stats.unlocks.toLocaleString()} sub={stats.activeToday + " joueurs actifs aujourd'hui"} color="text-emerald-600 dark:text-emerald-400" />
       </div>
 
       {/* Progress bars */}
@@ -248,16 +248,34 @@ function MissingElementsModal({ user, onClose }: { user: AdminUser; onClose: () 
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border flex-shrink-0">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold truncate">
-              {user.name ?? user.email} — {loading ? '…' : `${items.length} manquant${items.length !== 1 ? 's' : ''}`}
-            </p>
-            <p className="text-xs text-muted-foreground">{user.discovered} / {loading ? '…' : user.discovered + items.length} éléments découverts</p>
+        <div className="px-5 py-4 border-b border-border flex-shrink-0 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold truncate">{user.name ?? user.email}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {loading ? '…' : `${user.discovered} découverts · ${items.length} manquant${items.length !== 1 ? 's' : ''}`}
+              </p>
+            </div>
+            <button onClick={onClose} className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+              <X className="w-4 h-4" />
+            </button>
           </div>
-          <button onClick={onClose} className="ml-3 flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg hover:bg-muted transition-colors">
-            <X className="w-4 h-4" />
-          </button>
+          {!loading && (
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-muted-foreground">Progression</span>
+                <span className="text-[10px] font-semibold tabular-nums text-foreground">
+                  {Math.round((user.discovered / (user.discovered + items.length)) * 100)}%
+                </span>
+              </div>
+              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all"
+                  style={{ width: `${Math.round((user.discovered / (user.discovered + items.length)) * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Search */}
@@ -368,7 +386,7 @@ function UsersTab() {
                 <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">Classement</th>
                 <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Dernière activité</th>
                 <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Inscription</th>
-                <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">Admin</th>
+                <th className="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -383,7 +401,7 @@ function UsersTab() {
                   <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">Aucun utilisateur trouvé</td>
                 </tr>
               ) : users.map(u => (
-                <tr key={u.id} className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors">
+                <tr key={u.id} className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors group">
                   <td className="px-4 py-3 max-w-[200px]">
                     <p className="font-medium truncate">{u.name ?? '—'}</p>
                     <p className="text-xs text-muted-foreground truncate">{u.email}</p>
@@ -404,20 +422,21 @@ function UsersTab() {
                   <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                     {new Date(u.created_at).toLocaleDateString('fr', { day: 'numeric', month: 'short', year: '2-digit' })}
                   </td>
-                  <td className="px-4 py-3 text-center">
-                    <div className="flex items-center justify-center gap-1.5">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1.5">
                       <button
                         onClick={() => setMissingUser(u)}
-                        title="Éléments manquants"
-                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-border text-muted-foreground hover:bg-amber-500/10 hover:border-amber-500/30 hover:text-amber-400 transition-colors"
+                        title="Voir les éléments manquants"
+                        className="inline-flex items-center gap-1 px-2 py-1 h-7 rounded-lg border border-border text-xs text-muted-foreground hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-colors"
                       >
-                        <Layers className="w-3.5 h-3.5" />
+                        <Layers className="w-3 h-3 flex-shrink-0" />
+                        <span className="hidden sm:inline">Manquants</span>
                       </button>
                       <button
                         onClick={() => toggleAdmin(u)}
                         disabled={!!toggling}
                         title={u.is_admin ? 'Révoquer admin' : 'Donner admin'}
-                        className={`inline-flex items-center justify-center w-7 h-7 rounded-lg border transition-colors ${u.is_admin ? 'bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400' : 'border-border text-muted-foreground hover:bg-blue-500/10 hover:border-blue-500/30 hover:text-blue-400'}`}
+                        className={`inline-flex items-center justify-center w-7 h-7 rounded-lg border transition-colors ${u.is_admin ? 'bg-primary/10 border-primary/30 text-primary hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive' : 'border-border text-muted-foreground hover:bg-primary/10 hover:border-primary/30 hover:text-primary'}`}
                       >
                         {toggling === u.id ? <Spinner /> : u.is_admin ? <Shield className="w-3.5 h-3.5" /> : <ShieldOff className="w-3.5 h-3.5" />}
                       </button>
@@ -580,7 +599,7 @@ function QuestsTab() {
                     <td className="px-4 py-3 text-center tabular-nums font-bold">{q.target_value}</td>
                     <td className="px-4 py-3 text-center tabular-nums text-muted-foreground">{q.in_progress_count}</td>
                     <td className="px-4 py-3 text-center tabular-nums">{q.completed_count}</td>
-                    <td className="px-4 py-3 text-center tabular-nums text-emerald-400 font-semibold">{q.claimed_count}</td>
+                    <td className="px-4 py-3 text-center tabular-nums text-emerald-600 dark:text-emerald-400 font-semibold">{q.claimed_count}</td>
                     <td className="px-4 py-3 text-center">
                       {q.is_daily ? <Badge color="amber" label="Daily" /> : <span className="text-muted-foreground/30">—</span>}
                     </td>
@@ -1835,31 +1854,36 @@ export default function AdminPanel() {
     <div className="min-h-screen bg-background" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {/* Top bar */}
       <header
-        className="border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-20"
+        className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-20"
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
         <div className="max-w-7xl mx-auto px-4 lg:px-8">
           {/* Brand row */}
           <div className="flex items-center justify-between h-14">
-            <div className="flex items-center gap-3">
-              <a href="/" className="flex items-center gap-2 group">
-                <img src="/logo.png" alt="Elementz" className="w-7 h-7 rounded-xl shadow-sm" />
-                <span className="text-sm font-semibold tracking-tight">Elementz</span>
-                <span className="text-xs text-muted-foreground bg-muted border border-border rounded-md px-1.5 py-0.5 font-medium">admin</span>
-              </a>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="w-8 h-8 rounded-xl" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+            <a href="/" className="flex items-center gap-2.5 group">
+              <img src="/logo.png" alt="Elementz" className="w-7 h-7 rounded-xl shadow-sm" />
+              <span className="text-sm font-semibold tracking-tight text-foreground">Elementz</span>
+              <span className="text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 rounded-md px-1.5 py-0.5 leading-none">ADMIN</span>
+            </a>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="w-8 h-8 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
                 {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </Button>
-              <a href="/" className="flex items-center justify-center w-8 h-8 rounded-xl hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+              </button>
+              <a
+                href="/"
+                className="w-8 h-8 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                title="Retour au jeu"
+              >
                 <X className="w-4 h-4" />
               </a>
             </div>
           </div>
 
-          {/* Tab nav — pills on mobile, full labels on desktop */}
-          <nav className="flex items-center gap-1 overflow-x-auto pb-3 scrollbar-none">
+          {/* Tab nav */}
+          <nav className="flex items-center gap-0.5 overflow-x-auto pb-3 scrollbar-none">
             {TABS.map(t => {
               const Icon = t.icon
               const isActive = tab === t.id
@@ -1867,10 +1891,10 @@ export default function AdminPanel() {
                 <button
                   key={t.id}
                   onClick={() => setTab(t.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
                     isActive
-                      ? 'bg-foreground text-background shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      ? 'bg-primary/10 text-primary border border-primary/20'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5 flex-shrink-0" />
