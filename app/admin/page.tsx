@@ -230,7 +230,7 @@ function MissingElementsModal({ user, onClose }: { user: AdminUser; onClose: () 
   useEffect(() => {
     fetch(`/api/admin/users/missing?userId=${user.id}`)
       .then(r => r.json())
-      .then(d => { setItems(Array.isArray(d) ? d : []); setLoading(false) })
+      .then(d => { setItems(Array.isArray(d.missing) ? d.missing : []); setLoading(false) })
       .catch(() => setLoading(false))
   }, [user.id])
 
@@ -1470,9 +1470,15 @@ type UsageStats = {
                   <Pie data={pieData} dataKey="value" cx="50%" cy="50%" innerRadius={36} outerRadius={58} paddingAngle={2} strokeWidth={0}>
                     {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} opacity={0.9} />)}
                   </Pie>
-                  <Tooltip content={({ active, payload }) => active && payload?.length
-                    ? <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-xl text-xs"><p className="font-semibold">{payload[0].name}</p><p className="text-muted-foreground">{Number(payload[0].value).toLocaleString('fr')} joueurs</p></div>
-                    : null} />
+                  <Tooltip content={({ active, payload }: { active?: boolean; payload?: { name: string; value: number }[] }) => {
+                    if (!active || !payload?.length) return null
+                    return (
+                      <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-xl text-xs">
+                        <p className="font-semibold">{payload[0].name}</p>
+                        <p className="text-muted-foreground">{Number(payload[0].value).toLocaleString('fr')} joueurs</p>
+                      </div>
+                    )
+                  }} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -1482,7 +1488,7 @@ type UsageStats = {
                   <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
                   <span className="text-xs flex-1 truncate text-muted-foreground">{d.name}</span>
                   <span className="text-xs tabular-nums font-semibold w-8 text-right">{d.value}</span>
-                  <span className="text-[10px] text-muted-foreground w-6 text-right">{Math.round((d.value / totalPlayers) * 100)}%</span>
+                  <span className="text-[10px] text-muted-foreground w-6 text-right">{Math.round((d.value / totalPlayers) * 100) + '%'}</span>
                 </div>
               ))}
             </div>
