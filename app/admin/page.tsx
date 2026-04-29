@@ -1660,33 +1660,46 @@ export default function AdminPanel() {
     <div className="min-h-screen bg-background" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {/* Top bar */}
       <header
-        className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-20"
+        className="border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-20"
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
         <div className="max-w-7xl mx-auto px-4 lg:px-8">
+          {/* Brand row */}
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-3">
-              <a href="/" className="text-muted-foreground hover:text-foreground transition-colors">
-                <ChevronLeft className="w-4 h-4" />
+              <a href="/" className="flex items-center gap-2 group">
+                <img src="/logo.png" alt="Elementz" className="w-7 h-7 rounded-xl shadow-sm" />
+                <span className="text-sm font-semibold tracking-tight">Elementz</span>
+                <span className="text-xs text-muted-foreground bg-muted border border-border rounded-md px-1.5 py-0.5 font-medium">admin</span>
               </a>
-              <div className="w-px h-4 bg-border" />
-              <span className="text-sm font-semibold">Admin</span>
             </div>
-            <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" className="w-8 h-8 rounded-xl" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </Button>
+              <a href="/" className="flex items-center justify-center w-8 h-8 rounded-xl hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+                <X className="w-4 h-4" />
+              </a>
+            </div>
           </div>
 
-          {/* Tab nav — equal-width on mobile, auto on desktop */}
-          <nav className="grid grid-cols-6 sm:flex sm:items-center sm:gap-1 -mb-px">
+          {/* Tab nav — pills on mobile, full labels on desktop */}
+          <nav className="flex items-center gap-1 overflow-x-auto pb-3 scrollbar-none">
             {TABS.map(t => {
               const Icon = t.icon
               const isActive = tab === t.id
               return (
-                <button key={t.id} onClick={() => setTab(t.id)}
-                  className={`flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-2 px-2 sm:px-3 py-2.5 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${isActive ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>
-                  <Icon className="w-4 h-4 flex-shrink-0" />
-                  <span className="leading-none hidden sm:inline">{t.label}</span>
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                    isActive
+                      ? 'bg-foreground text-background shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>{t.label}</span>
                 </button>
               )
             })}
