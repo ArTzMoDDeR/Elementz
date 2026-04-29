@@ -218,6 +218,88 @@ function OverviewTab() {
   )
 }
 
+// ─── Missing Elements Modal ──────────────────────────────────────────────────
+
+type MissingElement = { number: number; name_french: string; name_english: string }
+
+function MissingElementsModal({ user, onClose }: { user: AdminUser; onClose: () => void }) {
+  const [items, setItems] = useState<MissingElement[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+
+  useEffect(() => {
+    fetch(`/api/admin/users/missing?userId=${user.id}`)
+      .then(r => r.json())
+      .then(d => { setItems(Array.isArray(d) ? d : []); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [user.id])
+
+  const filtered = items.filter(el =>
+    el.name_french.toLowerCase().includes(search.toLowerCase()) ||
+    el.name_english.toLowerCase().includes(search.toLowerCase()) ||
+    String(el.number).includes(search)
+  )
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div
+        className="relative bg-card border border-border rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border flex-shrink-0">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold truncate">
+              {user.name ?? user.email} — {loading ? '…' : `${items.length} manquant${items.length !== 1 ? 's' : ''}`}
+            </p>
+            <p className="text-xs text-muted-foreground">{user.discovered} / {loading ? '…' : user.discovered + items.length} éléments découverts</p>
+          </div>
+          <button onClick={onClose} className="ml-3 flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg hover:bg-muted transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Search */}
+        {!loading && items.length > 10 && (
+          <div className="px-5 py-3 border-b border-border flex-shrink-0">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder="Filtrer..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="pl-8 h-8 text-xs"
+                autoFocus
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Content */}
+        <div className="overflow-y-auto flex-1 p-4">
+          {loading ? (
+            <div className="flex justify-center py-10"><Spinner size="md" /></div>
+          ) : filtered.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              {search ? 'Aucun résultat' : 'Ce joueur a tout découvert !'}
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-1.5">
+              {filtered.map(el => (
+                <div key={el.number} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-muted/40 border border-border/50">
+                  <span className="text-[10px] tabular-nums text-muted-foreground/60 w-6 flex-shrink-0">#{el.number}</span>
+                  <span className="text-xs truncate">{el.name_french}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Tab: Users ─────────────────────────────────────────────────────────────────
 
 function UsersTab() {
@@ -228,6 +310,7 @@ function UsersTab() {
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [toggling, setToggling] = useState<string | null>(null)
+  const [missingUser, setMissingUser] = useState<AdminUser | null>(null)
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300)
@@ -322,14 +405,23 @@ function UsersTab() {
                     {new Date(u.created_at).toLocaleDateString('fr', { day: 'numeric', month: 'short', year: '2-digit' })}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <button
-                      onClick={() => toggleAdmin(u)}
-                      disabled={!!toggling}
-                      title={u.is_admin ? 'Révoquer admin' : 'Donner admin'}
-                      className={`inline-flex items-center justify-center w-7 h-7 rounded-lg border transition-colors ${u.is_admin ? 'bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400' : 'border-border text-muted-foreground hover:bg-blue-500/10 hover:border-blue-500/30 hover:text-blue-400'}`}
-                    >
-                      {toggling === u.id ? <Spinner /> : u.is_admin ? <Shield className="w-3.5 h-3.5" /> : <ShieldOff className="w-3.5 h-3.5" />}
-                    </button>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <button
+                        onClick={() => setMissingUser(u)}
+                        title="Éléments manquants"
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-border text-muted-foreground hover:bg-amber-500/10 hover:border-amber-500/30 hover:text-amber-400 transition-colors"
+                      >
+                        <Layers className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => toggleAdmin(u)}
+                        disabled={!!toggling}
+                        title={u.is_admin ? 'Révoquer admin' : 'Donner admin'}
+                        className={`inline-flex items-center justify-center w-7 h-7 rounded-lg border transition-colors ${u.is_admin ? 'bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400' : 'border-border text-muted-foreground hover:bg-blue-500/10 hover:border-blue-500/30 hover:text-blue-400'}`}
+                      >
+                        {toggling === u.id ? <Spinner /> : u.is_admin ? <Shield className="w-3.5 h-3.5" /> : <ShieldOff className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -352,6 +444,10 @@ function UsersTab() {
           </div>
         )}
       </div>
+
+      {missingUser && (
+        <MissingElementsModal user={missingUser} onClose={() => setMissingUser(null)} />
+      )}
     </div>
   )
 }
@@ -1335,7 +1431,7 @@ function EmailTab() {
   )
 }
 
-// ─── Tab: Stats ──���───────────────────────────────────────────────────────────
+// ─── Tab: Stats ──�����───────────────────────────────────────────────────────────
 
 type DayCount = { day: string; count: number }
 
