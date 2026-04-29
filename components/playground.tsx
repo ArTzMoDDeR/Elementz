@@ -677,16 +677,18 @@ export function Playground({
           {/* Header — same layout on mobile and desktop: [clear] [logo+counter] [hint] */}
           <div className="flex items-center gap-2" style={{ transform: 'translateY(-3px)' }}>
 
-            {/* Clear button — always visible, attractive */}
-            <button
-              onPointerDown={e => e.stopPropagation()}
-              onClick={e => { e.stopPropagation(); onClear() }}
-              className="flex-shrink-0 flex items-center gap-1.5 h-10 px-3 rounded-2xl transition-all bg-muted border border-border text-foreground/70 hover:text-foreground hover:bg-muted/80 hover:border-foreground/20 active:scale-95"
-              title={lang === 'fr' ? 'Vider le terrain' : 'Clear field'}
-            >
-              <Trash2 className="w-4 h-4 flex-shrink-0" />
-              <span className="text-xs font-semibold hidden sm:inline">{lang === 'fr' ? 'Vider' : 'Clear'}</span>
-            </button>
+            {/* Clear button — only visible when there is at least 1 element on the playground */}
+            {items.length > 0 && (
+              <button
+                onPointerDown={e => e.stopPropagation()}
+                onClick={e => { e.stopPropagation(); onClear() }}
+                className="flex-shrink-0 flex items-center gap-1.5 h-10 px-3 rounded-2xl transition-all bg-muted border border-border text-foreground/70 hover:text-foreground hover:bg-muted/80 hover:border-foreground/20 active:scale-95"
+                title={lang === 'fr' ? 'Vider le terrain' : 'Clear field'}
+              >
+                <Trash2 className="w-4 h-4 flex-shrink-0" />
+                <span className="text-xs font-semibold hidden sm:inline">{lang === 'fr' ? 'Vider' : 'Clear'}</span>
+              </button>
+            )}
 
             {/* Center: logo + title + counter — or notification */}
             {headerNotification ? (
@@ -711,20 +713,33 @@ export function Playground({
               </div>
             )}
 
-            {/* Hint button — always amber-tinted, pulses + glows after 1 min without discovery */}
-            <button
-              onPointerDown={e => e.stopPropagation()}
-              onClick={e => { e.stopPropagation(); onRequestHint?.() }}
-              className={`relative flex-shrink-0 flex items-center gap-1.5 h-10 px-3 rounded-2xl transition-all border active:scale-95 ${
-                hintShouldPulse
-                  ? 'bg-amber-400/20 border-amber-400/60 text-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.35)] animate-pulse'
-                  : 'bg-amber-400/10 border-amber-400/25 text-amber-400 hover:bg-amber-400/20 hover:border-amber-400/50'
-              }`}
-              title={lang === 'fr' ? 'Indice' : 'Hint'}
-            >
-              <Lightbulb className="w-4 h-4 flex-shrink-0" />
-              <span className="text-xs font-semibold hidden sm:inline">{lang === 'fr' ? 'Indice' : 'Hint'}</span>
-            </button>
+            {/* Hint button — hidden when all 592 elements are discovered */}
+            {discovered.size >= totalElements ? (
+              /* Easter egg for players who completed the game */
+              <div
+                className="flex-shrink-0 flex items-center gap-1.5 h-10 px-3 rounded-2xl bg-gradient-to-r from-yellow-400/20 via-pink-400/20 to-cyan-400/20 border border-yellow-400/30 select-none cursor-default"
+                title={lang === 'fr' ? 'Maître alchimiste !' : 'Alchemy master!'}
+              >
+                <span className="text-base leading-none" role="img" aria-label="crown">👑</span>
+                <span className="text-xs font-bold hidden sm:inline bg-gradient-to-r from-yellow-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
+                  {lang === 'fr' ? 'GG !' : 'GG!'}
+                </span>
+              </div>
+            ) : (
+              <button
+                onPointerDown={e => e.stopPropagation()}
+                onClick={e => { e.stopPropagation(); onRequestHint?.() }}
+                className={`relative flex-shrink-0 flex items-center gap-1.5 h-10 px-3 rounded-2xl transition-all border active:scale-95 ${
+                  hintShouldPulse
+                    ? 'bg-amber-400/20 border-amber-400/60 text-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.35)] animate-pulse'
+                    : 'bg-amber-400/10 border-amber-400/25 text-amber-400 hover:bg-amber-400/20 hover:border-amber-400/50'
+                }`}
+                title={lang === 'fr' ? 'Indice' : 'Hint'}
+              >
+                <Lightbulb className="w-4 h-4 flex-shrink-0" />
+                <span className="text-xs font-semibold hidden sm:inline">{lang === 'fr' ? 'Indice' : 'Hint'}</span>
+              </button>
+            )}
 
           </div>
           {activeTab === 'home' && (
