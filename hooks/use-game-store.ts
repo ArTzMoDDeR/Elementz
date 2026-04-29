@@ -117,6 +117,7 @@ export function useGameStore() {
   const [lastUnlockTime, setLastUnlockTime] = useState(Date.now())
   const idCounter = useRef(0)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const newlyDiscoveredTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hapticEnabledRef = useRef(true) // ref so it's readable inside useCallback without deps
   // Buffer of newly discovered elements + combo ingredients waiting to be flushed to DB
   const pendingDiscovered = useRef<Set<string>>(new Set())
@@ -291,20 +292,29 @@ export function useGameStore() {
   // Keep ref in sync so the StorageEvent listener always has the latest setLang
   useEffect(() => { setLangRef.current = setLang }, [setLang])
 
-  // Flush pending discoveries to DB — called on debounce timer or page unload
+  // Flush pending discoveries to DB — called on debounce timer or page unload.
+  // Buffers are restored on failure so data is never silently dropped.
   const flushToDb = useCallback((userId: string) => {
     const newItems = [...pendingDiscovered.current]
     const ingredients = [...pendingIngredients.current]
     if (newItems.length === 0 && ingredients.length === 0) return
+
+    // Drain the buffers optimistically — restore them if the request fails
     pendingDiscovered.current = new Set()
     pendingIngredients.current = []
-    // Flatten all ingredient pairs used during this batch
+
+    // Flatten all ingredient pairs accumulated during this batch
     const allIngredients = ingredients.flat()
+
     fetch('/api/progress', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ discovered: newItems, combo_ingredients: allIngredients }),
-    }).catch(() => {})
+    }).catch(() => {
+      // Network or server error — put items back so the next flush retries them
+      newItems.forEach(item => pendingDiscovered.current.add(item))
+      pendingIngredients.current.unshift(...ingredients)
+    })
   }, [])
 
   // Save discovered progress — localStorage always, server batched every 30s
@@ -363,58 +373,82 @@ export function useGameStore() {
 
   const clearPlayground = useCallback(() => setPlayground([]), [])
 
-  const tryMerge = useCallback((id1: string, id2: string): string | null => {
-    const item1 = playground.find(i => i.id === id1)
-    const item2 = playground.find(i => i.id === id2)
-    if (!item1 || !item2) return null
-    const results = findRecipes(recipeMap, item1.element, item2.element)
-    if (results.length === 0) return null
-
-    // Place result at the stationary target (item2) position
-    const tx = item2.x
-    const ty = item2.y
-    const spread = 60
-
-    // Remove the two source items, add all results
-    setPlayground(prev => {
-      const filtered = prev.filter(i => i.id !== id1 && i.id !== id2)
-      const newItems = results.map((res, idx) => {
-        const angle = (idx / results.length) * Math.PI * 2
-        const x = results.length > 1 ? tx + Math.cos(angle) * spread : tx
-        const y = results.length > 1 ? ty + Math.sin(angle) * spread : ty
-        return { id: generateId(), element: res, x, y }
-      })
-      return [...filtered, ...newItems]
-    })
-
+  // ─── Shared merge logic ───────────────────────────────────────────────────
+  // Handles discoveries, haptics, and DB buffering for any merge operation.
+  // Called by both tryMerge and dropAndMerge after they update the playground.
+  const applyMerge = useCallback((
+    results: string[],
+    ingredientA: string,
+    ingredientB: string,
+  ): string => {
     const newResults = results.filter(res => !discovered.has(res))
+
     if (newResults.length > 0) {
-      // Single setDiscovered call to avoid React batching dropping intermediate results
+      // Single setDiscovered call — avoids React batching silently dropping
+      // intermediate results when multiple new elements are produced at once.
       setDiscovered(prev => new Set([...prev, ...newResults]))
-      const firstNew = newResults[0]
-      setNewlyDiscovered(firstNew)
+
+      // Clear any existing toast timer before setting a new one
+      if (newlyDiscoveredTimerRef.current) clearTimeout(newlyDiscoveredTimerRef.current)
+      setNewlyDiscovered(newResults[0])
       setLastUnlockTime(Date.now())
-      setTimeout(() => setNewlyDiscovered(null), 3000)
+      newlyDiscoveredTimerRef.current = setTimeout(() => {
+        setNewlyDiscovered(null)
+        newlyDiscoveredTimerRef.current = null
+      }, 3000)
+
       if (hapticEnabledRef.current && typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate([30, 20, 60])
       }
     }
 
-    // Buffer new discoveries + ingredients — will be flushed to DB in batch every 30s
+    // Buffer new discoveries + the ingredient pair used — flushed to DB in batch every 30s
     if (session?.user?.id) {
       newResults.forEach(res => pendingDiscovered.current.add(res))
-      pendingIngredients.current.push([item1.element, item2.element])
+      pendingIngredients.current.push([ingredientA, ingredientB])
     }
 
     return results[0]
-  }, [playground, discovered, recipeMap, generateId, session?.user?.id])
+  }, [discovered, session?.user?.id])
+
+  const tryMerge = useCallback((id1: string, id2: string): string | null => {
+    const item1 = playground.find(i => i.id === id1)
+    const item2 = playground.find(i => i.id === id2)
+    if (!item1 || !item2) return null
+
+    const results = findRecipes(recipeMap, item1.element, item2.element)
+    if (results.length === 0) return null
+
+    // Place results at the stationary target (item2) position, spread if multiple
+    const tx = item2.x
+    const ty = item2.y
+    const spread = 60
+
+    setPlayground(prev => {
+      const filtered = prev.filter(i => i.id !== id1 && i.id !== id2)
+      const newItems = results.map((res, idx) => {
+        const angle = (idx / results.length) * Math.PI * 2
+        return {
+          id: generateId(),
+          element: res,
+          x: results.length > 1 ? tx + Math.cos(angle) * spread : tx,
+          y: results.length > 1 ? ty + Math.sin(angle) * spread : ty,
+        }
+      })
+      return [...filtered, ...newItems]
+    })
+
+    return applyMerge(results, item1.element, item2.element)
+  }, [playground, recipeMap, generateId, applyMerge])
 
   const dropAndMerge = useCallback((element: string, x: number, y: number, targetId: string): string | null => {
     const target = playground.find(i => i.id === targetId)
     if (!target) return null
+
     const results = findRecipes(recipeMap, element, target.element)
     if (results.length === 0) return null
 
+    // Place results centered between the two source positions, spread if multiple
     const cx = (x + target.x) / 2
     const cy = (y + target.y) / 2
     const spread = 60
@@ -423,34 +457,18 @@ export function useGameStore() {
       const filtered = prev.filter(i => i.id !== targetId)
       const newItems = results.map((res, idx) => {
         const angle = (idx / results.length) * Math.PI * 2
-        const px = results.length > 1 ? cx + Math.cos(angle) * spread : cx
-        const py = results.length > 1 ? cy + Math.sin(angle) * spread : cy
-        return { id: generateId(), element: res, x: px, y: py }
+        return {
+          id: generateId(),
+          element: res,
+          x: results.length > 1 ? cx + Math.cos(angle) * spread : cx,
+          y: results.length > 1 ? cy + Math.sin(angle) * spread : cy,
+        }
       })
       return [...filtered, ...newItems]
     })
 
-    const newResults = results.filter(res => !discovered.has(res))
-    if (newResults.length > 0) {
-      // Single setDiscovered call to avoid React batching dropping intermediate results
-      setDiscovered(prev => new Set([...prev, ...newResults]))
-      const firstNew = newResults[0]
-      setNewlyDiscovered(firstNew)
-      setLastUnlockTime(Date.now())
-      setTimeout(() => setNewlyDiscovered(null), 3000)
-      if (hapticEnabledRef.current && typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate([30, 20, 60])
-      }
-    }
-
-    // Buffer new discoveries + ingredients — will be flushed to DB in batch every 30s
-    if (session?.user?.id) {
-      newResults.forEach(res => pendingDiscovered.current.add(res))
-      pendingIngredients.current.push([element, target.element])
-    }
-
-    return results[0]
-  }, [playground, discovered, recipeMap, generateId, session?.user?.id])
+    return applyMerge(results, element, target.element)
+  }, [playground, recipeMap, generateId, applyMerge])
 
   const resetProgress = useCallback(() => {
     const baseEls = lang === 'fr' ? BASE_ELEMENTS_FR : BASE_ELEMENTS_EN
