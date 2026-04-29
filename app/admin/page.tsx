@@ -135,7 +135,7 @@ function OverviewTab() {
         <StatCard label="Éléments" value={stats.elements} sub={`${stats.noImg} sans image`} />
         <StatCard label="Recettes" value={stats.recipes} sub={`${stats.noRecipe} éléments sans recette`} />
         <StatCard label="Joueurs" value={stats.users} sub={`+${stats.newUsersToday} aujourd'hui`} color="text-blue-400" />
-        <StatCard label="Découvertes" value={stats.unlocks.toLocaleString('fr')} sub={`${stats.activeToday} joueurs actifs aujourd'hui`} color="text-emerald-400" />
+              <StatCard label="Decouvertes" value={stats.unlocks.toLocaleString()} sub={stats.activeToday + " joueurs actifs aujourd'hui"} color="text-emerald-400" />
       </div>
 
       {/* Progress bars */}
@@ -1461,7 +1461,7 @@ type UsageStats = {
           <div className="flex items-center gap-2 mb-4">
             <Activity className="w-4 h-4 text-muted-foreground" />
             <p className="text-sm font-semibold">Distribution joueurs</p>
-            <span className="ml-auto text-xs text-muted-foreground">{totalPlayers.toLocaleString('fr')} total</span>
+                  <span className="ml-auto text-xs text-muted-foreground">{totalPlayers.toLocaleString()} total</span>
           </div>
           <div className="flex items-center gap-5">
             <div style={{ width: 130, height: 130, flexShrink: 0 }}>
@@ -1475,7 +1475,7 @@ type UsageStats = {
                     return (
                       <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-xl text-xs">
                         <p className="font-semibold">{payload[0].name}</p>
-                        <p className="text-muted-foreground">{Number(payload[0].value).toLocaleString('fr')} joueurs</p>
+                        <p className="text-muted-foreground">{Number(payload[0].value).toLocaleString()} joueurs</p>
                       </div>
                     )
                   }} />
@@ -1504,16 +1504,16 @@ type UsageStats = {
         </div>
         <div style={{ height: 220 }} className="p-4">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={stats.topPlayers.map(p => ({ ...p, name: p.name ?? 'Anonyme' }))} layout="vertical" barCategoryGap="20%">
+            <BarChart data={stats.topPlayers.map(p => ({ ...p, name: p.name ?? 'Anonyme' }))} layout="vertical" barSize={14}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 10, fill: 'oklch(0.55 0 0)' }} axisLine={false} tickLine={false} tickFormatter={v => Number(v).toLocaleString('fr')} />
+              <XAxis type="number" tick={{ fontSize: 10, fill: 'oklch(0.55 0 0)' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => Number(v).toLocaleString()} />
               <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: 'oklch(0.85 0 0)' }} axisLine={false} tickLine={false} width={90} />
               <Tooltip content={({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) => {
                 if (!active || !payload?.length) return null
                 return (
                   <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-xl text-xs">
                     <p className="font-semibold mb-1">{label}</p>
-                    <p className="text-muted-foreground">{Number(payload[0].value).toLocaleString('fr')} d&eacute;couvertes</p>
+                    <p className="text-muted-foreground">{Number(payload[0].value).toLocaleString()} decouverts</p>
                   </div>
                 )
               }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
@@ -1765,7 +1765,7 @@ function StatsTab() {
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               {chartKind === 'bar' ? (
-                <BarChart data={series} barGap={2} barCategoryGap="28%">
+                <BarChart data={series} barGap={2} barCategoryGap={28}>
                   {gridEl}{xEl}{yEl}
                   <Tooltip content={<StatsTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
                   {activeSer.map(s => <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[3, 3, 0, 0]} opacity={0.85} />)}
@@ -1809,7 +1809,7 @@ function StatsTab() {
           </div>
           <div style={{ height: 160 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={retentionData} layout="vertical" barCategoryGap="30%">
+              <BarChart data={retentionData} layout="vertical" barCategoryGap={30}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
                 <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: 'oklch(0.55 0 0)' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => v + '%'} />
                 <YAxis type="category" dataKey="label" tick={{ fontSize: 12, fontWeight: 600, fill: 'oklch(0.85 0 0)' }} axisLine={false} tickLine={false} width={28} />
@@ -1884,7 +1884,7 @@ function StatsTab() {
         </div>
         <div style={{ height: 220 }} className="p-4">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={stats.topPlayers.map(p => ({ ...p, name: p.name ?? 'Anonyme' }))} layout="vertical" barCategoryGap="20%">
+            <BarChart data={stats.topPlayers.map(p => ({ ...p, name: p.name ?? 'Anonyme' }))} layout="vertical" barSize={14}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 10, fill: 'oklch(0.55 0 0)' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => Number(v).toLocaleString()} />
               <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: 'oklch(0.85 0 0)' }} axisLine={false} tickLine={false} width={90} />
@@ -1894,7 +1894,7 @@ function StatsTab() {
                   return (
                     <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-xl text-xs">
                       <p className="font-semibold mb-1">{label}</p>
-                      <p className="text-muted-foreground">{Number(payload[0].value).toLocaleString()} decouvertes</p>
+                      <p className="text-muted-foreground">{Number(payload[0].value).toLocaleString()} decouverts</p>
                     </div>
                   )
                 }}
