@@ -27,8 +27,8 @@ export default function LegalPage() {
       defaultLang="fr"
       titleFr="Mentions légales"
       titleEn="Legal Notice"
-      lastUpdatedFr="6 mars 2025"
-      lastUpdatedEn="6 March 2025"
+      lastUpdatedFr="29 avril 2025"
+      lastUpdatedEn="29 April 2025"
       footerFr={<>
         <Link href="/privacy" className="hover:text-foreground transition-colors">Politique de confidentialité</Link>
         <Link href="/terms" className="hover:text-foreground transition-colors">Conditions d&apos;utilisation</Link>
