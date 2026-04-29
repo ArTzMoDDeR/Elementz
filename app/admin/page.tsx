@@ -1470,9 +1470,15 @@ type UsageStats = {
                   <Pie data={pieData} dataKey="value" cx="50%" cy="50%" innerRadius={36} outerRadius={58} paddingAngle={2} strokeWidth={0}>
                     {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} opacity={0.9} />)}
                   </Pie>
-                  <Tooltip content={({ active, payload }) => active && payload?.length
-                    ? <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-xl text-xs"><p className="font-semibold">{payload[0].name}</p><p className="text-muted-foreground">{Number(payload[0].value).toLocaleString('fr')} joueurs</p></div>
-                    : null} />
+                  <Tooltip content={({ active, payload }: { active?: boolean; payload?: { name: string; value: number }[] }) => {
+                    if (!active || !payload?.length) return null
+                    return (
+                      <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-xl text-xs">
+                        <p className="font-semibold">{payload[0].name}</p>
+                        <p className="text-muted-foreground">{Number(payload[0].value).toLocaleString('fr')} joueurs</p>
+                      </div>
+                    )
+                  }} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
