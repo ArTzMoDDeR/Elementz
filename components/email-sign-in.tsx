@@ -147,9 +147,12 @@ export default function EmailSignIn({ lang }: Props) {
       <button
         onClick={sendCode}
         disabled={loading || !email.trim()}
-        className="h-11 w-11 flex items-center justify-center rounded-xl bg-muted/50 border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40 flex-shrink-0"
+        className="btn-game-primary flex-shrink-0"
+        style={{ width: 44, height: 44 }}
       >
-        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+        <span className="btn-face px-0">
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+        </span>
       </button>
       {error && <p className="text-xs text-red-400 w-full">{error}</p>}
     </div>

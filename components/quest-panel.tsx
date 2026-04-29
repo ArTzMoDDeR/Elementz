@@ -314,11 +314,13 @@ function QuestCard({ quest, lang, onClaim, onScratch, pinned, onDismiss }: {
             <button
               onClick={handleClaim}
               disabled={claiming}
-              className="mt-2.5 w-full h-9 rounded-xl bg-amber-400 hover:bg-amber-300 active:scale-[0.98] text-black text-xs font-bold transition-all disabled:opacity-60 flex items-center justify-center gap-1.5"
-            >
-              <Trophy className="w-3.5 h-3.5" />
-              {claiming ? (lang === 'fr' ? 'En cours...' : 'Claiming...') : (lang === 'fr' ? 'Réclamer la récompense' : 'Claim reward')}
-            </button>
+          className="btn-game-amber mt-2.5 w-full h-9"
+          >
+          <span className="btn-face text-xs px-4">
+            <Trophy className="w-3.5 h-3.5" />
+            {claiming ? (lang === 'fr' ? 'En cours...' : 'Claiming...') : (lang === 'fr' ? 'Réclamer la récompense' : 'Claim reward')}
+          </span>
+          </button>
           )}
         </div>
       </div>
@@ -385,7 +387,7 @@ function SectionLabel({ label, count, color = 'muted' }: { label: string; count?
   )
 }
 
-// ─── Main Panel ─────��─────────────────────────────────────────────────────────
+// ─── Main Panel ─────���─────────────────────────────────────────────────────────
 
 export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGoToPlay?: () => void }) {
   const [quests, setQuests] = useState<Quest[]>([])
