@@ -1488,7 +1488,7 @@ type UsageStats = {
                   <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
                   <span className="text-xs flex-1 truncate text-muted-foreground">{d.name}</span>
                   <span className="text-xs tabular-nums font-semibold w-8 text-right">{d.value}</span>
-                  <span className="text-[10px] text-muted-foreground w-6 text-right">{Math.round((d.value / totalPlayers) * 100)}%</span>
+                  <span className="text-[10px] text-muted-foreground w-6 text-right">{Math.round((d.value / totalPlayers) * 100) + '%'}</span>
                 </div>
               ))}
             </div>
