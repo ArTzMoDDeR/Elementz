@@ -2,15 +2,17 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 
-type RecipeMap = Map<string, string[]>
+// RecipeMap keyed by "n1|n2" number strings — matches use-game-store
+type RecipeMap = Map<string, number[]>
 
-interface HintResult {
-  result: string
-  ing1: string
-  ing2: string
+export interface HintResult {
+  /** DB element number of the element to discover */
+  result: number
+  ing1: number
+  ing2: number
 }
 
-function findHint(discovered: Set<string>, recipeMap: RecipeMap): HintResult | null {
+function findHint(discovered: Set<number>, recipeMap: RecipeMap): HintResult | null {
   const discoveredArr = [...discovered]
   const candidates: HintResult[] = []
 
@@ -35,7 +37,7 @@ const HINTS_KEY = 'elementz_hints'
 const PULSE_DELAY = 60 * 1000 // 1 minute without discovery → pulse
 
 export function useHint(
-  discovered: Set<string>,
+  discovered: Set<number>,
   recipeMap: RecipeMap,
   lastUnlockTime: number,
   lang: 'fr' | 'en',

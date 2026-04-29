@@ -5,7 +5,7 @@ import { Search, X, ChevronRight, ArrowLeft, Lock, Loader2 } from 'lucide-react'
 import { Books } from '@phosphor-icons/react'
 import type { ElementDef } from '@/lib/game-data'
 
-// ─── Section divider (mirrors quest-panel style) ─────────────────────────────
+// ─── Section divider ──────────────────────────────────────────────────────────
 
 function SectionLabel({ label, count, color = 'muted' }: { label: string; count?: number; color?: 'primary' | 'amber' | 'sky' | 'muted' }) {
   const colorClass = {
@@ -25,13 +25,11 @@ function SectionLabel({ label, count, color = 'muted' }: { label: string; count?
   )
 }
 
-// ─── Recipe card ─────────────────────────────────────────────────────────────
+// ─── Recipe card ──────────────────────────────────────────────────────────────
 
 interface FetchedRecipe {
-  ing1_name_fr: string
-  ing1_name_en: string
-  ing2_name_fr: string
-  ing2_name_en: string
+  ing1_number: number
+  ing2_number: number
 }
 
 function RecipeCard({
@@ -41,7 +39,8 @@ function RecipeCard({
   onClose,
 }: {
   element: ElementDef
-  elements: Map<string, ElementDef>
+  /** Keyed by number */
+  elements: Map<number, ElementDef>
   lang: 'fr' | 'en'
   onClose: () => void
 }) {
@@ -49,21 +48,18 @@ function RecipeCard({
 
   useEffect(() => {
     setRecipe(undefined)
-    fetch(`/api/codex/recipe/${encodeURIComponent(element.name)}`)
+    // API now accepts element number
+    fetch(`/api/codex/recipe/${element.number}`)
       .then(r => r.json())
       .then(data => setRecipe(data.recipe ?? null))
       .catch(() => setRecipe(null))
-  }, [element.name])
+  }, [element.number])
 
   const loading = recipe === undefined
   const isBase = recipe === null
 
-  // Try both FR and EN name to find the element in the map (lang-dependent keys)
-  const resolveEl = (nameFr: string, nameEn: string): ElementDef =>
-    elements.get(nameFr) ?? elements.get(nameEn) ?? { name: nameFr, icon: '', color: '#94A3B8', category: '' }
-
-  const ingA = recipe ? resolveEl(recipe.ing1_name_fr, recipe.ing1_name_en) : null
-  const ingB = recipe ? resolveEl(recipe.ing2_name_fr, recipe.ing2_name_en) : null
+  const ingA = recipe ? elements.get(recipe.ing1_number) ?? null : null
+  const ingB = recipe ? elements.get(recipe.ing2_number) ?? null : null
 
   return (
     <div
@@ -104,9 +100,7 @@ function RecipeCard({
         className="border-t px-4 py-3 flex items-center justify-center gap-2.5 min-h-[72px]"
         style={{ borderColor: `${element.color}20` }}
       >
-        {loading && (
-          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground/40" />
-        )}
+        {loading && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground/40" />}
         {!loading && isBase && (
           <p className="text-xs text-muted-foreground/60 py-0.5">
             {lang === 'fr' ? 'Aucune recette — élément originel' : 'No recipe — primordial element'}
@@ -207,24 +201,25 @@ function LockedCard() {
   )
 }
 
-// ─── Main panel ───────────────────────────────────────���───────────────────────
+// ─── Main panel ───────────────────────────────────────────────────────────────
 
 export function CodexInlinePanel({
   lang,
   elements,
   discovered,
   totalElements,
-  recipeMap,
   onGoToPlay,
 }: {
   lang: 'fr' | 'en'
-  elements: Map<string, ElementDef>
-  discovered: Set<string>
+  /** Keyed by DB element number */
+  elements: Map<number, ElementDef>
+  /** Set of discovered element numbers */
+  discovered: Set<number>
   totalElements: number
-  recipeMap: Map<string, string[]>
   onGoToPlay?: () => void
 }) {
-  const [selected, setSelected] = useState<string | null>(null)
+  // selected is a number (element.number) or null
+  const [selected, setSelected] = useState<number | null>(null)
   const [search, setSearch] = useState('')
   const topRef = useRef<HTMLDivElement>(null)
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
@@ -240,9 +235,9 @@ export function CodexInlinePanel({
   const discoveredCount = discovered.size
   const pct = totalElements > 0 ? Math.round((discoveredCount / totalElements) * 100) : 0
 
-  // All element names sorted alphabetically
-  const allNames = Array.from(elements.keys()).sort((a, b) =>
-    a.localeCompare(b, lang === 'fr' ? 'fr' : 'en', { sensitivity: 'base' })
+  // All elements sorted by display name
+  const allElements = Array.from(elements.values()).sort((a, b) =>
+    a.name.localeCompare(b.name, lang === 'fr' ? 'fr' : 'en', { sensitivity: 'base' })
   )
 
   const norm = (s: string) =>
@@ -250,14 +245,14 @@ export function CodexInlinePanel({
 
   // When searching: only show matching discovered elements
   // When not searching: show all (discovered + locked)
-  const filteredNames = search
-    ? allNames.filter(n => discovered.has(n) && norm(n).includes(norm(search)))
-    : allNames
+  const filteredElements = search
+    ? allElements.filter(el => discovered.has(el.number) && norm(el.name).includes(norm(search)))
+    : allElements
 
-  const discoveredInFilter = filteredNames.filter(n => discovered.has(n))
-  const undiscoveredInFilter = search ? [] : filteredNames.filter(n => !discovered.has(n))
+  const discoveredInFilter  = filteredElements.filter(el => discovered.has(el.number))
+  const undiscoveredInFilter = search ? [] : filteredElements.filter(el => !discovered.has(el.number))
 
-  const selectedEl = selected ? elements.get(selected) ?? null : null
+  const selectedEl = selected !== null ? (elements.get(selected) ?? null) : null
 
   return (
     <div ref={topRef} className="flex flex-col gap-5 py-1">
@@ -341,18 +336,14 @@ export function CodexInlinePanel({
             />
           )}
           <div className="grid grid-cols-4 gap-2">
-            {discoveredInFilter.map(name => {
-              const el = elements.get(name)
-              if (!el) return null
-              return (
-                <ElementCard
-                  key={name}
-                  element={el}
-                  isSelected={selected === name}
-                  onClick={() => setSelected(prev => prev === name ? null : name)}
-                />
-              )
-            })}
+            {discoveredInFilter.map(el => (
+              <ElementCard
+                key={el.number}
+                element={el}
+                isSelected={selected === el.number}
+                onClick={() => setSelected(prev => prev === el.number ? null : el.number)}
+              />
+            ))}
           </div>
         </div>
       )}
@@ -376,8 +367,8 @@ export function CodexInlinePanel({
             color="muted"
           />
           <div className="grid grid-cols-4 gap-2">
-            {undiscoveredInFilter.map(name => (
-              <LockedCard key={name} />
+            {undiscoveredInFilter.map(el => (
+              <LockedCard key={el.number} />
             ))}
           </div>
         </div>

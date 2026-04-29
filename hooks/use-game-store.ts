@@ -4,94 +4,73 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { type ElementDef } from '@/lib/game-data'
 
-const STORAGE_KEY = 'alchemy-discovered-v3'
+const STORAGE_KEY = 'alchemy-discovered-v4'  // bumped — now stores numbers
 const LANG_KEY = 'alchemy-lang'
 // How long to batch new discoveries before flushing to DB (ms)
 const SYNC_DEBOUNCE_MS = 30_000
-
-// Base element names in both languages — must match DB exactly
-const BASE_ELEMENTS_FR = ['eau', 'feu', 'terre', 'air']
-const BASE_ELEMENTS_EN = ['water', 'fire', 'earth', 'air']
 
 export type Lang = 'fr' | 'en'
 
 export interface PlaygroundItem {
   id: string
-  element: string  // always the key (name in current lang)
+  /** DB element number — stable key, never changes with lang */
+  element: number
   x: number
   y: number
 }
 
-// RecipeMap: key = "a|b", value = array of result names (supports multi-result combos)
-type RecipeMap = Map<string, string[]>
+// RecipeMap: key = "n1|n2" (element numbers), value = number[] of result numbers
+type RecipeMap = Map<string, number[]>
 
 type RecipeRow = {
-  ingredient1: string
-  ingredient2: string
-  result: string
-  ingredient1_en?: string
-  ingredient2_en?: string
-  result_en?: string
+  ingredient1_number: number
+  ingredient2_number: number
+  result_number: number
 }
 
-function buildRecipeMap(recipes: RecipeRow[], lang: Lang): RecipeMap {
-  const map = new Map<string, string[]>()
-  const add = (key: string, val: string) => {
-    const arr = map.get(key)
-    if (arr) { if (!arr.includes(val)) arr.push(val) }
-    else map.set(key, [val])
-  }
-  for (const r of recipes) {
-    const a = lang === 'en' ? (r.ingredient1_en || r.ingredient1) : r.ingredient1
-    const b = lang === 'en' ? (r.ingredient2_en || r.ingredient2) : r.ingredient2
-    const res = lang === 'en' ? (r.result_en || r.result) : r.result
-    add(`${a}|${b}`, res)
-    add(`${b}|${a}`, res)
-  }
-  return map
+type DbRow = {
+  number: number
+  name_french: string
+  name_english: string
+  img: string | null
 }
 
-function findRecipes(map: RecipeMap, a: string, b: string): string[] {
-  return map.get(`${a}|${b}`) || []
-}
+// ─── Builders ────────────────────────────────────────────────────────────────
 
-function getColor(name: string): string {
-  const n = name.toLowerCase()
+function getColor(nameFr: string): string {
+  const n = nameFr.toLowerCase()
   const colorMap: Record<string, string> = {
-    eau: '#3B82F6', water: '#3B82F6',
-    feu: '#EF4444', fire: '#EF4444',
-    terre: '#A16207', earth: '#A16207',
-    air: '#06B6D4',
+    eau: '#3B82F6', feu: '#EF4444', terre: '#A16207', air: '#06B6D4',
   }
   if (colorMap[n]) return colorMap[n]
-  const hash = Array.from(name).reduce((acc, c) => acc + c.charCodeAt(0), 0)
-  const colors = ['#6366F1','#8B5CF6','#EC4899','#14B8A6','#F97316','#22C55E','#EAB308','#06B6D4','#F43F5E','#84CC16']
-  return colors[hash % colors.length]
+  const hash = Array.from(nameFr).reduce((acc, c) => acc + c.charCodeAt(0), 0)
+  const palette = ['#6366F1','#8B5CF6','#EC4899','#14B8A6','#F97316','#22C55E','#EAB308','#06B6D4','#F43F5E','#84CC16']
+  return palette[hash % palette.length]
 }
 
 function proxyImg(url: string | null): string | null {
   if (!url) return null
-  // Cloudinary URLs are public — serve directly
   if (url.includes('cloudinary.com') || url.includes('res.cloudinary.com')) return url
-  // Legacy Vercel Blob URLs — proxy server-side to avoid "store blocked" errors
-  if (url.includes('.blob.vercel-storage.com')) {
-    return `/api/img?url=${encodeURIComponent(url)}`
-  }
+  if (url.includes('.blob.vercel-storage.com')) return `/api/img?url=${encodeURIComponent(url)}`
   return url
 }
 
-function buildElementMap(
-  rows: Array<{ number: number; name_french: string; name_english: string; img: string | null }>,
-  lang: Lang
-): Map<string, ElementDef> {
-  const map = new Map<string, ElementDef>()
+/**
+ * Build Map<number, ElementDef> — the canonical element store.
+ * All game state (discovered, playground, recipeMap) is keyed by these numbers.
+ */
+function buildElementMap(rows: DbRow[], lang: Lang): Map<number, ElementDef> {
+  const map = new Map<number, ElementDef>()
   for (const row of rows) {
-    const name = lang === 'fr' ? (row.name_french || row.name_english) : (row.name_english || row.name_french)
+    const name = lang === 'fr'
+      ? (row.name_french || row.name_english)
+      : (row.name_english || row.name_french)
     if (!name) continue
-    map.set(name, {
+    map.set(row.number, {
+      number: row.number,
       name,
       icon: name.substring(0, 2).toUpperCase(),
-      color: getColor(name),
+      color: getColor(row.name_french),
       category: 'base',
       imageUrl: proxyImg(row.img),
     })
@@ -99,32 +78,66 @@ function buildElementMap(
   return map
 }
 
+/**
+ * Derived Map<string, ElementDef> keyed by current-lang name.
+ * Used only for display/UI lookups (avatar, backward-compat).
+ */
+function buildNameIndex(elements: Map<number, ElementDef>): Map<string, ElementDef> {
+  const map = new Map<string, ElementDef>()
+  elements.forEach(el => map.set(el.name, el))
+  return map
+}
+
+/**
+ * Build RecipeMap keyed by "n1|n2" number strings.
+ * Lang-independent — never needs rebuilding on lang change.
+ */
+function buildRecipeMap(recipes: RecipeRow[]): RecipeMap {
+  const map = new Map<string, number[]>()
+  const add = (key: string, val: number) => {
+    const arr = map.get(key)
+    if (arr) { if (!arr.includes(val)) arr.push(val) }
+    else map.set(key, [val])
+  }
+  for (const r of recipes) {
+    add(`${r.ingredient1_number}|${r.ingredient2_number}`, r.result_number)
+    add(`${r.ingredient2_number}|${r.ingredient1_number}`, r.result_number)
+  }
+  return map
+}
+
+function findRecipes(map: RecipeMap, a: number, b: number): number[] {
+  return map.get(`${a}|${b}`) || []
+}
+
+// ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useGameStore() {
   const { data: session, status: sessionStatus } = useSession()
   const [lang, setLangState] = useState<Lang>('en')
-  const [dbRows, setDbRows] = useState<Array<{ number: number; name_french: string; name_english: string; img: string | null }>>([])
+  const [dbRows, setDbRows] = useState<DbRow[]>([])
   const [dbRecipes, setDbRecipes] = useState<RecipeRow[]>([])
-  const [elements, setElements] = useState<Map<string, ElementDef>>(new Map())
-  const [frToElement, setFrToElement] = useState<Map<string, ElementDef>>(new Map())
-  const [frToEn, setFrToEn] = useState<Map<string, string>>(new Map())
+  const [elements, setElements] = useState<Map<number, ElementDef>>(new Map())
+  const [elementsByName, setElementsByName] = useState<Map<string, ElementDef>>(new Map())
+  // RecipeMap is built once and never rebuilt (numbers are lang-independent)
   const [recipeMap, setRecipeMap] = useState<RecipeMap>(new Map())
-  const [discovered, setDiscovered] = useState<Set<string>>(new Set())
+  const [discovered, setDiscovered] = useState<Set<number>>(new Set())
   const [playground, setPlayground] = useState<PlaygroundItem[]>([])
-  const [newlyDiscovered, setNewlyDiscovered] = useState<string | null>(null)
+  const [newlyDiscovered, setNewlyDiscovered] = useState<number | null>(null)
   const [initialized, setInitialized] = useState(false)
   const [totalDbCount, setTotalDbCount] = useState(0)
   const [lastUnlockTime, setLastUnlockTime] = useState(Date.now())
+
   const idCounter = useRef(0)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const newlyDiscoveredTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const hapticEnabledRef = useRef(true) // ref so it's readable inside useCallback without deps
-  // Buffer of newly discovered elements + combo ingredients waiting to be flushed to DB
-  const pendingDiscovered = useRef<Set<string>>(new Set())
-  const pendingIngredients = useRef<string[][]>([])
+  const hapticEnabledRef = useRef(true)
+  // Buffer of newly discovered element numbers + combo pairs waiting to be flushed to DB
+  const pendingDiscovered = useRef<Set<number>>(new Set())
+  const pendingIngredients = useRef<number[][]>([])
   const [hapticEnabled, setHapticEnabledState] = useState(true)
 
-  // Load lang — DB takes priority if logged in, else localStorage, else 'en'
+  // ─── Load lang preference ─────────────────────────────────────────────────
   useEffect(() => {
     if (sessionStatus === 'loading') return
     if (session?.user?.id) {
@@ -134,7 +147,6 @@ export function useGameStore() {
           if (serverLang === 'fr' || serverLang === 'en') setLangState(serverLang)
         })
         .catch(() => {})
-      // Load haptic preference from profile
       fetch('/api/profile')
         .then(r => r.json())
         .then(d => {
@@ -157,10 +169,9 @@ export function useGameStore() {
     }
   }, [sessionStatus, session?.user?.id])
 
-  // Stable ref to setLang so the StorageEvent listener can call it without stale closure
+  // Stable ref for setLang — needed for StorageEvent listener
   const setLangRef = useRef<((l: Lang) => void) | null>(null)
 
-  // Listen for lang changes from /settings page — calls setLang so elements + recipeMap rebuild
   useEffect(() => {
     const handler = (e: StorageEvent) => {
       if (e.key === LANG_KEY && (e.newValue === 'fr' || e.newValue === 'en')) {
@@ -171,71 +182,59 @@ export function useGameStore() {
     return () => window.removeEventListener('storage', handler)
   }, [])
 
-  // Load everything from DB once (wait for session to be resolved)
+  // ─── Load everything from DB once ────────────────────────────────────────
   useEffect(() => {
     if (sessionStatus === 'loading') return
+
+    const savedLang = (() => {
+      try { return (localStorage.getItem(LANG_KEY) as Lang | null) || 'en' } catch { return 'en' }
+    })()
 
     Promise.all([
       fetch('/api/elements').then(r => r.json()),
       fetch('/api/recipes').then(r => r.json()).catch(() => []),
-      session?.user?.id ? fetch('/api/progress').then(r => r.json()).catch(() => null) : Promise.resolve(null),
+      session?.user?.id
+        ? fetch('/api/progress').then(r => r.json()).catch(() => null)
+        : Promise.resolve(null),
     ]).then(([elementsData, recipesData, progressData]) => {
-      const rows: Array<{ number: number; name_french: string; name_english: string; img: string | null }> =
-        Array.isArray(elementsData) ? elementsData : []
-
+      const rows: DbRow[] = Array.isArray(elementsData) ? elementsData : []
       setDbRows(rows)
       setTotalDbCount(rows.length)
 
       const recipes: RecipeRow[] = Array.isArray(recipesData) ? recipesData : []
       setDbRecipes(recipes)
 
-      const savedLang = (() => {
-        try { return (localStorage.getItem(LANG_KEY) as Lang | null) || 'en' } catch { return 'en' }
-      })()
       const elMap = buildElementMap(rows, savedLang)
       setElements(elMap)
-      setRecipeMap(buildRecipeMap(recipes, savedLang))
+      setElementsByName(buildNameIndex(elMap))
 
-      // Always build a French-keyed element map and frToEn for hint lookups
-      const frElMap = buildElementMap(rows, 'fr')
-      setFrToElement(frElMap)
-      const frEnMap = new Map<string, string>()
-      for (const row of rows) {
-        if (row.name_french && row.name_english) frEnMap.set(row.name_french, row.name_english)
-      }
-      setFrToEn(frEnMap)
+      // RecipeMap is built once — numbers never change with lang
+      setRecipeMap(buildRecipeMap(recipes))
 
-      // Build a name→name mapping so server names (any lang) can be resolved to current lang
-      const anyNameToCurrentLang = new Map<string, string>()
-      for (const row of rows) {
-        const currentName = savedLang === 'fr'
-          ? (row.name_french || row.name_english)
-          : (row.name_english || row.name_french)
-        if (!currentName) continue
-        if (row.name_french) anyNameToCurrentLang.set(row.name_french, currentName)
-        if (row.name_english) anyNameToCurrentLang.set(row.name_english, currentName)
-      }
+      // Base element numbers (eau, feu, terre, air)
+      const baseNums = new Set(
+        rows
+          .filter(r => ['eau', 'feu', 'terre', 'air'].includes(r.name_french.toLowerCase()))
+          .map(r => r.number)
+      )
+      const validDisc = new Set<number>(baseNums)
 
-      const baseElements = savedLang === 'fr' ? BASE_ELEMENTS_FR : BASE_ELEMENTS_EN
-      const validDisc = new Set<string>(baseElements.filter(b => elMap.has(b)))
-
-      // Server progress: translate any language name to current lang before checking elMap
       if (progressData?.discovered && Array.isArray(progressData.discovered)) {
-        progressData.discovered.forEach((name: string) => {
-          const resolved = anyNameToCurrentLang.get(name) ?? name
-          if (elMap.has(resolved)) validDisc.add(resolved)
+        // Server returns element numbers directly
+        progressData.discovered.forEach((num: unknown) => {
+          const n = Number(num)
+          if (Number.isInteger(n) && n > 0 && elMap.has(n)) validDisc.add(n)
         })
-        // Logged-in: overwrite localStorage with server state so next logout starts fresh
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...validDisc])) } catch {}
       } else {
-        // Not logged in: merge localStorage
+        // Not logged in — load from localStorage (may contain old name-based data; ignore if so)
         try {
           const saved = localStorage.getItem(STORAGE_KEY)
           if (saved) {
-            const parsed = JSON.parse(saved) as string[]
-            parsed.forEach(name => {
-              const resolved = anyNameToCurrentLang.get(name) ?? name
-              if (elMap.has(resolved)) validDisc.add(resolved)
+            const parsed = JSON.parse(saved) as unknown[]
+            parsed.forEach(raw => {
+              const n = Number(raw)
+              if (Number.isInteger(n) && n > 0 && elMap.has(n)) validDisc.add(n)
             })
           }
         } catch {}
@@ -244,13 +243,15 @@ export function useGameStore() {
       setDiscovered(validDisc)
       setInitialized(true)
     }).catch(() => {
-      setDiscovered(new Set(BASE_ELEMENTS_EN))
+      // Minimal fallback — empty state
+      setDiscovered(new Set())
       setInitialized(true)
     })
   }, [sessionStatus, session?.user?.id])
 
-  // Rebuild elements + recipes when lang changes
-  const setLang = useCallback((newLang: Lang) => {    if (dbRows.length === 0) return
+  // ─── setLang — rebuilds display names only, no state translation needed ──
+  const setLang = useCallback((newLang: Lang) => {
+    if (dbRows.length === 0) return
     setLangState(newLang)
     try { localStorage.setItem(LANG_KEY, newLang) } catch {}
     if (session?.user?.id) {
@@ -260,85 +261,52 @@ export function useGameStore() {
         body: JSON.stringify({ lang: newLang }),
       }).catch(() => {})
     }
-
+    // Only the display Map needs to change — discovered/playground/recipeMap are number-keyed
     const newElMap = buildElementMap(dbRows, newLang)
     setElements(newElMap)
-    setRecipeMap(buildRecipeMap(dbRecipes, newLang))
+    setElementsByName(buildNameIndex(newElMap))
+  }, [dbRows, session?.user?.id])
 
-    // Translate discovered names and playground items
-    const frToEn = new Map<string, string>()
-    const enToFr = new Map<string, string>()
-    for (const row of dbRows) {
-      if (row.name_french && row.name_english) {
-        frToEn.set(row.name_french, row.name_english)
-        enToFr.set(row.name_english, row.name_french)
-      }
-    }
-    const translate = newLang === 'en' ? frToEn : enToFr
-    setDiscovered(prev => {
-      const translated = new Set<string>()
-      prev.forEach(name => {
-        const newName = translate.get(name) || name
-        if (newElMap.has(newName)) translated.add(newName)
-      })
-      return translated
-    })
-    setPlayground(prev => prev.map(item => {
-      const newName = translate.get(item.element) || item.element
-      return { ...item, element: newElMap.has(newName) ? newName : item.element }
-    }))
-  }, [dbRows, dbRecipes])
-
-  // Keep ref in sync so the StorageEvent listener always has the latest setLang
   useEffect(() => { setLangRef.current = setLang }, [setLang])
 
-  // Flush pending discoveries to DB — called on debounce timer or page unload.
-  // Buffers are restored on failure so data is never silently dropped.
+  // ─── flushToDb ────────────────────────────────────────────────────────────
+  // Sends buffered discoveries to DB. Restores buffers on failure (retry on next flush).
   const flushToDb = useCallback((userId: string) => {
     const newItems = [...pendingDiscovered.current]
     const ingredients = [...pendingIngredients.current]
     if (newItems.length === 0 && ingredients.length === 0) return
 
-    // Drain the buffers optimistically — restore them if the request fails
     pendingDiscovered.current = new Set()
     pendingIngredients.current = []
-
-    // Flatten all ingredient pairs accumulated during this batch
-    const allIngredients = ingredients.flat()
 
     fetch('/api/progress', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ discovered: newItems, combo_ingredients: allIngredients }),
+      // combo_ingredients is an array of pairs [[n1, n2], ...]
+      body: JSON.stringify({ discovered: newItems, combo_ingredients: ingredients }),
     }).catch(() => {
-      // Network or server error — put items back so the next flush retries them
-      newItems.forEach(item => pendingDiscovered.current.add(item))
+      // Restore buffers so the next flush retries — no data is ever silently dropped
+      newItems.forEach(n => pendingDiscovered.current.add(n))
       pendingIngredients.current.unshift(...ingredients)
     })
   }, [])
 
-  // Save discovered progress — localStorage always, server batched every 30s
+  // ─── Persist discovered to localStorage ──────────────────────────────────
   useEffect(() => {
     if (!initialized || discovered.size === 0) return
-    const arr = [...discovered]
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)) } catch {}
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...discovered])) } catch {}
   }, [discovered, initialized])
 
-  // Set up 30s debounce flush + page unload flush
+  // ─── 30s debounce flush + page unload flush ───────────────────────────────
   useEffect(() => {
     if (!session?.user?.id) return
     const userId = session.user.id
 
-    const startTimer = () => {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
-      saveTimeoutRef.current = setTimeout(() => flushToDb(userId), SYNC_DEBOUNCE_MS)
-    }
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+    saveTimeoutRef.current = setTimeout(() => flushToDb(userId), SYNC_DEBOUNCE_MS)
 
     const handleUnload = () => flushToDb(userId)
     window.addEventListener('beforeunload', handleUnload)
-
-    // Kick off the recurring timer
-    startTimer()
 
     return () => {
       window.removeEventListener('beforeunload', handleUnload)
@@ -346,14 +314,15 @@ export function useGameStore() {
     }
   }, [session?.user?.id, flushToDb])
 
+  // ─── Helpers ──────────────────────────────────────────────────────────────
   const generateId = useCallback(() => {
     idCounter.current += 1
     return `item-${Date.now()}-${idCounter.current}`
   }, [])
 
-  const addToPlayground = useCallback((element: string, x: number, y: number): string => {
+  const addToPlayground = useCallback((elementNum: number, x: number, y: number): string => {
     const id = generateId()
-    setPlayground(prev => [...prev, { id, element, x, y }])
+    setPlayground(prev => [...prev, { id, element: elementNum, x, y }])
     return id
   }, [generateId])
 
@@ -362,7 +331,6 @@ export function useGameStore() {
       const others = prev.filter(item => item.id !== id)
       const target = prev.find(item => item.id === id)
       if (!target) return prev
-      // Move dragged item to end of array so it renders on top (last = highest paint order)
       return [...others, { ...target, x, y }]
     })
   }, [])
@@ -373,22 +341,19 @@ export function useGameStore() {
 
   const clearPlayground = useCallback(() => setPlayground([]), [])
 
-  // ─── Shared merge logic ───────────────────────────────────────────────────
+  // ─── applyMerge — shared merge logic ─────────────────────────────────────
   // Handles discoveries, haptics, and DB buffering for any merge operation.
-  // Called by both tryMerge and dropAndMerge after they update the playground.
   const applyMerge = useCallback((
-    results: string[],
-    ingredientA: string,
-    ingredientB: string,
-  ): string => {
+    results: number[],
+    ingredientA: number,
+    ingredientB: number,
+  ): number => {
     const newResults = results.filter(res => !discovered.has(res))
 
     if (newResults.length > 0) {
-      // Single setDiscovered call — avoids React batching silently dropping
-      // intermediate results when multiple new elements are produced at once.
+      // Single call — avoids React batching silently dropping intermediate results
       setDiscovered(prev => new Set([...prev, ...newResults]))
 
-      // Clear any existing toast timer before setting a new one
       if (newlyDiscoveredTimerRef.current) clearTimeout(newlyDiscoveredTimerRef.current)
       setNewlyDiscovered(newResults[0])
       setLastUnlockTime(Date.now())
@@ -402,7 +367,7 @@ export function useGameStore() {
       }
     }
 
-    // Buffer new discoveries + the ingredient pair used — flushed to DB in batch every 30s
+    // Buffer discoveries + the ingredient pair — flushed to DB in batch every 30s
     if (session?.user?.id) {
       newResults.forEach(res => pendingDiscovered.current.add(res))
       pendingIngredients.current.push([ingredientA, ingredientB])
@@ -411,7 +376,8 @@ export function useGameStore() {
     return results[0]
   }, [discovered, session?.user?.id])
 
-  const tryMerge = useCallback((id1: string, id2: string): string | null => {
+  // ─── tryMerge: merge two playground items by ID ───────────────────────────
+  const tryMerge = useCallback((id1: string, id2: string): number | null => {
     const item1 = playground.find(i => i.id === id1)
     const item2 = playground.find(i => i.id === id2)
     if (!item1 || !item2) return null
@@ -419,7 +385,6 @@ export function useGameStore() {
     const results = findRecipes(recipeMap, item1.element, item2.element)
     if (results.length === 0) return null
 
-    // Place results at the stationary target (item2) position, spread if multiple
     const tx = item2.x
     const ty = item2.y
     const spread = 60
@@ -441,14 +406,14 @@ export function useGameStore() {
     return applyMerge(results, item1.element, item2.element)
   }, [playground, recipeMap, generateId, applyMerge])
 
-  const dropAndMerge = useCallback((element: string, x: number, y: number, targetId: string): string | null => {
+  // ─── dropAndMerge: drop an element from inventory onto a playground item ──
+  const dropAndMerge = useCallback((elementNum: number, x: number, y: number, targetId: string): number | null => {
     const target = playground.find(i => i.id === targetId)
     if (!target) return null
 
-    const results = findRecipes(recipeMap, element, target.element)
+    const results = findRecipes(recipeMap, elementNum, target.element)
     if (results.length === 0) return null
 
-    // Place results centered between the two source positions, spread if multiple
     const cx = (x + target.x) / 2
     const cy = (y + target.y) / 2
     const spread = 60
@@ -467,19 +432,22 @@ export function useGameStore() {
       return [...filtered, ...newItems]
     })
 
-    return applyMerge(results, element, target.element)
+    return applyMerge(results, elementNum, target.element)
   }, [playground, recipeMap, generateId, applyMerge])
 
   const resetProgress = useCallback(() => {
-    const baseEls = lang === 'fr' ? BASE_ELEMENTS_FR : BASE_ELEMENTS_EN
-    const validBase = new Set(baseEls.filter(b => elements.has(b)))
-    setDiscovered(validBase)
+    const baseNums = new Set(
+      dbRows
+        .filter(r => ['eau', 'feu', 'terre', 'air'].includes(r.name_french.toLowerCase()))
+        .map(r => r.number)
+    )
+    setDiscovered(baseNums)
     setPlayground([])
     try { localStorage.removeItem(STORAGE_KEY) } catch {}
-  }, [lang, elements])
+  }, [dbRows])
 
   const unlockAll = useCallback(() => {
-    const all = new Set<string>(elements.keys())
+    const all = new Set<number>(elements.keys())
     setDiscovered(all)
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...all])) } catch {}
   }, [elements])
@@ -493,14 +461,17 @@ export function useGameStore() {
   return {
     lang,
     setLang,
+    /** Map<number, ElementDef> — canonical element store, keyed by DB number */
     elements,
-    frToElement,
-    frToEn,
+    /** Map<string, ElementDef> — keyed by current-lang name, for UI/display lookups */
+    elementsByName,
     hapticEnabled,
     setHapticEnabled,
+    /** Set<number> — discovered element numbers */
     discovered,
     recipeMap,
     playground,
+    /** number | null — DB number of the most recently discovered element */
     newlyDiscovered,
     initialized,
     totalElements: totalDbCount,

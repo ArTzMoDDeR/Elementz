@@ -8,15 +8,14 @@ export async function GET() {
 
   const sql = neon(process.env.DATABASE_URL!)
 
-  // Read from unlocks table — join elements to get FR name for store compatibility
+  // Return element numbers — stable across language changes
   const rows = await sql`
-    SELECT e.name_french
-    FROM unlocks u
-    JOIN elements e ON e.number = u.element_number
-    WHERE u.user_id = ${session.user.id}
-    ORDER BY u.discovered_at ASC
+    SELECT element_number
+    FROM unlocks
+    WHERE user_id = ${session.user.id}
+    ORDER BY discovered_at ASC
   `
-  return NextResponse.json({ discovered: rows.map(r => r.name_french) })
+  return NextResponse.json({ discovered: rows.map(r => r.element_number) })
 }
 
 export async function POST(req: NextRequest) {
@@ -31,52 +30,74 @@ export async function POST(req: NextRequest) {
 
   const sql = neon(process.env.DATABASE_URL!)
 
-  // Validate: only insert elements that actually exist AND are valid recipe results.
+  // Validate: only insert element numbers that actually exist AND are valid recipe results.
   // The JOIN against recipes ensures the client cannot invent arbitrary unlocks.
   if (discovered.length > 0) {
-    await sql`
-      INSERT INTO unlocks (user_id, element_number, discovered_at)
-      SELECT ${session.user.id}, e.number, NOW()
-      FROM unnest(${discovered}::text[]) AS d(name)
-      JOIN elements e ON (e.name_french = d.name OR e.name_english = d.name)
-      WHERE EXISTS (
-        SELECT 1 FROM recipes r WHERE r.result_number = e.number
-      )
-      ON CONFLICT DO NOTHING
-    `
+    const nums = discovered.map(Number).filter(n => Number.isInteger(n) && n > 0)
+    if (nums.length > 0) {
+      await sql`
+        INSERT INTO unlocks (user_id, element_number, discovered_at)
+        SELECT ${session.user.id}, e.number, NOW()
+        FROM unnest(${nums}::int[]) AS d(num)
+        JOIN elements e ON e.number = d.num
+        WHERE EXISTS (
+          SELECT 1 FROM recipes r WHERE r.result_number = e.number
+        )
+        ON CONFLICT DO NOTHING
+      `
+    }
   }
 
   // Track element-usage quests (use_water_n, use_fire_n, use_air_n, use_earth_n)
-  if (Array.isArray(combo_ingredients) && combo_ingredients.length === 2) {
-    const typeMap: Record<string, string> = {
-      eau: 'use_water_n', water: 'use_water_n',
-      feu: 'use_fire_n',  fire: 'use_fire_n',
-      air: 'use_air_n',
-      terre: 'use_earth_n', earth: 'use_earth_n',
-    }
-    const usedTypes = new Set(
-      combo_ingredients.map((n: string) => typeMap[n.toLowerCase()]).filter(Boolean)
-    )
-    for (const questType of usedTypes) {
-      // Upsert progress for matching quests (not yet claimed)
-      await sql`
-        INSERT INTO user_quests (user_id, quest_id, progress, completed_at)
-        SELECT ${session.user.id}, qd.id, 1, NULL
-        FROM quest_definitions qd
-        WHERE qd.type = ${questType}
-        ON CONFLICT (user_id, quest_id) DO UPDATE
-          SET progress = LEAST(
-            user_quests.progress + 1,
-            (SELECT target_value FROM quest_definitions WHERE id = user_quests.quest_id)
-          ),
-          completed_at = CASE
-            WHEN user_quests.progress + 1 >= (SELECT target_value FROM quest_definitions WHERE id = user_quests.quest_id)
-              AND user_quests.completed_at IS NULL
-            THEN NOW()
-            ELSE user_quests.completed_at
-          END
-        WHERE user_quests.claimed_at IS NULL
+  // combo_ingredients is an array of pairs [[n1, n2], [n3, n4], ...]
+  if (Array.isArray(combo_ingredients) && combo_ingredients.length > 0) {
+    // Flatten all ingredient numbers from all pairs in this batch
+    const allNums: number[] = combo_ingredients
+      .flat()
+      .map(Number)
+      .filter(n => Number.isInteger(n) && n > 0)
+
+    if (allNums.length > 0) {
+      // Look up which base elements (feu/eau/air/terre) were used, mapped to quest types
+      const baseRows = await sql`
+        SELECT e.number,
+          CASE e.name_french
+            WHEN 'eau'   THEN 'use_water_n'
+            WHEN 'feu'   THEN 'use_fire_n'
+            WHEN 'air'   THEN 'use_air_n'
+            WHEN 'terre' THEN 'use_earth_n'
+          END AS quest_type
+        FROM elements e
+        WHERE e.name_french IN ('eau', 'feu', 'air', 'terre')
+          AND e.number = ANY(${allNums}::int[])
       `
+
+      const usedTypes = new Set(baseRows.map(r => r.quest_type).filter(Boolean) as string[])
+
+      for (const questType of usedTypes) {
+        // Count how many times this base element was used in this batch
+        const baseNum = baseRows.find(r => r.quest_type === questType)?.number
+        const useCount = allNums.filter(n => n === baseNum).length
+
+        await sql`
+          INSERT INTO user_quests (user_id, quest_id, progress, completed_at)
+          SELECT ${session.user.id}, qd.id, ${useCount}, NULL
+          FROM quest_definitions qd
+          WHERE qd.type = ${questType}
+          ON CONFLICT (user_id, quest_id) DO UPDATE
+            SET progress = LEAST(
+              user_quests.progress + ${useCount},
+              (SELECT target_value FROM quest_definitions WHERE id = user_quests.quest_id)
+            ),
+            completed_at = CASE
+              WHEN user_quests.progress + ${useCount} >= (SELECT target_value FROM quest_definitions WHERE id = user_quests.quest_id)
+                AND user_quests.completed_at IS NULL
+              THEN NOW()
+              ELSE user_quests.completed_at
+            END
+          WHERE user_quests.claimed_at IS NULL
+        `
+      }
     }
   }
 

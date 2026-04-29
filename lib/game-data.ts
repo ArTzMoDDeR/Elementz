@@ -1,4 +1,6 @@
 export interface ElementDef {
+  /** Stable DB number — used as the canonical key everywhere in game state */
+  number: number
   name: string
   icon: string
   color: string
@@ -6,10 +8,10 @@ export interface ElementDef {
   imageUrl?: string | null
 }
 
-// PlaygroundItem is used by components/playground.tsx
+// PlaygroundItem: element is the DB number (stable across lang changes)
 export interface PlaygroundItem {
   id: string
-  name: string
+  element: number
   x: number
   y: number
 }
