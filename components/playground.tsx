@@ -990,12 +990,13 @@ export function Playground({
                 )}
                 {activeTab === 'profile' && sessionUser && (
                   profileView === 'leaderboard'
-                    ? <LeaderboardInlinePanel lang={lang} onBack={() => setProfileView('profile')} />
+                    ? <LeaderboardInlinePanel lang={lang} totalElements={totalElements} onBack={() => setProfileView('profile')} />
                     : <ProfileInlinePanel
                         lang={lang}
                         sessionUser={sessionUser}
                         elementsByName={elementsByName}
                         discovered={discovered}
+                        totalElements={totalElements}
                         onAvatarChange={setTabAvatarKey}
                         onOpenLeaderboard={() => setProfileView('leaderboard')}
                       />
@@ -1117,7 +1118,7 @@ export function Playground({
       {/* Modals */}
       {helpOpen && <HelpModal lang={lang} onSetLang={onSetLang} onClose={() => setHelpOpen(false)} />}
       {leaderboardOpen && <LeaderboardModal lang={lang} onClose={() => setLeaderboardOpen(false)} />}
-      {profileOpen && sessionUser && <ProfileModal lang={lang} sessionUser={sessionUser} elementsByName={elementsByName} discovered={discovered} onClose={() => setProfileOpen(false)} onOpenLeaderboard={() => { setProfileOpen(false); setLeaderboardOpen(true) }} />}
+      {profileOpen && sessionUser && <ProfileModal lang={lang} sessionUser={sessionUser} elementsByName={elementsByName} discovered={discovered} totalElements={totalElements} onClose={() => setProfileOpen(false)} onOpenLeaderboard={() => { setProfileOpen(false); setLeaderboardOpen(true) }} />}
     </div>
   )
 }
@@ -1192,8 +1193,8 @@ function ChevronScrollBar({ scrollRef }: { scrollRef: React.RefObject<HTMLDivEle
 // Inline tab panels
 // ============================================================
 
-function LeaderboardInlinePanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: () => void }) {
-  const TOTAL = 592
+function LeaderboardInlinePanel({ lang, totalElements, onBack }: { lang: 'fr' | 'en'; totalElements: number; onBack?: () => void }) {
+  const TOTAL = totalElements
   const [entries, setEntries] = useState<Array<{
     user_id: string
     username: string | null
@@ -1677,16 +1678,17 @@ function HelpPanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: () => void })
   )
 }
 
-function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, onAvatarChange, onOpenLeaderboard }: {
+function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, totalElements, onAvatarChange, onOpenLeaderboard }: {
   lang: 'fr' | 'en'
   sessionUser: { name?: string | null; email?: string | null; image?: string | null }
   /** Keyed by current-lang name (+ FR fallback) — used for avatar display and picker */
   elementsByName: Map<string, ElementDef>
   discovered: Set<number>
+  totalElements: number
   onAvatarChange?: (key: string) => void
   onOpenLeaderboard?: () => void
 }) {
-  const TOTAL_ELEMENTS = 592
+  const TOTAL_ELEMENTS = totalElements
   type ProfileData = {
     username: string | null
     show_in_leaderboard: boolean

@@ -7,7 +7,7 @@ import type { ElementDef } from '@/lib/game-data'
 
 type Lang = 'fr' | 'en'
 
-const TOTAL_ELEMENTS = 592
+// TOTAL_ELEMENTS is now passed as a prop — see ProfileModalProps
 
 interface LastDiscovered {
   name_french: string
@@ -33,6 +33,7 @@ interface ProfileModalProps {
   /** Keyed by current-lang name (+ FR fallback) — avatarKey is stored as a name string in the DB */
   elementsByName: Map<string, ElementDef>
   discovered: Set<number>
+  totalElements: number
   onClose: () => void
   onOpenLeaderboard?: () => void
 }
@@ -80,7 +81,8 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
   )
 }
 
-export function ProfileModal({ lang, sessionUser, elementsByName, discovered, onClose, onOpenLeaderboard }: ProfileModalProps) {
+export function ProfileModal({ lang, sessionUser, elementsByName, discovered, totalElements, onClose, onOpenLeaderboard }: ProfileModalProps) {
+  const TOTAL_ELEMENTS = totalElements
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState('')
