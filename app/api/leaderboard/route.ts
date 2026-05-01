@@ -43,7 +43,7 @@ export async function GET() {
         WHERE u.user_id = ANY(${userIds})
           AND e.img IS NOT NULL
       ) r
-      WHERE r.rn <= 3
+      WHERE r.rn <= 5
     `
     for (const r of recents) {
       if (!lastElements[r.user_id]) lastElements[r.user_id] = []

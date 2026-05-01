@@ -44,7 +44,7 @@ interface PlaygroundProps {
   onClear: () => void
   onReset: () => void
   onUnlockAll: () => void
-  sessionUser?: { name?: string | null; email?: string | null; image?: string | null } | null
+  sessionUser?: { id?: string | null; name?: string | null; email?: string | null; image?: string | null } | null
   hintsEnabled?: boolean
   onToggleHints?: () => void
   onRequestHint?: () => void
@@ -990,7 +990,7 @@ export function Playground({
                 )}
                 {activeTab === 'profile' && sessionUser && (
                   profileView === 'leaderboard'
-                    ? <LeaderboardInlinePanel lang={lang} totalElements={totalElements} onBack={() => setProfileView('profile')} />
+                    ? <LeaderboardInlinePanel lang={lang} totalElements={totalElements} sessionUser={sessionUser} onBack={() => setProfileView('profile')} />
                     : <ProfileInlinePanel
                         lang={lang}
                         sessionUser={sessionUser}
@@ -1193,26 +1193,17 @@ function ChevronScrollBar({ scrollRef }: { scrollRef: React.RefObject<HTMLDivEle
 // Inline tab panels
 // ============================================================
 
-function LeaderboardRow({ entry, rank, lang, total }: {
+function LeaderboardRow({ entry, rank, lang, total, isMe }: {
   entry: { user_id: string; username: string | null; avatar_img: string | null; count: number; joined_at: string | null; last_elements: Array<{ img: string | null; name: string }> }
   rank: number
   lang: 'fr' | 'en'
   total: number
+  isMe: boolean
 }) {
   const [open, setOpen] = useState(false)
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
   const name = entry.username ?? t(`Joueur #${rank}`, `Player #${rank}`)
   const pct = Math.round((entry.count / total) * 100)
-
-  const memberSince = (joinedAt: string | null) => {
-    if (!joinedAt) return null
-    const days = Math.floor((Date.now() - new Date(joinedAt).getTime()) / (1000 * 60 * 60 * 24))
-    if (days === 0) return t("Aujourd'hui", 'Today')
-    if (days === 1) return t('Hier', 'Yesterday')
-    if (days < 30) return t(`Il y a ${days} j`, `${days}d ago`)
-    const months = Math.floor(days / 30)
-    return t(`Il y a ${months} mois`, `${months}mo ago`)
-  }
 
   const rankLabel =
     rank === 1 ? <Trophy className="w-3.5 h-3.5 text-yellow-400" /> :
@@ -1220,11 +1211,10 @@ function LeaderboardRow({ entry, rank, lang, total }: {
     rank === 3 ? <Medal className="w-3.5 h-3.5 text-amber-600" /> :
     <span className="text-[11px] font-bold text-muted-foreground/50 tabular-nums w-full text-center">{rank}</span>
 
-  const since = memberSince(entry.joined_at)
   const lastEls = entry.last_elements.filter(e => !!e.img)
 
   return (
-    <div className="border-b border-border/30 last:border-b-0">
+    <div className={`border-b border-border/30 last:border-b-0 rounded-xl transition-colors ${isMe ? 'bg-primary/8 border-primary/20' : ''}`}>
       <button
         className="w-full flex items-center gap-3 px-1 py-2.5 text-left"
         onClick={() => setOpen(o => !o)}
@@ -1234,36 +1224,36 @@ function LeaderboardRow({ entry, rank, lang, total }: {
         <div className="w-5 flex items-center justify-center flex-shrink-0">{rankLabel}</div>
 
         {/* Avatar */}
-        <div className="w-8 h-8 rounded-xl bg-muted border border-border flex items-center justify-center overflow-hidden p-1 flex-shrink-0">
+        <div className={`w-8 h-8 rounded-xl flex items-center justify-center overflow-hidden p-1 flex-shrink-0 ${isMe ? 'bg-primary/15 border border-primary/40' : 'bg-muted border border-border'}`}>
           {entry.avatar_img
             ? <img src={entry.avatar_img} alt={name} className="w-full h-full object-contain pointer-events-none" draggable={false} />
-            : <span className="text-[10px] font-bold text-muted-foreground">{name.slice(0, 2).toUpperCase()}</span>
+            : <span className={`text-[10px] font-bold ${isMe ? 'text-primary' : 'text-muted-foreground'}`}>{name.slice(0, 2).toUpperCase()}</span>
           }
         </div>
 
         {/* Name */}
-        <span className="flex-1 min-w-0 text-sm font-semibold text-foreground truncate">{name}</span>
+        <span className={`flex-1 min-w-0 text-sm font-semibold truncate ${isMe ? 'text-primary' : 'text-foreground'}`}>
+          {name}
+          {isMe && <span className="ml-1.5 text-[9px] font-bold text-primary/60 uppercase tracking-wide">{t('Vous', 'You')}</span>}
+        </span>
 
         {/* Score + chevron */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-sm font-bold tabular-nums text-foreground">{entry.count}</span>
-          <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground/30 transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
+          <span className={`text-sm font-bold tabular-nums ${isMe ? 'text-primary' : 'text-foreground'}`}>{entry.count}</span>
+          <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? 'rotate-90' : ''} ${isMe ? 'text-primary/40' : 'text-muted-foreground/30'}`} />
         </div>
       </button>
 
       {/* Accordion details */}
       {open && (
-        <div className="pb-3 pl-16 pr-1 flex flex-col gap-2">
-          <div className="flex items-center gap-4 text-[11px] text-muted-foreground/60">
-            <span className="tabular-nums">{pct}% {t('complété', 'complete')}</span>
-            {since && <span>{t('Membre depuis', 'Member since')} {since}</span>}
-          </div>
+        <div className="pb-3 pl-14 pr-2 flex flex-col gap-2">
+          <span className="text-[11px] text-muted-foreground/60 tabular-nums">{pct}% {t('complété', 'complete')}</span>
           {lastEls.length > 0 && (
             <div>
-              <p className="text-[10px] text-muted-foreground/40 mb-1">{t('Dernières découvertes', 'Latest discoveries')}</p>
-              <div className="flex items-center gap-1.5 flex-wrap">
+              <p className="text-[10px] text-muted-foreground/40 mb-1.5">{t('5 dernières découvertes', 'Last 5 discoveries')}</p>
+              <div className="flex items-center gap-2">
                 {lastEls.map((el, j) => (
-                  <img key={j} src={el.img!} alt={el.name} title={el.name} className="w-6 h-6 object-contain opacity-80" draggable={false} />
+                  <img key={j} src={el.img!} alt={el.name} title={el.name} className="w-7 h-7 object-contain opacity-80" draggable={false} />
                 ))}
               </div>
             </div>
@@ -1274,7 +1264,7 @@ function LeaderboardRow({ entry, rank, lang, total }: {
   )
 }
 
-function LeaderboardInlinePanel({ lang, totalElements, onBack }: { lang: 'fr' | 'en'; totalElements: number; onBack?: () => void }) {
+function LeaderboardInlinePanel({ lang, totalElements, sessionUser, onBack }: { lang: 'fr' | 'en'; totalElements: number; sessionUser?: { id?: string | null; email?: string | null } | null; onBack?: () => void }) {
   const TOTAL = totalElements
   const [entries, setEntries] = useState<Array<{
     user_id: string
@@ -1307,7 +1297,7 @@ function LeaderboardInlinePanel({ lang, totalElements, onBack }: { lang: 'fr' | 
         </div>
         <div>
           <h2 className="text-base font-bold text-foreground">{t('Classement', 'Leaderboard')}</h2>
-          <p className="text-xs text-muted-foreground">{entries.length} {t('joueurs', 'players')}</p>
+          <p className="text-xs text-muted-foreground">{t(`Top ${entries.length} joueurs`, `Top ${entries.length} players`)}</p>
         </div>
       </div>
 
@@ -1320,7 +1310,14 @@ function LeaderboardInlinePanel({ lang, totalElements, onBack }: { lang: 'fr' | 
       ) : (
         <div className="rounded-2xl border border-border bg-card px-3 overflow-hidden">
           {entries.map((entry, i) => (
-            <LeaderboardRow key={entry.user_id} entry={entry} rank={i + 1} lang={lang} total={TOTAL} />
+            <LeaderboardRow
+              key={entry.user_id}
+              entry={entry}
+              rank={i + 1}
+              lang={lang}
+              total={TOTAL}
+              isMe={!!sessionUser?.id && entry.user_id === sessionUser.id}
+            />
           ))}
         </div>
       )}
