@@ -55,10 +55,10 @@ export async function GET() {
 
     const [unlockCount] = await sql`SELECT COUNT(*)::int AS n FROM unlocks WHERE user_id = ${userId}`
 
-    // Daily: only unlocks in the last 24h
+    // Daily: only unlocks since midnight UTC today
     const [dailyUnlockCount] = await sql`
       SELECT COUNT(*)::int AS n FROM unlocks
-      WHERE user_id = ${userId} AND discovered_at >= NOW() - INTERVAL '24 hours'
+      WHERE user_id = ${userId} AND discovered_at >= DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC')
     `
 
     let comboCount = { n: 0 }
@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
 
   let liveProgress = 0
   if (quest.type === 'discover_n_daily') {
-    const [r] = await sql`SELECT COUNT(*)::int AS n FROM unlocks WHERE user_id = ${userId} AND discovered_at >= NOW() - INTERVAL '24 hours'`
+    const [r] = await sql`SELECT COUNT(*)::int AS n FROM unlocks WHERE user_id = ${userId} AND discovered_at >= DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC')`
     liveProgress = r?.n ?? 0
   } else if (quest.type === 'discover_n') {
     liveProgress = unlockCount.n
