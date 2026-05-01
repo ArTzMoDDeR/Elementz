@@ -677,18 +677,17 @@ export function Playground({
           {/* Header — same layout on mobile and desktop: [clear] [logo+counter] [hint] */}
           <div className="flex items-center gap-2" style={{ transform: 'translateY(-3px)' }}>
 
-            {/* Clear button — only visible when there is at least 1 element on the playground */}
-            {items.length > 0 && (
-              <button
-                onPointerDown={e => e.stopPropagation()}
-                onClick={e => { e.stopPropagation(); onClear() }}
-                className="flex-shrink-0 flex items-center gap-1.5 h-10 px-3 rounded-2xl transition-all bg-muted border border-border text-foreground/70 hover:text-foreground hover:bg-muted/80 hover:border-foreground/20 active:scale-95"
-                title={lang === 'fr' ? 'Vider le terrain' : 'Clear field'}
-              >
-                <Trash2 className="w-4 h-4 flex-shrink-0" />
-                <span className="text-xs font-semibold hidden sm:inline">{lang === 'fr' ? 'Vider' : 'Clear'}</span>
-              </button>
-            )}
+            {/* Clear button — always visible, disabled when playground is empty */}
+            <button
+              onPointerDown={e => e.stopPropagation()}
+              onClick={e => { e.stopPropagation(); if (items.length > 0) onClear() }}
+              disabled={items.length === 0}
+              className="flex-shrink-0 flex items-center gap-1.5 h-10 px-3 rounded-2xl transition-all bg-muted border border-border text-foreground/70 hover:text-foreground hover:bg-muted/80 hover:border-foreground/20 active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
+              title={lang === 'fr' ? 'Vider le terrain' : 'Clear field'}
+            >
+              <Trash2 className="w-4 h-4 flex-shrink-0" />
+              <span className="text-xs font-semibold hidden sm:inline">{lang === 'fr' ? 'Vider' : 'Clear'}</span>
+            </button>
 
             {/* Center: logo + title + counter — or notification */}
             {headerNotification ? (
@@ -991,12 +990,13 @@ export function Playground({
                 )}
                 {activeTab === 'profile' && sessionUser && (
                   profileView === 'leaderboard'
-                    ? <LeaderboardInlinePanel lang={lang} onBack={() => setProfileView('profile')} />
+                    ? <LeaderboardInlinePanel lang={lang} totalElements={totalElements} onBack={() => setProfileView('profile')} />
                     : <ProfileInlinePanel
                         lang={lang}
                         sessionUser={sessionUser}
                         elementsByName={elementsByName}
                         discovered={discovered}
+                        totalElements={totalElements}
                         onAvatarChange={setTabAvatarKey}
                         onOpenLeaderboard={() => setProfileView('leaderboard')}
                       />
@@ -1118,7 +1118,7 @@ export function Playground({
       {/* Modals */}
       {helpOpen && <HelpModal lang={lang} onSetLang={onSetLang} onClose={() => setHelpOpen(false)} />}
       {leaderboardOpen && <LeaderboardModal lang={lang} onClose={() => setLeaderboardOpen(false)} />}
-      {profileOpen && sessionUser && <ProfileModal lang={lang} sessionUser={sessionUser} elementsByName={elementsByName} discovered={discovered} onClose={() => setProfileOpen(false)} onOpenLeaderboard={() => { setProfileOpen(false); setLeaderboardOpen(true) }} />}
+      {profileOpen && sessionUser && <ProfileModal lang={lang} sessionUser={sessionUser} elementsByName={elementsByName} discovered={discovered} totalElements={totalElements} onClose={() => setProfileOpen(false)} onOpenLeaderboard={() => { setProfileOpen(false); setLeaderboardOpen(true) }} />}
     </div>
   )
 }
@@ -1193,8 +1193,8 @@ function ChevronScrollBar({ scrollRef }: { scrollRef: React.RefObject<HTMLDivEle
 // Inline tab panels
 // ============================================================
 
-function LeaderboardInlinePanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: () => void }) {
-  const TOTAL = 592
+function LeaderboardInlinePanel({ lang, totalElements, onBack }: { lang: 'fr' | 'en'; totalElements: number; onBack?: () => void }) {
+  const TOTAL = totalElements
   const [entries, setEntries] = useState<Array<{
     user_id: string
     username: string | null
@@ -1678,16 +1678,17 @@ function HelpPanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: () => void })
   )
 }
 
-function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, onAvatarChange, onOpenLeaderboard }: {
+function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, totalElements, onAvatarChange, onOpenLeaderboard }: {
   lang: 'fr' | 'en'
   sessionUser: { name?: string | null; email?: string | null; image?: string | null }
   /** Keyed by current-lang name (+ FR fallback) — used for avatar display and picker */
   elementsByName: Map<string, ElementDef>
   discovered: Set<number>
+  totalElements: number
   onAvatarChange?: (key: string) => void
   onOpenLeaderboard?: () => void
 }) {
-  const TOTAL_ELEMENTS = 592
+  const TOTAL_ELEMENTS = totalElements
   type ProfileData = {
     username: string | null
     show_in_leaderboard: boolean
