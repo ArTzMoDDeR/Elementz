@@ -1193,6 +1193,87 @@ function ChevronScrollBar({ scrollRef }: { scrollRef: React.RefObject<HTMLDivEle
 // Inline tab panels
 // ============================================================
 
+function LeaderboardRow({ entry, rank, lang, total }: {
+  entry: { user_id: string; username: string | null; avatar_img: string | null; count: number; joined_at: string | null; last_elements: Array<{ img: string | null; name: string }> }
+  rank: number
+  lang: 'fr' | 'en'
+  total: number
+}) {
+  const [open, setOpen] = useState(false)
+  const t = (fr: string, en: string) => lang === 'fr' ? fr : en
+  const name = entry.username ?? t(`Joueur #${rank}`, `Player #${rank}`)
+  const pct = Math.round((entry.count / total) * 100)
+
+  const memberSince = (joinedAt: string | null) => {
+    if (!joinedAt) return null
+    const days = Math.floor((Date.now() - new Date(joinedAt).getTime()) / (1000 * 60 * 60 * 24))
+    if (days === 0) return t("Aujourd'hui", 'Today')
+    if (days === 1) return t('Hier', 'Yesterday')
+    if (days < 30) return t(`Il y a ${days} j`, `${days}d ago`)
+    const months = Math.floor(days / 30)
+    return t(`Il y a ${months} mois`, `${months}mo ago`)
+  }
+
+  const rankLabel =
+    rank === 1 ? <Trophy className="w-3.5 h-3.5 text-yellow-400" /> :
+    rank === 2 ? <Medal className="w-3.5 h-3.5 text-zinc-400" /> :
+    rank === 3 ? <Medal className="w-3.5 h-3.5 text-amber-600" /> :
+    <span className="text-[11px] font-bold text-muted-foreground/50 tabular-nums w-full text-center">{rank}</span>
+
+  const since = memberSince(entry.joined_at)
+  const lastEls = entry.last_elements.filter(e => !!e.img)
+
+  return (
+    <div className="border-b border-border/30 last:border-b-0">
+      <button
+        className="w-full flex items-center gap-3 px-1 py-2.5 text-left"
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+      >
+        {/* Rank */}
+        <div className="w-5 flex items-center justify-center flex-shrink-0">{rankLabel}</div>
+
+        {/* Avatar */}
+        <div className="w-8 h-8 rounded-xl bg-muted border border-border flex items-center justify-center overflow-hidden p-1 flex-shrink-0">
+          {entry.avatar_img
+            ? <img src={entry.avatar_img} alt={name} className="w-full h-full object-contain pointer-events-none" draggable={false} />
+            : <span className="text-[10px] font-bold text-muted-foreground">{name.slice(0, 2).toUpperCase()}</span>
+          }
+        </div>
+
+        {/* Name */}
+        <span className="flex-1 min-w-0 text-sm font-semibold text-foreground truncate">{name}</span>
+
+        {/* Score + chevron */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-sm font-bold tabular-nums text-foreground">{entry.count}</span>
+          <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground/30 transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
+        </div>
+      </button>
+
+      {/* Accordion details */}
+      {open && (
+        <div className="pb-3 pl-16 pr-1 flex flex-col gap-2">
+          <div className="flex items-center gap-4 text-[11px] text-muted-foreground/60">
+            <span className="tabular-nums">{pct}% {t('complété', 'complete')}</span>
+            {since && <span>{t('Membre depuis', 'Member since')} {since}</span>}
+          </div>
+          {lastEls.length > 0 && (
+            <div>
+              <p className="text-[10px] text-muted-foreground/40 mb-1">{t('Dernières découvertes', 'Latest discoveries')}</p>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {lastEls.map((el, j) => (
+                  <img key={j} src={el.img!} alt={el.name} title={el.name} className="w-6 h-6 object-contain opacity-80" draggable={false} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function LeaderboardInlinePanel({ lang, totalElements, onBack }: { lang: 'fr' | 'en'; totalElements: number; onBack?: () => void }) {
   const TOTAL = totalElements
   const [entries, setEntries] = useState<Array<{
@@ -1210,26 +1291,10 @@ function LeaderboardInlinePanel({ lang, totalElements, onBack }: { lang: 'fr' | 
     fetch('/api/leaderboard').then(r => r.json()).then(d => { setEntries(d.leaderboard ?? []); setLoading(false) }).catch(() => setLoading(false))
   }, [])
 
-  const top3 = entries.slice(0, 3)
-  const rest = entries.slice(3)
-  const podiumOrder = top3.length === 3 ? [top3[1], top3[0], top3[2]] : top3
-  const podiumHeights = [28, 40, 20]
-  const podiumRanks = top3.length === 3 ? [2, 1, 3] : [1, 2, 3]
-  const rankColors: Record<number, string> = { 1: 'text-yellow-400', 2: 'text-zinc-400', 3: 'text-amber-600' }
-  const podiumBg: Record<number, string> = { 1: 'border-yellow-400/30 bg-yellow-400/5', 2: 'border-zinc-400/20 bg-zinc-400/5', 3: 'border-amber-600/20 bg-amber-600/5' }
-
-  const memberSince = (joinedAt: string | null) => {
-    if (!joinedAt) return null
-    const days = Math.floor((Date.now() - new Date(joinedAt).getTime()) / (1000 * 60 * 60 * 24))
-    if (days === 0) return t("Aujourd'hui", 'Today')
-    if (days === 1) return t('Hier', 'Yesterday')
-    return t(`Il y a ${days} j`, `${days}d ago`)
-  }
-
   return (
     <div className="flex flex-col gap-4 py-1">
 
-      {/* Header with back */}
+      {/* Header */}
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
@@ -1253,86 +1318,11 @@ function LeaderboardInlinePanel({ lang, totalElements, onBack }: { lang: 'fr' | 
       ) : entries.length === 0 ? (
         <p className="text-sm text-muted-foreground py-4 text-center">{t("Aucun joueur pour l'instant.", 'No players yet.')}</p>
       ) : (
-        <>
-          {/* Podium top 3 */}
-          {top3.length > 0 && (
-            <div className="flex items-end justify-center gap-3 pt-2 pb-1">
-              {podiumOrder.map((entry, idx) => {
-                if (!entry) return null
-                const rank = podiumRanks[idx]
-                const height = podiumHeights[idx]
-                const name = entry.username ?? t(`Joueur #${rank}`, `Player #${rank}`)
-                const pct = Math.round((entry.count / TOTAL) * 100)
-                return (
-                  <div key={entry.user_id} className="flex flex-col items-center gap-2" style={{ flex: rank === 1 ? '0 0 38%' : '0 0 29%' }}>
-                    <div className={`rounded-2xl border-2 flex items-center justify-center overflow-hidden p-2 ${podiumBg[rank]} ${rank === 1 ? 'w-16 h-16' : 'w-12 h-12'}`}
-                      style={{ borderColor: rank === 1 ? 'rgb(250 204 21 / 0.5)' : rank === 2 ? 'rgb(161 161 170 / 0.3)' : 'rgb(217 119 6 / 0.3)' }}>
-                      {entry.avatar_img
-                        ? <img src={entry.avatar_img} alt={name} className="w-full h-full object-contain pointer-events-none" draggable={false} />
-                        : <span className={`font-bold ${rank === 1 ? 'text-xl' : 'text-base'} ${rankColors[rank]}`}>{name.slice(0, 2).toUpperCase()}</span>
-                      }
-                    </div>
-                    <span className="text-xs font-semibold text-foreground truncate max-w-full text-center px-1">{name}</span>
-                    <div className={`w-full rounded-t-xl border border-b-0 flex flex-col items-center justify-start pt-2 gap-0.5 ${podiumBg[rank]}`}
-                      style={{ height: `${height + 40}px`, borderColor: rank === 1 ? 'rgb(250 204 21 / 0.3)' : rank === 2 ? 'rgb(161 161 170 / 0.2)' : 'rgb(217 119 6 / 0.2)' }}>
-                      <span className={`text-base font-bold tabular-nums ${rankColors[rank]}`}>#{rank}</span>
-                      <span className="text-xs font-bold text-foreground tabular-nums">{entry.count}</span>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          {/* Full list */}
-          <div className="rounded-2xl border border-border overflow-hidden divide-y divide-border">
-            {entries.map((entry, i) => {
-              const rank = i + 1
-              const name = entry.username ?? t(`Joueur #${rank}`, `Player #${rank}`)
-              const pct = Math.round((entry.count / TOTAL) * 100)
-              const since = memberSince(entry.joined_at)
-              const rankIcon =
-                rank === 1 ? <Trophy className="w-3.5 h-3.5 text-yellow-400" /> :
-                rank === 2 ? <Medal className="w-3.5 h-3.5 text-zinc-400" /> :
-                rank === 3 ? <Medal className="w-3.5 h-3.5 text-amber-600" /> :
-                <span className="text-[11px] font-bold text-muted-foreground tabular-nums">{rank}</span>
-              return (
-                <div key={entry.user_id} className={`flex items-center gap-3 px-4 py-3 bg-card ${rank === 1 ? 'bg-yellow-400/3' : ''}`}>
-                  {/* Rank */}
-                  <div className="w-5 flex items-center justify-center flex-shrink-0">{rankIcon}</div>
-                  {/* Avatar */}
-                  <div className="w-9 h-9 rounded-xl bg-muted border border-border flex items-center justify-center overflow-hidden p-1 flex-shrink-0">
-                    {entry.avatar_img
-                      ? <img src={entry.avatar_img} alt={name} className="w-full h-full object-contain pointer-events-none" draggable={false} />
-                      : <span className="text-[10px] font-bold text-muted-foreground">{name.slice(0, 2).toUpperCase()}</span>
-                    }
-                  </div>
-                  {/* Name + meta */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{name}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      {since && <span className="text-[10px] text-muted-foreground/60">{since}</span>}
-                      {entry.last_elements.length > 0 && (
-                        <div className="flex items-center gap-1">
-                          {entry.last_elements.map((el, j) => (
-                            el.img
-                              ? <img key={j} src={el.img} alt={el.name} title={el.name} className="w-4 h-4 object-contain opacity-70" draggable={false} />
-                              : null
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  {/* Score */}
-                  <div className="flex flex-col items-end flex-shrink-0">
-                    <span className="text-sm font-bold tabular-nums text-foreground">{entry.count}</span>
-                    <span className="text-[10px] text-muted-foreground tabular-nums">{pct}%</span>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </>
+        <div className="rounded-2xl border border-border bg-card px-3 overflow-hidden">
+          {entries.map((entry, i) => (
+            <LeaderboardRow key={entry.user_id} entry={entry} rank={i + 1} lang={lang} total={TOTAL} />
+          ))}
+        </div>
       )}
     </div>
   )
