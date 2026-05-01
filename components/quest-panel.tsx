@@ -296,8 +296,10 @@ function QuestRow({ quest, lang, onClaim }: {
   onClaim: (id: number) => Promise<void>
 }) {
   const [claiming, setClaiming] = useState(false)
+  const [open, setOpen] = useState(false)
 
   const title = lang === 'fr' ? quest.title_fr : quest.title_en
+  const desc = lang === 'fr' ? quest.desc_fr : quest.desc_en
   const pct = Math.min(100, Math.round((quest.progress / quest.target_value) * 100))
   const isReady = quest.progress >= quest.target_value
   const isClaimed = !!quest.claimed_at
@@ -328,49 +330,67 @@ function QuestRow({ quest, lang, onClaim }: {
   const trackColor = quest.is_daily ? 'bg-sky-400' : isReady ? 'bg-amber-400' : 'bg-primary'
 
   return (
-    <div className={`flex items-center gap-3 py-3 border-b border-border/30 last:border-b-0 ${isDone ? 'opacity-40' : ''}`}>
-      {/* Icon */}
-      <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${isDone ? 'bg-muted' : isReady ? 'bg-amber-400/10' : quest.is_daily ? 'bg-sky-400/10' : 'bg-muted'}`}>
-        {isDone
-          ? <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground/30" />
-          : <Icon className={`w-3.5 h-3.5 ${accent}`} />
-        }
-      </div>
+    <div className={`border-b border-border/30 last:border-b-0 ${isDone ? 'opacity-40' : ''}`}>
+      {/* Main row — clickable to toggle accordion */}
+      <button
+        className="w-full flex items-center gap-3 py-3 text-left"
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+      >
+        {/* Icon */}
+        <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${isDone ? 'bg-muted' : isReady ? 'bg-amber-400/10' : quest.is_daily ? 'bg-sky-400/10' : 'bg-muted'}`}>
+          {isDone
+            ? <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground/30" />
+            : <Icon className={`w-3.5 h-3.5 ${accent}`} />
+          }
+        </div>
 
-      {/* Title + progress */}
-      <div className="flex-1 min-w-0">
-        <span className={`text-sm font-semibold leading-tight block truncate ${isDone ? 'line-through' : 'text-foreground'}`}>
-          {title}
-        </span>
-        {!isClaimed && (
-          <div className="flex items-center gap-2 mt-1">
-            <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-700 ${trackColor}`}
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-            <span className="text-[10px] tabular-nums text-muted-foreground/40 flex-shrink-0">
-              {quest.progress}/{quest.target_value}
-            </span>
-          </div>
-        )}
-        {isClaimed && !allScratched && (
-          <span className="text-[10px] text-primary/70 font-medium">
-            {lang === 'fr' ? 'En attente de scratch' : 'Waiting to scratch'}
+        {/* Title + progress */}
+        <div className="flex-1 min-w-0">
+          <span className={`text-sm font-semibold leading-tight block truncate ${isDone ? 'line-through' : 'text-foreground'}`}>
+            {title}
           </span>
-        )}
-      </div>
+          {!isClaimed && (
+            <div className="flex items-center gap-2 mt-1">
+              <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ${trackColor}`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <span className="text-[10px] tabular-nums text-muted-foreground/40 flex-shrink-0">
+                {quest.progress}/{quest.target_value}
+              </span>
+            </div>
+          )}
+          {isClaimed && !allScratched && (
+            <span className="text-[10px] text-primary/70 font-medium">
+              {lang === 'fr' ? 'En attente de scratch' : 'Waiting to scratch'}
+            </span>
+          )}
+        </div>
 
-      {/* Claim button — only shown when ready and not yet claimed */}
-      {isReady && !isClaimed && (
-        <button
-          onClick={handleClaim}
-          disabled={claiming}
-          className="flex-shrink-0 h-7 px-3 rounded-lg bg-amber-400 hover:bg-amber-300 active:scale-95 text-black text-[11px] font-bold transition-all disabled:opacity-60"
-        >
-          {claiming ? '...' : (lang === 'fr' ? 'Réclamer' : 'Claim')}
-        </button>
+        {/* Claim button — only shown when ready and not yet claimed */}
+        {isReady && !isClaimed ? (
+          <button
+            onClick={handleClaim}
+            disabled={claiming}
+            className="flex-shrink-0 h-7 px-3 rounded-lg bg-amber-400 hover:bg-amber-300 active:scale-95 text-black text-[11px] font-bold transition-all disabled:opacity-60"
+          >
+            {claiming ? '...' : (lang === 'fr' ? 'Réclamer' : 'Claim')}
+          </button>
+        ) : (
+          <ChevronRight
+            className={`w-3.5 h-3.5 text-muted-foreground/30 flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
+          />
+        )}
+      </button>
+
+      {/* Accordion description */}
+      {open && desc && (
+        <div className="pb-3 pl-11 pr-1">
+          <p className="text-[11px] text-muted-foreground/60 leading-relaxed">{desc}</p>
+        </div>
       )}
     </div>
   )
