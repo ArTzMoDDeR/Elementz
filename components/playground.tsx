@@ -1214,7 +1214,7 @@ function LeaderboardRow({ entry, rank, lang, total, isMe }: {
   const lastEls = entry.last_elements.filter(e => !!e.img)
 
   return (
-    <div className={`border-b border-border/30 last:border-b-0 rounded-xl transition-colors ${isMe ? 'bg-primary/8 border-primary/20' : ''}`}>
+    <div className="border-b border-border/30 last:border-b-0">
       <button
         className="w-full flex items-center gap-3 px-1 py-2.5 text-left"
         onClick={() => setOpen(o => !o)}
@@ -1224,24 +1224,21 @@ function LeaderboardRow({ entry, rank, lang, total, isMe }: {
         <div className="w-5 flex items-center justify-center flex-shrink-0">{rankLabel}</div>
 
         {/* Avatar */}
-        <div className={`w-8 h-8 rounded-xl flex items-center justify-center overflow-hidden p-1 flex-shrink-0 ${isMe ? 'bg-primary/15 border border-primary/40' : 'bg-muted border border-border'}`}>
+        <div className="w-8 h-8 rounded-xl bg-muted border border-border flex items-center justify-center overflow-hidden p-1 flex-shrink-0">
           {entry.avatar_img
             ? <img src={entry.avatar_img} alt={name} className="w-full h-full object-contain pointer-events-none" draggable={false} />
-            : <span className={`text-[10px] font-bold ${isMe ? 'text-primary' : 'text-muted-foreground'}`}>{name.slice(0, 2).toUpperCase()}</span>
+            : <span className="text-[10px] font-bold text-muted-foreground">{name.slice(0, 2).toUpperCase()}</span>
           }
         </div>
 
-        {/* Name */}
+        {/* Name — primary color only when it's the current user */}
         <span className={`flex-1 min-w-0 text-sm font-semibold truncate ${isMe ? 'text-primary' : 'text-foreground'}`}>
           {name}
-          {isMe && <span className="ml-1.5 text-[9px] font-bold text-primary/60 uppercase tracking-wide">{t('Vous', 'You')}</span>}
+          {isMe && <span className="ml-1.5 text-[9px] font-bold text-primary/50 uppercase tracking-wide">{t('Vous', 'You')}</span>}
         </span>
 
-        {/* Score + chevron */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <span className={`text-sm font-bold tabular-nums ${isMe ? 'text-primary' : 'text-foreground'}`}>{entry.count}</span>
-          <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? 'rotate-90' : ''} ${isMe ? 'text-primary/40' : 'text-muted-foreground/30'}`} />
-        </div>
+        {/* Score only, no chevron */}
+        <span className="text-sm font-bold tabular-nums text-foreground flex-shrink-0">{entry.count}</span>
       </button>
 
       {/* Accordion details */}
