@@ -425,7 +425,18 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
     setLoading(false)
   }, [])
 
-  useEffect(() => { fetchQuests() }, [fetchQuests])
+  useEffect(() => {
+    fetchQuests()
+    // Refresh every 30s while the panel is open
+    const interval = setInterval(fetchQuests, 30_000)
+    // Also refresh when the user comes back to the tab
+    const onFocus = () => fetchQuests()
+    window.addEventListener('visibilitychange', onFocus)
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('visibilitychange', onFocus)
+    }
+  }, [fetchQuests])
 
   const handleClaim = async (questId: number) => {
     const res = await fetch('/api/quests', {
