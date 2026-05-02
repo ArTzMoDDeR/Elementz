@@ -1871,27 +1871,40 @@ export default function AdminPanel() {
               <span className="text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 rounded-md px-1.5 py-0.5 leading-none">ADMIN</span>
             </a>
             <div className="flex items-center gap-1.5">
-              {/* CSV exports */}
+              {/* CSV exports — fetch+blob to preserve auth cookies and encoding */}
               <div className="flex items-center gap-1 border border-border rounded-xl overflow-hidden">
-                <a
-                  href="/api/admin/export?type=elements"
-                  download="elements.csv"
-                  className="flex items-center gap-1.5 px-2.5 h-8 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                  title="Télécharger elements.csv"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Elements</span>
-                </a>
-                <span className="w-px h-4 bg-border" />
-                <a
-                  href="/api/admin/export?type=recipes"
-                  download="recipes.csv"
-                  className="flex items-center gap-1.5 px-2.5 h-8 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                  title="Télécharger recipes.csv"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Recettes</span>
-                </a>
+                {([ 
+                  { type: 'elements', label: 'Elements' },
+                  { type: 'recipes',  label: 'Recettes' },
+                ] as const).map(({ type, label }, i) => {
+                  const handleDownload = async () => {
+                    const res = await fetch(`/api/admin/export?type=${type}`)
+                    if (!res.ok) { alert(`Export "${type}" échoué (${res.status})`); return }
+                    const blob = await res.blob()
+                    const url = URL.createObjectURL(new Blob([blob], { type: 'text/csv;charset=utf-8' }))
+                    const a = document.createElement('a')
+                    a.href = url
+                    a.download = `${type}.csv`
+                    document.body.appendChild(a)
+                    a.click()
+                    a.remove()
+                    URL.revokeObjectURL(url)
+                  }
+                  return (
+                    <>
+                      {i > 0 && <span key={`sep-${type}`} className="w-px h-4 bg-border" />}
+                      <button
+                        key={type}
+                        onClick={handleDownload}
+                        className="flex items-center gap-1.5 px-2.5 h-8 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        title={`Télécharger ${type}.csv`}
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">{label}</span>
+                      </button>
+                    </>
+                  )
+                })}
               </div>
               <button
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}

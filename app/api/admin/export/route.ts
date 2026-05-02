@@ -17,7 +17,8 @@ function toCSV(rows: Record<string, unknown>[]): string {
     headers.join(','),
     ...rows.map(row => headers.map(h => escape(row[h])).join(',')),
   ]
-  return lines.join('\n')
+  // Prepend UTF-8 BOM so Excel/Numbers/LibreOffice decode accents correctly
+  return '\uFEFF' + lines.join('\n')
 }
 
 export async function GET(req: NextRequest) {
