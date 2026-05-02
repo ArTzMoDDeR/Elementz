@@ -3,23 +3,81 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Prevent text selection on long-press — native app feel */
+/* ── iOS Native Feel ─────────────────────────────────────────────────────── */
+
+/* No text selection, no callout menu on long-press */
 * {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
-}
-
-/* Prevent iOS rubber-band / overscroll bounce */
-html, body {
-  overscroll-behavior: none;
-  -webkit-overflow-scrolling: touch;
+  /* Kill the blue tap highlight on iOS */
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Re-enable selection only for explicit inputs */
 input, textarea, [contenteditable] {
   -webkit-user-select: text;
   user-select: text;
+}
+
+/* Prevent iOS rubber-band / overscroll bounce globally */
+html, body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  /* Prevent double-tap zoom on iOS */
+  touch-action: manipulation;
+}
+
+/* Momentum scroll on any scrollable container */
+.momentum-scroll {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* ── Liquid Glass (iOS 26 style) ─────────────────────────────────────────── */
+/* Used for tab bar, panels, modals */
+.glass {
+  background: color-mix(in srgb, var(--card) 80%, transparent);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+.glass-heavy {
+  background: color-mix(in srgb, var(--background) 85%, transparent);
+  backdrop-filter: saturate(200%) blur(28px);
+  -webkit-backdrop-filter: saturate(200%) blur(28px);
+}
+
+/* ── Spring / native-feel transitions ────────────────────────────────────── */
+.spring {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.spring-sm {
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* active:scale tap bounce — iOS tap spring */
+.tap-spring {
+  transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.tap-spring:active {
+  transform: scale(0.92);
+}
+
+/* ── Sheet slide-up animation ────────────────────────────────────────────── */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes slideDown {
+  from { transform: translateY(0);    opacity: 1; }
+  to   { transform: translateY(100%); opacity: 0; }
+}
+.sheet-enter {
+  animation: slideUp 0.32s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+.sheet-exit {
+  animation: slideDown 0.28s cubic-bezier(0.32, 0.72, 0, 1) forwards;
 }
 
 :root {

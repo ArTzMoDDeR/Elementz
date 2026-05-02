@@ -1052,10 +1052,10 @@ export function Playground({
           )}
         </div>
 
-        {/* ── TAB BAR (all screen sizes) ─────────────────────────── */}
+        {/* ── TAB BAR — iOS Liquid Glass ───────────────────────────── */}
         <div
-          className="flex-shrink-0 border-t border-border bg-card/95 backdrop-blur-xl"
-          style={{ paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom, 16px) + 4px)' : undefined }}
+          className="flex-shrink-0 border-t border-white/[0.06] glass"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 12px) + 2px)' }}
         >
           <div className="flex items-stretch">
             {([
@@ -1064,13 +1064,18 @@ export function Playground({
               { id: 'codex',    icon: Books,       labelFr: 'Recettes', labelEn: 'Recipes'  },
               { id: 'settings', icon: Gear,        labelFr: 'Réglages', labelEn: 'Settings' },
               { id: 'profile',  icon: User,        labelFr: 'Profil',   labelEn: 'Profile'  },
-            ] as const).map(({ id, icon: Icon }) => {
+            ] as const).map(({ id, icon: Icon, labelFr, labelEn }) => {
               const isActive = activeTab === id
               const isProfileWithUser = id === 'profile' && !!sessionUser
+              const label = lang === 'fr' ? labelFr : labelEn
               return (
                 <button
                   key={id}
                   onClick={() => {
+                    // Haptic selection feedback on tab switch
+                    if (!isActive && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                      try { navigator.vibrate(10) } catch {}
+                    }
                     setActiveTab(prev => {
                       const next = prev === id && id !== 'home' ? 'home' : id
                       if (next !== 'profile') setProfileView('profile')
@@ -1078,35 +1083,48 @@ export function Playground({
                     })
                     if (id === 'quests') setQuestBadge(false)
                   }}
-                  className="flex-1 flex flex-col items-center justify-center py-3 relative transition-colors"
+                  className="flex-1 flex flex-col items-center justify-center gap-1 pt-2.5 pb-1 relative tap-spring"
+                  aria-label={label}
                 >
+                  {/* Active pill indicator */}
+                  {isActive && (
+                    <span
+                      className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-foreground"
+                      style={{ transition: 'width 0.2s cubic-bezier(0.34,1.56,0.64,1)' }}
+                    />
+                  )}
+
                   {isProfileWithUser ? (() => {
-                    // tabAvatarKey is a name string — use elementsByName for lookup
                     const tabEl = tabAvatarKey ? elementsByName.get(tabAvatarKey) : null
                     return (
                       <div
-                        className={`w-8 h-8 rounded-full overflow-hidden border-2 transition-all flex-shrink-0 bg-muted flex items-center justify-center ${isActive ? 'border-foreground' : 'border-muted-foreground/30'}`}
+                        className={`w-7 h-7 rounded-full overflow-hidden border-[1.5px] transition-all flex-shrink-0 bg-muted flex items-center justify-center ${isActive ? 'border-foreground' : 'border-muted-foreground/25'}`}
                         style={tabEl?.color ? { backgroundColor: `${tabEl.color}22` } : undefined}
                       >
                         {tabEl?.imageUrl ? (
-                          <img src={tabEl.imageUrl} alt="" className="w-6 h-6 object-contain" draggable={false} />
+                          <img src={tabEl.imageUrl} alt="" className="w-5 h-5 object-contain" draggable={false} />
                         ) : (
-                          <span className="text-xs font-bold text-muted-foreground">{(sessionUser.name ?? 'P')[0].toUpperCase()}</span>
+                          <span className="text-[10px] font-bold text-muted-foreground">{(sessionUser.name ?? 'P')[0].toUpperCase()}</span>
                         )}
                       </div>
                     )
                   })() : (
                     <div className="relative">
                       <Icon
-                        size={28}
+                        size={24}
                         weight={isActive ? 'fill' : 'regular'}
-                        className={`transition-all ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}
+                        className={`transition-all duration-150 ${isActive ? 'text-foreground' : 'text-muted-foreground/60'}`}
                       />
                       {id === 'quests' && questBadge && !isActive && (
-                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 border border-card animate-pulse" />
+                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 border border-card" />
                       )}
                     </div>
                   )}
+
+                  {/* Label */}
+                  <span className={`text-[10px] font-medium leading-none transition-colors duration-150 ${isActive ? 'text-foreground' : 'text-muted-foreground/50'}`}>
+                    {label}
+                  </span>
                 </button>
               )
             })}
