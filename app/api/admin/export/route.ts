@@ -23,45 +23,28 @@ function toCSV(rows: Record<string, unknown>[]): string {
 
 export async function GET(req: NextRequest) {
   try {
-    console.log('[v0] export: checking auth')
     const session = await auth()
-    if (!session?.user?.id) {
-      console.log('[v0] export: unauthorized — no session')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    console.log('[v0] export: user id =', session.user.id)
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    if (!process.env.DATABASE_URL) {
-      console.error('[v0] export: DATABASE_URL is not set')
-      return NextResponse.json({ error: 'DATABASE_URL missing' }, { status: 500 })
-    }
+    if (!process.env.DATABASE_URL) return NextResponse.json({ error: 'DATABASE_URL missing' }, { status: 500 })
 
     const sql = neon(process.env.DATABASE_URL)
 
-    console.log('[v0] export: checking admin status')
     const adminCheck = await sql`SELECT is_admin FROM users WHERE id = ${session.user.id}`
-    console.log('[v0] export: adminCheck result =', adminCheck)
-    if (!adminCheck[0]?.is_admin) {
-      console.log('[v0] export: forbidden — not admin')
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+    if (!adminCheck[0]?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
     const type = req.nextUrl.searchParams.get('type') ?? 'elements'
-    console.log('[v0] export: type =', type)
 
     if (type === 'elements') {
-      console.log('[v0] export: querying elements table')
       const rows = await sql`
         SELECT
           number,
           name_french,
           name_english,
-          img,
-          color
+          img
         FROM elements
         ORDER BY number
       `
-      console.log('[v0] export: elements rows count =', rows.length)
       const csv = toCSV(rows as Record<string, unknown>[])
       return new NextResponse(csv, {
         status: 200,
@@ -73,7 +56,6 @@ export async function GET(req: NextRequest) {
     }
 
     if (type === 'recipes') {
-      console.log('[v0] export: querying recipes table')
       const rows = await sql`
         SELECT
           r.id,
@@ -92,7 +74,6 @@ export async function GET(req: NextRequest) {
         JOIN elements er ON er.number = r.result_number
         ORDER BY r.result_number, r.id
       `
-      console.log('[v0] export: recipes rows count =', rows.length)
       const csv = toCSV(rows as Record<string, unknown>[])
       return new NextResponse(csv, {
         status: 200,
