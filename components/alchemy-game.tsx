@@ -293,7 +293,7 @@ export function AlchemyGame() {
           </div>
         )}
 
-        {/* New element */}
+        {/* Desktop-only discovery toast (no sheet on desktop) */}
         {newlyDiscovered != null && (() => {
           const el = elements.get(newlyDiscovered)
           if (!el) return null
@@ -367,6 +367,48 @@ export function AlchemyGame() {
           )
         })()}
       </div>
+
+      {/* ── iOS Discovery Bottom Sheet (mobile only) ───────────────── */}
+      {newlyDiscovered != null && (() => {
+        const el = elements.get(newlyDiscovered)
+        if (!el) return null
+        return (
+          <div
+            className="md:hidden fixed inset-x-0 bottom-0 z-[200] pointer-events-none"
+            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 16px) + 72px)' }}
+          >
+            <div
+              className="mx-4 pointer-events-auto sheet-enter"
+              onClick={handleDismissNotification}
+            >
+              <div
+                className="glass rounded-3xl border border-white/[0.08] shadow-2xl px-4 py-4 flex items-center gap-4"
+                style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.06) inset' }}
+              >
+                {/* Element image */}
+                <div className="w-14 h-14 rounded-2xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center flex-shrink-0">
+                  {el.imageUrl
+                    ? <img src={el.imageUrl} alt={el.name} className="w-10 h-10 object-contain" draggable={false} />
+                    : <Sparkles className="w-6 h-6 text-amber-400" />
+                  }
+                </div>
+                {/* Text */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wider">
+                    {lang === 'fr' ? 'Nouvel élément' : 'New element'}
+                  </p>
+                  <p className="text-lg font-bold text-foreground leading-tight mt-0.5 truncate">{el.name}</p>
+                  <p className="text-[11px] text-muted-foreground/50 mt-0.5">
+                    {discovered.size}<span className="opacity-50">/{totalElements}</span>
+                  </p>
+                </div>
+                {/* Sparkle icon */}
+                <Sparkles className="w-5 h-5 text-amber-400 flex-shrink-0 opacity-70" />
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

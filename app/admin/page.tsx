@@ -6,7 +6,7 @@ import {
   Search, Upload, Check, FileUp, Moon, Sun, Plus, X, Trash2, Save, Hash,
   ArrowDownAZ, Pencil, ChevronLeft, ChevronRight, RefreshCw, Shield, ShieldOff,
   Users, Layers, Scroll, BarChart3, AlertCircle, CheckCircle2, Clock, Mail, Send, CheckCheck,
-  TrendingUp, Activity, Repeat2,
+  TrendingUp, Activity, Repeat2, Download,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -1871,6 +1871,28 @@ export default function AdminPanel() {
               <span className="text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 rounded-md px-1.5 py-0.5 leading-none">ADMIN</span>
             </a>
             <div className="flex items-center gap-1.5">
+              {/* CSV exports */}
+              <div className="flex items-center gap-1 border border-border rounded-xl overflow-hidden">
+                <a
+                  href="/api/admin/export?type=elements"
+                  download="elements.csv"
+                  className="flex items-center gap-1.5 px-2.5 h-8 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  title="Télécharger elements.csv"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Elements</span>
+                </a>
+                <span className="w-px h-4 bg-border" />
+                <a
+                  href="/api/admin/export?type=recipes"
+                  download="recipes.csv"
+                  className="flex items-center gap-1.5 px-2.5 h-8 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  title="Télécharger recipes.csv"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Recettes</span>
+                </a>
+              </div>
               <button
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                 className="w-8 h-8 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
