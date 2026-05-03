@@ -64,11 +64,14 @@ export function useHint(
 
   // Start a 1-minute timer whenever a new discovery happens.
   // After 1 min without a new discovery, activate pulse on the hint button.
+  // Guard: if lastUnlockTime is 0 (never set), treat it as "just now" so we
+  // don't fire the pulse immediately on mount.
   useEffect(() => {
     if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current)
-    setShouldPulse(false) // reset on new discovery
+    setShouldPulse(false)
 
-    const elapsed = Date.now() - lastUnlockTime
+    const base = lastUnlockTime > 0 ? lastUnlockTime : Date.now()
+    const elapsed = Date.now() - base
     const remaining = Math.max(0, PULSE_DELAY - elapsed)
 
     pulseTimerRef.current = setTimeout(() => {
