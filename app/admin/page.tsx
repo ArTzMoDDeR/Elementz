@@ -1843,120 +1843,171 @@ function StatsTab() {
 type Tab = 'overview' | 'elements' | 'quests' | 'users' | 'email' | 'stats'
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-  { id: 'overview', label: 'Vue d\'ensemble', icon: BarChart3 },
-  { id: 'stats', label: 'Statistiques', icon: TrendingUp },
-  { id: 'elements', label: 'Éléments', icon: Layers },
-  { id: 'quests', label: 'Quêtes', icon: Scroll },
-  { id: 'users', label: 'Utilisateurs', icon: Users },
-  { id: 'email', label: 'E-mail', icon: Mail },
+  { id: 'overview',  label: 'Vue d\'ensemble', icon: BarChart3  },
+  { id: 'stats',     label: 'Statistiques',    icon: TrendingUp },
+  { id: 'elements',  label: 'Éléments',        icon: Layers     },
+  { id: 'quests',    label: 'Quêtes',          icon: Scroll     },
+  { id: 'users',     label: 'Utilisateurs',    icon: Users      },
+  { id: 'email',     label: 'E-mail',          icon: Mail       },
 ]
+
+// ─── CSV download helper ──────────────────────────────────────────────────────
+async function downloadCsv(type: 'elements' | 'recipes') {
+  const res = await fetch(`/api/admin/export?type=${type}`)
+  if (!res.ok) { alert(`Export "${type}" échoué (${res.status})`); return }
+  const blob = await res.blob()
+  const url = URL.createObjectURL(new Blob([blob], { type: 'text/csv;charset=utf-8' }))
+  const a = document.createElement('a')
+  a.href = url; a.download = `${type}.csv`
+  document.body.appendChild(a); a.click(); a.remove()
+  URL.revokeObjectURL(url)
+}
 
 export default function AdminPanel() {
   const [tab, setTab] = useState<Tab>('overview')
+  const [mobileOpen, setMobileOpen] = useState(false)
   const { theme, setTheme } = useTheme()
 
   return (
-    <div className="min-h-screen bg-background" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-      {/* Top bar */}
-      <header
-        className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-20"
-        style={{ paddingTop: 'env(safe-area-inset-top)' }}
-      >
-        <div className="max-w-7xl mx-auto px-4 lg:px-8">
-          {/* Brand row */}
-          <div className="flex items-center justify-between h-14">
-            <a href="/" className="flex items-center gap-2.5 group">
-              <img src="/logo.png" alt="Elementz" className="w-7 h-7 rounded-xl shadow-sm" />
-              <span className="text-sm font-semibold tracking-tight text-foreground">Elementz</span>
-              <span className="text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 rounded-md px-1.5 py-0.5 leading-none">ADMIN</span>
-            </a>
-            <div className="flex items-center gap-1.5">
-              {/* CSV exports — fetch+blob to preserve auth cookies and encoding */}
-              <div className="flex items-center gap-1 border border-border rounded-xl overflow-hidden">
-                {([ 
-                  { type: 'elements', label: 'Elements' },
-                  { type: 'recipes',  label: 'Recettes' },
-                ] as const).map(({ type, label }, i) => {
-                  const handleDownload = async () => {
-                    const res = await fetch(`/api/admin/export?type=${type}`)
-                    if (!res.ok) { alert(`Export "${type}" échoué (${res.status})`); return }
-                    const blob = await res.blob()
-                    const url = URL.createObjectURL(new Blob([blob], { type: 'text/csv;charset=utf-8' }))
-                    const a = document.createElement('a')
-                    a.href = url
-                    a.download = `${type}.csv`
-                    document.body.appendChild(a)
-                    a.click()
-                    a.remove()
-                    URL.revokeObjectURL(url)
-                  }
-                  return (
-                    <>
-                      {i > 0 && <span key={`sep-${type}`} className="w-px h-4 bg-border" />}
-                      <button
-                        key={type}
-                        onClick={handleDownload}
-                        className="flex items-center gap-1.5 px-2.5 h-8 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                        title={`Télécharger ${type}.csv`}
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">{label}</span>
-                      </button>
-                    </>
-                  )
-                })}
-              </div>
-              <button
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="w-8 h-8 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              >
-                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </button>
-              <a
-                href="/"
-                className="w-8 h-8 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                title="Retour au jeu"
-              >
-                <X className="w-4 h-4" />
-              </a>
-            </div>
-          </div>
+    <div className="min-h-[100dvh] bg-background flex flex-col lg:flex-row">
 
-          {/* Tab nav */}
-          <nav className="flex items-center gap-0.5 overflow-x-auto pb-3 scrollbar-none">
-            {TABS.map(t => {
-              const Icon = t.icon
-              const isActive = tab === t.id
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
-                    isActive
-                      ? 'bg-primary/10 text-primary border border-primary/20'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span>{t.label}</span>
-                </button>
-              )
-            })}
-          </nav>
+      {/* ── Right Sidebar (desktop) ──────────────────────────────────────── */}
+      <aside className="hidden lg:flex flex-col fixed right-0 top-0 bottom-0 w-[72px] border-l border-white/[0.06] z-30"
+        style={{ background: 'rgba(10,10,10,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}
+      >
+        {/* Brand */}
+        <div className="flex flex-col items-center pt-4 pb-6 gap-1.5">
+          <a href="/">
+            <img src="/logo.png" alt="Elementz" className="w-9 h-9 rounded-xl shadow-sm" />
+          </a>
+          <span className="text-[8px] font-bold tracking-widest text-primary uppercase">ADMIN</span>
+        </div>
+
+        {/* Nav items */}
+        <nav className="flex flex-col items-stretch flex-1 gap-0.5 px-2">
+          {TABS.map(t => {
+            const Icon = t.icon
+            const isActive = tab === t.id
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                title={t.label}
+                className="relative flex flex-col items-center justify-center gap-1 py-3 rounded-xl transition-all tap-spring"
+              >
+                {/* Active pill — top */}
+                {isActive && (
+                  <span className="absolute top-1 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full bg-foreground" />
+                )}
+                <Icon className={`w-5 h-5 transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground/50 hover:text-muted-foreground'}`} />
+                <span className={`text-[9px] font-medium leading-none transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground/40'}`}>
+                  {t.label.split(' ')[0]}
+                </span>
+              </button>
+            )
+          })}
+        </nav>
+
+        {/* Bottom actions */}
+        <div className="flex flex-col items-center gap-2 px-2 pb-2">
+          <button onClick={() => downloadCsv('elements')} title="Export éléments CSV"
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 transition-colors">
+            <Download className="w-4 h-4" />
+          </button>
+          <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 transition-colors">
+            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
+          <a href="/" title="Retour au jeu"
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 transition-colors">
+            <X className="w-4 h-4" />
+          </a>
+        </div>
+      </aside>
+
+      {/* ── Top bar (mobile) ─────────────────────────────────────────────── */}
+      <header className="lg:hidden sticky top-0 z-30 border-b border-white/[0.06] flex items-center justify-between px-4 h-14"
+        style={{ background: 'rgba(10,10,10,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingTop: 'env(safe-area-inset-top)' }}
+      >
+        <a href="/" className="flex items-center gap-2">
+          <img src="/logo.png" alt="Elementz" className="w-7 h-7 rounded-xl" />
+          <span className="text-sm font-semibold text-foreground">Elementz</span>
+          <span className="text-[9px] font-bold text-primary bg-primary/10 border border-primary/20 rounded-md px-1.5 py-0.5">ADMIN</span>
+        </a>
+        <div className="flex items-center gap-1.5">
+          <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted transition-colors">
+            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
+          {/* Burger */}
+          <button onClick={() => setMobileOpen(true)}
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted transition-colors">
+            <Hash className="w-4 h-4" />
+          </button>
         </div>
       </header>
 
-      {/* Content */}
-      <main
-        className="max-w-7xl mx-auto px-4 lg:px-8 py-6"
-        style={{ paddingLeft: 'max(1rem, env(safe-area-inset-left))', paddingRight: 'max(1rem, env(safe-area-inset-right))' }}
-      >
-        {tab === 'overview' && <OverviewTab />}
-        {tab === 'stats' && <StatsTab />}
-        {tab === 'elements' && <ElementsTab />}
-        {tab === 'quests' && <QuestsTab />}
-        {tab === 'users' && <UsersTab />}
-        {tab === 'email' && <EmailTab />}
+      {/* ── Mobile menu overlay ───────────────────────────────────────────── */}
+      {mobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+          {/* Sheet from right */}
+          <div className="relative ml-auto w-64 h-full flex flex-col border-l border-white/[0.06]"
+            style={{ background: 'rgba(12,12,12,0.97)', paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 h-14 border-b border-white/[0.06]">
+              <span className="text-sm font-semibold text-foreground">Navigation</span>
+              <button onClick={() => setMobileOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {/* Nav items */}
+            <nav className="flex-1 flex flex-col gap-0.5 p-3 overflow-y-auto">
+              {TABS.map(t => {
+                const Icon = t.icon
+                const isActive = tab === t.id
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => { setTab(t.id); setMobileOpen(false) }}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
+                      isActive ? 'bg-foreground/10 text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    {t.label}
+                  </button>
+                )
+              })}
+            </nav>
+            {/* Bottom actions */}
+            <div className="p-3 border-t border-white/[0.06] flex flex-col gap-1">
+              <button onClick={() => downloadCsv('elements')}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                <Download className="w-4 h-4" /> Export Elements CSV
+              </button>
+              <button onClick={() => downloadCsv('recipes')}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                <Download className="w-4 h-4" /> Export Recettes CSV
+              </button>
+              <a href="/" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                <X className="w-4 h-4" /> Retour au jeu
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Content ──────────────────────────────────────────────────────── */}
+      <main className="flex-1 lg:mr-[72px] min-w-0 px-4 lg:px-8 py-6">
+        {tab === 'overview'  && <OverviewTab />}
+        {tab === 'stats'     && <StatsTab />}
+        {tab === 'elements'  && <ElementsTab />}
+        {tab === 'quests'    && <QuestsTab />}
+        {tab === 'users'     && <UsersTab />}
+        {tab === 'email'     && <EmailTab />}
       </main>
     </div>
   )
