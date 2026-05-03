@@ -677,16 +677,23 @@ export function Playground({
           {/* Header — same layout on mobile and desktop: [clear] [logo+counter] [hint] */}
           <div className="flex items-center gap-2" style={{ transform: 'translateY(-3px)' }}>
 
-            {/* Clear button — always visible, disabled when playground is empty */}
+            {/* Clear button — icon only, 3D style */}
             <button
               onPointerDown={e => e.stopPropagation()}
               onClick={e => { e.stopPropagation(); if (items.length > 0) onClear() }}
               disabled={items.length === 0}
-              className="flex-shrink-0 flex items-center gap-1.5 h-10 px-3 rounded-2xl transition-all bg-muted border border-border text-foreground/70 hover:text-foreground hover:bg-muted/80 hover:border-foreground/20 active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
               title={lang === 'fr' ? 'Vider le terrain' : 'Clear field'}
+              className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center tap-spring transition-all disabled:opacity-25 disabled:pointer-events-none"
+              style={{
+                background: 'linear-gradient(180deg, #fca5a5 0%, #ef4444 100%)',
+                boxShadow: '0 1px 0 rgba(255,255,255,0.2) inset, 0 4px 0 #991b1b, 0 4px 8px rgba(153,27,27,0.4)',
+                color: '#fff7f7',
+              }}
+              onMouseDown={e => { const s = (e.currentTarget as HTMLElement).style; s.transform = 'translateY(2px)'; s.boxShadow = '0 1px 0 rgba(255,255,255,0.2) inset, 0 2px 0 #991b1b, 0 2px 4px rgba(153,27,27,0.25)' }}
+              onMouseUp={e => { const s = (e.currentTarget as HTMLElement).style; s.transform = ''; s.boxShadow = '0 1px 0 rgba(255,255,255,0.2) inset, 0 4px 0 #991b1b, 0 4px 8px rgba(153,27,27,0.4)' }}
+              onMouseLeave={e => { const s = (e.currentTarget as HTMLElement).style; s.transform = ''; s.boxShadow = '0 1px 0 rgba(255,255,255,0.2) inset, 0 4px 0 #991b1b, 0 4px 8px rgba(153,27,27,0.4)' }}
             >
-              <Trash2 className="w-4 h-4 flex-shrink-0" />
-              <span className="text-xs font-semibold hidden sm:inline">{lang === 'fr' ? 'Vider' : 'Clear'}</span>
+              <Trash2 className="w-4 h-4" />
             </button>
 
             {/* Center: logo + title + counter — or notification */}
@@ -755,7 +762,7 @@ export function Playground({
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder={lang === 'fr' ? 'Rechercher...' : 'Search...'}
-                  className="w-full h-9 pl-9 pr-8 bg-muted/50 border border-input rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-ring focus:bg-background transition-colors"
+                  className="w-full h-10 pl-9 pr-8 bg-muted/50 border border-input rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-ring focus:bg-background transition-colors"
                   style={{ fontSize: '16px' }}
                   onPointerDown={e => e.stopPropagation()}
                   onTouchStart={e => e.stopPropagation()}
@@ -771,7 +778,7 @@ export function Playground({
                 )}
               </div>
               {/* iOS segmented sort switcher */}
-              <div className="flex h-9 items-center rounded-xl bg-muted p-0.5 gap-0 flex-shrink-0">
+              <div className="flex h-10 items-center rounded-xl bg-muted p-0.5 gap-0 flex-shrink-0">
                 {(['name', 'recent'] as const).map(type => {
                   const isActive = sortBy === type
                   const label = type === 'name'
