@@ -685,9 +685,9 @@ export function Playground({
               title={lang === 'fr' ? 'Vider le terrain' : 'Clear field'}
               className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center tap-spring transition-all disabled:opacity-30 disabled:pointer-events-none"
               style={items.length > 0 ? {
-                background: 'linear-gradient(180deg, #fca5a5 0%, #ef4444 100%)',
-                boxShadow: '0 1px 0 rgba(255,255,255,0.2) inset, 0 4px 0 #991b1b, 0 4px 8px rgba(153,27,27,0.4)',
-                color: '#fff7f7',
+                background: 'linear-gradient(180deg, #52525b 0%, #27272a 100%)',
+                boxShadow: '0 1px 0 rgba(255,255,255,0.1) inset, 0 4px 0 #09090b, 0 4px 8px rgba(0,0,0,0.45)',
+                color: '#f4f4f5',
               } : {
                 background: 'var(--muted)',
                 boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset, 0 4px 0 rgba(0,0,0,0.2), 0 4px 8px rgba(0,0,0,0.15)',
@@ -697,19 +697,19 @@ export function Playground({
                 if (items.length === 0) return
                 const s = (e.currentTarget as HTMLElement).style
                 s.transform = 'translateY(2px)'
-                s.boxShadow = '0 1px 0 rgba(255,255,255,0.2) inset, 0 2px 0 #991b1b, 0 2px 4px rgba(153,27,27,0.25)'
+                s.boxShadow = '0 1px 0 rgba(255,255,255,0.1) inset, 0 2px 0 #09090b, 0 2px 4px rgba(0,0,0,0.3)'
               }}
               onMouseUp={e => {
                 if (items.length === 0) return
                 const s = (e.currentTarget as HTMLElement).style
                 s.transform = ''
-                s.boxShadow = '0 1px 0 rgba(255,255,255,0.2) inset, 0 4px 0 #991b1b, 0 4px 8px rgba(153,27,27,0.4)'
+                s.boxShadow = '0 1px 0 rgba(255,255,255,0.1) inset, 0 4px 0 #09090b, 0 4px 8px rgba(0,0,0,0.45)'
               }}
               onMouseLeave={e => {
                 if (items.length === 0) return
                 const s = (e.currentTarget as HTMLElement).style
                 s.transform = ''
-                s.boxShadow = '0 1px 0 rgba(255,255,255,0.2) inset, 0 4px 0 #991b1b, 0 4px 8px rgba(153,27,27,0.4)'
+                s.boxShadow = '0 1px 0 rgba(255,255,255,0.1) inset, 0 4px 0 #09090b, 0 4px 8px rgba(0,0,0,0.45)'
               }}
             >
               <Trash2 className="w-4 h-4" />
