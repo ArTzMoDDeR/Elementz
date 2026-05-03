@@ -677,21 +677,40 @@ export function Playground({
           {/* Header — same layout on mobile and desktop: [clear] [logo+counter] [hint] */}
           <div className="flex items-center gap-2" style={{ transform: 'translateY(-3px)' }}>
 
-            {/* Clear button — icon only, 3D style */}
+            {/* Clear button — neutral when empty, red 3D when active */}
             <button
               onPointerDown={e => e.stopPropagation()}
               onClick={e => { e.stopPropagation(); if (items.length > 0) onClear() }}
               disabled={items.length === 0}
               title={lang === 'fr' ? 'Vider le terrain' : 'Clear field'}
-              className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center tap-spring transition-all disabled:opacity-25 disabled:pointer-events-none"
-              style={{
+              className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center tap-spring transition-all disabled:opacity-30 disabled:pointer-events-none"
+              style={items.length > 0 ? {
                 background: 'linear-gradient(180deg, #fca5a5 0%, #ef4444 100%)',
                 boxShadow: '0 1px 0 rgba(255,255,255,0.2) inset, 0 4px 0 #991b1b, 0 4px 8px rgba(153,27,27,0.4)',
                 color: '#fff7f7',
+              } : {
+                background: 'var(--muted)',
+                boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset, 0 4px 0 rgba(0,0,0,0.2), 0 4px 8px rgba(0,0,0,0.15)',
+                color: 'var(--muted-foreground)',
               }}
-              onMouseDown={e => { const s = (e.currentTarget as HTMLElement).style; s.transform = 'translateY(2px)'; s.boxShadow = '0 1px 0 rgba(255,255,255,0.2) inset, 0 2px 0 #991b1b, 0 2px 4px rgba(153,27,27,0.25)' }}
-              onMouseUp={e => { const s = (e.currentTarget as HTMLElement).style; s.transform = ''; s.boxShadow = '0 1px 0 rgba(255,255,255,0.2) inset, 0 4px 0 #991b1b, 0 4px 8px rgba(153,27,27,0.4)' }}
-              onMouseLeave={e => { const s = (e.currentTarget as HTMLElement).style; s.transform = ''; s.boxShadow = '0 1px 0 rgba(255,255,255,0.2) inset, 0 4px 0 #991b1b, 0 4px 8px rgba(153,27,27,0.4)' }}
+              onMouseDown={e => {
+                if (items.length === 0) return
+                const s = (e.currentTarget as HTMLElement).style
+                s.transform = 'translateY(2px)'
+                s.boxShadow = '0 1px 0 rgba(255,255,255,0.2) inset, 0 2px 0 #991b1b, 0 2px 4px rgba(153,27,27,0.25)'
+              }}
+              onMouseUp={e => {
+                if (items.length === 0) return
+                const s = (e.currentTarget as HTMLElement).style
+                s.transform = ''
+                s.boxShadow = '0 1px 0 rgba(255,255,255,0.2) inset, 0 4px 0 #991b1b, 0 4px 8px rgba(153,27,27,0.4)'
+              }}
+              onMouseLeave={e => {
+                if (items.length === 0) return
+                const s = (e.currentTarget as HTMLElement).style
+                s.transform = ''
+                s.boxShadow = '0 1px 0 rgba(255,255,255,0.2) inset, 0 4px 0 #991b1b, 0 4px 8px rgba(153,27,27,0.4)'
+              }}
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -736,17 +755,37 @@ export function Playground({
                 onPointerDown={e => e.stopPropagation()}
                 onClick={e => { e.stopPropagation(); onRequestHint?.() }}
                 title={lang === 'fr' ? 'Indice' : 'Hint'}
-                className={`relative flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center tap-spring transition-all ${
-                  hintShouldPulse ? 'animate-pulse' : ''
-                }`}
-                style={{
+                className={`relative flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center tap-spring transition-all ${hintShouldPulse ? 'animate-pulse' : ''}`}
+                style={hintShouldPulse ? {
                   background: 'linear-gradient(180deg, #fcd34d 0%, #f59e0b 100%)',
                   boxShadow: '0 1px 0 rgba(255,255,255,0.25) inset, 0 4px 0 #b45309, 0 4px 8px rgba(180,83,9,0.45)',
                   color: '#78350f',
+                } : {
+                  background: 'var(--muted)',
+                  boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset, 0 4px 0 rgba(0,0,0,0.2), 0 4px 8px rgba(0,0,0,0.15)',
+                  color: 'var(--muted-foreground)',
                 }}
-                onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 0 rgba(255,255,255,0.25) inset, 0 2px 0 #b45309, 0 2px 4px rgba(180,83,9,0.3)' }}
-                onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 0 rgba(255,255,255,0.25) inset, 0 4px 0 #b45309, 0 4px 8px rgba(180,83,9,0.45)' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 0 rgba(255,255,255,0.25) inset, 0 4px 0 #b45309, 0 4px 8px rgba(180,83,9,0.45)' }}
+                onMouseDown={e => {
+                  const s = (e.currentTarget as HTMLElement).style
+                  s.transform = 'translateY(2px)'
+                  s.boxShadow = hintShouldPulse
+                    ? '0 1px 0 rgba(255,255,255,0.25) inset, 0 2px 0 #b45309, 0 2px 4px rgba(180,83,9,0.3)'
+                    : '0 1px 0 rgba(255,255,255,0.04) inset, 0 2px 0 rgba(0,0,0,0.2), 0 2px 4px rgba(0,0,0,0.1)'
+                }}
+                onMouseUp={e => {
+                  const s = (e.currentTarget as HTMLElement).style
+                  s.transform = ''
+                  s.boxShadow = hintShouldPulse
+                    ? '0 1px 0 rgba(255,255,255,0.25) inset, 0 4px 0 #b45309, 0 4px 8px rgba(180,83,9,0.45)'
+                    : '0 1px 0 rgba(255,255,255,0.04) inset, 0 4px 0 rgba(0,0,0,0.2), 0 4px 8px rgba(0,0,0,0.15)'
+                }}
+                onMouseLeave={e => {
+                  const s = (e.currentTarget as HTMLElement).style
+                  s.transform = ''
+                  s.boxShadow = hintShouldPulse
+                    ? '0 1px 0 rgba(255,255,255,0.25) inset, 0 4px 0 #b45309, 0 4px 8px rgba(180,83,9,0.45)'
+                    : '0 1px 0 rgba(255,255,255,0.04) inset, 0 4px 0 rgba(0,0,0,0.2), 0 4px 8px rgba(0,0,0,0.15)'
+                }}
               >
                 <Lightbulb className="w-4 h-4 flex-shrink-0" />
               </button>
