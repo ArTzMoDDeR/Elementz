@@ -447,13 +447,17 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
 
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
-  const fetchQuests = useCallback(async () => {
+  const fetchQuests = useCallback(async (): Promise<Quest[]> => {
     try {
       const res = await fetch('/api/quests')
       const data = await res.json()
-      setQuests(data.quests ?? [])
+      const list: Quest[] = data.quests ?? []
+      setQuests(list)
+      setLoading(false)
+      return list
     } catch {}
     setLoading(false)
+    return []
   }, [])
 
   useEffect(() => {
@@ -475,10 +479,13 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ quest_id: questId }),
     })
-    await fetchQuests()
+    // Fetch fresh quests first, then open the scratch modal with confirmed data
+    const fresh = await fetchQuests()
     if (res.ok) {
-      // Auto-open the scratch modal for the just-claimed quest
-      setScratchQuestId(questId)
+      const claimed = fresh.find(q => q.id === questId)
+      if (claimed && claimed.rewards.some(r => !r.scratched_at)) {
+        setScratchQuestId(questId)
+      }
     }
   }
 
