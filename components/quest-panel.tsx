@@ -250,9 +250,7 @@ function ScratchBanner({ count, lang, onClick }: {
   lang: 'fr' | 'en'
   onClick: () => void
 }) {
-  const ready = count > 0
-
-  if (!ready) {
+  if (count === 0) {
     return (
       <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-muted/50 border border-border">
         <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
@@ -279,8 +277,8 @@ function ScratchBanner({ count, lang, onClick }: {
         </p>
         <p className="text-[11px] text-black/60 font-medium">
           {count === 1
-            ? (lang === 'fr' ? '1 quête à clôturer' : '1 quest to close')
-            : (lang === 'fr' ? `${count} quêtes à clôturer` : `${count} quests to close`)}
+            ? (lang === 'fr' ? '1 quête terminée' : '1 quest ready')
+            : (lang === 'fr' ? `${count} quêtes terminées` : `${count} quests ready`)}
         </p>
       </div>
       <ChevronRight className="w-4 h-4 text-black/50 flex-shrink-0" />
@@ -371,25 +369,9 @@ function QuestRow({ quest, lang, onClaim, onScratch }: {
           )}
         </div>
 
-        {/* Action button */}
+        {/* Right indicator */}
         {isReady && !isClaimed ? (
-          // Not yet claimed — show claim button
-          <button
-            onClick={handleClaim}
-            disabled={claiming}
-            className="flex-shrink-0 h-7 px-3 rounded-lg bg-amber-400 hover:bg-amber-300 active:scale-95 text-black text-[11px] font-bold transition-all disabled:opacity-60"
-          >
-            {claiming ? '...' : (lang === 'fr' ? 'Réclamer' : 'Claim')}
-          </button>
-        ) : isClaimed && !allScratched ? (
-          // Claimed but not yet scratched — show scratch button
-          <button
-            onClick={e => { e.stopPropagation(); onScratch?.(quest.id) }}
-            className="flex-shrink-0 h-7 px-3 rounded-lg bg-amber-400/15 border border-amber-400/30 hover:bg-amber-400/25 active:scale-95 text-amber-400 text-[11px] font-bold transition-all flex items-center gap-1"
-          >
-            <Ticket className="w-3 h-3" />
-            {lang === 'fr' ? 'Gratter' : 'Scratch'}
-          </button>
+          <div className="flex-shrink-0 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
         ) : (
           <ChevronRight
             className={`w-3.5 h-3.5 text-muted-foreground/30 flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
@@ -498,12 +480,22 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
     await fetchQuests()
   }
 
-  // Quests that are claimed but not fully scratched — the scratch queue
-  const scratchable = quests.filter(q => !!q.claimed_at && q.rewards.some(r => !r.scratched_at))
+  // Quests ready to scratch: either already claimed-but-not-scratched, or complete-but-not-yet-claimed
+  const scratchable = quests.filter(q =>
+    (!!q.claimed_at && q.rewards.some(r => !r.scratched_at)) ||
+    (!q.claimed_at && q.progress >= q.target_value)
+  )
 
-  // Open the first scratchable quest when the user clicks the CTA
-  const openScratch = () => {
-    if (scratchable.length > 0) setScratchQuestId(scratchable[0].id)
+  // Open the first scratchable quest — claim it first if needed
+  const openScratch = async () => {
+    const first = scratchable[0]
+    if (!first) return
+    if (!first.claimed_at) {
+      // Claim first, then open modal with fresh data
+      await handleClaim(first.id)
+    } else {
+      setScratchQuestId(first.id)
+    }
   }
 
   const closeScratch = async () => {
