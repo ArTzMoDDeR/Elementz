@@ -290,10 +290,11 @@ function ScratchBanner({ count, lang, onClick }: {
 
 // ─── Quest Row ────────────────────────────────────────────────────────────────
 
-function QuestRow({ quest, lang, onClaim }: {
+function QuestRow({ quest, lang, onClaim, onScratch }: {
   quest: Quest
   lang: 'fr' | 'en'
   onClaim: (id: number) => Promise<void>
+  onScratch?: (id: number) => void
 }) {
   const [claiming, setClaiming] = useState(false)
   const [open, setOpen] = useState(false)
@@ -370,14 +371,24 @@ function QuestRow({ quest, lang, onClaim }: {
           )}
         </div>
 
-        {/* Claim button — only shown when ready and not yet claimed */}
+        {/* Action button */}
         {isReady && !isClaimed ? (
+          // Not yet claimed — show claim button
           <button
             onClick={handleClaim}
             disabled={claiming}
             className="flex-shrink-0 h-7 px-3 rounded-lg bg-amber-400 hover:bg-amber-300 active:scale-95 text-black text-[11px] font-bold transition-all disabled:opacity-60"
           >
             {claiming ? '...' : (lang === 'fr' ? 'Réclamer' : 'Claim')}
+          </button>
+        ) : isClaimed && !allScratched ? (
+          // Claimed but not yet scratched — show scratch button
+          <button
+            onClick={e => { e.stopPropagation(); onScratch?.(quest.id) }}
+            className="flex-shrink-0 h-7 px-3 rounded-lg bg-amber-400/15 border border-amber-400/30 hover:bg-amber-400/25 active:scale-95 text-amber-400 text-[11px] font-bold transition-all flex items-center gap-1"
+          >
+            <Ticket className="w-3 h-3" />
+            {lang === 'fr' ? 'Gratter' : 'Scratch'}
           </button>
         ) : (
           <ChevronRight
@@ -498,8 +509,9 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
   // Sections
   const daily = quests.filter(q => q.is_daily)
   const permanent = quests.filter(q => !q.is_daily)
-  const pendingPermanent = permanent.filter(q => !q.claimed_at).sort((a, b) => (b.progress / b.target_value) - (a.progress / a.target_value))
-  const pendingDaily = daily.filter(q => !q.claimed_at).sort((a, b) => (b.progress / b.target_value) - (a.progress / a.target_value))
+  // Include claimed-but-not-yet-scratched quests in their respective sections
+  const pendingPermanent = permanent.filter(q => !q.claimed_at || (!!q.claimed_at && q.rewards.some(r => !r.scratched_at))).sort((a, b) => (b.progress / b.target_value) - (a.progress / a.target_value))
+  const pendingDaily = daily.filter(q => !q.claimed_at || (!!q.claimed_at && q.rewards.some(r => !r.scratched_at))).sort((a, b) => (b.progress / b.target_value) - (a.progress / a.target_value))
   const done = quests.filter(q => !!q.claimed_at && q.rewards.every(r => !!r.scratched_at))
 
   const hasPermanent = pendingPermanent.length > 0
@@ -544,7 +556,7 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
                   <DailyChip lang={lang} />
                 </div>
                 {pendingDaily.map(q => (
-                  <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} />
+                  <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={setScratchQuestId} />
                 ))}
               </Section>
             )}
@@ -553,7 +565,7 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
             {hasPermanent && (
               <Section label={t('Quêtes', 'Quests')} color="muted">
                 {pendingPermanent.map(q => (
-                  <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} />
+                  <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={setScratchQuestId} />
                 ))}
               </Section>
             )}
@@ -562,7 +574,7 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
             {done.length > 0 && (
               <Section label={t('Terminées', 'Completed')} color="muted">
                 {done.map(q => (
-                  <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} />
+                  <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={setScratchQuestId} />
                 ))}
               </Section>
             )}
