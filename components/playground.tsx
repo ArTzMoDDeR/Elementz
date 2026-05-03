@@ -1595,6 +1595,24 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
         </button>
       </div>
       )}
+
+      {/* Footer */}
+      <div className="pt-2 pb-1 flex flex-col items-center gap-1">
+        <p className="text-[11px] text-muted-foreground/40">
+          &copy; {new Date().getFullYear()} Elementz. All rights reserved.
+        </p>
+        <p className="text-[11px] text-muted-foreground/40">
+          Made by{' '}
+          <a
+            href="https://www.instagram.com/eugenelabaleine"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground/70 hover:text-foreground underline underline-offset-2 transition-colors"
+          >
+            @eugenelabaleine
+          </a>
+        </p>
+      </div>
     </div>
   )
 }
