@@ -728,15 +728,20 @@ export function Playground({
               <button
                 onPointerDown={e => e.stopPropagation()}
                 onClick={e => { e.stopPropagation(); onRequestHint?.() }}
-                className={`relative flex-shrink-0 flex items-center gap-1.5 h-10 px-3 rounded-2xl transition-all border active:scale-95 ${
-                  hintShouldPulse
-                    ? 'bg-amber-400/20 border-amber-400/60 text-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.35)] animate-pulse'
-                    : 'bg-amber-400/10 border-amber-400/25 text-amber-400 hover:bg-amber-400/20 hover:border-amber-400/50'
-                }`}
                 title={lang === 'fr' ? 'Indice' : 'Hint'}
+                className={`relative flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center tap-spring transition-all ${
+                  hintShouldPulse ? 'animate-pulse' : ''
+                }`}
+                style={{
+                  background: 'linear-gradient(180deg, #fcd34d 0%, #f59e0b 100%)',
+                  boxShadow: '0 1px 0 rgba(255,255,255,0.25) inset, 0 4px 0 #b45309, 0 4px 8px rgba(180,83,9,0.45)',
+                  color: '#78350f',
+                }}
+                onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 0 rgba(255,255,255,0.25) inset, 0 2px 0 #b45309, 0 2px 4px rgba(180,83,9,0.3)' }}
+                onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 0 rgba(255,255,255,0.25) inset, 0 4px 0 #b45309, 0 4px 8px rgba(180,83,9,0.45)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 0 rgba(255,255,255,0.25) inset, 0 4px 0 #b45309, 0 4px 8px rgba(180,83,9,0.45)' }}
               >
                 <Lightbulb className="w-4 h-4 flex-shrink-0" />
-                <span className="text-xs font-semibold hidden sm:inline">{lang === 'fr' ? 'Indice' : 'Hint'}</span>
               </button>
             )}
 
@@ -791,21 +796,44 @@ export function Playground({
                 })}
               </div>
 
-              {/* Tap / Grab icon-only button */}
+              {/* Tap / Grab icon-only button — 3D style */}
               <button
                 onClick={() => setTapMode(!tapMode)}
                 onPointerDown={e => e.stopPropagation()}
                 title={tapMode ? (lang === 'fr' ? 'Passer en mode drag' : 'Switch to drag') : (lang === 'fr' ? 'Passer en mode tap' : 'Switch to tap')}
-                className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 tap-spring transition-colors ${
-                  tapMode
-                    ? 'bg-sky-500 text-white'
-                    : 'bg-violet-500 text-white'
-                }`}
+                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 tap-spring transition-all"
+                style={tapMode ? {
+                  background: 'linear-gradient(180deg, #a78bfa 0%, #7c3aed 100%)',
+                  boxShadow: '0 1px 0 rgba(255,255,255,0.2) inset, 0 4px 0 #4c1d95, 0 4px 8px rgba(76,29,149,0.45)',
+                  color: '#ede9fe',
+                } : {
+                  background: 'linear-gradient(180deg, #6ee7b7 0%, #059669 100%)',
+                  boxShadow: '0 1px 0 rgba(255,255,255,0.2) inset, 0 4px 0 #065f46, 0 4px 8px rgba(6,95,70,0.45)',
+                  color: '#ecfdf5',
+                }}
+                onMouseDown={e => {
+                  const s = (e.currentTarget as HTMLElement).style
+                  s.transform = 'translateY(2px)'
+                  s.boxShadow = tapMode
+                    ? '0 1px 0 rgba(255,255,255,0.2) inset, 0 2px 0 #4c1d95, 0 2px 4px rgba(76,29,149,0.3)'
+                    : '0 1px 0 rgba(255,255,255,0.2) inset, 0 2px 0 #065f46, 0 2px 4px rgba(6,95,70,0.3)'
+                }}
+                onMouseUp={e => {
+                  const s = (e.currentTarget as HTMLElement).style
+                  s.transform = ''
+                  s.boxShadow = tapMode
+                    ? '0 1px 0 rgba(255,255,255,0.2) inset, 0 4px 0 #4c1d95, 0 4px 8px rgba(76,29,149,0.45)'
+                    : '0 1px 0 rgba(255,255,255,0.2) inset, 0 4px 0 #065f46, 0 4px 8px rgba(6,95,70,0.45)'
+                }}
+                onMouseLeave={e => {
+                  const s = (e.currentTarget as HTMLElement).style
+                  s.transform = ''
+                  s.boxShadow = tapMode
+                    ? '0 1px 0 rgba(255,255,255,0.2) inset, 0 4px 0 #4c1d95, 0 4px 8px rgba(76,29,149,0.45)'
+                    : '0 1px 0 rgba(255,255,255,0.2) inset, 0 4px 0 #065f46, 0 4px 8px rgba(6,95,70,0.45)'
+                }}
               >
-                {tapMode
-                  ? <MousePointer className="w-4 h-4" />
-                  : <Hand className="w-4 h-4" />
-                }
+                {tapMode ? <MousePointer className="w-4 h-4" /> : <Hand className="w-4 h-4" />}
               </button>
             </div>
           )}
