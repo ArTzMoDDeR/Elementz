@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { useTheme } from 'next-themes'
+
 import {
-  Search, Upload, Check, FileUp, Moon, Sun, Plus, X, Trash2, Save, Hash,
+  Search, Upload, Check, FileUp, Plus, X, Trash2, Save, Hash,
   ArrowDownAZ, Pencil, ChevronLeft, ChevronRight, RefreshCw, Shield, ShieldOff,
   Users, Layers, Scroll, BarChart3, AlertCircle, CheckCircle2, Clock, Mail, Send, CheckCheck,
   TrendingUp, Activity, Repeat2, Download,
@@ -1866,13 +1866,12 @@ async function downloadCsv(type: 'elements' | 'recipes') {
 export default function AdminPanel() {
   const [tab, setTab] = useState<Tab>('overview')
   const [mobileOpen, setMobileOpen] = useState(false)
-  const { theme, setTheme } = useTheme()
 
   return (
-    <div className="min-h-[100dvh] bg-background flex flex-col lg:flex-row">
+    <div className="min-h-[100dvh] bg-background flex flex-col lg:flex-row overflow-hidden">
 
       {/* ── Right Sidebar (desktop) ──────────────────────────────────────── */}
-      <aside className="hidden lg:flex flex-col fixed right-0 top-0 bottom-0 w-[72px] border-l border-white/[0.06] z-30"
+      <aside className="hidden lg:flex flex-col fixed right-0 top-0 bottom-0 w-[92px] border-l border-white/[0.06] z-30"
         style={{ background: 'rgba(10,10,10,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}
       >
         {/* Brand */}
@@ -1914,10 +1913,6 @@ export default function AdminPanel() {
             className="w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 transition-colors">
             <Download className="w-4 h-4" />
           </button>
-          <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 transition-colors">
-            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
           <a href="/" title="Retour au jeu"
             className="w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 transition-colors">
             <X className="w-4 h-4" />
@@ -1935,11 +1930,6 @@ export default function AdminPanel() {
           <span className="text-[9px] font-bold text-primary bg-primary/10 border border-primary/20 rounded-md px-1.5 py-0.5">ADMIN</span>
         </a>
         <div className="flex items-center gap-1.5">
-          <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted transition-colors">
-            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
-          {/* Burger */}
           <button onClick={() => setMobileOpen(true)}
             className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted transition-colors">
             <Hash className="w-4 h-4" />
@@ -2001,7 +1991,7 @@ export default function AdminPanel() {
       )}
 
       {/* ── Content ──────────────────────────────────────────────────────── */}
-      <main className="flex-1 lg:mr-[72px] min-w-0 px-4 lg:px-8 py-6">
+      <main className="flex-1 lg:mr-[92px] min-w-0 px-4 lg:px-12 xl:px-24 2xl:px-40 py-6 overflow-y-auto">
         {tab === 'overview'  && <OverviewTab />}
         {tab === 'stats'     && <StatsTab />}
         {tab === 'elements'  && <ElementsTab />}
