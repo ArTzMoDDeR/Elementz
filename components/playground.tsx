@@ -677,16 +677,19 @@ export function Playground({
           {/* Header — same layout on mobile and desktop: [clear] [logo+counter] [hint] */}
           <div className="flex items-center gap-2" style={{ transform: 'translateY(-3px)' }}>
 
-            {/* Clear button — always visible, disabled when playground is empty */}
+            {/* Clear button — neutral when empty, red 3D when active */}
             <button
               onPointerDown={e => e.stopPropagation()}
               onClick={e => { e.stopPropagation(); if (items.length > 0) onClear() }}
               disabled={items.length === 0}
-              className="flex-shrink-0 flex items-center gap-1.5 h-10 px-3 rounded-2xl transition-all bg-muted border border-border text-foreground/70 hover:text-foreground hover:bg-muted/80 hover:border-foreground/20 active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
               title={lang === 'fr' ? 'Vider le terrain' : 'Clear field'}
+              className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center tap-spring transition-all disabled:opacity-30 disabled:pointer-events-none ${
+                items.length > 0
+                  ? 'bg-zinc-700 text-zinc-100 hover:bg-zinc-600'
+                  : 'bg-muted text-muted-foreground'
+              }`}
             >
-              <Trash2 className="w-4 h-4 flex-shrink-0" />
-              <span className="text-xs font-semibold hidden sm:inline">{lang === 'fr' ? 'Vider' : 'Clear'}</span>
+              <Trash2 className="w-4 h-4" />
             </button>
 
             {/* Center: logo + title + counter — or notification */}
@@ -728,15 +731,14 @@ export function Playground({
               <button
                 onPointerDown={e => e.stopPropagation()}
                 onClick={e => { e.stopPropagation(); onRequestHint?.() }}
-                className={`relative flex-shrink-0 flex items-center gap-1.5 h-10 px-3 rounded-2xl transition-all border active:scale-95 ${
-                  hintShouldPulse
-                    ? 'bg-amber-400/20 border-amber-400/60 text-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.35)] animate-pulse'
-                    : 'bg-amber-400/10 border-amber-400/25 text-amber-400 hover:bg-amber-400/20 hover:border-amber-400/50'
-                }`}
                 title={lang === 'fr' ? 'Indice' : 'Hint'}
+                className={`relative flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center tap-spring transition-all ${
+                  hintShouldPulse
+                    ? 'bg-amber-400 text-amber-900 animate-pulse'
+                    : 'bg-muted text-muted-foreground hover:text-foreground'
+                }`}
               >
                 <Lightbulb className="w-4 h-4 flex-shrink-0" />
-                <span className="text-xs font-semibold hidden sm:inline">{lang === 'fr' ? 'Indice' : 'Hint'}</span>
               </button>
             )}
 
@@ -750,7 +752,7 @@ export function Playground({
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder={lang === 'fr' ? 'Rechercher...' : 'Search...'}
-                  className="w-full h-9 pl-9 pr-8 bg-muted/50 border border-input rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-ring focus:bg-background transition-colors"
+                  className="w-full h-10 pl-9 pr-8 bg-muted/50 border border-input rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-ring focus:bg-background transition-colors"
                   style={{ fontSize: '16px' }}
                   onPointerDown={e => e.stopPropagation()}
                   onTouchStart={e => e.stopPropagation()}
@@ -765,36 +767,42 @@ export function Playground({
                   </button>
                 )}
               </div>
-              <button onClick={() => toggleSort('name')} className={`flex items-center gap-1 h-9 px-2.5 rounded-xl border text-xs font-medium transition-colors whitespace-nowrap ${sortBy === 'name' ? 'bg-foreground/10 border-foreground/30 text-foreground' : 'bg-muted/50 border-border text-muted-foreground hover:text-foreground'}`}>
-                <ArrowUpDown className="w-3 h-3" />
-                {lang === 'fr' ? 'Nom' : 'Name'}
-                {sortBy === 'name' && (sortReverse ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
-              </button>
-              <button onClick={() => toggleSort('recent')} className={`flex items-center gap-1 h-9 px-2.5 rounded-xl border text-xs font-medium transition-colors whitespace-nowrap ${sortBy === 'recent' ? 'bg-foreground/10 border-foreground/30 text-foreground' : 'bg-muted/50 border-border text-muted-foreground hover:text-foreground'}`}>
-                {lang === 'fr' ? 'Récent' : 'Recent'}
-                {sortBy === 'recent' && (sortReverse ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
-              </button>
+              {/* iOS segmented sort switcher */}
+              <div className="flex h-10 items-center rounded-xl bg-muted p-0.5 gap-0 flex-shrink-0">
+                {(['name', 'recent'] as const).map(type => {
+                  const isActive = sortBy === type
+                  const label = type === 'name'
+                    ? (lang === 'fr' ? 'Nom' : 'Name')
+                    : (lang === 'fr' ? 'Récent' : 'Recent')
+                  const Arrow = isActive ? (sortReverse ? ChevronDown : ChevronUp) : null
+                  return (
+                    <button
+                      key={type}
+                      onClick={() => toggleSort(type)}
+                      className={`flex items-center gap-1 h-full px-3 rounded-[10px] text-xs font-semibold transition-all whitespace-nowrap tap-spring ${
+                        isActive
+                          ? 'bg-foreground text-background shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {type === 'name' && <ArrowUpDown className="w-3 h-3 flex-shrink-0" />}
+                      {label}
+                      {Arrow && <Arrow className="w-3 h-3 flex-shrink-0" />}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Tap / Grab icon-only button */}
               <button
                 onClick={() => setTapMode(!tapMode)}
                 onPointerDown={e => e.stopPropagation()}
-                title={tapMode ? (lang === 'fr' ? 'Passer en mode drag' : 'Switch to drag mode') : (lang === 'fr' ? 'Passer en mode tap' : 'Switch to tap mode')}
-                className={`flex items-center gap-1.5 h-9 px-2.5 rounded-xl border text-xs font-semibold transition-all flex-shrink-0 active:scale-95 ${
-                  tapMode
-                    ? 'bg-sky-500/10 border-sky-500/30 text-sky-400 hover:bg-sky-500/20'
-                    : 'bg-violet-500/10 border-violet-500/30 text-violet-400 hover:bg-violet-500/20'
+                title={tapMode ? (lang === 'fr' ? 'Passer en mode drag' : 'Switch to drag') : (lang === 'fr' ? 'Passer en mode tap' : 'Switch to tap')}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 tap-spring transition-colors ${
+                  tapMode ? 'bg-violet-600 text-violet-100' : 'bg-emerald-600 text-emerald-100'
                 }`}
               >
-                {tapMode ? (
-                  <>
-                    <MousePointer className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span>Tap</span>
-                  </>
-                ) : (
-                  <>
-                    <Hand className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span>Grab</span>
-                  </>
-                )}
+                {tapMode ? <MousePointer className="w-4 h-4" /> : <Hand className="w-4 h-4" />}
               </button>
             </div>
           )}

@@ -367,10 +367,17 @@ export function useGameStore() {
       }
     }
 
-    // Buffer discoveries + the ingredient pair — flushed to DB in batch every 30s
+    // Buffer discoveries + the ingredient pair — flushed to DB immediately on new discovery
     if (session?.user?.id) {
       newResults.forEach(res => pendingDiscovered.current.add(res))
       pendingIngredients.current.push([ingredientA, ingredientB])
+      // Only flush immediately when there are actual new discoveries
+      if (newResults.length > 0) {
+        const userId = session.user.id
+        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+        // Short debounce (500ms) so rapid combos are batched, but app close won't lose data
+        saveTimeoutRef.current = setTimeout(() => flushToDb(userId), 500)
+      }
     }
 
     return results[0]
