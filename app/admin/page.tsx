@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 
 import {
-  Search, Upload, Check, FileUp, Plus, X, Trash2, Save,
+  Search, Upload, Check, FileUp, Plus, X, Trash2, Save, Hash,
   ArrowDownAZ, Pencil, ChevronLeft, ChevronRight, RefreshCw, Shield, ShieldOff,
   Users, Layers, Scroll, BarChart3, AlertCircle, CheckCircle2, Clock, Mail, Send, CheckCheck,
   TrendingUp, Activity, Repeat2, Download,
@@ -1870,26 +1870,20 @@ export default function AdminPanel() {
   return (
     <div className="min-h-[100dvh] bg-background flex flex-col lg:flex-row overflow-hidden">
 
-      {/* ── Bottom nav bar (desktop + mobile) — same style as game ─────── */}
-      <nav
-        className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/[0.06] glass"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 12px) + 2px)' }}
+      {/* ── Right Sidebar (desktop) ──────────────────────────────────────── */}
+      <aside className="hidden lg:flex flex-col fixed right-0 top-0 bottom-0 w-[92px] border-l border-white/[0.06] z-30"
+        style={{ background: 'rgba(10,10,10,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}
       >
-        <div className="flex items-stretch max-w-lg mx-auto lg:max-w-none">
-          {/* Logo — far left */}
-          <a
-            href="/"
-            title="Retour au jeu"
-            className="flex flex-col items-center justify-center gap-1 pt-2.5 pb-1 px-3 lg:px-5 tap-spring"
-          >
-            <img src="/logo.png" alt="Elementz" className="w-6 h-6 rounded-lg" />
-            <span className="text-[10px] font-medium text-muted-foreground/50 leading-none">Jeu</span>
+        {/* Brand */}
+        <div className="flex flex-col items-center pt-4 pb-6 gap-1.5">
+          <a href="/">
+            <img src="/logo.png" alt="Elementz" className="w-9 h-9 rounded-xl shadow-sm" />
           </a>
+          <span className="text-[8px] font-bold tracking-widest text-primary uppercase">ADMIN</span>
+        </div>
 
-          {/* Divider */}
-          <div className="w-px bg-white/[0.06] my-2" />
-
-          {/* Tab items */}
+        {/* Nav items */}
+        <nav className="flex flex-col items-stretch flex-1 gap-0.5 px-2">
           {TABS.map(t => {
             const Icon = t.icon
             const isActive = tab === t.id
@@ -1898,38 +1892,50 @@ export default function AdminPanel() {
                 key={t.id}
                 onClick={() => setTab(t.id)}
                 title={t.label}
-                className="flex-1 flex flex-col items-center justify-center gap-1 pt-2.5 pb-1 relative tap-spring"
+                className="relative flex flex-col items-center justify-center gap-1 py-3 rounded-xl transition-all tap-spring"
               >
+                {/* Active pill — top */}
                 {isActive && (
-                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-foreground"
-                    style={{ transition: 'width 0.2s cubic-bezier(0.34,1.56,0.64,1)' }} />
+                  <span className="absolute top-1 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full bg-foreground" />
                 )}
-                <Icon className={`w-5 h-5 transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground/40'}`} />
-                <span className={`text-[10px] font-medium leading-none transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground/40'}`}>
+                <Icon className={`w-5 h-5 transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground/50 hover:text-muted-foreground'}`} />
+                <span className={`text-[9px] font-medium leading-none transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground/40'}`}>
                   {t.label.split(' ')[0]}
                 </span>
               </button>
             )
           })}
+        </nav>
 
-          {/* Divider */}
-          <div className="w-px bg-white/[0.06] my-2" />
+        {/* Bottom actions */}
+        <div className="flex flex-col items-center gap-2 px-2 pb-2">
+          <button onClick={() => downloadCsv('elements')} title="Export éléments CSV"
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 transition-colors">
+            <Download className="w-4 h-4" />
+          </button>
+          <a href="/" title="Retour au jeu"
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 transition-colors">
+            <X className="w-4 h-4" />
+          </a>
+        </div>
+      </aside>
 
-          {/* Burger — opens sheet */}
-          <button
-            onClick={() => setMobileOpen(true)}
-            title="Menu"
-            className="flex flex-col items-center justify-center gap-1 pt-2.5 pb-1 px-3 lg:px-5 tap-spring"
-          >
-            <div className="flex flex-col gap-[4px] items-center justify-center w-5 h-5">
-              <span className="w-4 h-[1.5px] rounded-full bg-muted-foreground/50 block" />
-              <span className="w-4 h-[1.5px] rounded-full bg-muted-foreground/50 block" />
-              <span className="w-4 h-[1.5px] rounded-full bg-muted-foreground/50 block" />
-            </div>
-            <span className="text-[10px] font-medium text-muted-foreground/40 leading-none">Plus</span>
+      {/* ── Top bar (mobile) ─────────────────────────────────────────────── */}
+      <header className="lg:hidden sticky top-0 z-30 border-b border-white/[0.06] flex items-center justify-between px-4 h-14"
+        style={{ background: 'rgba(10,10,10,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingTop: 'env(safe-area-inset-top)' }}
+      >
+        <a href="/" className="flex items-center gap-2">
+          <img src="/logo.png" alt="Elementz" className="w-7 h-7 rounded-xl" />
+          <span className="text-sm font-semibold text-foreground">Elementz</span>
+          <span className="text-[9px] font-bold text-primary bg-primary/10 border border-primary/20 rounded-md px-1.5 py-0.5">ADMIN</span>
+        </a>
+        <div className="flex items-center gap-1.5">
+          <button onClick={() => setMobileOpen(true)}
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted transition-colors">
+            <Hash className="w-4 h-4" />
           </button>
         </div>
-      </nav>
+      </header>
 
       {/* ── Mobile menu overlay ───────────────────────────────────────────── */}
       {mobileOpen && (
@@ -1985,7 +1991,7 @@ export default function AdminPanel() {
       )}
 
       {/* ── Content ──────────────────────────────────────────────────────── */}
-      <main className="flex-1 min-w-0 px-4 lg:px-12 xl:px-24 2xl:px-40 pt-6 pb-28 overflow-y-auto">
+      <main className="flex-1 lg:mr-[92px] min-w-0 px-4 lg:px-12 xl:px-24 2xl:px-40 py-6 overflow-y-auto">
         {tab === 'overview'  && <OverviewTab />}
         {tab === 'stats'     && <StatsTab />}
         {tab === 'elements'  && <ElementsTab />}
