@@ -110,15 +110,30 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
     setCountdown(AD_DURATION_SECONDS)
     setCanSkip(false)
 
-    // ── Plug real ad SDK here ─────────────────────────────────────────────
-    // Example: window.googletag.cmd.push(() => { ... defineRewardedSlot ... })
-    // Call onAdFinished() from the SDK's reward callback.
-    // ─────────────────────────────────────────────────────────────────────
-
     // Skip button unlocks after SKIP_UNLOCK_SECONDS
     skipTimerRef.current = setTimeout(() => setCanSkip(true), SKIP_UNLOCK_SECONDS * 1000)
 
-    // Simulated countdown
+    // ── Google AdSense Rewarded Ad ─────────────────────────────────────────
+    // adsbygoogle.js is loaded globally via layout.tsx.
+    // Push a rewarded ad request; when the user earns the reward, move to reveal.
+    try {
+      const adsbygoogle = ((window as unknown as Record<string, unknown>).adsbygoogle ?? []) as { push: (cfg: unknown) => void }
+      adsbygoogle.push({
+        google_ad_client: 'ca-pub-2003923325493504',
+        enable_page_level_ads: false,
+        // Reward callback — ad completed successfully
+        reward_callback: () => {
+          clearInterval(intervalRef.current!)
+          clearTimeout(skipTimerRef.current!)
+          setPhase('reveal')
+        },
+      })
+    } catch {
+      // SDK not ready — fall back to simulated countdown so UX never breaks
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
+    // Simulated countdown (also acts as fallback if SDK is not available)
     intervalRef.current = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
