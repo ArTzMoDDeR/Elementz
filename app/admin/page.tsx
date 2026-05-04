@@ -1870,22 +1870,28 @@ export default function AdminPanel() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
-    <div className="min-h-[100dvh] bg-background flex flex-col lg:flex-row overflow-hidden">
+    <div className="h-[100dvh] bg-background flex overflow-hidden">
 
-      {/* ── Right Sidebar (desktop) ──────────────────────────────────────── */}
-      <aside className="hidden lg:flex flex-col fixed right-0 top-0 bottom-0 w-[92px] border-l border-white/[0.06] z-30"
-        style={{ background: 'rgba(10,10,10,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}
+      {/* ── Desktop Sidebar (right, 300px) ───────────────────────────────── */}
+      <aside className="hidden lg:flex flex-col fixed right-0 top-0 bottom-0 w-[300px] border-l border-white/[0.06] z-30 no-scrollbar"
+        style={{ background: 'rgba(10,10,10,0.92)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {/* Brand */}
-        <div className="flex flex-col items-center pt-4 pb-6 gap-1.5">
-          <a href="/">
-            <img src="/logo.png" alt="Elementz" className="w-9 h-9 rounded-xl shadow-sm" />
+        <div className="flex items-center gap-3 px-5 pt-6 pb-5">
+          <a href="/" className="flex items-center gap-3 group">
+            <img src="/logo.png" alt="Elementz" className="w-9 h-9 rounded-xl shadow-sm flex-shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-foreground leading-tight">Elementz</p>
+              <p className="text-[10px] font-semibold text-muted-foreground/50 tracking-wider uppercase leading-tight">Admin Panel</p>
+            </div>
           </a>
-          <span className="text-[8px] font-bold tracking-widest text-primary uppercase">ADMIN</span>
         </div>
 
+        <div className="h-px bg-white/[0.05] mx-4" />
+
         {/* Nav items */}
-        <nav className="flex flex-col items-stretch flex-1 gap-0.5 px-2">
+        <nav className="flex flex-col flex-1 gap-0.5 p-3 overflow-y-auto no-scrollbar">
+          <p className="text-[10px] font-semibold text-muted-foreground/30 uppercase tracking-widest px-3 pt-2 pb-1.5">Navigation</p>
           {TABS.map(t => {
             const Icon = t.icon
             const isActive = tab === t.id
@@ -1893,38 +1899,55 @@ export default function AdminPanel() {
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                title={t.label}
-                className="relative flex flex-col items-center justify-center gap-1 py-3 rounded-xl transition-all tap-spring"
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left tap-spring ${
+                  isActive
+                    ? 'bg-foreground/10 text-foreground'
+                    : 'text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.04]'
+                }`}
               >
-                {/* Active pill — top */}
-                {isActive && (
-                  <span className="absolute top-1 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full bg-foreground" />
-                )}
-                <Icon className={`w-5 h-5 transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground/50 hover:text-muted-foreground'}`} />
-                <span className={`text-[9px] font-medium leading-none transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground/40'}`}>
-                  {t.label.split(' ')[0]}
-                </span>
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${isActive ? 'bg-foreground/15' : 'bg-white/[0.04]'}`}>
+                  <Icon className="w-3.5 h-3.5" />
+                </div>
+                {t.label}
+                {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-foreground/60 flex-shrink-0" />}
               </button>
             )
           })}
         </nav>
 
-        {/* Bottom actions */}
-        <div className="flex flex-col items-center gap-2 px-2 pb-2">
-          <button onClick={() => downloadCsv('elements')} title="Export éléments CSV"
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 transition-colors">
-            <Download className="w-4 h-4" />
+        <div className="h-px bg-white/[0.05] mx-4" />
+
+        {/* Exports + back */}
+        <div className="flex flex-col gap-0.5 p-3">
+          <p className="text-[10px] font-semibold text-muted-foreground/30 uppercase tracking-widest px-3 pt-1 pb-1.5">Exports</p>
+          <button onClick={() => downloadCsv('elements')}
+            className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.04] transition-colors">
+            <div className="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center flex-shrink-0">
+              <Download className="w-3.5 h-3.5" />
+            </div>
+            Éléments CSV
           </button>
-          <a href="/" title="Retour au jeu"
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 transition-colors">
-            <X className="w-4 h-4" />
+          <button onClick={() => downloadCsv('recipes')}
+            className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.04] transition-colors">
+            <div className="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center flex-shrink-0">
+              <Download className="w-3.5 h-3.5" />
+            </div>
+            Recettes CSV
+          </button>
+          <div className="h-px bg-white/[0.05] mx-0 my-1" />
+          <a href="/"
+            className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.04] transition-colors">
+            <div className="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center flex-shrink-0">
+              <X className="w-3.5 h-3.5" />
+            </div>
+            Retour au jeu
           </a>
         </div>
       </aside>
 
       {/* ── Top bar (mobile) ─────────────────────────────────────────────── */}
-      <header className="lg:hidden sticky top-0 z-30 border-b border-white/[0.06] flex items-center justify-between px-4 h-14"
-        style={{ background: 'rgba(10,10,10,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingTop: 'env(safe-area-inset-top)' }}
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-30 border-b border-white/[0.06] flex items-center justify-between px-4 h-14"
+        style={{ background: 'rgba(10,10,10,0.92)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingTop: 'env(safe-area-inset-top)' }}
       >
         <a href="/" className="flex items-center gap-2">
           <img src="/logo.png" alt="Elementz" className="w-7 h-7 rounded-xl" />
@@ -1933,8 +1956,12 @@ export default function AdminPanel() {
         </a>
         <div className="flex items-center gap-1.5">
           <button onClick={() => setMobileOpen(true)}
-            className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted transition-colors">
-            <Hash className="w-4 h-4" />
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted/50 transition-colors">
+            <div className="flex flex-col gap-[4px] items-center justify-center">
+              <span className="w-4 h-[1.5px] rounded-full bg-current block" />
+              <span className="w-4 h-[1.5px] rounded-full bg-current block" />
+              <span className="w-4 h-[1.5px] rounded-full bg-current block" />
+            </div>
           </button>
         </div>
       </header>
@@ -1942,28 +1969,25 @@ export default function AdminPanel() {
       {/* ── Mobile menu overlay ───────────────────────────────────────────── */}
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
-          {/* Backdrop */}
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          {/* Sheet from right */}
-          <div className="relative ml-auto w-64 h-full flex flex-col border-l border-white/[0.06]"
+          <div className="relative ml-auto w-72 h-full flex flex-col border-l border-white/[0.06]"
             style={{ background: 'rgba(12,12,12,0.97)', paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
-            {/* Header */}
             <div className="flex items-center justify-between px-4 h-14 border-b border-white/[0.06]">
-              <span className="text-sm font-semibold text-foreground">Navigation</span>
-              <button onClick={() => setMobileOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted transition-colors">
+              <div className="flex items-center gap-2.5">
+                <img src="/logo.png" alt="Elementz" className="w-7 h-7 rounded-xl" />
+                <span className="text-sm font-semibold text-foreground">Admin Panel</span>
+              </div>
+              <button onClick={() => setMobileOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted/50 transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            {/* Nav items */}
-            <nav className="flex-1 flex flex-col gap-0.5 p-3 overflow-y-auto">
+            <nav className="flex-1 flex flex-col gap-0.5 p-3 overflow-y-auto no-scrollbar">
               {TABS.map(t => {
                 const Icon = t.icon
                 const isActive = tab === t.id
                 return (
-                  <button
-                    key={t.id}
-                    onClick={() => { setTab(t.id); setMobileOpen(false) }}
+                  <button key={t.id} onClick={() => { setTab(t.id); setMobileOpen(false) }}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
                       isActive ? 'bg-foreground/10 text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                     }`}
@@ -1974,15 +1998,14 @@ export default function AdminPanel() {
                 )
               })}
             </nav>
-            {/* Bottom actions */}
             <div className="p-3 border-t border-white/[0.06] flex flex-col gap-1">
               <button onClick={() => downloadCsv('elements')}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
-                <Download className="w-4 h-4" /> Export Elements CSV
+                <Download className="w-4 h-4" /> Éléments CSV
               </button>
               <button onClick={() => downloadCsv('recipes')}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
-                <Download className="w-4 h-4" /> Export Recettes CSV
+                <Download className="w-4 h-4" /> Recettes CSV
               </button>
               <a href="/" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
                 <X className="w-4 h-4" /> Retour au jeu
@@ -1993,7 +2016,7 @@ export default function AdminPanel() {
       )}
 
       {/* ── Content ──────────────────────────────────────────────────────── */}
-      <main className="flex-1 lg:mr-[92px] min-w-0 px-4 lg:px-12 xl:px-24 2xl:px-40 py-6 overflow-y-auto">
+      <main className="flex-1 lg:mr-[300px] min-w-0 h-full overflow-y-auto no-scrollbar pt-14 lg:pt-0 px-4 lg:px-10 xl:px-16 2xl:px-24 py-6">
         {tab === 'overview'  && <OverviewTab />}
         {tab === 'stats'     && <StatsTab />}
         {tab === 'elements'  && <ElementsTab />}

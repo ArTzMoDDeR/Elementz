@@ -269,6 +269,10 @@ html, body {
   100% { transform: translateX(100%); }
 }
 
+/* Completely hide scrollbar */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* Hide scrollbar but keep scroll functionality */
 .scrollbar-thin::-webkit-scrollbar {
   width: 4px;
