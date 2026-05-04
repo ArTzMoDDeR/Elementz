@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { ElementBadge } from './element-badge'
-import { Search, X, ArrowUpDown, ArrowLeft, ChevronUp, ChevronDown, ChevronRight, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Hand, MousePointer, Medal, Atom as AtomIcon, Star, Shield, Trophy, Sun, Moon } from 'lucide-react'
+import { Search, X, ArrowUpDown, ArrowLeft, ChevronUp, ChevronDown, ChevronRight, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Hand, MousePointer, Medal, Atom as AtomIcon, Star, Shield, Trophy, Sun, Moon, Play } from 'lucide-react'
 import { HouseSimple, Bell, Gear, Lifebuoy, Question, User, UserCircle, Scroll, Books } from '@phosphor-icons/react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import { HelpModal } from './help-modal'
@@ -49,6 +49,7 @@ interface PlaygroundProps {
   onToggleHints?: () => void
   onRequestHint?: () => void
   hintShouldPulse?: boolean
+  hintAdLocked?: boolean
   hapticEnabled?: boolean
   onToggleHaptic?: () => void
   onTapModeChange?: (enabled: boolean) => void
@@ -277,7 +278,7 @@ export function Playground({
   items, elements, elementsByName, discovered, totalElements,
   lang, onSetLang,
   onDrop, onMove, onMerge, onDropAndMerge, onRemove, onClear, onReset,
-  onUnlockAll, sessionUser, hintsEnabled, onToggleHints, onRequestHint, hintShouldPulse = false,
+  onUnlockAll, sessionUser, hintsEnabled, onToggleHints, onRequestHint, hintShouldPulse = false, hintAdLocked = true,
   hapticEnabled = true, onToggleHaptic, onTapModeChange, recipeMap,
   headerNotification, onDismissNotification, playgroundItemsCount = 0,
 }: PlaygroundProps) {
@@ -739,6 +740,12 @@ export function Playground({
                 }`}
               >
                 <Lightbulb className="w-4 h-4 flex-shrink-0" />
+                {/* Small play badge when ad unlock is required */}
+                {hintAdLocked && !hintShouldPulse && (
+                  <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-background border border-border flex items-center justify-center">
+                    <Play className="w-1.5 h-1.5 text-muted-foreground fill-current" />
+                  </span>
+                )}
               </button>
             )}
 
