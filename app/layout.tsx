@@ -94,14 +94,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="font-sans antialiased">
-        {/* Google AdSense */}
+      <head>
+        {/* Google AdSense — must be in <head> for site ownership validation */}
         <Script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2003923325493504"
           crossOrigin="anonymous"
-          strategy="afterInteractive"
+          strategy="beforeInteractive"
         />
+      </head>
+      <body className="font-sans antialiased">
         <SessionProvider>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
             {children}
