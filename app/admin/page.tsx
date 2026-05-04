@@ -682,44 +682,35 @@ function ElementCard({ element, uploading, onEdit, onUpload }: {
   onUpload: (number: number, file: File) => void
 }) {
   return (
-    <div className="flex items-center gap-3 px-3 py-2 rounded-xl border border-border bg-card hover:bg-muted/40 transition-colors group">
-      {/* Thumbnail */}
-      <div className="w-9 h-9 rounded-lg bg-muted border border-border flex items-center justify-center flex-shrink-0 overflow-hidden">
+    <div className="relative group flex flex-col bg-card border border-border rounded-xl overflow-hidden hover:border-border/80 transition-colors cursor-pointer" onClick={() => onEdit(element)}>
+      {/* Image area */}
+      <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden p-2">
         {element.img
-          ? <img src={element.img} alt={element.name_french} className="w-full h-full object-contain p-0.5" />
-          : <span className="text-[10px] font-mono text-muted-foreground/40">#{element.number}</span>
+          ? <img src={element.img} alt={element.name_french} className="w-full h-full object-contain" />
+          : <span className="text-[10px] font-mono text-muted-foreground/30">#{element.number}</span>
         }
-      </div>
-
-      {/* Names */}
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold text-foreground truncate leading-tight">{element.name_french}</p>
-        <p className="text-[10px] text-muted-foreground/60 truncate leading-tight">
-          {element.name_english || <span className="italic opacity-50">—</span>}
-          <span className="ml-1.5 font-mono opacity-40">#{element.number}</span>
-        </p>
-      </div>
-
-      {/* Actions */}
-      <div className="flex items-center gap-1.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-        {/* Upload image */}
-        <label className="cursor-pointer">
-          <input type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden"
-            onChange={e => { const f = e.target.files?.[0]; if (f) onUpload(element.number, f) }} />
-          <div className={`w-7 h-7 rounded-lg flex items-center justify-center border transition-colors ${element.img ? 'border-border text-muted-foreground hover:bg-muted' : 'border-amber-500/40 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20'}`}>
-            {uploading.has(element.number) ? <Spinner /> : <Upload className="w-3 h-3" />}
+        {/* Hover overlay */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 gap-1.5">
+          <label className="cursor-pointer" onClick={e => e.stopPropagation()}>
+            <input type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) onUpload(element.number, f) }} />
+            <div className="w-7 h-7 rounded-lg bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/25 transition-colors">
+              {uploading.has(element.number) ? <Spinner /> : <Upload className="w-3 h-3" />}
+            </div>
+          </label>
+          <div className="w-7 h-7 rounded-lg bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white">
+            <Pencil className="w-3 h-3" />
           </div>
-        </label>
-        {/* Edit */}
-        <button onClick={() => onEdit(element)}
-          className="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
-          <Pencil className="w-3 h-3" />
-        </button>
+        </div>
       </div>
-
-      {/* No image indicator — always visible */}
+      {/* Label */}
+      <div className="px-2 py-1.5">
+        <p className="text-[10px] font-semibold truncate leading-tight text-foreground">{element.name_french}</p>
+        <p className="text-[9px] font-mono text-muted-foreground/40 leading-tight">#{element.number}</p>
+      </div>
+      {/* No-image dot */}
       {!element.img && (
-        <div className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0 group-hover:hidden" />
+        <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-amber-400" />
       )}
     </div>
   )
@@ -1087,11 +1078,11 @@ function ElementsTab() {
         </div>
       </div>
 
-      {/* List */}
+      {/* Grid */}
       {filteredElements.length === 0
         ? <p className="text-sm text-muted-foreground text-center py-16">Aucun élément trouvé</p>
         : (
-          <div className="flex flex-col gap-1">
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-2">
             {filteredElements.map(el => (
               <ElementCard key={el.number} element={el} uploading={uploading} onEdit={setEditingElement} onUpload={handleFileUpload} />
             ))}
@@ -1612,13 +1603,6 @@ function StatsTab() {
     return '#ef4444'
   }
 
-  const topPlayerColor = (i: number) => {
-    if (i === 0) return '#f59e0b'
-    if (i === 1) return '#94a3b8'
-    if (i === 2) return '#b45309'
-    return '#22c55e'
-  }
-
   const d1Pct = stats.retention.d1 == null ? null : Math.round(stats.retention.d1 * 100)
 
   return (
@@ -1803,39 +1787,6 @@ function StatsTab() {
         </div>
       </div>
 
-      {/* Top players */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-border flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-muted-foreground" />
-          <p className="text-sm font-semibold">Top joueurs</p>
-        </div>
-        <div style={{ height: 220 }} className="p-4">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={stats.topPlayers.map(p => ({ ...p, name: p.name ?? 'Anonyme' }))} layout="vertical" barSize={14}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 10, fill: 'oklch(0.55 0 0)' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => Number(v).toLocaleString()} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: 'oklch(0.85 0 0)' }} axisLine={false} tickLine={false} width={90} />
-              <Tooltip
-                content={({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) => {
-                  if (!active || !payload?.length) return null
-                  return (
-                    <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-xl text-xs">
-                      <p className="font-semibold mb-1">{label}</p>
-                      <p className="text-muted-foreground">{Number(payload[0].value).toLocaleString()} decouverts</p>
-                    </div>
-                  )
-                }}
-                cursor={{ fill: 'rgba(255,255,255,0.03)' }}
-              />
-              <Bar dataKey="discoveries" radius={[0, 4, 4, 0]}>
-                {stats.topPlayers.map((_, i) => (
-                  <Cell key={i} fill={topPlayerColor(i)} opacity={Math.max(0.9 - i * 0.04, 0.5)} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
     </div>
   )
 }
@@ -2016,7 +1967,7 @@ export default function AdminPanel() {
       )}
 
       {/* ── Content ──────────────────────────────────────────────────────── */}
-      <main className="flex-1 lg:mr-[300px] min-w-0 h-full overflow-y-auto no-scrollbar pt-14 lg:pt-0 px-4 lg:px-10 xl:px-16 2xl:px-24 py-6">
+      <main className="flex-1 lg:mr-[300px] min-w-0 h-full overflow-y-auto no-scrollbar pt-20 pb-10 lg:pt-10 px-4 lg:px-10 xl:px-16 2xl:px-24">
         {tab === 'overview'  && <OverviewTab />}
         {tab === 'stats'     && <StatsTab />}
         {tab === 'elements'  && <ElementsTab />}
