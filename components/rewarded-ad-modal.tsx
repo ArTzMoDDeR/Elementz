@@ -5,7 +5,8 @@ import { X, Play, Lightbulb, Plus, ArrowDown } from 'lucide-react'
 import type { HintResult } from '@/hooks/use-hint'
 
 const AD_DURATION_SECONDS = 15
-const SKIP_UNLOCK_SECONDS  = 5
+// Skip button only appears once the full countdown has elapsed
+const SKIP_UNLOCK_SECONDS  = AD_DURATION_SECONDS
 
 type ElementDef = { number: number; name: string; imageUrl?: string; color?: string }
 
@@ -140,7 +141,7 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
     if (skipTimerRef.current) clearTimeout(skipTimerRef.current)
   }, [])
 
-  const skipSecondsLeft = Math.max(0, SKIP_UNLOCK_SECONDS - (AD_DURATION_SECONDS - countdown))
+
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center">
@@ -219,18 +220,13 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
             {/* Countdown */}
             <CountdownRing current={countdown} total={AD_DURATION_SECONDS} />
 
-            {/* Skip */}
-            <button onClick={handleSkip} disabled={!canSkip}
-              className={`h-9 px-6 rounded-xl text-sm font-semibold transition-all ${
-                canSkip
-                  ? 'bg-white/10 text-foreground hover:bg-white/15 active:scale-[0.97]'
-                  : 'text-white/20 cursor-not-allowed'
-              }`}>
-              {canSkip
-                ? t('Passer la pub', 'Skip ad')
-                : t(`Passer dans ${skipSecondsLeft}s`, `Skip in ${skipSecondsLeft}s`)
-              }
-            </button>
+            {/* Skip — only visible once full countdown has elapsed */}
+            {canSkip && (
+              <button onClick={handleSkip}
+                className="h-9 px-6 rounded-xl text-sm font-semibold bg-white/10 text-foreground hover:bg-white/15 active:scale-[0.97] transition-all animate-in fade-in duration-200">
+                {t('Passer la pub', 'Skip ad')}
+              </button>
+            )}
           </div>
         )}
 
@@ -286,14 +282,10 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
             </div>
 
             {/* Actions */}
-            <div className="flex flex-col items-center gap-3 w-full pt-1">
+            <div className="w-full pt-1">
               <button onClick={onComplete}
                 className="w-full py-3.5 rounded-2xl bg-foreground text-background text-sm font-bold active:scale-[0.97] transition-all hover:opacity-90">
                 {t('Jouer', "Let's play")}
-              </button>
-              <button onClick={onDismiss}
-                className="text-sm text-muted-foreground/40 hover:text-muted-foreground transition-colors">
-                {t('Fermer', 'Close')}
               </button>
             </div>
           </div>
