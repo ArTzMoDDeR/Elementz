@@ -35,8 +35,6 @@ function findHint(discovered: Set<number>, recipeMap: RecipeMap): HintResult | n
 
 const HINTS_KEY = 'elementz_hints'
 const PULSE_DELAY = 60 * 1000 // 1 minute without discovery → pulse
-const AD_UNLOCK_KEY = 'elementz_hint_ad_unlock'
-const AD_UNLOCK_DURATION = 5 * 60 * 1000 // 5 minutes free hints after watching ad
 
 export function useHint(
   discovered: Set<number>,
@@ -63,19 +61,10 @@ export function useHint(
   const [shouldPulse, setShouldPulse] = useState(false)
   const pulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Ad unlock state — timestamp until which hints are unlocked for free
-  const [adUnlockedUntil, setAdUnlockedUntil] = useState<number>(() => {
-    try { return parseInt(localStorage.getItem(AD_UNLOCK_KEY) ?? '0', 10) } catch { return 0 }
-  })
-  // Whether the ad modal should be shown
+  // Whether the ad modal should be shown (1 ad = 1 hint)
   const [showAdModal, setShowAdModal] = useState(false)
 
-  const isAdUnlocked = adUnlockedUntil > Date.now()
-
-  // Persist ad unlock time
-  useEffect(() => {
-    try { localStorage.setItem(AD_UNLOCK_KEY, String(adUnlockedUntil)) } catch {}
-  }, [adUnlockedUntil])
+  const isAdUnlocked = false // always requires an ad — kept for badge UI compat
 
   // Pulse timer
   useEffect(() => {
@@ -98,40 +87,32 @@ export function useHint(
   // Called when the user clicks the hint button.
   // If hints are unlocked (ad watched), show hint directly.
   // Otherwise show the ad modal.
+  // Always show the ad modal first — 1 ad = 1 hint
   const requestHint = useCallback(() => {
     setShouldPulse(false)
     if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current)
-
-    if (adUnlockedUntil > Date.now()) {
-      // Already unlocked — show hint
-      const hint = findHint(discovered, recipeMap)
-      if (hint) { setCurrentHint(hint); setHintVisible(true) }
-    } else {
-      // Need to watch ad first
+    // Pre-compute the hint so the modal can display it after the ad
+    const hint = findHint(discovered, recipeMap)
+    if (hint) {
+      setCurrentHint(hint)
       setShowAdModal(true)
     }
-  }, [discovered, recipeMap, adUnlockedUntil])
+  }, [discovered, recipeMap])
 
-  // Called by the ad modal when the user has finished watching the ad
+  // Called by the ad modal when the user finishes watching (or skips after delay)
   const onAdComplete = useCallback(() => {
     setShowAdModal(false)
-    const until = Date.now() + AD_UNLOCK_DURATION
-    setAdUnlockedUntil(until)
-    // Immediately show hint
-    const hint = findHint(discovered, recipeMap)
-    if (hint) { setCurrentHint(hint); setHintVisible(true) }
-  }, [discovered, recipeMap])
+    setHintVisible(true)
+  }, [])
 
   const onAdDismiss = useCallback(() => {
     setShowAdModal(false)
+    setCurrentHint(null)
   }, [])
 
   const hintLabel = currentHint
     ? lang === 'fr' ? 'Essayez de créer' : 'Try to create'
     : null
-
-  // Remaining unlock time in seconds (for display)
-  const adUnlockRemainingMs = Math.max(0, adUnlockedUntil - Date.now())
 
   return {
     hintsEnabled,
@@ -146,6 +127,5 @@ export function useHint(
     onAdComplete,
     onAdDismiss,
     isAdUnlocked,
-    adUnlockRemainingMs,
   }
 }
