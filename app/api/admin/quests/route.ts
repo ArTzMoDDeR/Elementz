@@ -17,7 +17,10 @@ export async function GET() {
     SELECT
       qd.*,
       COUNT(DISTINCT uq.user_id) FILTER (WHERE uq.completed_at IS NOT NULL)::int AS completed_count,
-      COUNT(DISTINCT uq.user_id) FILTER (WHERE uq.claimed_at IS NOT NULL)::int AS claimed_count,
+      (
+        SELECT COUNT(*)::int FROM quest_rewards qr
+        WHERE qr.quest_definition_id = qd.id AND qr.scratched_at IS NOT NULL
+      ) AS claimed_count,
       COUNT(DISTINCT uq.user_id) FILTER (WHERE uq.progress > 0)::int AS in_progress_count
     FROM quest_definitions qd
     LEFT JOIN user_quests uq ON uq.quest_id = qd.id
