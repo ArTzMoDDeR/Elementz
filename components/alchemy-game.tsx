@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useTheme } from 'next-themes'
 import { Playground } from './playground'
 import { OnboardingModal } from './onboarding-modal'
+import { RewardedAdModal } from './rewarded-ad-modal'
 import { useGameStore } from '@/hooks/use-game-store'
 import { useHint } from '@/hooks/use-hint'
 import { Sparkles, Lightbulb, Trash2, BarChart2, Hand, MousePointer } from 'lucide-react'
@@ -40,7 +41,13 @@ export function AlchemyGame() {
     unlockAll,
   } = useGameStore()
 
-  const { hintsEnabled, setHintsEnabled, hintVisible, currentHint, hintLabel, dismissHint, requestHint, shouldPulse } = useHint(
+  const {
+    hintsEnabled, setHintsEnabled,
+    hintVisible, currentHint, hintLabel, dismissHint,
+    requestHint, shouldPulse,
+    showAdModal, onAdComplete, onAdDismiss,
+    isAdUnlocked,
+  } = useHint(
     discovered,
     recipeMap,
     lastUnlockTime,
@@ -237,6 +244,12 @@ export function AlchemyGame() {
   return (
     <div className="game-container bg-background">
       {showOnboarding && <OnboardingModal elementsByName={elementsByName} onComplete={handleOnboardingComplete} />}
+
+      {/* Rewarded ad modal — shown when user clicks hint button without active unlock */}
+      {showAdModal && (
+        <RewardedAdModal lang={lang} onComplete={onAdComplete} onDismiss={onAdDismiss} />
+      )}
+
       <Playground
         items={playground}
         elements={elements}
@@ -258,6 +271,7 @@ export function AlchemyGame() {
         onToggleHints={handleToggleHints}
         onRequestHint={requestHint}
         hintShouldPulse={shouldPulse}
+        hintAdLocked={!isAdUnlocked}
         hapticEnabled={hapticEnabled}
         onToggleHaptic={() => {
           const next = !hapticEnabled
