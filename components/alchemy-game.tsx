@@ -245,9 +245,15 @@ export function AlchemyGame() {
     <div className="game-container bg-background">
       {showOnboarding && <OnboardingModal elementsByName={elementsByName} onComplete={handleOnboardingComplete} />}
 
-      {/* Rewarded ad modal — shown when user clicks hint button without active unlock */}
-      {showAdModal && (
-        <RewardedAdModal lang={lang} onComplete={onAdComplete} onDismiss={onAdDismiss} />
+      {/* Rewarded ad modal — shown when user clicks hint button (1 ad = 1 hint) */}
+      {showAdModal && currentHint && (
+        <RewardedAdModal
+          lang={lang}
+          hint={currentHint}
+          elements={elements}
+          onComplete={onAdComplete}
+          onDismiss={onAdDismiss}
+        />
       )}
 
       <Playground

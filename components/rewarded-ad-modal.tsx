@@ -1,49 +1,129 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { X, Play, Lightbulb, Clock } from 'lucide-react'
+import { useEffect, useRef, useState, useCallback } from 'react'
+import { X, Play, Lightbulb, Plus } from 'lucide-react'
+import type { HintResult } from '@/hooks/use-hint'
 
 // ─── Configuration ────────────────────────────────────────────────────────────
-// To plug in a real ad network, replace the body of `runRewardedAd` below.
-// The function receives an `onComplete` callback to call when the ad finishes.
-//
-// Example: Google Ad Manager IMA SDK
-//   window.googletag.cmd.push(() => { ... })
-//
-// For now we simulate a 10-second countdown ad.
-const AD_DURATION_SECONDS = 10
+// To plug in a real ad network, replace the body of `startAd` below.
+// Call `onAdFinished()` when the ad completes to proceed to the hint reveal.
+const AD_DURATION_SECONDS = 15   // total ad length
+const SKIP_UNLOCK_SECONDS  = 5   // seconds before skip button appears
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+type ElementDef = { number: number; name: string; imageUrl?: string; color?: string }
+
 interface Props {
   lang: 'fr' | 'en'
+  hint: HintResult
+  elements: Map<string, ElementDef>
   onComplete: () => void
   onDismiss: () => void
 }
 
-type Phase = 'intro' | 'playing' | 'done'
+type Phase = 'intro' | 'playing' | 'reveal'
 
-export function RewardedAdModal({ lang, onComplete, onDismiss }: Props) {
+function ElementTile({
+  element,
+  hidden = false,
+}: {
+  element: ElementDef | undefined
+  hidden?: boolean
+}) {
+  if (hidden || !element) {
+    return (
+      <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-muted/40 border-2 border-dashed border-border flex items-center justify-center flex-shrink-0">
+        <span className="text-3xl font-black text-muted-foreground/30 select-none">?</span>
+      </div>
+    )
+  }
+  return (
+    <div
+      className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl border-2 border-border flex flex-col items-center justify-center gap-2 flex-shrink-0 p-3 animate-in zoom-in-90 fade-in duration-300"
+      style={{ background: element.color ? `${element.color}18` : 'rgba(255,255,255,0.04)', borderColor: element.color ? `${element.color}40` : undefined }}
+    >
+      {element.imageUrl ? (
+        <img
+          src={element.imageUrl}
+          alt={element.name}
+          className="w-12 h-12 sm:w-14 sm:h-14 object-contain pointer-events-none"
+          draggable={false}
+        />
+      ) : (
+        <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center">
+          <span className="text-2xl font-bold text-muted-foreground">{element.name[0]}</span>
+        </div>
+      )}
+      <span className="text-[11px] sm:text-xs font-semibold text-center leading-tight text-foreground/80 truncate w-full text-center">
+        {element.name}
+      </span>
+    </div>
+  )
+}
+
+// Circular countdown ring
+function CountdownRing({ current, total }: { current: number; total: number }) {
+  const r = 26
+  const circ = 2 * Math.PI * r
+  const progress = current / total
+  return (
+    <div className="relative w-16 h-16 flex items-center justify-center">
+      <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r={r} fill="none" stroke="currentColor"
+          className="text-border" strokeWidth="3" />
+        <circle cx="32" cy="32" r={r} fill="none" stroke="currentColor"
+          className="text-amber-400 transition-all duration-1000 ease-linear"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          strokeDashoffset={circ * progress}
+        />
+      </svg>
+      <span className="text-lg font-bold tabular-nums text-foreground">{current}</span>
+    </div>
+  )
+}
+
+export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }: Props) {
   const [phase, setPhase] = useState<Phase>('intro')
   const [countdown, setCountdown] = useState(AD_DURATION_SECONDS)
+  const [canSkip, setCanSkip] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const skipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
+
+  // Resolve elements by number
+  const getEl = useCallback((num: number): ElementDef | undefined => {
+    for (const el of elements.values()) {
+      if (el.number === num) return el
+    }
+    return undefined
+  }, [elements])
+
+  const ing1El  = getEl(hint.ing1)
+  const ing2El  = getEl(hint.ing2)
 
   const startAd = () => {
     setPhase('playing')
     setCountdown(AD_DURATION_SECONDS)
+    setCanSkip(false)
 
     // ── Plug real ad SDK here ─────────────────────────────────────────────
-    // runRewardedAd(() => { setPhase('done') })
+    // Example: window.googletag.cmd.push(() => { ... defineRewardedSlot ... })
+    // Call onAdFinished() from the SDK's reward callback.
     // ─────────────────────────────────────────────────────────────────────
+
+    // Skip button unlocks after SKIP_UNLOCK_SECONDS
+    skipTimerRef.current = setTimeout(() => setCanSkip(true), SKIP_UNLOCK_SECONDS * 1000)
 
     // Simulated countdown
     intervalRef.current = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
           clearInterval(intervalRef.current!)
-          setPhase('done')
+          setPhase('reveal')
           return 0
         }
         return prev - 1
@@ -51,121 +131,175 @@ export function RewardedAdModal({ lang, onComplete, onDismiss }: Props) {
     }, 1000)
   }
 
+  const handleSkip = () => {
+    if (!canSkip) return
+    clearInterval(intervalRef.current!)
+    clearTimeout(skipTimerRef.current!)
+    setPhase('reveal')
+  }
+
   useEffect(() => {
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+      if (skipTimerRef.current) clearTimeout(skipTimerRef.current)
+    }
   }, [])
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={phase === 'playing' ? undefined : onDismiss}
-      />
+    // Full-screen overlay — sits above the game but below the admin sidebar on desktop
+    <div className="fixed inset-0 z-[110] flex flex-col items-center justify-center">
+      {/* Blurred backdrop */}
+      <div className="absolute inset-0 bg-background/95 backdrop-blur-xl" />
 
-      {/* Modal */}
-      <div className="relative w-full max-w-sm rounded-3xl border border-border bg-card shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-300">
+      {/* Content wrapper — constrained width on desktop, full height always */}
+      <div className="relative z-10 w-full h-full flex flex-col items-center justify-center px-6 py-10 max-w-lg mx-auto">
 
-        {/* Close — only when not playing */}
-        {phase !== 'playing' && (
-          <button
-            onClick={onDismiss}
-            className="absolute top-4 right-4 w-8 h-8 rounded-xl bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors z-10"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
-
-        {/* ── Intro phase ─────────────────────────────────────────────── */}
+        {/* ── INTRO ──────────────────────────────────────────────────────── */}
         {phase === 'intro' && (
-          <div className="flex flex-col items-center gap-5 px-6 pt-8 pb-7">
-            <div className="w-16 h-16 rounded-2xl bg-amber-400/15 border border-amber-400/20 flex items-center justify-center">
-              <Lightbulb className="w-7 h-7 text-amber-400" />
+          <div className="flex flex-col items-center gap-8 w-full animate-in fade-in slide-in-from-bottom-4 duration-300">
+            {/* Close */}
+            <button
+              onClick={onDismiss}
+              className="absolute top-4 right-4 w-10 h-10 rounded-xl bg-muted/60 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Icon */}
+            <div className="w-20 h-20 rounded-3xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center">
+              <Lightbulb className="w-9 h-9 text-amber-400" />
             </div>
-            <div className="text-center">
-              <p className="text-base font-bold text-foreground mb-1">
+
+            {/* Text */}
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-bold text-foreground tracking-tight">
                 {t('Débloquer un indice', 'Unlock a hint')}
-              </p>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              </h2>
+              <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
                 {t(
-                  `Regardez une courte publicité (${AD_DURATION_SECONDS}s) pour débloquer les indices pendant 5 minutes.`,
-                  `Watch a short ad (${AD_DURATION_SECONDS}s) to unlock hints for 5 minutes.`
+                  `Regardez une courte publicité pour révéler un des ingrédients d'une combinaison possible.`,
+                  `Watch a short ad to reveal one ingredient from a possible combination.`
                 )}
               </p>
             </div>
+
+            {/* Teaser tiles — both hidden */}
+            <div className="flex items-center gap-4">
+              <ElementTile element={ing1El} hidden />
+              <div className="flex flex-col items-center gap-1">
+                <Plus className="w-5 h-5 text-muted-foreground/30" />
+              </div>
+              <ElementTile element={ing2El} hidden />
+            </div>
+
+            {/* CTA */}
             <button
               onClick={startAd}
-              className="w-full h-11 rounded-xl bg-amber-400 hover:bg-amber-300 active:scale-[0.98] text-black text-sm font-bold transition-all flex items-center justify-center gap-2"
+              className="w-full max-w-xs h-13 py-3.5 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-[0.97] text-black text-sm font-bold transition-all flex items-center justify-center gap-2.5 shadow-lg shadow-amber-400/20"
             >
               <Play className="w-4 h-4 fill-current" />
               {t('Regarder la pub', 'Watch the ad')}
             </button>
-            <p className="text-[11px] text-muted-foreground/50">
-              {t('Sans pub, les indices sont désactivés.', 'Hints require watching an ad.')}
+
+            <p className="text-[11px] text-muted-foreground/40 text-center">
+              {t('1 pub = 1 indice', '1 ad = 1 hint')}
             </p>
           </div>
         )}
 
-        {/* ── Playing phase ────────────────────────────────────────────── */}
+        {/* ── PLAYING ────────────────────────────────────────────────────── */}
         {phase === 'playing' && (
-          <div className="flex flex-col items-center gap-4 px-6 pt-8 pb-7">
-            {/* Simulated ad placeholder — replace with real ad slot */}
-            <div className="w-full h-36 rounded-2xl bg-muted/60 border border-border flex flex-col items-center justify-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
-                <Play className="w-4 h-4 text-muted-foreground/40 fill-current" />
+          <div className="flex flex-col items-center gap-8 w-full animate-in fade-in duration-200">
+            {/* Ad slot placeholder */}
+            <div className="w-full max-w-sm rounded-3xl border border-border bg-muted/30 overflow-hidden">
+              <div className="aspect-video flex flex-col items-center justify-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center">
+                  <Play className="w-6 h-6 text-muted-foreground/30 fill-current" />
+                </div>
+                <p className="text-xs font-medium text-muted-foreground/30 uppercase tracking-widest">
+                  {t('Espace publicitaire', 'Ad placement')}
+                </p>
+                {/* ── Real ad slot: <div id="ad-container" className="w-full h-full" /> */}
               </div>
-              <p className="text-xs text-muted-foreground/40 font-medium">
-                {t('Espace publicitaire', 'Ad placement')}
-              </p>
-              {/* ── Real ad slot goes here ── */}
-              {/* <div id="ad-container" /> */}
             </div>
 
-            {/* Countdown ring */}
-            <div className="flex flex-col items-center gap-1">
-              <div className="w-14 h-14 relative flex items-center justify-center">
-                <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 56 56">
-                  <circle cx="28" cy="28" r="24" fill="none" stroke="currentColor"
-                    className="text-border" strokeWidth="3" />
-                  <circle cx="28" cy="28" r="24" fill="none" stroke="currentColor"
-                    className="text-amber-400 transition-all duration-1000"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeDasharray={`${2 * Math.PI * 24}`}
-                    strokeDashoffset={`${2 * Math.PI * 24 * (countdown / AD_DURATION_SECONDS)}`}
-                  />
-                </svg>
-                <span className="text-base font-bold text-foreground tabular-nums">{countdown}</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {t('Veuillez patienter…', 'Please wait…')}
-              </p>
+            {/* Countdown + skip */}
+            <div className="flex flex-col items-center gap-3">
+              <CountdownRing current={countdown} total={AD_DURATION_SECONDS} />
+              <button
+                onClick={handleSkip}
+                disabled={!canSkip}
+                className={`h-9 px-5 rounded-xl text-sm font-semibold transition-all ${
+                  canSkip
+                    ? 'bg-foreground/10 text-foreground hover:bg-foreground/15 active:scale-[0.97]'
+                    : 'text-muted-foreground/30 cursor-not-allowed'
+                }`}
+              >
+                {canSkip
+                  ? t('Passer la pub', 'Skip ad')
+                  : t(`Passer dans ${Math.max(0, SKIP_UNLOCK_SECONDS - (AD_DURATION_SECONDS - countdown))}s`, `Skip in ${Math.max(0, SKIP_UNLOCK_SECONDS - (AD_DURATION_SECONDS - countdown))}s`)
+                }
+              </button>
             </div>
           </div>
         )}
 
-        {/* ── Done phase ───────────────────────────────────────────────── */}
-        {phase === 'done' && (
-          <div className="flex flex-col items-center gap-5 px-6 pt-8 pb-7">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center">
-              <Lightbulb className="w-7 h-7 text-emerald-400" />
-            </div>
-            <div className="text-center">
-              <p className="text-base font-bold text-foreground mb-1">
-                {t('Indices débloqués !', 'Hints unlocked!')}
+        {/* ── REVEAL ─────────────────────────────────────────────────────── */}
+        {phase === 'reveal' && (
+          <div className="flex flex-col items-center gap-8 w-full animate-in fade-in slide-in-from-bottom-4 duration-400">
+            {/* Header */}
+            <div className="text-center space-y-1.5">
+              <p className="text-xs font-semibold text-amber-400 uppercase tracking-widest">
+                {t('Essayez de créer', 'Try to create')}
               </p>
-              <p className="text-sm text-muted-foreground leading-relaxed flex items-center justify-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                {t('Valable 5 minutes', 'Valid for 5 minutes')}
-              </p>
+              <h2 className="text-2xl font-bold text-foreground tracking-tight">
+                {t('Votre indice', 'Your hint')}
+              </h2>
             </div>
-            <button
-              onClick={onComplete}
-              className="w-full h-11 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-white text-sm font-bold transition-all flex items-center justify-center gap-2"
-            >
-              <Lightbulb className="w-4 h-4" />
-              {t('Voir mon indice', 'Show my hint')}
-            </button>
+
+            {/* Tiles — ing1 revealed, ing2 hidden */}
+            <div className="flex items-center gap-5">
+              <div className="flex flex-col items-center gap-2">
+                <ElementTile element={ing1El} hidden={false} />
+                <span className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">
+                  {t('Ingrédient', 'Ingredient')}
+                </span>
+              </div>
+
+              <div className="flex flex-col items-center gap-1 pb-5">
+                <Plus className="w-6 h-6 text-muted-foreground/40" />
+              </div>
+
+              <div className="flex flex-col items-center gap-2">
+                <ElementTile element={ing2El} hidden />
+                <span className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">
+                  {t('Mystère', 'Mystery')}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground/50 text-center max-w-xs">
+              {t(
+                `Combinez cet élément avec autre chose pour découvrir quelque chose de nouveau.`,
+                `Combine this element with something else to discover something new.`
+              )}
+            </p>
+
+            {/* Actions */}
+            <div className="flex flex-col items-center gap-3 w-full max-w-xs">
+              <button
+                onClick={onComplete}
+                className="w-full py-3.5 rounded-2xl bg-foreground text-background text-sm font-bold active:scale-[0.97] transition-all hover:opacity-90"
+              >
+                {t('Commencer à jouer', "Let's play")}
+              </button>
+              <button
+                onClick={onDismiss}
+                className="text-sm text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+              >
+                {t('Fermer', 'Close')}
+              </button>
+            </div>
           </div>
         )}
       </div>
