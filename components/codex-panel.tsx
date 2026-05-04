@@ -62,19 +62,13 @@ function RecipeCard({
   const ingB = recipe ? elements.get(recipe.ing2_number) ?? null : null
 
   return (
-    <div
-      className="rounded-2xl border overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
-      style={{ borderColor: `${element.color}40`, background: `${element.color}08` }}
-    >
+    <div className="rounded-2xl border border-border bg-muted/30 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
       {/* Element header */}
       <div className="flex items-center gap-3.5 px-4 py-3.5">
-        <div
-          className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center overflow-hidden p-1 border"
-          style={{ borderColor: `${element.color}50`, background: `${element.color}18` }}
-        >
+        <div className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center overflow-hidden p-1 border border-border bg-muted">
           {element.imageUrl
             ? <img src={element.imageUrl} alt={element.name} className="w-full h-full object-contain" draggable={false} />
-            : <span className="text-lg font-bold" style={{ color: element.color }}>{element.name[0].toUpperCase()}</span>
+            : <span className="text-lg font-bold text-muted-foreground">{element.name[0].toUpperCase()}</span>
           }
         </div>
         <div className="flex-1 min-w-0">
@@ -96,10 +90,7 @@ function RecipeCard({
       </div>
 
       {/* Recipe row */}
-      <div
-        className="border-t px-4 py-3 flex items-center justify-center gap-2.5 min-h-[72px]"
-        style={{ borderColor: `${element.color}20` }}
-      >
+      <div className="border-t border-border px-4 py-3 flex items-center justify-center gap-2.5 min-h-[72px]">
         {loading && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground/40" />}
         {!loading && isBase && (
           <p className="text-xs text-muted-foreground/60 py-0.5">
@@ -117,13 +108,10 @@ function RecipeCard({
               <ChevronRight className="w-3 h-3 text-muted-foreground" />
             </div>
             <div className="flex flex-col items-center gap-1">
-              <div
-                className="w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden p-1 border-2"
-                style={{ borderColor: `${element.color}70`, background: `${element.color}20` }}
-              >
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden p-1 border-2 border-border bg-muted">
                 {element.imageUrl
                   ? <img src={element.imageUrl} alt={element.name} className="w-full h-full object-contain" draggable={false} />
-                  : <span className="text-sm font-bold" style={{ color: element.color }}>{element.name[0].toUpperCase()}</span>
+                  : <span className="text-sm font-bold text-muted-foreground">{element.name[0].toUpperCase()}</span>
                 }
               </div>
               <span className="text-[9px] font-bold text-foreground text-center leading-tight max-w-[52px] truncate">
@@ -140,13 +128,10 @@ function RecipeCard({
 function IngredientPill({ element }: { element: ElementDef }) {
   return (
     <div className="flex flex-col items-center gap-1">
-      <div
-        className="w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden p-1 border"
-        style={{ borderColor: `${element.color}40`, background: `${element.color}15` }}
-      >
+      <div className="w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden p-1 border border-border bg-muted">
         {element.imageUrl
           ? <img src={element.imageUrl} alt={element.name} className="w-full h-full object-contain" draggable={false} />
-          : <span className="text-sm font-bold" style={{ color: element.color }}>{element.name[0].toUpperCase()}</span>
+          : <span className="text-sm font-bold text-muted-foreground">{element.name[0].toUpperCase()}</span>
         }
       </div>
       <span className="text-[9px] font-medium text-muted-foreground text-center leading-tight max-w-[52px] truncate">
@@ -170,22 +155,15 @@ function ElementCard({
   return (
     <button
       onClick={onClick}
-      className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-1 transition-all active:scale-95 overflow-hidden p-1.5 border ${isSelected ? 'border-2' : 'hover:opacity-80'}`}
-      style={{
-        borderColor: isSelected ? `${element.color}80` : `${element.color}28`,
-        background: isSelected ? `${element.color}1a` : `${element.color}0a`,
-      }}
+      className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-1 transition-all active:scale-95 overflow-hidden p-1.5 border ${isSelected ? 'border-2 border-foreground/40 bg-foreground/8' : 'border-border bg-muted/30 hover:bg-muted/60'}`}
     >
       <div className="w-[58%] aspect-square flex items-center justify-center flex-shrink-0">
         {element.imageUrl
           ? <img src={element.imageUrl} alt={element.name} className="w-full h-full object-contain" draggable={false} />
-          : <span className="text-xs font-bold" style={{ color: element.color }}>{element.name[0].toUpperCase()}</span>
+          : <span className="text-xs font-bold text-muted-foreground">{element.name[0].toUpperCase()}</span>
         }
       </div>
-      <span
-        className="text-[8px] font-semibold leading-tight text-center w-full truncate px-0.5"
-        style={{ color: isSelected ? element.color : undefined }}
-      >
+      <span className={`text-[8px] font-semibold leading-tight text-center w-full truncate px-0.5 ${isSelected ? 'text-foreground' : 'text-muted-foreground'}`}>
         {element.name}
       </span>
     </button>
@@ -270,23 +248,23 @@ export function CodexInlinePanel({
           <div>
             <h2 className="text-lg font-bold text-foreground leading-tight">{t('Recettes', 'Recipes')}</h2>
             <p className="text-xs text-muted-foreground">
-              <span className="font-semibold" style={{ color: 'var(--primary)' }}>{discoveredCount}</span>
+              <span className="font-semibold text-foreground">{discoveredCount}</span>
               <span className="opacity-50">/{totalElements}</span>
               <span className="mx-1 opacity-40">·</span>
               <span>{pct}%</span>
             </p>
           </div>
         </div>
-        <div className="w-10 h-10 rounded-2xl bg-primary/10 border border-primary/15 flex items-center justify-center flex-shrink-0">
-          <Books size={20} weight="fill" className="text-primary" />
+        <div className="w-10 h-10 rounded-2xl bg-muted border border-border flex items-center justify-center flex-shrink-0">
+          <Books size={20} weight="fill" className="text-muted-foreground" />
         </div>
       </div>
 
       {/* Progress bar */}
       <div className="h-1.5 rounded-full bg-muted overflow-hidden">
         <div
-          className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${pct}%`, background: 'var(--primary)' }}
+          className="h-full rounded-full bg-foreground/40 transition-all duration-700"
+          style={{ width: `${pct}%` }}
         />
       </div>
 
@@ -332,7 +310,7 @@ export function CodexInlinePanel({
             <SectionLabel
               label={t('Découverts', 'Discovered')}
               count={discoveredCount}
-              color="primary"
+              color="muted"
             />
           )}
           <div className="grid grid-cols-4 gap-2">
