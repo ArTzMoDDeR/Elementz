@@ -100,8 +100,7 @@ export default function RootLayout({
           src="/api/applixir-sdk"
           strategy="afterInteractive"
         />
-        {/* Required AppLixir anchor div — kept hidden, SDK uses it internally */}
-        <div id="applixir_vanishing_div" style={{ display: 'none' }} />
+
         <SessionProvider>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
             {children}
