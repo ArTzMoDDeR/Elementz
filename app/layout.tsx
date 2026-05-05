@@ -95,11 +95,23 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className="bg-background">
       <body className="font-sans antialiased">
-        {/* AppLixir rewarded video ad SDK — served via our own proxy to avoid ad-blocker blocks */}
-        <Script
-          src="/api/applixir-sdk"
-          strategy="afterInteractive"
-        />
+        {/* GPP stub — AppLixir calls window.__gpp() before initializing.
+            Without this stub it throws and silently refuses to play ads.     */}
+        <Script id="gpp-stub" strategy="beforeInteractive">{`
+          window.__gpp = window.__gpp || function(cmd, callback) {
+            if (typeof callback === 'function') {
+              callback({ cmpStatus: 'stub', cmpDisplayStatus: 'hidden', signalStatus: 'ready', applicableSections: [], gppString: '', parsedSections: {} }, true);
+            }
+          };
+          window.__gpp.ping = { cmpStatus: 'stub', cmpDisplayStatus: 'hidden', signalStatus: 'ready', gppVersion: '1.1', cmpId: 0, cmpVersion: 0, apiPrefix: '__gpp' };
+        `}</Script>
+
+        {/* Google IMA SDK — proxied through our domain to avoid ad-blocker blocks.
+            Must load before AppLixir which depends on google.ima.               */}
+        <Script src="/api/ima-sdk" strategy="afterInteractive" />
+
+        {/* AppLixir rewarded video ad SDK — served via our own proxy */}
+        <Script src="/api/applixir-sdk" strategy="afterInteractive" />
 
         <SessionProvider>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
