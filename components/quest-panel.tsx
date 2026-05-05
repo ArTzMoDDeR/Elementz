@@ -183,13 +183,15 @@ function ScratchModal({ quest, lang, onScratch, onClose }: {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
       style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="w-full max-w-sm rounded-3xl bg-card border border-border overflow-hidden">
+      <div className="w-full sm:max-w-sm h-full sm:h-auto sm:rounded-3xl rounded-t-3xl bg-card border border-border overflow-y-auto flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4">
+          {/* Drag handle — mobile only */}
+          <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-muted-foreground/20 sm:hidden" />
           <div>
             <p className="text-[10px] font-semibold text-amber-400 uppercase tracking-widest mb-0.5">
               {lang === 'fr' ? 'Récompense' : 'Reward'}
@@ -205,7 +207,7 @@ function ScratchModal({ quest, lang, onScratch, onClose }: {
         </div>
 
         {/* Scratch area */}
-        <div className="px-5 pb-6">
+        <div className="px-5 pb-6 flex-1 flex flex-col justify-center sm:block">
           {resultName && !allScratched && (
             <p className="text-[11px] text-muted-foreground text-center mb-4">
               {lang === 'fr' ? 'Pour créer : ' : 'To create: '}
@@ -389,7 +391,7 @@ function QuestRow({ quest, lang, onClaim, onScratch }: {
   )
 }
 
-// ─── Section ──────────────────────────────────────────────────────────────────
+// ─── Section ───��──────────────────────────────────────────────────────────────
 
 function Section({ label, color = 'muted', children }: {
   label: string
