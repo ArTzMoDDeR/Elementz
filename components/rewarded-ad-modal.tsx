@@ -56,22 +56,20 @@ function Tile({
   )
 }
 
-// ── Circular countdown ─────────────────────────────────────────────────────
-function CountdownRing({ current, total }: { current: number; total: number }) {
-  const r = 26
-  const circ = 2 * Math.PI * r
-  const progress = current / total
+// ── Horizontal progress bar ────────────────────────────────────────────────
+function ProgressBar({ current, total }: { current: number; total: number }) {
+  const pct = Math.round(((total - current) / total) * 100)
   return (
-    <div className="relative w-16 h-16 flex items-center justify-center">
-      <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r={r} fill="none" stroke="currentColor" className="text-white/10" strokeWidth="3" />
-        <circle cx="32" cy="32" r={r} fill="none" stroke="currentColor"
-          className="text-amber-400 transition-all duration-1000 ease-linear"
-          strokeWidth="3" strokeLinecap="round"
-          strokeDasharray={circ} strokeDashoffset={circ * progress}
+    <div className="w-full flex flex-col gap-2">
+      <div className="w-full h-2 rounded-full bg-white/[0.07] overflow-hidden">
+        <div
+          className="h-full rounded-full bg-amber-400 transition-all duration-1000 ease-linear"
+          style={{ width: `${pct}%` }}
         />
-      </svg>
-      <span className="text-base font-bold tabular-nums text-foreground">{current}</span>
+      </div>
+      <p className="text-[11px] text-muted-foreground/40 tabular-nums text-right">
+        {current}s
+      </p>
     </div>
   )
 }
@@ -233,7 +231,7 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
 
         {/* ── PLAYING ────────────────────────────────────────────────────── */}
         {phase === 'playing' && (
-          <div className="flex flex-col items-center gap-7 w-full animate-in fade-in duration-200">
+          <div className="flex flex-col items-center gap-6 w-full animate-in fade-in duration-200">
             {/* Ad slot */}
             <div className="w-full rounded-2xl border border-white/[0.07] bg-white/[0.03] overflow-hidden">
               <div className="aspect-video flex flex-col items-center justify-center gap-3">
@@ -243,22 +241,22 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
                 <p className="text-[11px] font-medium text-white/20 uppercase tracking-widest">
                   {t('Publicité', 'Advertisement')}
                 </p>
-                {/* Real ad slot goes here: <div id="ad-rewarded" className="w-full h-full" /> */}
               </div>
             </div>
 
-            {/* Countdown */}
-            <CountdownRing current={countdown} total={AD_DURATION_SECONDS} />
-
-            {/* After countdown: show reveal button + dismiss option */}
-            {canSkip && (
-              <div className="w-full animate-in fade-in duration-300">
-                <button onClick={handleRevealAfterCountdown}
-                  className="w-full py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-[0.97] text-black text-sm font-bold transition-all">
+            {/* Progress bar → becomes reveal button when done */}
+            <div className="w-full">
+              {canSkip ? (
+                <button
+                  onClick={handleRevealAfterCountdown}
+                  className="w-full py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-[0.97] text-black text-sm font-bold transition-all animate-in fade-in zoom-in-95 duration-300"
+                >
                   {t('Voir mon indice', 'See my hint')}
                 </button>
-              </div>
-            )}
+              ) : (
+                <ProgressBar current={countdown} total={AD_DURATION_SECONDS} />
+              )}
+            </div>
           </div>
         )}
 

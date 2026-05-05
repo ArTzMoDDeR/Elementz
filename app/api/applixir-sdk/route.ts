@@ -3,7 +3,7 @@
 // by browser-level ad-blocker filter lists that target cdn.applixir.com.
 import { NextResponse } from 'next/server'
 
-const APPLIXIR_CDN = 'https://cdn.applixir.com/applixir.stable.min.js'
+const APPLIXIR_CDN = 'https://cdn.applixir.com/applixir.app.v6.0.1.js'
 
 // Cache the fetched script in memory for 1 hour so we don't hit the CDN on
 // every page load. On cold starts / edge runtimes a fresh fetch is performed.
