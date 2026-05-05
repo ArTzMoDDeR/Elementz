@@ -96,14 +96,29 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
   const ing1El   = getEl(hint.ing1)
   const ing2El   = getEl(hint.ing2)
 
-  // Whether AppLixir SDK is available (not blocked by ad blocker)
-  const sdkAvailableRef = useRef(false)
-
   const goToReveal = useCallback(() => {
     clearInterval(intervalRef.current!)
     clearTimeout(skipTimerRef.current!)
     setPhase('reveal')
   }, [])
+
+  const tryInitPlayer = useCallback(() => {
+    const w = window as unknown as Record<string, unknown>
+    const initPlayer = w.initializeAndOpenPlayer as ((opts: unknown) => void) | undefined
+    if (typeof initPlayer !== 'function') return false
+    try {
+      initPlayer({
+        apiKey: process.env.NEXT_PUBLIC_APPLIXIR_API_KEY ?? '',
+        adStatusCallbackFn: (status: string) => {
+          if (status === 'ad-watched') goToReveal()
+          // ad-skipped, ad-error, no-ad-available → do nothing
+        },
+      })
+      return true
+    } catch {
+      return false
+    }
+  }, [goToReveal])
 
   const startAd = () => {
     setPhase('playing')
@@ -111,44 +126,23 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
     setCanSkip(false)
 
     // ── AppLixir rewarded video ad ─────────────────────────────────────────
-    const w = window as unknown as Record<string, unknown>
-    const initPlayer = w.initializeAndOpenPlayer as ((opts: unknown) => void) | undefined
-
-    console.log('[v0] AppLixir SDK available:', typeof initPlayer === 'function')
-    console.log('[v0] AppLixir API key set:', !!(process.env.NEXT_PUBLIC_APPLIXIR_API_KEY))
-
-    if (typeof initPlayer === 'function') {
-      sdkAvailableRef.current = true
-      try {
-        initPlayer({
-          apiKey: process.env.NEXT_PUBLIC_APPLIXIR_API_KEY ?? '',
-          adStatusCallbackFn: (status: string) => {
-            console.log('[v0] AppLixir ad status callback:', status)
-            if (status === 'ad-watched') {
-              // Only grant reward on full completion
-              goToReveal()
-            }
-            // ad-skipped, ad-error, no-ad-available → do nothing, fallback timer handles it
-          },
-        })
-        console.log('[v0] AppLixir initializeAndOpenPlayer called')
-      } catch (err) {
-        console.log('[v0] AppLixir initializeAndOpenPlayer threw:', err)
-        sdkAvailableRef.current = false
-      }
-    } else {
-      console.log('[v0] AppLixir SDK not found on window — likely blocked by ad blocker. Falling back to countdown.')
-    }
+    // Poll for the SDK up to 20 times (every 250ms = 5s max) to handle
+    // cases where the script hasn't fully executed yet at click time.
+    let attempts = 0
+    const maxAttempts = 20
+    const pollInterval = setInterval(() => {
+      attempts++
+      const launched = tryInitPlayer()
+      if (launched || attempts >= maxAttempts) clearInterval(pollInterval)
+    }, 250)
     // ─────────────────────────────────────────────────────────────────────
 
-    // Countdown ring — always runs for visual feedback
-    // When it reaches 0, auto-reveal as fallback (SDK blocked or no fill)
+    // Countdown ring for visual feedback.
+    // When it reaches 0, show "Voir mon indice" button as fallback.
     intervalRef.current = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
           clearInterval(intervalRef.current!)
-          // If SDK handled it (callback already fired), don't double-reveal
-          // setPhase is idempotent so calling it twice is safe
           setCanSkip(true)
           return 0
         }
@@ -254,14 +248,10 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
 
             {/* After countdown: show reveal button + dismiss option */}
             {canSkip && (
-              <div className="flex flex-col items-center gap-3 w-full animate-in fade-in duration-300">
+              <div className="w-full animate-in fade-in duration-300">
                 <button onClick={handleRevealAfterCountdown}
                   className="w-full py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-[0.97] text-black text-sm font-bold transition-all">
                   {t('Voir mon indice', 'See my hint')}
-                </button>
-                <button onClick={handleDismiss}
-                  className="text-sm text-muted-foreground/40 hover:text-muted-foreground transition-colors">
-                  {t('Annuler', 'Cancel')}
                 </button>
               </div>
             )}
