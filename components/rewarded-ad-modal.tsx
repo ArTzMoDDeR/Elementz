@@ -94,10 +94,25 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
   const ing1El   = getEl(hint.ing1)
   const ing2El   = getEl(hint.ing2)
 
+  const adSlotRef = useRef<HTMLDivElement>(null)
+
   const goToReveal = useCallback(() => {
     clearInterval(intervalRef.current!)
     clearTimeout(skipTimerRef.current!)
+    // Exit any fullscreen the SDK may have triggered
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
     setPhase('reveal')
+  }, [])
+
+  // Block the SDK from going fullscreen — intercept all fullscreen requests
+  useEffect(() => {
+    const blockFullscreen = (e: Event) => { e.stopImmediatePropagation(); e.preventDefault() }
+    document.addEventListener('fullscreenchange', blockFullscreen, true)
+    document.addEventListener('webkitfullscreenchange', blockFullscreen, true)
+    return () => {
+      document.removeEventListener('fullscreenchange', blockFullscreen, true)
+      document.removeEventListener('webkitfullscreenchange', blockFullscreen, true)
+    }
   }, [])
 
   const startAd = () => {
@@ -105,7 +120,7 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
     setCountdown(AD_DURATION_SECONDS)
     setCanSkip(false)
 
-    // Countdown for visual feedback. At 0, show "Voir mon indice" fallback.
+    // Start countdown — gives visual feedback + fallback skip at 0
     intervalRef.current = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
@@ -116,6 +131,33 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
         return prev - 1
       })
     }, 1000)
+
+    // Call AppLixir SDK directly — it's already loaded via layout <Script>
+    // Poll up to 5s in case the script hasn't finished executing yet
+    let attempts = 0
+    const poll = setInterval(() => {
+      attempts++
+      const w = window as Record<string, unknown>
+      const init = w.initializeAndOpenPlayer as ((o: unknown) => void) | undefined
+      if (typeof init === 'function') {
+        clearInterval(poll)
+        try {
+          init({
+            apiKey: process.env.NEXT_PUBLIC_APPLIXIR_API_KEY ?? '',
+            injectionElementId: 'applixir_ad_slot',
+            adStatusCallbackFn: (status: string) => {
+              if (status === 'ad-watched') goToReveal()
+            },
+            adErrorCallbackFn: () => { /* fallback: countdown handles it */ },
+          })
+        } catch (err) {
+          console.warn('[applixir] initializeAndOpenPlayer threw:', err)
+        }
+      } else if (attempts >= 20) {
+        clearInterval(poll)
+        console.warn('[applixir] SDK not available after 5s — using countdown fallback')
+      }
+    }, 250)
   }
 
   const handleRevealAfterCountdown = () => {
@@ -128,22 +170,6 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
     clearTimeout(skipTimerRef.current!)
     onDismiss()
   }
-
-  // Listen for postMessage from the AppLixir iframe sandbox
-  useEffect(() => {
-    const onMessage = (e: MessageEvent) => {
-      console.log('[v0] rewarded-ad-modal received message:', e.data, 'from origin:', e.origin)
-      if (e.data?.type === 'applixir_status') {
-        console.log('[v0] applixir status:', e.data.status)
-        if (e.data.status === 'ad-watched') goToReveal()
-      }
-      if (e.data?.type === 'applixir_error') {
-        console.log('[v0] applixir error:', e.data.error)
-      }
-    }
-    window.addEventListener('message', onMessage)
-    return () => window.removeEventListener('message', onMessage)
-  }, [goToReveal])
 
   useEffect(() => () => {
     if (intervalRef.current) clearInterval(intervalRef.current)
@@ -213,26 +239,21 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
         {/* ── PLAYING ────────────────────────────────────────────────────── */}
         {phase === 'playing' && (
           <div className="flex flex-col items-center gap-6 w-full animate-in fade-in duration-200">
-            {/* Ad slot — static HTML file, no auth, no SW interception */}
-            <div className="w-full rounded-2xl border border-white/[0.07] bg-black overflow-hidden relative" style={{ aspectRatio: '16/9' }}>
-              <iframe
-                src="/applixir-player.html"
-                className="absolute inset-0 w-full h-full border-0"
-                allow="autoplay; encrypted-media"
-                sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                title={t('Publicité', 'Advertisement')}
-                onLoad={(e) => {
-                  const frame = e.currentTarget as HTMLIFrameElement
-                  console.log('[v0] iframe onLoad fired, contentWindow:', !!frame.contentWindow)
-                  console.log('[v0] sending applixir_init postMessage with apiKey set:', !!(process.env.NEXT_PUBLIC_APPLIXIR_API_KEY))
-                  // Use '*' as target origin — the iframe is same-origin but its
-                  // origin is 'null' in some environments (static file served by Vercel)
-                  frame.contentWindow?.postMessage({
-                    type: 'applixir_init',
-                    apiKey: process.env.NEXT_PUBLIC_APPLIXIR_API_KEY ?? '',
-                  }, '*')
-                }}
-              />
+            {/* AppLixir injects its player into this div via injectionElementId.
+                overflow-hidden + contain prevent it from escaping its bounds.    */}
+            <div
+              id="applixir_ad_slot"
+              ref={adSlotRef}
+              className="w-full rounded-2xl border border-white/[0.07] bg-black overflow-hidden relative"
+              style={{ aspectRatio: '16/9', contain: 'strict' }}
+            >
+              {/* Placeholder visible until SDK injects the player */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
+                <Play className="w-8 h-8 text-white/10 fill-current" />
+                <p className="text-[11px] font-medium text-white/20 uppercase tracking-widest">
+                  {t('Chargement…', 'Loading…')}
+                </p>
+              </div>
             </div>
 
             {/* Progress bar → becomes reveal button when countdown ends */}
