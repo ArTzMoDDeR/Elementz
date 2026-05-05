@@ -109,9 +109,13 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
     try {
       initPlayer({
         apiKey: process.env.NEXT_PUBLIC_APPLIXIR_API_KEY ?? '',
+        injectionElementId: 'applixir_vanishing_div',
         adStatusCallbackFn: (status: string) => {
           if (status === 'ad-watched') goToReveal()
-          // ad-skipped, ad-error, no-ad-available → do nothing
+          // ad-skipped, ad-error, no-ad-available → do nothing, fallback timer handles it
+        },
+        adErrorCallbackFn: (_error: unknown) => {
+          // Error — do not grant reward, let countdown fallback handle it
         },
       })
       return true
