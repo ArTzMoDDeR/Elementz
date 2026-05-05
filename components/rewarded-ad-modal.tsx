@@ -132,8 +132,13 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
   // Listen for postMessage from the AppLixir iframe sandbox
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
-      if (e.data?.type === 'applixir_status' && e.data.status === 'ad-watched') {
-        goToReveal()
+      console.log('[v0] rewarded-ad-modal received message:', e.data, 'from origin:', e.origin)
+      if (e.data?.type === 'applixir_status') {
+        console.log('[v0] applixir status:', e.data.status)
+        if (e.data.status === 'ad-watched') goToReveal()
+      }
+      if (e.data?.type === 'applixir_error') {
+        console.log('[v0] applixir error:', e.data.error)
       }
     }
     window.addEventListener('message', onMessage)
@@ -217,8 +222,9 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
                 sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
                 title={t('Publicité', 'Advertisement')}
                 onLoad={(e) => {
-                  // Send apiKey via postMessage — never in URL
                   const frame = e.currentTarget as HTMLIFrameElement
+                  console.log('[v0] iframe onLoad fired, contentWindow:', !!frame.contentWindow)
+                  console.log('[v0] sending applixir_init postMessage with apiKey set:', !!(process.env.NEXT_PUBLIC_APPLIXIR_API_KEY))
                   // Use '*' as target origin — the iframe is same-origin but its
                   // origin is 'null' in some environments (static file served by Vercel)
                   frame.contentWindow?.postMessage({
