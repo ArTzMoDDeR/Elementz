@@ -20,23 +20,17 @@ interface Props {
 
 type Phase = 'intro' | 'playing' | 'reveal'
 
-// ── Shared tile used in intro (hidden) and reveal ──────────────────────────
+// ── Unified tile — name always inside, same structure for all sizes ────────
 function Tile({
   element,
   hidden = false,
-  size = 'md',
 }: {
   element: ElementDef | undefined
   hidden?: boolean
-  size?: 'sm' | 'md' | 'lg'
 }) {
-  const dim = size === 'lg' ? 'w-20 h-20' : size === 'sm' ? 'w-14 h-14' : 'w-16 h-16'
-  const imgDim = size === 'lg' ? 'w-11 h-11' : size === 'sm' ? 'w-7 h-7' : 'w-9 h-9'
-  const textSize = size === 'lg' ? 'text-[11px]' : 'text-[10px]'
-
   if (hidden || !element) {
     return (
-      <div className={`${dim} rounded-2xl bg-muted/40 border-2 border-dashed border-white/10 flex items-center justify-center flex-shrink-0`}>
+      <div className="w-20 h-20 rounded-2xl bg-muted/40 border-2 border-dashed border-white/10 flex items-center justify-center flex-shrink-0">
         <span className="text-2xl font-black text-white/20 select-none">?</span>
       </div>
     )
@@ -44,18 +38,18 @@ function Tile({
 
   return (
     <div
-      className={`${dim} rounded-2xl border border-white/10 flex flex-col items-center justify-center gap-1.5 flex-shrink-0 p-2 animate-in zoom-in-95 fade-in duration-300`}
+      className="w-20 h-20 rounded-2xl border border-white/10 flex flex-col items-center justify-center gap-1 flex-shrink-0 p-2 animate-in zoom-in-95 fade-in duration-300"
       style={{
         background: element.color ? `${element.color}15` : 'rgba(255,255,255,0.05)',
         borderColor: element.color ? `${element.color}35` : undefined,
       }}
     >
       {element.imageUrl ? (
-        <img src={element.imageUrl} alt={element.name} className={`${imgDim} object-contain pointer-events-none`} draggable={false} />
+        <img src={element.imageUrl} alt={element.name} className="w-10 h-10 object-contain pointer-events-none flex-shrink-0" draggable={false} />
       ) : (
-        <span className="text-xl font-bold text-muted-foreground">{element.name[0]}</span>
+        <span className="text-xl font-bold text-muted-foreground flex-shrink-0">{element.name[0]}</span>
       )}
-      <span className={`${textSize} font-semibold text-center leading-tight text-foreground/80 w-full truncate text-center px-0.5`}>
+      <span className="text-[10px] font-semibold text-center leading-tight text-foreground/80 w-full truncate px-0.5">
         {element.name}
       </span>
     </div>
@@ -148,8 +142,8 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
       {/* Backdrop */}
       <div className="absolute inset-0 bg-background/96 backdrop-blur-2xl" />
 
-      {/* Panel — always centered, max width on desktop */}
-      <div className="relative z-10 w-full max-w-sm mx-auto flex flex-col items-center px-6">
+      {/* Panel — wider on desktop for bigger ad */}
+      <div className="relative z-10 w-full max-w-sm sm:max-w-lg mx-auto flex flex-col items-center px-6">
 
         {/* ── INTRO ──────────────────────────────────────────────────────── */}
         {phase === 'intro' && (
@@ -180,14 +174,14 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
               <p className="text-[11px] font-semibold text-muted-foreground/40 uppercase tracking-widest">
                 {t('Essayez de créer', 'Try to create')}
               </p>
-              <Tile element={resultEl} hidden size="lg" />
+              <Tile element={resultEl} hidden />
               <div className="flex items-center gap-2 text-muted-foreground/20">
                 <ArrowDown className="w-4 h-4" />
               </div>
               <div className="flex items-center gap-3">
-                <Tile element={ing1El} hidden size="md" />
+                <Tile element={ing1El} hidden />
                 <Plus className="w-4 h-4 text-muted-foreground/20 flex-shrink-0" />
-                <Tile element={ing2El} hidden size="md" />
+                <Tile element={ing2El} hidden />
               </div>
             </div>
 
@@ -239,17 +233,12 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
                 {t('Votre indice', 'Your hint')}
               </p>
               <h2 className="text-xl font-bold text-foreground">
-                {t('Essayez de créer', 'Try to create')}
+                {t('Vous pouvez créer', 'You can create')}
               </h2>
             </div>
 
-            {/* Result tile — big, revealed */}
-            <div className="flex flex-col items-center gap-2">
-              <Tile element={resultEl} hidden={false} size="lg" />
-              {resultEl && (
-                <p className="text-base font-bold text-foreground">{resultEl.name}</p>
-              )}
-            </div>
+            {/* Result tile — revealed, name already inside tile */}
+            <Tile element={resultEl} hidden={false} />
 
             {/* Separator */}
             <div className="flex items-center gap-3 w-full">
@@ -260,32 +249,18 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
               <div className="flex-1 h-px bg-white/[0.07]" />
             </div>
 
-            {/* Ingredients row — ing1 revealed, ing2 hidden */}
-            <div className="flex items-end gap-4">
-              <div className="flex flex-col items-center gap-2">
-                <Tile element={ing1El} hidden={false} size="md" />
-                <span className="text-[10px] text-muted-foreground/50">
-                  {ing1El?.name ?? '—'}
-                </span>
-              </div>
-
-              <div className="mb-8">
-                <Plus className="w-5 h-5 text-muted-foreground/30" />
-              </div>
-
-              <div className="flex flex-col items-center gap-2">
-                <Tile element={ing2El} hidden size="md" />
-                <span className="text-[10px] text-muted-foreground/40 italic">
-                  {t('Mystère', 'Mystery')}
-                </span>
-              </div>
+            {/* Ingredients row — ing1 revealed, ing2 hidden. Names inside tiles. */}
+            <div className="flex items-center gap-4">
+              <Tile element={ing1El} hidden={false} />
+              <Plus className="w-5 h-5 text-muted-foreground/30 flex-shrink-0" />
+              <Tile element={ing2El} hidden />
             </div>
 
-            {/* Actions */}
+            {/* Action */}
             <div className="w-full pt-1">
               <button onClick={onComplete}
                 className="w-full py-3.5 rounded-2xl bg-foreground text-background text-sm font-bold active:scale-[0.97] transition-all hover:opacity-90">
-                {t('Jouer', "Let's play")}
+                {t('OK', 'OK')}
               </button>
             </div>
           </div>
