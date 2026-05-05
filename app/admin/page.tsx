@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 
 import {
   Search, Upload, Check, FileUp, Plus, X, Trash2, Save, Hash,
@@ -686,7 +686,7 @@ function ElementCard({ element, uploading, onEdit, onUpload }: {
       {/* Image area */}
       <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden p-2">
         {element.img
-          ? <img src={element.img} alt={element.name_french} className="w-full h-full object-contain" />
+          ? <img src={element.img} alt={element.name_french} className="w-full h-full object-contain" loading="lazy" decoding="async" />
           : <span className="text-[10px] font-mono text-muted-foreground/30">#{element.number}</span>
         }
         {/* Hover overlay */}
@@ -960,6 +960,8 @@ function AddModal({ onClose, onAdded }: { onClose: () => void; onAdded: (el: Ele
   )
 }
 
+const PAGE_SIZE = 120
+
 function ElementsTab() {
   const [elements, setElements] = useState<Element[]>([])
   const [loading, setLoading] = useState(true)
@@ -970,8 +972,12 @@ function ElementsTab() {
   const [isDragging, setIsDragging] = useState(false)
   const [editingElement, setEditingElement] = useState<Element | null>(null)
   const [showAdd, setShowAdd] = useState(false)
+  const [page, setPage] = useState(1)
 
   useEffect(() => { fetchElements() }, [])
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => { setPage(1) }, [search, filterStatus, sortBy])
 
   const fetchElements = async () => {
     try {
@@ -1002,20 +1008,28 @@ function ElementsTab() {
     }
   }
 
-  const filteredElements = elements.filter(el => {
+  const filteredElements = useMemo(() => {
     const q = search.toLowerCase()
-    const matches = el.name_french.toLowerCase().includes(q) || el.name_english.toLowerCase().includes(q) || el.number.toString().includes(q)
-    if (!matches) return false
-    if (filterStatus === 'with') return !!el.img
-    if (filterStatus === 'without') return !el.img
-    return true
-  }).sort((a, b) => sortBy === 'alpha' ? a.name_french.localeCompare(b.name_french, 'fr') : a.number - b.number)
+    return elements
+      .filter(el => {
+        const matches = !q || el.name_french.toLowerCase().includes(q) || el.name_english.toLowerCase().includes(q) || el.number.toString().includes(q)
+        if (!matches) return false
+        if (filterStatus === 'with') return !!el.img
+        if (filterStatus === 'without') return !el.img
+        return true
+      })
+      .sort((a, b) => sortBy === 'alpha' ? a.name_french.localeCompare(b.name_french, 'fr') : a.number - b.number)
+  }, [elements, search, filterStatus, sortBy])
 
-  const stats = {
+  const totalPages = Math.max(1, Math.ceil(filteredElements.length / PAGE_SIZE))
+  const visibleElements = filteredElements.slice(0, page * PAGE_SIZE)
+  const hasMore = page * PAGE_SIZE < filteredElements.length
+
+  const stats = useMemo(() => ({
     total: elements.length,
     withImage: elements.filter(el => el.img).length,
     withoutImage: elements.filter(el => !el.img).length,
-  }
+  }), [elements])
 
   if (loading) return <div className="flex justify-center py-20"><Spinner size="md" /></div>
 
@@ -1082,11 +1096,23 @@ function ElementsTab() {
       {filteredElements.length === 0
         ? <p className="text-sm text-muted-foreground text-center py-16">Aucun élément trouvé</p>
         : (
-          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-2">
-            {filteredElements.map(el => (
-              <ElementCard key={el.number} element={el} uploading={uploading} onEdit={setEditingElement} onUpload={handleFileUpload} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-2">
+              {visibleElements.map(el => (
+                <ElementCard key={el.number} element={el} uploading={uploading} onEdit={setEditingElement} onUpload={handleFileUpload} />
+              ))}
+            </div>
+            {hasMore && (
+              <div className="flex flex-col items-center gap-1.5 pt-6 pb-2">
+                <button
+                  onClick={() => setPage(p => p + 1)}
+                  className="px-6 py-2.5 rounded-xl bg-muted hover:bg-muted/80 text-sm font-medium text-foreground transition-colors"
+                >
+                  Charger plus ({filteredElements.length - visibleElements.length} restants)
+                </button>
+              </div>
+            )}
+          </>
         )
       }
     </div>
