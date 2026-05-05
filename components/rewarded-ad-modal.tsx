@@ -232,14 +232,21 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
         {/* ── PLAYING ────────────────────────────────────────────────────── */}
         {phase === 'playing' && (
           <div className="flex flex-col items-center gap-6 w-full animate-in fade-in duration-200">
-            {/* Ad slot */}
-            <div className="w-full rounded-2xl border border-white/[0.07] bg-white/[0.03] overflow-hidden">
-              <div className="aspect-video flex flex-col items-center justify-center gap-3">
+            {/* Ad slot — AppLixir renders the video inside this div via injectionElementId */}
+            <div className="w-full rounded-2xl border border-white/[0.07] bg-black overflow-hidden relative">
+              {/* AppLixir anchor: must be visible + sized for inline rendering */}
+              <div
+                id="applixir_vanishing_div"
+                className="w-full aspect-video"
+                style={{ display: 'block' }}
+              />
+              {/* Placeholder shown while ad loads */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
                 <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
                   <Play className="w-5 h-5 text-white/20 fill-current" />
                 </div>
                 <p className="text-[11px] font-medium text-white/20 uppercase tracking-widest">
-                  {t('Publicité', 'Advertisement')}
+                  {t('Chargement…', 'Loading…')}
                 </p>
               </div>
             </div>
