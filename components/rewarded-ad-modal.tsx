@@ -229,43 +229,45 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
           </div>
         )}
 
-        {/* ── PLAYING ────────────────────────────────────────────────────── */}
-        {phase === 'playing' && (
-          <div className="flex flex-col items-center gap-6 w-full animate-in fade-in duration-200">
-            {/* Ad slot — AppLixir renders the video inside this div via injectionElementId */}
-            <div className="w-full rounded-2xl border border-white/[0.07] bg-black overflow-hidden relative">
-              {/* AppLixir anchor: must be visible + sized for inline rendering */}
-              <div
-                id="applixir_vanishing_div"
-                className="w-full aspect-video"
-                style={{ display: 'block' }}
-              />
-              {/* Placeholder shown while ad loads */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
-                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
-                  <Play className="w-5 h-5 text-white/20 fill-current" />
-                </div>
-                <p className="text-[11px] font-medium text-white/20 uppercase tracking-widest">
-                  {t('Chargement…', 'Loading…')}
-                </p>
+        {/* ── AppLixir anchor — always in DOM so SDK can find it by ID.
+              Shown only during 'playing', hidden otherwise via visibility.    */}
+        <div
+          className="w-full flex flex-col items-center gap-6"
+          style={{ display: phase === 'playing' ? 'flex' : 'none' }}
+        >
+          {/* Ad slot */}
+          <div className="w-full rounded-2xl border border-white/[0.07] bg-black overflow-hidden relative">
+            {/* AppLixir injects its video player here */}
+            <div
+              id="applixir_vanishing_div"
+              className="w-full aspect-video"
+              style={{ display: 'block', position: 'relative', zIndex: 1 }}
+            />
+            {/* Placeholder behind the player while ad loads */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none" style={{ zIndex: 0 }}>
+              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
+                <Play className="w-5 h-5 text-white/20 fill-current" />
               </div>
-            </div>
-
-            {/* Progress bar → becomes reveal button when done */}
-            <div className="w-full">
-              {canSkip ? (
-                <button
-                  onClick={handleRevealAfterCountdown}
-                  className="w-full py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-[0.97] text-black text-sm font-bold transition-all animate-in fade-in zoom-in-95 duration-300"
-                >
-                  {t('Voir mon indice', 'See my hint')}
-                </button>
-              ) : (
-                <ProgressBar current={countdown} total={AD_DURATION_SECONDS} />
-              )}
+              <p className="text-[11px] font-medium text-white/20 uppercase tracking-widest">
+                {t('Chargement…', 'Loading…')}
+              </p>
             </div>
           </div>
-        )}
+
+          {/* Progress bar → becomes reveal button when done */}
+          <div className="w-full">
+            {canSkip ? (
+              <button
+                onClick={handleRevealAfterCountdown}
+                className="w-full py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-[0.97] text-black text-sm font-bold transition-all animate-in fade-in zoom-in-95 duration-300"
+              >
+                {t('Voir mon indice', 'See my hint')}
+              </button>
+            ) : (
+              <ProgressBar current={countdown} total={AD_DURATION_SECONDS} />
+            )}
+          </div>
+        </div>
 
         {/* ── REVEAL ─────────────────────────────────────────────────────── */}
         {phase === 'reveal' && (
