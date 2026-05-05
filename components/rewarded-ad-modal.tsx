@@ -219,10 +219,12 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
                 onLoad={(e) => {
                   // Send apiKey via postMessage — never in URL
                   const frame = e.currentTarget as HTMLIFrameElement
+                  // Use '*' as target origin — the iframe is same-origin but its
+                  // origin is 'null' in some environments (static file served by Vercel)
                   frame.contentWindow?.postMessage({
                     type: 'applixir_init',
                     apiKey: process.env.NEXT_PUBLIC_APPLIXIR_API_KEY ?? '',
-                  }, window.location.origin)
+                  }, '*')
                 }}
               />
             </div>

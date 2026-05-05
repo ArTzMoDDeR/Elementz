@@ -22,7 +22,15 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/(.*)',
+        // Allow applixir-player.html to be embedded in an iframe on the same origin
+        source: '/applixir-player.html',
+        headers: [
+          ...securityHeaders.filter(h => h.key !== 'X-Frame-Options'),
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+        ],
+      },
+      {
+        source: '/((?!applixir-player.html).*)',
         headers: securityHeaders,
       },
     ]
