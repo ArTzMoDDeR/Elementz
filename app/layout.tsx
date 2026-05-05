@@ -95,30 +95,6 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className="bg-background">
       <body className="font-sans antialiased">
-        {/* Intercept AppLixir's dynamic Google IMA SDK injection and redirect to our proxy.
-            Must run before AppLixir so the patched createElement is in place. */}
-        <Script id="ima-sdk-interceptor" strategy="afterInteractive">{`
-          (function() {
-            var _orig = document.createElement.bind(document);
-            document.createElement = function(tag) {
-              var el = _orig(tag);
-              if (tag.toLowerCase() === 'script') {
-                var _setSrc = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, 'src');
-                Object.defineProperty(el, 'src', {
-                  get: function() { return _setSrc.get.call(this); },
-                  set: function(val) {
-                    if (typeof val === 'string' && val.indexOf('imasdk.googleapis.com') !== -1) {
-                      val = '/api/ima-sdk';
-                    }
-                    _setSrc.set.call(this, val);
-                  },
-                  configurable: true,
-                });
-              }
-              return el;
-            };
-          })();
-        `}</Script>
         {/* AppLixir rewarded video ad SDK — served via our own proxy to avoid ad-blocker blocks */}
         <Script
           src="/api/applixir-sdk"
