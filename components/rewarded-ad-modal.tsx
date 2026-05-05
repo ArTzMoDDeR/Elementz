@@ -208,14 +208,22 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
         {/* ── PLAYING ────────────────────────────────────────────────────── */}
         {phase === 'playing' && (
           <div className="flex flex-col items-center gap-6 w-full animate-in fade-in duration-200">
-            {/* Ad slot — AppLixir runs in a sandboxed iframe so it can't go fullscreen */}
+            {/* Ad slot — static HTML file, no auth, no SW interception */}
             <div className="w-full rounded-2xl border border-white/[0.07] bg-black overflow-hidden relative" style={{ aspectRatio: '16/9' }}>
               <iframe
-                src={`/api/applixir-player?apiKey=${encodeURIComponent(process.env.NEXT_PUBLIC_APPLIXIR_API_KEY ?? '')}&lang=${lang}`}
+                src="/applixir-player.html"
                 className="absolute inset-0 w-full h-full border-0"
                 allow="autoplay; encrypted-media"
                 sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
                 title={t('Publicité', 'Advertisement')}
+                onLoad={(e) => {
+                  // Send apiKey via postMessage — never in URL
+                  const frame = e.currentTarget as HTMLIFrameElement
+                  frame.contentWindow?.postMessage({
+                    type: 'applixir_init',
+                    apiKey: process.env.NEXT_PUBLIC_APPLIXIR_API_KEY ?? '',
+                  }, window.location.origin)
+                }}
               />
             </div>
 
