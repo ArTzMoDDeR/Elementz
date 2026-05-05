@@ -95,9 +95,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className="bg-background">
       <body className="font-sans antialiased">
-        {/* AppLixir rewarded video ad SDK */}
+        {/* AppLixir rewarded video ad SDK — served via our own proxy to avoid ad-blocker blocks */}
         <Script
-          src="https://cdn.applixir.com/applixir.stable.min.js"
+          src="/api/applixir-sdk"
           strategy="afterInteractive"
         />
         {/* Required AppLixir anchor div — kept hidden, SDK uses it internally */}

@@ -49,7 +49,7 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return
   if (url.origin !== self.location.origin) return
 
-  // Never intercept auth or write endpoints
+  // Never intercept auth, write endpoints, or third-party proxy scripts
   if (
     url.pathname.startsWith('/api/auth') ||
     url.pathname.startsWith('/api/progress') ||
@@ -57,6 +57,7 @@ self.addEventListener('fetch', (event) => {
     url.pathname.startsWith('/api/leaderboard') ||
     url.pathname.startsWith('/api/profile') ||
     url.pathname.startsWith('/api/lang') ||
+    url.pathname.startsWith('/api/applixir-sdk') ||
     url.pathname.startsWith('/admin')
   ) return
 
