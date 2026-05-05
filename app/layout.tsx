@@ -93,17 +93,15 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        {/* Google AdSense — must be in <head> for site ownership validation */}
-        <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2003923325493504"
-          crossOrigin="anonymous"
-          strategy="beforeInteractive"
-        />
-      </head>
+    <html lang="en" suppressHydrationWarning className="bg-background">
       <body className="font-sans antialiased">
+        {/* AppLixir rewarded video ad SDK */}
+        <Script
+          src="https://cdn.applixir.com/applixir.stable.min.js"
+          strategy="afterInteractive"
+        />
+        {/* Required AppLixir anchor div — kept hidden, SDK uses it internally */}
+        <div id="applixir_vanishing_div" style={{ display: 'none' }} />
         <SessionProvider>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
             {children}

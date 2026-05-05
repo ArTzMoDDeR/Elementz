@@ -100,34 +100,47 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
     setPhase('playing')
     setCountdown(AD_DURATION_SECONDS)
     setCanSkip(false)
+
+    // Unlock skip button after full duration (fallback safety)
     skipTimerRef.current = setTimeout(() => setCanSkip(true), SKIP_UNLOCK_SECONDS * 1000)
 
-    try {
-      const adsbygoogle = ((window as unknown as Record<string, unknown>).adsbygoogle ?? []) as { push: (cfg: unknown) => void }
-      adsbygoogle.push({
-        google_ad_client: 'ca-pub-2003923325493504',
-        enable_page_level_ads: false,
-        reward_callback: () => {
-          clearInterval(intervalRef.current!)
-          clearTimeout(skipTimerRef.current!)
-          setPhase('reveal')
-        },
-      })
-    } catch { /* fallback to simulated countdown */ }
-
+    // Start simulated countdown for the UI ring
     intervalRef.current = setInterval(() => {
       setCountdown(prev => {
-        if (prev <= 1) { clearInterval(intervalRef.current!); setPhase('reveal'); return 0 }
+        if (prev <= 1) { clearInterval(intervalRef.current!); return 0 }
         return prev - 1
       })
     }, 1000)
+
+    // ── AppLixir rewarded video ad ─────────────────────────────────────────
+    const w = window as unknown as Record<string, unknown>
+    const initPlayer = w.initializeAndOpenPlayer as ((opts: unknown) => void) | undefined
+
+    if (typeof initPlayer === 'function') {
+      initPlayer({
+        apiKey: process.env.NEXT_PUBLIC_APPLIXIR_API_KEY ?? '',
+        adStatusCallbackFn: (status: string) => {
+          if (status === 'ad-watched') {
+            // Ad fully completed — grant reward and reveal hint
+            clearInterval(intervalRef.current!)
+            clearTimeout(skipTimerRef.current!)
+            setPhase('reveal')
+          }
+          // Any other status (ad-skipped, ad-error, no-ad-available, etc.)
+          // does NOT grant the reward — hint remains locked
+        },
+      })
+    }
+    // If SDK not yet loaded, the user can still skip after the timer elapses
+    // ─────────────────────────────────────────────────────────────────────
   }
 
   const handleSkip = () => {
     if (!canSkip) return
     clearInterval(intervalRef.current!)
     clearTimeout(skipTimerRef.current!)
-    setPhase('reveal')
+    // Skip does NOT grant the hint — dismiss the modal instead
+    onDismiss()
   }
 
   useEffect(() => () => {
@@ -218,7 +231,7 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
             {canSkip && (
               <button onClick={handleSkip}
                 className="h-9 px-6 rounded-xl text-sm font-semibold bg-white/10 text-foreground hover:bg-white/15 active:scale-[0.97] transition-all animate-in fade-in duration-200">
-                {t('Passer la pub', 'Skip ad')}
+                {t('Annuler', 'Cancel')}
               </button>
             )}
           </div>
