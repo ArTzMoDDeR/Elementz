@@ -96,50 +96,75 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
   const ing1El   = getEl(hint.ing1)
   const ing2El   = getEl(hint.ing2)
 
+  // Whether AppLixir SDK is available (not blocked by ad blocker)
+  const sdkAvailableRef = useRef(false)
+
+  const goToReveal = useCallback(() => {
+    clearInterval(intervalRef.current!)
+    clearTimeout(skipTimerRef.current!)
+    setPhase('reveal')
+  }, [])
+
   const startAd = () => {
     setPhase('playing')
     setCountdown(AD_DURATION_SECONDS)
     setCanSkip(false)
 
-    // Unlock skip button after full duration (fallback safety)
-    skipTimerRef.current = setTimeout(() => setCanSkip(true), SKIP_UNLOCK_SECONDS * 1000)
-
-    // Start simulated countdown for the UI ring
-    intervalRef.current = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) { clearInterval(intervalRef.current!); return 0 }
-        return prev - 1
-      })
-    }, 1000)
-
     // ── AppLixir rewarded video ad ─────────────────────────────────────────
     const w = window as unknown as Record<string, unknown>
     const initPlayer = w.initializeAndOpenPlayer as ((opts: unknown) => void) | undefined
 
+    console.log('[v0] AppLixir SDK available:', typeof initPlayer === 'function')
+    console.log('[v0] AppLixir API key set:', !!(process.env.NEXT_PUBLIC_APPLIXIR_API_KEY))
+
     if (typeof initPlayer === 'function') {
-      initPlayer({
-        apiKey: process.env.NEXT_PUBLIC_APPLIXIR_API_KEY ?? '',
-        adStatusCallbackFn: (status: string) => {
-          if (status === 'ad-watched') {
-            // Ad fully completed — grant reward and reveal hint
-            clearInterval(intervalRef.current!)
-            clearTimeout(skipTimerRef.current!)
-            setPhase('reveal')
-          }
-          // Any other status (ad-skipped, ad-error, no-ad-available, etc.)
-          // does NOT grant the reward — hint remains locked
-        },
-      })
+      sdkAvailableRef.current = true
+      try {
+        initPlayer({
+          apiKey: process.env.NEXT_PUBLIC_APPLIXIR_API_KEY ?? '',
+          adStatusCallbackFn: (status: string) => {
+            console.log('[v0] AppLixir ad status callback:', status)
+            if (status === 'ad-watched') {
+              // Only grant reward on full completion
+              goToReveal()
+            }
+            // ad-skipped, ad-error, no-ad-available → do nothing, fallback timer handles it
+          },
+        })
+        console.log('[v0] AppLixir initializeAndOpenPlayer called')
+      } catch (err) {
+        console.log('[v0] AppLixir initializeAndOpenPlayer threw:', err)
+        sdkAvailableRef.current = false
+      }
+    } else {
+      console.log('[v0] AppLixir SDK not found on window — likely blocked by ad blocker. Falling back to countdown.')
     }
-    // If SDK not yet loaded, the user can still skip after the timer elapses
     // ─────────────────────────────────────────────────────────────────────
+
+    // Countdown ring — always runs for visual feedback
+    // When it reaches 0, auto-reveal as fallback (SDK blocked or no fill)
+    intervalRef.current = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(intervalRef.current!)
+          // If SDK handled it (callback already fired), don't double-reveal
+          // setPhase is idempotent so calling it twice is safe
+          setCanSkip(true)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
   }
 
-  const handleSkip = () => {
-    if (!canSkip) return
+  const handleRevealAfterCountdown = () => {
+    clearTimeout(skipTimerRef.current!)
+    goToReveal()
+  }
+
+  const handleDismiss = () => {
     clearInterval(intervalRef.current!)
     clearTimeout(skipTimerRef.current!)
-    // Skip does NOT grant the hint — dismiss the modal instead
     onDismiss()
   }
 
@@ -162,7 +187,7 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
         {phase === 'intro' && (
           <div className="flex flex-col items-center gap-7 w-full animate-in fade-in slide-in-from-bottom-3 duration-300">
             {/* Close */}
-            <button onClick={onDismiss}
+            <button onClick={handleDismiss}
               className="absolute -top-2 right-0 w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors">
               <X className="w-4 h-4" />
             </button>
@@ -227,12 +252,18 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
             {/* Countdown */}
             <CountdownRing current={countdown} total={AD_DURATION_SECONDS} />
 
-            {/* Skip — only visible once full countdown has elapsed */}
+            {/* After countdown: show reveal button + dismiss option */}
             {canSkip && (
-              <button onClick={handleSkip}
-                className="h-9 px-6 rounded-xl text-sm font-semibold bg-white/10 text-foreground hover:bg-white/15 active:scale-[0.97] transition-all animate-in fade-in duration-200">
-                {t('Annuler', 'Cancel')}
-              </button>
+              <div className="flex flex-col items-center gap-3 w-full animate-in fade-in duration-300">
+                <button onClick={handleRevealAfterCountdown}
+                  className="w-full py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-[0.97] text-black text-sm font-bold transition-all">
+                  {t('Voir mon indice', 'See my hint')}
+                </button>
+                <button onClick={handleDismiss}
+                  className="text-sm text-muted-foreground/40 hover:text-muted-foreground transition-colors">
+                  {t('Annuler', 'Cancel')}
+                </button>
+              </div>
             )}
           </div>
         )}
