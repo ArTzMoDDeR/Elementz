@@ -524,6 +524,76 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
   const hasPermanent = pendingPermanent.length > 0
   const hasDaily = pendingDaily.length > 0
 
+  // ── Inline scratch view — replaces the quest list entirely ──────────────
+  if (scratchQuest) {
+    const title = lang === 'fr' ? scratchQuest.title_fr : scratchQuest.title_en
+    const allScratched = scratchQuest.rewards.every(r => !!r.scratched_at)
+    const anyReward = scratchQuest.rewards[0]
+    const resultName = anyReward
+      ? (lang === 'fr' ? anyReward.result_name_french : anyReward.result_name_english)
+      : null
+
+    return (
+      <div className="h-full flex flex-col gap-0 py-1">
+        {/* Header row */}
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-[10px] font-semibold text-amber-400 uppercase tracking-widest mb-0.5">
+              {t('Récompense', 'Reward')}
+            </p>
+            <h2 className="text-lg font-bold text-foreground leading-tight">{title}</h2>
+          </div>
+          <button
+            onClick={closeScratch}
+            className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center hover:bg-muted/80 active:scale-95 transition-all flex-shrink-0"
+            aria-label={lang === 'fr' ? 'Retour' : 'Back'}
+          >
+            <ArrowLeft className="w-4 h-4 text-foreground/70" />
+          </button>
+        </div>
+
+        {/* Scratch area — centered vertically in remaining space */}
+        <div className="flex-1 flex flex-col items-center justify-center gap-4">
+          {resultName && !allScratched && (
+            <p className="text-[11px] text-muted-foreground text-center">
+              {t('Pour créer : ', 'To create: ')}
+              <span className="font-bold text-foreground">{resultName}</span>
+            </p>
+          )}
+
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            {scratchQuest.rewards.sort((a, b) => a.slot - b.slot).map((r, i) => (
+              <div key={r.slot} className="flex items-center gap-3">
+                <ScratchCard reward={r} lang={lang} onScratched={(slot) => handleScratch(scratchQuest.id, slot)} />
+                {i < scratchQuest.rewards.length - 1 && (
+                  <Plus className="w-4 h-4 text-muted-foreground/30 flex-shrink-0" />
+                )}
+              </div>
+            ))}
+          </div>
+
+          {allScratched && (
+            <div className="flex flex-col items-center gap-3 mt-2">
+              <p className="text-[11px] text-center text-muted-foreground/70 leading-relaxed max-w-[220px]">
+                {t(
+                  'Retiens cette combinaison et va la créer sur le terrain !',
+                  'Remember this combo and try it on the field!'
+                )}
+              </p>
+              <button
+                onClick={closeScratch}
+                className="px-6 py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-sm font-semibold text-primary hover:bg-primary/20 transition-colors active:scale-95"
+              >
+                {t("J'ai noté !", 'Got it!')}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // ── Default quest list ────────────────────────────────────────────────────
   return (
     <>
       <div className="flex flex-col gap-4 py-1">
@@ -590,15 +660,6 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
         )}
       </div>
 
-      {/* Scratch modal */}
-      {scratchQuest && (
-        <ScratchModal
-          quest={scratchQuest}
-          lang={lang}
-          onScratch={handleScratch}
-          onClose={closeScratch}
-        />
-      )}
     </>
   )
 }
