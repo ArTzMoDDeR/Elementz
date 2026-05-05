@@ -230,21 +230,19 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
         )}
 
         {/* ── AppLixir anchor — always in DOM so SDK can find it by ID.
-              Shown only during 'playing', hidden otherwise via visibility.    */}
+              CSS clip forces the injected iframe/overlay to stay inside the slot. */}
         <div
           className="w-full flex flex-col items-center gap-6"
           style={{ display: phase === 'playing' ? 'flex' : 'none' }}
         >
-          {/* Ad slot */}
-          <div className="w-full rounded-2xl border border-white/[0.07] bg-black overflow-hidden relative">
-            {/* AppLixir injects its video player here */}
-            <div
-              id="applixir_vanishing_div"
-              className="w-full aspect-video"
-              style={{ display: 'block', position: 'relative', zIndex: 1 }}
-            />
-            {/* Placeholder behind the player while ad loads */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none" style={{ zIndex: 0 }}>
+          {/* Ad slot — clips AppLixir to this area */}
+          <div
+            id="applixir_vanishing_div"
+            className="w-full rounded-2xl border border-white/[0.07] bg-black overflow-hidden relative"
+            style={{ aspectRatio: '16/9' }}
+          >
+            {/* Placeholder shown until AppLixir injects its player */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
               <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
                 <Play className="w-5 h-5 text-white/20 fill-current" />
               </div>
