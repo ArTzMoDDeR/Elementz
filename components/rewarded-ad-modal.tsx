@@ -132,32 +132,40 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
       })
     }, 1000)
 
-    // Call AppLixir SDK directly — it's already loaded via layout <Script>
-    // Poll up to 5s in case the script hasn't finished executing yet
-    let attempts = 0
-    const poll = setInterval(() => {
-      attempts++
-      const w = window as Record<string, unknown>
-      const init = w.initializeAndOpenPlayer as ((o: unknown) => void) | undefined
-      if (typeof init === 'function') {
-        clearInterval(poll)
-        try {
-          init({
-            apiKey: process.env.NEXT_PUBLIC_APPLIXIR_API_KEY ?? '',
-            injectionElementId: 'applixir_ad_slot',
-            adStatusCallbackFn: (status: string) => {
-              if (status === 'ad-watched') goToReveal()
-            },
-            adErrorCallbackFn: () => { /* fallback: countdown handles it */ },
-          })
-        } catch (err) {
-          console.warn('[applixir] initializeAndOpenPlayer threw:', err)
-        }
-      } else if (attempts >= 20) {
-        clearInterval(poll)
-        console.warn('[applixir] SDK not available after 5s — using countdown fallback')
-      }
-    }, 250)
+    // Wait two animation frames so React has painted the ad slot div,
+    // then poll for the SDK. This is critical on desktop where AppLixir
+    // checks the element's bounding rect before injecting the player.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        let attempts = 0
+        const poll = setInterval(() => {
+          attempts++
+          const w = window as Record<string, unknown>
+          const init = w.initializeAndOpenPlayer as ((o: unknown) => void) | undefined
+          const slot = document.getElementById('applixir_ad_slot')
+          const rect = slot?.getBoundingClientRect()
+
+          if (typeof init === 'function' && rect && rect.width > 0 && rect.height > 0) {
+            clearInterval(poll)
+            try {
+              init({
+                apiKey: process.env.NEXT_PUBLIC_APPLIXIR_API_KEY ?? '',
+                injectionElementId: 'applixir_ad_slot',
+                adStatusCallbackFn: (status: string) => {
+                  if (status === 'ad-watched') goToReveal()
+                },
+                adErrorCallbackFn: () => { /* fallback: countdown handles it */ },
+              })
+            } catch (err) {
+              console.warn('[applixir] initializeAndOpenPlayer threw:', err)
+            }
+          } else if (attempts >= 40) {
+            clearInterval(poll)
+            console.warn('[applixir] SDK or slot not ready after 10s — countdown fallback active')
+          }
+        }, 250)
+      })
+    })
   }
 
   const handleRevealAfterCountdown = () => {
@@ -240,12 +248,13 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
         {phase === 'playing' && (
           <div className="flex flex-col items-center gap-6 w-full animate-in fade-in duration-200">
             {/* AppLixir injects its player into this div via injectionElementId.
-                overflow-hidden + contain prevent it from escaping its bounds.    */}
+                Explicit width/height in px are required — AppLixir checks
+                getBoundingClientRect() and won't init if dimensions are 0. */}
             <div
               id="applixir_ad_slot"
               ref={adSlotRef}
               className="w-full rounded-2xl border border-white/[0.07] bg-black overflow-hidden relative"
-              style={{ aspectRatio: '16/9', contain: 'strict' }}
+              style={{ aspectRatio: '16/9', minHeight: '180px' }}
             >
               {/* Placeholder visible until SDK injects the player */}
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
