@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 // RecipeMap keyed by "n1|n2" number strings — matches use-game-store
 type RecipeMap = Map<string, number[]>
@@ -34,7 +34,6 @@ function findHint(discovered: Set<number>, recipeMap: RecipeMap): HintResult | n
 }
 
 const HINTS_KEY = 'elementz_hints'
-const PULSE_DELAY = 60 * 1000 // 1 minute without discovery → pulse
 
 export function useHint(
   discovered: Set<number>,
@@ -58,29 +57,11 @@ export function useHint(
 
   const [currentHint, setCurrentHint] = useState<HintResult | null>(null)
   const [hintVisible, setHintVisible] = useState(false)
-  const [shouldPulse, setShouldPulse] = useState(false)
-  const pulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Whether the ad modal should be shown (1 ad = 1 hint)
   const [showAdModal, setShowAdModal] = useState(false)
 
   const isAdUnlocked = false // always requires an ad — kept for badge UI compat
-
-  // Pulse timer
-  useEffect(() => {
-    if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current)
-    setShouldPulse(false)
-
-    const base = lastUnlockTime > 0 ? lastUnlockTime : Date.now()
-    const elapsed = Date.now() - base
-    const remaining = Math.max(0, PULSE_DELAY - elapsed)
-
-    pulseTimerRef.current = setTimeout(() => {
-      setShouldPulse(true)
-    }, remaining)
-
-    return () => { if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current) }
-  }, [lastUnlockTime])
 
   const dismissHint = useCallback(() => setHintVisible(false), [])
 
@@ -89,8 +70,6 @@ export function useHint(
   // Otherwise show the ad modal.
   // Always show the ad modal first — 1 ad = 1 hint
   const requestHint = useCallback(() => {
-    setShouldPulse(false)
-    if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current)
     // Pre-compute the hint so the modal can display it after the ad
     const hint = findHint(discovered, recipeMap)
     if (hint) {
@@ -122,7 +101,7 @@ export function useHint(
     hintLabel,
     dismissHint,
     requestHint,
-    shouldPulse,
+    shouldPulse: false,
     showAdModal,
     onAdComplete,
     onAdDismiss,

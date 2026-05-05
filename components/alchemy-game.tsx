@@ -107,19 +107,8 @@ export function AlchemyGame() {
     progressToastTimer.current = setTimeout(() => setProgressToast(null), 2500)
   }, [newlyDiscovered])
 
-  // Build mobile header notification (priority: hint > discovery > progress > tapMode > hintsToggle)
+  // Build mobile header notification (priority: discovery > progress > tapMode > hintsToggle)
   const headerNotification = useMemo(() => {
-    // Hint notification (persistent until dismissed)
-    if (hintVisible && currentHint && hintLabel) {
-      // currentHint.result is now a DB number — look up directly from elements Map
-      const el = elements.get(currentHint.result)
-      return {
-        type: 'hint' as const,
-        message: `${hintLabel} ${el?.name ?? ''}`,
-        icon: <Lightbulb className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />,
-        image: el?.imageUrl || undefined,
-      }
-    }
     // New discovery
     if (newlyDiscovered != null) {
       const el = elements.get(newlyDiscovered)
@@ -364,28 +353,7 @@ export function AlchemyGame() {
           </div>
         )}
 
-        {/* Hint */}
-        {hintVisible && currentHint && hintLabel && (() => {
-          // currentHint.result is now a DB number — look up directly
-          const el = elements.get(currentHint.result)
-          const displayName = el?.name ?? ''
-          return (
-            <div
-              className="animate-in slide-in-from-left-4 fade-in duration-200 pointer-events-auto cursor-pointer"
-              onClick={dismissHint}
-            >
-              <div className="flex items-center gap-2.5 pl-3 pr-3 py-2.5 bg-card border border-border rounded-xl shadow-lg backdrop-blur-sm">
-                <Lightbulb className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-                <span className="text-xs text-muted-foreground leading-snug">
-                  {hintLabel} <span className="font-semibold text-foreground">{displayName}</span>
-                </span>
-                {el?.imageUrl && (
-                  <img src={el.imageUrl} alt={currentHint.result} className="w-6 h-6 object-contain flex-shrink-0" />
-                )}
-              </div>
-            </div>
-          )
-        })()}
+
       </div>
 
       {/* ── iOS Discovery Bottom Sheet (mobile only) ───────────────── */}
