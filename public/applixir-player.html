@@ -51,9 +51,9 @@
     window.addEventListener('message', function(e) {
       if (e.data && e.data.type === 'applixir_init' && e.data.apiKey) {
         apiKey = e.data.apiKey;
-        // Dynamically load the SDK only after receiving the key
+        // Load SDK directly from CDN — avoids auth/proxy issues inside iframe
         var s = document.createElement('script');
-        s.src = '/api/applixir-sdk';
+        s.src = 'https://cdn.applixir.com/applixir.app.v6.0.1.js';
         s.onload = tryInit;
         s.onerror = function() {
           window.parent.postMessage({ type: 'applixir_error', error: 'SDK load failed' }, '*');
