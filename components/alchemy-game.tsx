@@ -8,7 +8,7 @@ import { OnboardingModal } from './onboarding-modal'
 import { RewardedAdModal } from './rewarded-ad-modal'
 import { useGameStore } from '@/hooks/use-game-store'
 import { useHint } from '@/hooks/use-hint'
-import { Sparkles, Lightbulb, Trash2, BarChart2, Hand, MousePointer, X } from 'lucide-react'
+import { Sparkles, Lightbulb, Trash2, BarChart2, Hand, MousePointer } from 'lucide-react'
 
 const PROGRESS_MILESTONES = [10, 20, 50, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900]
 
@@ -107,19 +107,8 @@ export function AlchemyGame() {
     progressToastTimer.current = setTimeout(() => setProgressToast(null), 2500)
   }, [newlyDiscovered])
 
-  // Build mobile header notification (priority: hint > discovery > progress > tapMode > hintsToggle)
+  // Build mobile header notification (priority: discovery > progress > tapMode > hintsToggle)
   const headerNotification = useMemo(() => {
-    // Hint notification (persistent until dismissed)
-    if (hintVisible && currentHint && hintLabel) {
-      // currentHint.result is now a DB number — look up directly from elements Map
-      const el = elements.get(currentHint.result)
-      return {
-        type: 'hint' as const,
-        message: `${hintLabel} ${el?.name ?? ''}`,
-        icon: <Lightbulb className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />,
-        image: el?.imageUrl || undefined,
-      }
-    }
     // New discovery
     if (newlyDiscovered != null) {
       const el = elements.get(newlyDiscovered)
@@ -292,63 +281,6 @@ export function AlchemyGame() {
         playgroundItemsCount={playground.length}
         recipeMap={recipeMap}
       />
-
-      {/* ── Hint banner — top-left of playground, dismissable ───────────── */}
-      {hintVisible && currentHint && hintLabel && (() => {
-        const el = elements.get(currentHint.result)
-        const displayName = el?.name ?? ''
-        return (
-          <div
-            className="fixed z-[90] pointer-events-auto animate-in slide-in-from-left-4 fade-in duration-300"
-            style={{
-              // On mobile: bottom above the tab bar. On desktop: top below navbar.
-              bottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)',
-              left: '12px',
-            }}
-          >
-            <div className="md:hidden flex items-center gap-2.5 pl-3 pr-2.5 py-2.5 bg-card border border-border rounded-xl shadow-lg backdrop-blur-sm max-w-[calc(100vw-24px)]">
-              <Lightbulb className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-              <span className="text-xs text-muted-foreground leading-snug">
-                {hintLabel} <span className="font-semibold text-foreground">{displayName}</span>
-              </span>
-              {el?.imageUrl && (
-                <img src={el.imageUrl} alt={displayName} className="w-5 h-5 object-contain flex-shrink-0" draggable={false} />
-              )}
-              <button onClick={dismissHint} className="ml-1 text-muted-foreground/40 hover:text-muted-foreground transition-colors flex-shrink-0">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        )
-      })()}
-
-      {/* Hint banner — desktop: fixed inside playground area top-left, below navbar */}
-      {hintVisible && currentHint && hintLabel && (() => {
-        const el = elements.get(currentHint.result)
-        const displayName = el?.name ?? ''
-        return (
-          <div
-            className="hidden md:flex fixed z-[90] pointer-events-auto animate-in slide-in-from-top-4 fade-in duration-300 flex-col"
-            style={{
-              top: 'calc(env(safe-area-inset-top, 0px) + 60px)',
-              left: '12px',
-            }}
-          >
-            <div className="flex items-center gap-2.5 pl-3 pr-2.5 py-2.5 bg-card border border-border rounded-xl shadow-lg backdrop-blur-sm">
-              <Lightbulb className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-              <span className="text-xs text-muted-foreground leading-snug">
-                {hintLabel} <span className="font-semibold text-foreground">{displayName}</span>
-              </span>
-              {el?.imageUrl && (
-                <img src={el.imageUrl} alt={displayName} className="w-5 h-5 object-contain flex-shrink-0" draggable={false} />
-              )}
-              <button onClick={dismissHint} className="ml-1 text-muted-foreground/40 hover:text-muted-foreground transition-colors flex-shrink-0">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        )
-      })()}
 
       {/* Notification stack — desktop only (mobile shows in inventory header) */}
       <div
