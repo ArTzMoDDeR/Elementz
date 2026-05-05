@@ -3,33 +3,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ── AppLixir inline ad — force the injected iframe/overlay to stay inside
-      #applixir_vanishing_div and never go fullscreen ───────────────────── */
-#applixir_vanishing_div {
-  position: relative !important;
-  overflow: hidden !important;
-}
-#applixir_vanishing_div > * {
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  max-width: 100% !important;
-  max-height: 100% !important;
-  z-index: 1 !important;
-}
-#applixir_vanishing_div iframe,
-#applixir_vanishing_div video {
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  border: none !important;
-  z-index: 2 !important;
-}
-
 /* ── iOS Native Feel ─────────────────────────────────────────────────────── */
 
 /* No text selection, no callout menu on long-press */
