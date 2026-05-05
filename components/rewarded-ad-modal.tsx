@@ -100,47 +100,12 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
     setPhase('reveal')
   }, [])
 
-  const tryInitPlayer = useCallback(() => {
-    const w = window as unknown as Record<string, unknown>
-    const initPlayer = w.initializeAndOpenPlayer as ((opts: unknown) => void) | undefined
-    if (typeof initPlayer !== 'function') return false
-    try {
-      initPlayer({
-        apiKey: process.env.NEXT_PUBLIC_APPLIXIR_API_KEY ?? '',
-        injectionElementId: 'applixir_vanishing_div',
-        adStatusCallbackFn: (status: string) => {
-          if (status === 'ad-watched') goToReveal()
-          // ad-skipped, ad-error, no-ad-available → do nothing, fallback timer handles it
-        },
-        adErrorCallbackFn: (_error: unknown) => {
-          // Error — do not grant reward, let countdown fallback handle it
-        },
-      })
-      return true
-    } catch {
-      return false
-    }
-  }, [goToReveal])
-
   const startAd = () => {
     setPhase('playing')
     setCountdown(AD_DURATION_SECONDS)
     setCanSkip(false)
 
-    // ── AppLixir rewarded video ad ─────────────────────────────────────────
-    // Poll for the SDK up to 20 times (every 250ms = 5s max) to handle
-    // cases where the script hasn't fully executed yet at click time.
-    let attempts = 0
-    const maxAttempts = 20
-    const pollInterval = setInterval(() => {
-      attempts++
-      const launched = tryInitPlayer()
-      if (launched || attempts >= maxAttempts) clearInterval(pollInterval)
-    }, 250)
-    // ─────────────────────────────────────────────────────────────────────
-
-    // Countdown ring for visual feedback.
-    // When it reaches 0, show "Voir mon indice" button as fallback.
+    // Countdown for visual feedback. At 0, show "Voir mon indice" fallback.
     intervalRef.current = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
@@ -163,6 +128,17 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
     clearTimeout(skipTimerRef.current!)
     onDismiss()
   }
+
+  // Listen for postMessage from the AppLixir iframe sandbox
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'applixir_status' && e.data.status === 'ad-watched') {
+        goToReveal()
+      }
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [goToReveal])
 
   useEffect(() => () => {
     if (intervalRef.current) clearInterval(intervalRef.current)
@@ -229,43 +205,35 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
           </div>
         )}
 
-        {/* ── AppLixir anchor — always in DOM so SDK can find it by ID.
-              CSS clip forces the injected iframe/overlay to stay inside the slot. */}
-        <div
-          className="w-full flex flex-col items-center gap-6"
-          style={{ display: phase === 'playing' ? 'flex' : 'none' }}
-        >
-          {/* Ad slot — clips AppLixir to this area */}
-          <div
-            id="applixir_vanishing_div"
-            className="w-full rounded-2xl border border-white/[0.07] bg-black overflow-hidden relative"
-            style={{ aspectRatio: '16/9' }}
-          >
-            {/* Placeholder shown until AppLixir injects its player */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
-              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
-                <Play className="w-5 h-5 text-white/20 fill-current" />
-              </div>
-              <p className="text-[11px] font-medium text-white/20 uppercase tracking-widest">
-                {t('Chargement…', 'Loading…')}
-              </p>
+        {/* ── PLAYING ────────────────────────────────────────────────────── */}
+        {phase === 'playing' && (
+          <div className="flex flex-col items-center gap-6 w-full animate-in fade-in duration-200">
+            {/* Ad slot — AppLixir runs in a sandboxed iframe so it can't go fullscreen */}
+            <div className="w-full rounded-2xl border border-white/[0.07] bg-black overflow-hidden relative" style={{ aspectRatio: '16/9' }}>
+              <iframe
+                src={`/api/applixir-player?apiKey=${encodeURIComponent(process.env.NEXT_PUBLIC_APPLIXIR_API_KEY ?? '')}&lang=${lang}`}
+                className="absolute inset-0 w-full h-full border-0"
+                allow="autoplay; encrypted-media"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                title={t('Publicité', 'Advertisement')}
+              />
+            </div>
+
+            {/* Progress bar → becomes reveal button when countdown ends */}
+            <div className="w-full">
+              {canSkip ? (
+                <button
+                  onClick={handleRevealAfterCountdown}
+                  className="w-full py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-[0.97] text-black text-sm font-bold transition-all animate-in fade-in zoom-in-95 duration-300"
+                >
+                  {t('Voir mon indice', 'See my hint')}
+                </button>
+              ) : (
+                <ProgressBar current={countdown} total={AD_DURATION_SECONDS} />
+              )}
             </div>
           </div>
-
-          {/* Progress bar → becomes reveal button when done */}
-          <div className="w-full">
-            {canSkip ? (
-              <button
-                onClick={handleRevealAfterCountdown}
-                className="w-full py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-[0.97] text-black text-sm font-bold transition-all animate-in fade-in zoom-in-95 duration-300"
-              >
-                {t('Voir mon indice', 'See my hint')}
-              </button>
-            ) : (
-              <ProgressBar current={countdown} total={AD_DURATION_SECONDS} />
-            )}
-          </div>
-        </div>
+        )}
 
         {/* ── REVEAL ─────────────────────────────────────────────────────── */}
         {phase === 'reveal' && (
