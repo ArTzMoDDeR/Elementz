@@ -29,33 +29,55 @@
   <div id="applixir_vanishing_div"></div>
   <script>
     var apiKey = '';
+    var initAttempts = 0;
+
+    console.log('[applixir-player] iframe document loaded, origin:', window.location.origin);
 
     function tryInit() {
+      initAttempts++;
+      console.log('[applixir-player] tryInit attempt', initAttempts, '| initializeAndOpenPlayer available:', typeof initializeAndOpenPlayer);
       if (typeof initializeAndOpenPlayer !== 'function') {
-        setTimeout(tryInit, 250);
+        if (initAttempts < 40) {
+          setTimeout(tryInit, 250);
+        } else {
+          console.log('[applixir-player] gave up waiting for SDK after', initAttempts, 'attempts');
+          window.parent.postMessage({ type: 'applixir_error', error: 'SDK never ready' }, '*');
+        }
         return;
       }
-      initializeAndOpenPlayer({
-        apiKey: apiKey,
-        injectionElementId: 'applixir_vanishing_div',
-        adStatusCallbackFn: function(status) {
-          window.parent.postMessage({ type: 'applixir_status', status: status }, '*');
-        },
-        adErrorCallbackFn: function(err) {
-          window.parent.postMessage({ type: 'applixir_error', error: String(err) }, '*');
-        }
-      });
+      console.log('[applixir-player] calling initializeAndOpenPlayer with apiKey:', apiKey ? apiKey.slice(0,8) + '...' : 'EMPTY');
+      try {
+        initializeAndOpenPlayer({
+          apiKey: apiKey,
+          injectionElementId: 'applixir_vanishing_div',
+          adStatusCallbackFn: function(status) {
+            console.log('[applixir-player] ad status:', status);
+            window.parent.postMessage({ type: 'applixir_status', status: status }, '*');
+          },
+          adErrorCallbackFn: function(err) {
+            console.log('[applixir-player] ad error:', err);
+            window.parent.postMessage({ type: 'applixir_error', error: String(err) }, '*');
+          }
+        });
+      } catch(e) {
+        console.log('[applixir-player] initializeAndOpenPlayer threw:', e);
+        window.parent.postMessage({ type: 'applixir_error', error: String(e) }, '*');
+      }
     }
 
-    // Receive apiKey from parent via postMessage before loading SDK
     window.addEventListener('message', function(e) {
+      console.log('[applixir-player] received message from parent:', e.data && e.data.type, '| origin:', e.origin);
       if (e.data && e.data.type === 'applixir_init' && e.data.apiKey) {
         apiKey = e.data.apiKey;
-        // Load SDK directly from CDN — avoids auth/proxy issues inside iframe
+        console.log('[applixir-player] got apiKey, loading SDK from CDN...');
         var s = document.createElement('script');
         s.src = 'https://cdn.applixir.com/applixir.app.v6.0.1.js';
-        s.onload = tryInit;
-        s.onerror = function() {
+        s.onload = function() {
+          console.log('[applixir-player] SDK script loaded successfully');
+          tryInit();
+        };
+        s.onerror = function(err) {
+          console.log('[applixir-player] SDK script failed to load:', err);
           window.parent.postMessage({ type: 'applixir_error', error: 'SDK load failed' }, '*');
         };
         document.head.appendChild(s);
