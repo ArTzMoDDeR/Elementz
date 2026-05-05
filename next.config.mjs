@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 
-// Shared security headers (no X-Frame-Options — set per route below)
-const securityHeadersBase = [
+const securityHeaders = [
+  { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
@@ -16,20 +16,8 @@ const nextConfig = {
   async headers() {
     return [
       {
-        // applixir-player.html: allow embedding in same-origin iframe
-        source: '/applixir-player.html',
-        headers: [
-          ...securityHeadersBase,
-          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
-        ],
-      },
-      {
-        // All other app routes and pages: deny framing
-        source: '/:path((?!applixir-player.html).*)',
-        headers: [
-          ...securityHeadersBase,
-          { key: 'X-Frame-Options', value: 'DENY' },
-        ],
+        source: '/(.*)',
+        headers: securityHeaders,
       },
     ]
   },
