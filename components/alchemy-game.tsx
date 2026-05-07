@@ -17,6 +17,7 @@ export function AlchemyGame() {
   const { data: session } = useSession()
   const { setTheme } = useTheme()
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(true)
   const {
     lang,
     setLang,
@@ -194,6 +195,8 @@ export function AlchemyGame() {
       .then(d => {
         // Apply saved theme
         if (d.theme === 'light' || d.theme === 'dark') setTheme(d.theme)
+        // Apply saved push notifications preference
+        if (typeof d.push_notifications === 'boolean') setPushNotificationsEnabled(d.push_notifications)
         // Show onboarding if never done
         if (!d.onboarding_done) setShowOnboarding(true)
       })
@@ -273,6 +276,14 @@ export function AlchemyGame() {
           setHapticEnabled(next)
           if (session?.user?.id) {
             fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ haptic_feedback: next }) })
+          }
+        }}
+        pushNotificationsEnabled={pushNotificationsEnabled}
+        onTogglePushNotifications={() => {
+          const next = !pushNotificationsEnabled
+          setPushNotificationsEnabled(next)
+          if (session?.user?.id) {
+            fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push_notifications: next }) })
           }
         }}
         onTapModeChange={handleTapModeChange}

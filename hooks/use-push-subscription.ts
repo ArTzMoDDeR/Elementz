@@ -17,25 +17,34 @@ export function usePushSubscription() {
   const { status } = useSession()
 
   useEffect(() => {
-    if (status === 'unauthenticated') return
+    if (status !== 'authenticated') return
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
     if (!PUBLIC_VAPID_KEY) return
 
-    async function subscribe() {
+    async function syncSubscription() {
       try {
+        // Check user's saved preference first
+        const profileRes = await fetch('/api/profile')
+        if (!profileRes.ok) return
+        const profile = await profileRes.json()
+        const wantsPush = profile.push_notifications !== false
+
         const reg = await navigator.serviceWorker.ready
         const existing = await reg.pushManager.getSubscription()
 
-        // If already subscribed, just refresh the record server-side
+        if (!wantsPush) {
+          // User opted out — unsubscribe if still subscribed
+          if (existing) await existing.unsubscribe()
+          return
+        }
+
+        // User wants push — subscribe (or refresh existing)
         const sub = existing ?? await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY),
         })
 
-        const json = sub.toJSON() as {
-          endpoint: string
-          keys?: { p256dh: string; auth: string }
-        }
+        const json = sub.toJSON() as { endpoint: string; keys?: { p256dh: string; auth: string } }
         if (!json.keys) return
 
         await fetch('/api/push/subscribe', {
@@ -44,11 +53,10 @@ export function usePushSubscription() {
           body: JSON.stringify(json),
         })
       } catch {
-        // User denied permission or push not supported — silently ignore
+        // Permission denied or push not supported — silently ignore
       }
     }
 
-    subscribe()
-  // Re-run when session status changes (login/logout)
+    syncSubscription()
   }, [status])
 }
