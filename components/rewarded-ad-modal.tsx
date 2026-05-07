@@ -1,12 +1,42 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { X, Play, Lightbulb, Plus, ArrowDown } from 'lucide-react'
+import { X, Lightbulb, Plus, ArrowDown } from 'lucide-react'
 import type { HintResult } from '@/hooks/use-hint'
 
 const AD_DURATION_SECONDS = 15
-// Skip button only appears once the full countdown has elapsed
-const SKIP_UNLOCK_SECONDS  = AD_DURATION_SECONDS
+
+// ── Monetag interstitial ad service ──────────────────────────────────────────
+// Monetag injects window.show_9136159 (or similar) when the tag.min.js loads.
+// Call it with a callback — it opens the full-page interstitial, then calls
+// back with true (completed) or false (blocked/failed).
+//
+// ZONE IDs — update these when you create new zones in Monetag dashboard:
+const MONETAG_INTERSTITIAL_FN = 'show_9136159' // ← replace with your zone function name
+
+async function showMonetagInterstitial(): Promise<boolean> {
+  const w = window as Record<string, unknown>
+  const showAd = w[MONETAG_INTERSTITIAL_FN] as ((cb?: (ok: boolean) => void) => Promise<boolean> | void) | undefined
+
+  if (typeof showAd !== 'function') {
+    // SDK not loaded yet or blocked — resolve false so countdown fallback works
+    return false
+  }
+
+  return new Promise<boolean>((resolve) => {
+    try {
+      const result = showAd((ok: boolean) => resolve(!!ok))
+      // Some Monetag zones return a Promise instead of using a callback
+      if (result && typeof (result as Promise<boolean>).then === 'function') {
+        (result as Promise<boolean>).then(ok => resolve(!!ok)).catch(() => resolve(false))
+      }
+    } catch {
+      resolve(false)
+    }
+  })
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 type ElementDef = { number: number; name: string; imageUrl?: string; color?: string }
 
@@ -20,14 +50,8 @@ interface Props {
 
 type Phase = 'intro' | 'playing' | 'reveal'
 
-// ── Unified tile — name always inside, same structure for all sizes ────────
-function Tile({
-  element,
-  hidden = false,
-}: {
-  element: ElementDef | undefined
-  hidden?: boolean
-}) {
+// ── Tile ──────────────────────────────────────────────────────────────────────
+function Tile({ element, hidden = false }: { element: ElementDef | undefined; hidden?: boolean }) {
   if (hidden || !element) {
     return (
       <div className="w-20 h-20 rounded-2xl bg-muted/40 border-2 border-dashed border-white/10 flex items-center justify-center flex-shrink-0">
@@ -35,7 +59,6 @@ function Tile({
       </div>
     )
   }
-
   return (
     <div
       className="w-20 h-20 rounded-2xl border border-white/10 flex flex-col items-center justify-center gap-1 flex-shrink-0 p-2 animate-in zoom-in-95 fade-in duration-300"
@@ -56,7 +79,7 @@ function Tile({
   )
 }
 
-// ── Horizontal progress bar ────────────────────────────────────────────────
+// ── Progress bar ──────────────────────────────────────────────────────────────
 function ProgressBar({ current, total }: { current: number; total: number }) {
   const pct = Math.round(((total - current) / total) * 100)
   return (
@@ -67,21 +90,18 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="text-[11px] text-muted-foreground/40 tabular-nums text-right">
-        {current}s
-      </p>
+      <p className="text-[11px] text-muted-foreground/40 tabular-nums text-right">{current}s</p>
     </div>
   )
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }: Props) {
   const [phase, setPhase] = useState<Phase>('intro')
   const [countdown, setCountdown] = useState(AD_DURATION_SECONDS)
   const [canSkip, setCanSkip] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const skipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
@@ -94,33 +114,14 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
   const ing1El   = getEl(hint.ing1)
   const ing2El   = getEl(hint.ing2)
 
-  const adSlotRef = useRef<HTMLDivElement>(null)
-
   const goToReveal = useCallback(() => {
     clearInterval(intervalRef.current!)
-    clearTimeout(skipTimerRef.current!)
-    // Exit any fullscreen the SDK may have triggered
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
     setPhase('reveal')
   }, [])
 
-  // Block the SDK from going fullscreen — intercept all fullscreen requests
-  useEffect(() => {
-    const blockFullscreen = (e: Event) => { e.stopImmediatePropagation(); e.preventDefault() }
-    document.addEventListener('fullscreenchange', blockFullscreen, true)
-    document.addEventListener('webkitfullscreenchange', blockFullscreen, true)
-    return () => {
-      document.removeEventListener('fullscreenchange', blockFullscreen, true)
-      document.removeEventListener('webkitfullscreenchange', blockFullscreen, true)
-    }
-  }, [])
-
-  const startAd = () => {
-    setPhase('playing')
+  const startCountdown = useCallback(() => {
     setCountdown(AD_DURATION_SECONDS)
     setCanSkip(false)
-
-    // Start countdown — gives visual feedback + fallback skip at 0
     intervalRef.current = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
@@ -131,84 +132,49 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
         return prev - 1
       })
     }, 1000)
+  }, [])
 
-    // Wait two animation frames so React has painted the ad slot div,
-    // then poll for the SDK. This is critical on desktop where AppLixir
-    // checks the element's bounding rect before injecting the player.
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        let attempts = 0
-        const poll = setInterval(() => {
-          attempts++
-          const w = window as Record<string, unknown>
-          const init = w.initializeAndOpenPlayer as ((o: unknown) => void) | undefined
-          const slot = document.getElementById('applixir_ad_slot')
-          const rect = slot?.getBoundingClientRect()
+  const startAd = useCallback(async () => {
+    setPhase('playing')
+    startCountdown()
 
-          if (typeof init === 'function' && rect && rect.width > 0 && rect.height > 0) {
-            clearInterval(poll)
-            try {
-              init({
-                apiKey: process.env.NEXT_PUBLIC_APPLIXIR_API_KEY ?? '',
-                injectionElementId: 'applixir_ad_slot',
-                adStatusCallbackFn: (status: string) => {
-                  if (status === 'ad-watched') goToReveal()
-                },
-                adErrorCallbackFn: () => { /* fallback: countdown handles it */ },
-              })
-            } catch (err) {
-              console.warn('[applixir] initializeAndOpenPlayer threw:', err)
-            }
-          } else if (attempts >= 40) {
-            clearInterval(poll)
-            console.warn('[applixir] SDK or slot not ready after 10s — countdown fallback active')
-          }
-        }, 250)
-      })
-    })
-  }
-
-  const handleRevealAfterCountdown = () => {
-    clearTimeout(skipTimerRef.current!)
-    goToReveal()
-  }
+    // Fire Monetag interstitial — it opens a full-page overlay natively.
+    // If it resolves true (ad completed), go straight to reveal.
+    // If false (blocked / no fill), the 15s countdown fallback handles skip.
+    const completed = await showMonetagInterstitial()
+    if (completed) goToReveal()
+  }, [goToReveal, startCountdown])
 
   const handleDismiss = () => {
     clearInterval(intervalRef.current!)
-    clearTimeout(skipTimerRef.current!)
     onDismiss()
   }
 
   useEffect(() => () => {
     if (intervalRef.current) clearInterval(intervalRef.current)
-    if (skipTimerRef.current) clearTimeout(skipTimerRef.current)
   }, [])
-
-
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-background/96 backdrop-blur-2xl" />
 
-      {/* Panel — wider on desktop for bigger ad */}
-      <div className="relative z-10 w-full max-w-sm sm:max-w-lg mx-auto flex flex-col items-center px-6">
+      <div className="relative z-10 w-full max-w-sm mx-auto flex flex-col items-center px-6">
 
         {/* ── INTRO ──────────────────────────────────────────────────────── */}
         {phase === 'intro' && (
           <div className="flex flex-col items-center gap-7 w-full animate-in fade-in slide-in-from-bottom-3 duration-300">
-            {/* Close */}
-            <button onClick={handleDismiss}
-              className="absolute -top-2 right-0 w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors">
+            <button
+              onClick={handleDismiss}
+              className="absolute -top-2 right-0 w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
+            >
               <X className="w-4 h-4" />
             </button>
 
-            {/* Icon */}
             <div className="w-16 h-16 rounded-3xl bg-amber-400/10 border border-amber-400/15 flex items-center justify-center">
               <Lightbulb className="w-7 h-7 text-amber-400" />
             </div>
 
-            {/* Title */}
             <div className="text-center space-y-1.5">
               <h2 className="text-xl font-bold text-foreground tracking-tight">
                 {t('Débloquer un indice', 'Unlock a hint')}
@@ -218,15 +184,13 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
               </p>
             </div>
 
-            {/* Teaser — result hidden, ingredients hidden */}
+            {/* Teaser — all tiles hidden */}
             <div className="w-full rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5 flex flex-col items-center gap-4">
               <p className="text-[11px] font-semibold text-muted-foreground/40 uppercase tracking-widest">
                 {t('Essayez de créer', 'Try to create')}
               </p>
               <Tile element={resultEl} hidden />
-              <div className="flex items-center gap-2 text-muted-foreground/20">
-                <ArrowDown className="w-4 h-4" />
-              </div>
+              <ArrowDown className="w-4 h-4 text-muted-foreground/20" />
               <div className="flex items-center gap-3">
                 <Tile element={ing1El} hidden />
                 <Plus className="w-4 h-4 text-muted-foreground/20 flex-shrink-0" />
@@ -234,10 +198,10 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
               </div>
             </div>
 
-            {/* CTA */}
-            <button onClick={startAd}
-              className="w-full py-3.5 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-[0.97] text-black text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-400/15">
-              <Play className="w-4 h-4 fill-current" />
+            <button
+              onClick={startAd}
+              className="w-full py-3.5 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-[0.97] text-black text-sm font-bold transition-all shadow-lg shadow-amber-400/15"
+            >
               {t('Regarder la pub', 'Watch the ad')}
             </button>
             <p className="text-[11px] text-muted-foreground/30">{t('1 pub = 1 indice', '1 ad = 1 hint')}</p>
@@ -247,29 +211,21 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
         {/* ── PLAYING ────────────────────────────────────────────────────── */}
         {phase === 'playing' && (
           <div className="flex flex-col items-center gap-6 w-full animate-in fade-in duration-200">
-            {/* AppLixir injects its player into this div via injectionElementId.
-                Explicit width/height in px are required — AppLixir checks
-                getBoundingClientRect() and won't init if dimensions are 0. */}
-            <div
-              id="applixir_ad_slot"
-              ref={adSlotRef}
-              className="w-full rounded-2xl border border-white/[0.07] bg-black overflow-hidden relative"
-              style={{ aspectRatio: '16/9', minHeight: '180px' }}
-            >
-              {/* Placeholder visible until SDK injects the player */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
-                <Play className="w-8 h-8 text-white/10 fill-current" />
-                <p className="text-[11px] font-medium text-white/20 uppercase tracking-widest">
-                  {t('Chargement…', 'Loading…')}
-                </p>
+            {/* Info while ad is showing externally */}
+            <div className="w-full rounded-2xl border border-white/[0.07] bg-white/[0.03] p-8 flex flex-col items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-400/10 border border-amber-400/15 flex items-center justify-center">
+                <Lightbulb className="w-6 h-6 text-amber-400" />
               </div>
+              <p className="text-sm font-medium text-muted-foreground/60 text-center leading-relaxed">
+                {t('Pub en cours…', 'Ad playing…')}
+              </p>
             </div>
 
-            {/* Progress bar → becomes reveal button when countdown ends */}
+            {/* Progress bar → reveal button */}
             <div className="w-full">
               {canSkip ? (
                 <button
-                  onClick={handleRevealAfterCountdown}
+                  onClick={goToReveal}
                   className="w-full py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-[0.97] text-black text-sm font-bold transition-all animate-in fade-in zoom-in-95 duration-300"
                 >
                   {t('Voir mon indice', 'See my hint')}
@@ -284,7 +240,6 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
         {/* ── REVEAL ─────────────────────────────────────────────────────── */}
         {phase === 'reveal' && (
           <div className="flex flex-col items-center gap-7 w-full animate-in fade-in slide-in-from-bottom-3 duration-300">
-            {/* Label */}
             <div className="text-center space-y-1">
               <p className="text-[11px] font-semibold text-amber-400 uppercase tracking-widest">
                 {t('Votre indice', 'Your hint')}
@@ -294,10 +249,8 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
               </h2>
             </div>
 
-            {/* Result tile — revealed, name already inside tile */}
             <Tile element={resultEl} hidden={false} />
 
-            {/* Separator */}
             <div className="flex items-center gap-3 w-full">
               <div className="flex-1 h-px bg-white/[0.07]" />
               <p className="text-[11px] text-muted-foreground/40 font-medium uppercase tracking-widest flex-shrink-0">
@@ -306,17 +259,17 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
               <div className="flex-1 h-px bg-white/[0.07]" />
             </div>
 
-            {/* Ingredients row — ing1 revealed, ing2 hidden. Names inside tiles. */}
             <div className="flex items-center gap-4">
               <Tile element={ing1El} hidden={false} />
               <Plus className="w-5 h-5 text-muted-foreground/30 flex-shrink-0" />
               <Tile element={ing2El} hidden />
             </div>
 
-            {/* Action */}
             <div className="w-full pt-1">
-              <button onClick={onComplete}
-                className="w-full py-3.5 rounded-2xl bg-foreground text-background text-sm font-bold active:scale-[0.97] transition-all hover:opacity-90">
+              <button
+                onClick={onComplete}
+                className="w-full py-3.5 rounded-2xl bg-foreground text-background text-sm font-bold active:scale-[0.97] transition-all hover:opacity-90"
+              >
                 {t('OK', 'OK')}
               </button>
             </div>

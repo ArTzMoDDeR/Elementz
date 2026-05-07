@@ -57,8 +57,6 @@ self.addEventListener('fetch', (event) => {
     url.pathname.startsWith('/api/leaderboard') ||
     url.pathname.startsWith('/api/profile') ||
     url.pathname.startsWith('/api/lang') ||
-    url.pathname.startsWith('/api/applixir-sdk') ||
-    url.pathname.startsWith('/api/ima-sdk') ||
     url.pathname.startsWith('/admin')
   ) return
 
