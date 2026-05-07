@@ -1,56 +1,46 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { X, Lightbulb, Plus, ArrowDown } from 'lucide-react'
+import { X, Lightbulb, Plus, ArrowDown, ExternalLink } from 'lucide-react'
 import type { HintResult } from '@/hooks/use-hint'
 
-const AD_DURATION_SECONDS = 15
+// ── Config ────────────────────────────────────────────────────────────────────
+const ADS_REQUIRED   = 5   // number of ad clicks required
+const DWELL_SECONDS  = 2   // seconds user must stay on the ad page
+
+// Storage key — per hint so progress resets for each new hint request
+const storageKey = (hintKey: string) => `hint_ad_progress_${hintKey}`
 
 // ── Monetag on-demand interstitial ───────────────────────────────────────────
-// Loads the Monetag interstitial script only when the user clicks "Watch ad".
-// The script fires the ad immediately on load (one-shot), never auto-plays.
-// Zone 237069 — replace with your Interstitial zone ID from Monetag dashboard.
-const MONETAG_ZONE = '237069'
-const MONETAG_TAG_URL = `https://quge5.com/88/tag.min.js`
+// Injects the Monetag tag script only at click time, never globally.
+const MONETAG_ZONE    = '237069'
+const MONETAG_TAG_URL = 'https://quge5.com/88/tag.min.js'
 
-function loadMonetagOnce(): Promise<boolean> {
-  return new Promise((resolve) => {
-    // If already injected, try calling the show function directly
-    const w = window as Record<string, unknown>
-    const candidates = [`__show_${MONETAG_ZONE}`, `show_${MONETAG_ZONE}`]
+function openMonetagAd(): void {
+  const w = window as Record<string, unknown>
+  const candidates = [`__show_${MONETAG_ZONE}`, `show_${MONETAG_ZONE}`]
+
+  const tryShow = () => {
     for (const name of candidates) {
       if (typeof w[name] === 'function') {
-        const fn = w[name] as (cb?: (ok: boolean) => void) => void
-        try { fn((ok) => resolve(!!ok)) } catch { resolve(false) }
+        const fn = w[name] as () => void
+        try { fn() } catch { /* ignore */ }
         return
       }
     }
+  }
 
-    // Inject the script — it auto-fires the interstitial on load
-    const existing = document.getElementById('monetag-interstitial-script')
-    if (existing) { resolve(false); return }
+  // Script already injected — just call the show function
+  if (document.getElementById('monetag-tag')) { tryShow(); return }
 
-    const script = document.createElement('script')
-    script.id = 'monetag-interstitial-script'
-    script.src = MONETAG_TAG_URL
-    script.setAttribute('data-zone', MONETAG_ZONE)
-    script.setAttribute('data-cfasync', 'false')
-    script.async = true
-    script.onload = () => {
-      // Give the script a tick to register its show function, then call it
-      setTimeout(() => {
-        for (const name of candidates) {
-          if (typeof w[name] === 'function') {
-            const fn = w[name] as (cb?: (ok: boolean) => void) => void
-            try { fn((ok) => resolve(!!ok)); return } catch { break }
-          }
-        }
-        resolve(false)
-      }, 300)
-    }
-    script.onerror = () => resolve(false)
-    document.head.appendChild(script)
-  })
+  const s = document.createElement('script')
+  s.id   = 'monetag-tag'
+  s.src  = MONETAG_TAG_URL
+  s.setAttribute('data-zone', MONETAG_ZONE)
+  s.setAttribute('data-cfasync', 'false')
+  s.async = true
+  s.onload = () => setTimeout(tryShow, 200)
+  document.head.appendChild(s)
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -64,7 +54,7 @@ interface Props {
   onDismiss: () => void
 }
 
-type Phase = 'intro' | 'playing' | 'reveal'
+type Phase = 'intro' | 'watching' | 'dwell' | 'reveal'
 
 // ── Tile ──────────────────────────────────────────────────────────────────────
 function Tile({ element, hidden = false }: { element: ElementDef | undefined; hidden?: boolean }) {
@@ -95,29 +85,63 @@ function Tile({ element, hidden = false }: { element: ElementDef | undefined; hi
   )
 }
 
-// ── Progress bar ──────────────────────────────────────────────────────────────
-function ProgressBar({ current, total }: { current: number; total: number }) {
-  const pct = Math.round(((total - current) / total) * 100)
+// ── Progress dots ─────────────────────────────────────────────────────────────
+function ProgressDots({ current, total }: { current: number; total: number }) {
   return (
-    <div className="w-full flex flex-col gap-2">
-      <div className="w-full h-2 rounded-full bg-white/[0.07] overflow-hidden">
+    <div className="flex items-center gap-2">
+      {Array.from({ length: total }).map((_, i) => (
         <div
-          className="h-full rounded-full bg-amber-400 transition-all duration-1000 ease-linear"
-          style={{ width: `${pct}%` }}
+          key={i}
+          className={`transition-all duration-300 rounded-full ${
+            i < current
+              ? 'w-3 h-3 bg-amber-400'
+              : i === current
+              ? 'w-3 h-3 bg-amber-400/40 ring-2 ring-amber-400/30'
+              : 'w-2.5 h-2.5 bg-white/10'
+          }`}
         />
-      </div>
-      <p className="text-[11px] text-muted-foreground/40 tabular-nums text-right">{current}s</p>
+      ))}
     </div>
+  )
+}
+
+// ── Dwell ring ────────────────────────────────────────────────────────────────
+function DwellRing({ elapsed, total }: { elapsed: number; total: number }) {
+  const pct = Math.min(elapsed / total, 1)
+  const r   = 28
+  const circ = 2 * Math.PI * r
+  return (
+    <svg width="72" height="72" className="-rotate-90">
+      <circle cx="36" cy="36" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="4" />
+      <circle
+        cx="36" cy="36" r={r} fill="none"
+        stroke="#fbbf24" strokeWidth="4"
+        strokeDasharray={circ}
+        strokeDashoffset={circ * (1 - pct)}
+        strokeLinecap="round"
+        className="transition-all duration-200 ease-linear"
+      />
+    </svg>
   )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }: Props) {
-  const [phase, setPhase] = useState<Phase>('intro')
-  const [countdown, setCountdown] = useState(AD_DURATION_SECONDS)
-  const [canSkip, setCanSkip] = useState(false)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const hintKey = `${hint.result}_${hint.ing1}_${hint.ing2}`
+
+  // Restore progress from session — persists if user closes & reopens modal
+  const [adsDone, setAdsDone] = useState<number>(() => {
+    try { return Math.min(parseInt(sessionStorage.getItem(storageKey(hintKey)) ?? '0', 10), ADS_REQUIRED) }
+    catch { return 0 }
+  })
+
+  const [phase,        setPhase]        = useState<Phase>('intro')
+  const [dwellElapsed, setDwellElapsed] = useState(0)
+  const dwellRef  = useRef<ReturnType<typeof setInterval> | null>(null)
+  const returnRef = useRef<ReturnType<typeof setTimeout>  | null>(null)
+  // Timestamp when the user clicked the ad link (to measure dwell on return)
+  const clickedAt = useRef<number>(0)
 
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
@@ -130,44 +154,78 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
   const ing1El   = getEl(hint.ing1)
   const ing2El   = getEl(hint.ing2)
 
-  const goToReveal = useCallback(() => {
-    clearInterval(intervalRef.current!)
-    setPhase('reveal')
+  // Save progress to session whenever adsDone changes
+  useEffect(() => {
+    try { sessionStorage.setItem(storageKey(hintKey), String(adsDone)) } catch { /* ignore */ }
+  }, [adsDone, hintKey])
+
+  // When user returns to the tab after clicking the ad, measure dwell time
+  useEffect(() => {
+    if (phase !== 'dwell') return
+
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return
+      const elapsed = (Date.now() - clickedAt.current) / 1000
+      if (elapsed >= DWELL_SECONDS) {
+        // Enough dwell time — count this ad
+        creditAd()
+      } else {
+        // Not enough time — start a countdown for the remainder
+        const remaining = DWELL_SECONDS - elapsed
+        let count = 0
+        dwellRef.current = setInterval(() => {
+          count += 0.2
+          setDwellElapsed(Math.min(elapsed + count, DWELL_SECONDS))
+          if (count >= remaining) {
+            clearInterval(dwellRef.current!)
+            creditAd()
+          }
+        }, 200)
+      }
+    }
+
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      if (dwellRef.current) clearInterval(dwellRef.current)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase])
+
+  const creditAd = useCallback(() => {
+    setAdsDone(prev => {
+      const next = prev + 1
+      if (next >= ADS_REQUIRED) {
+        setPhase('reveal')
+      } else {
+        setPhase('intro')
+      }
+      return next
+    })
+    setDwellElapsed(0)
   }, [])
 
-  const startCountdown = useCallback(() => {
-    setCountdown(AD_DURATION_SECONDS)
-    setCanSkip(false)
-    intervalRef.current = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(intervalRef.current!)
-          setCanSkip(true)
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
+  const handleAdClick = useCallback(() => {
+    // Open Monetag interstitial
+    openMonetagAd()
+    // Record when user left
+    clickedAt.current = Date.now()
+    setDwellElapsed(0)
+    setPhase('dwell')
   }, [])
-
-  const startAd = useCallback(async () => {
-    setPhase('playing')
-    startCountdown()
-
-    // Load + fire Monetag interstitial on-demand (only at user click).
-    // If completed → go straight to reveal. If blocked → 15s countdown fallback.
-    const completed = await loadMonetagOnce()
-    if (completed) goToReveal()
-  }, [goToReveal, startCountdown])
 
   const handleDismiss = () => {
-    clearInterval(intervalRef.current!)
+    if (dwellRef.current)  clearInterval(dwellRef.current)
+    if (returnRef.current) clearTimeout(returnRef.current)
     onDismiss()
   }
 
   useEffect(() => () => {
-    if (intervalRef.current) clearInterval(intervalRef.current)
+    if (dwellRef.current)  clearInterval(dwellRef.current)
+    if (returnRef.current) clearTimeout(returnRef.current)
   }, [])
+
+  const isComplete = adsDone >= ADS_REQUIRED
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center">
@@ -176,7 +234,7 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
 
       <div className="relative z-10 w-full max-w-sm mx-auto flex flex-col items-center px-6">
 
-        {/* ── INTRO ──────────────────────────────────────────────────────── */}
+        {/* ── INTRO / between ads ────────────────────────────────────────── */}
         {phase === 'intro' && (
           <div className="flex flex-col items-center gap-7 w-full animate-in fade-in slide-in-from-bottom-3 duration-300">
             <button
@@ -190,16 +248,31 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
               <Lightbulb className="w-7 h-7 text-amber-400" />
             </div>
 
-            <div className="text-center space-y-1.5">
-              <h2 className="text-xl font-bold text-foreground tracking-tight">
-                {t('Débloquer un indice', 'Unlock a hint')}
-              </h2>
-              <p className="text-sm text-muted-foreground/70 leading-relaxed">
-                {t('Regardez une courte pub pour révéler un indice.', 'Watch a short ad to reveal a hint.')}
+            {/* Progress indicator */}
+            <div className="flex flex-col items-center gap-2">
+              <ProgressDots current={adsDone} total={ADS_REQUIRED} />
+              <p className="text-xs font-semibold text-muted-foreground/50 tabular-nums">
+                {adsDone > 0
+                  ? t(`${adsDone}/${ADS_REQUIRED} — encore ${ADS_REQUIRED - adsDone}`, `${adsDone}/${ADS_REQUIRED} — ${ADS_REQUIRED - adsDone} more`)
+                  : t(`${ADS_REQUIRED} pubs pour débloquer`, `${ADS_REQUIRED} ads to unlock`)}
               </p>
             </div>
 
-            {/* Teaser — all tiles hidden */}
+            <div className="text-center space-y-1.5">
+              <h2 className="text-xl font-bold text-foreground tracking-tight">
+                {adsDone === 0
+                  ? t('Débloquer un indice', 'Unlock a hint')
+                  : t('Continue !', 'Keep going!')}
+              </h2>
+              <p className="text-sm text-muted-foreground/70 leading-relaxed">
+                {t(
+                  `Clique sur ${ADS_REQUIRED} pubs (2s chacune) pour révéler ton indice.`,
+                  `Click ${ADS_REQUIRED} ads (2s each) to reveal your hint.`
+                )}
+              </p>
+            </div>
+
+            {/* Teaser */}
             <div className="w-full rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5 flex flex-col items-center gap-4">
               <p className="text-[11px] font-semibold text-muted-foreground/40 uppercase tracking-widest">
                 {t('Essayez de créer', 'Try to create')}
@@ -214,46 +287,50 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
             </div>
 
             <button
-              onClick={startAd}
-              className="w-full py-3.5 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-[0.97] text-black text-sm font-bold transition-all shadow-lg shadow-amber-400/15"
+              onClick={handleAdClick}
+              className="w-full py-3.5 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-[0.97] text-black text-sm font-bold transition-all shadow-lg shadow-amber-400/15 flex items-center justify-center gap-2"
             >
-              {t('Regarder la pub', 'Watch the ad')}
+              <ExternalLink className="w-4 h-4" />
+              {adsDone === 0 ? t('Voir la pub', 'View ad') : t('Pub suivante', 'Next ad')}
             </button>
-            <p className="text-[11px] text-muted-foreground/30">{t('1 pub = 1 indice', '1 ad = 1 hint')}</p>
+            <p className="text-[11px] text-muted-foreground/30">
+              {t('Reste 2s sur la pub pour qu\'elle compte', 'Stay 2s on the ad for it to count')}
+            </p>
           </div>
         )}
 
-        {/* ── PLAYING ────────────────────────────────────────────────────── */}
-        {phase === 'playing' && (
-          <div className="flex flex-col items-center gap-6 w-full animate-in fade-in duration-200">
-            {/* Info while ad is showing externally */}
-            <div className="w-full rounded-2xl border border-white/[0.07] bg-white/[0.03] p-8 flex flex-col items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-amber-400/10 border border-amber-400/15 flex items-center justify-center">
-                <Lightbulb className="w-6 h-6 text-amber-400" />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground/60 text-center leading-relaxed">
-                {t('Pub en cours…', 'Ad playing…')}
+        {/* ── DWELL — waiting for user to return ────────────────────────── */}
+        {phase === 'dwell' && (
+          <div className="flex flex-col items-center gap-7 w-full animate-in fade-in duration-200">
+            <div className="relative flex items-center justify-center">
+              <DwellRing elapsed={dwellElapsed} total={DWELL_SECONDS} />
+              <span className="absolute text-xs font-bold text-amber-400 tabular-nums">
+                {dwellElapsed >= DWELL_SECONDS ? '✓' : `${Math.ceil(DWELL_SECONDS - dwellElapsed)}s`}
+              </span>
+            </div>
+
+            <div className="text-center space-y-1.5">
+              <h2 className="text-base font-bold text-foreground">
+                {t('Pub ouverte…', 'Ad opened…')}
+              </h2>
+              <p className="text-sm text-muted-foreground/60 leading-relaxed">
+                {t('Reste 2s sur la page de la pub,\npuis reviens ici.', 'Stay 2s on the ad page,\nthen come back here.')}
               </p>
             </div>
 
-            {/* Progress bar → reveal button */}
-            <div className="w-full">
-              {canSkip ? (
-                <button
-                  onClick={goToReveal}
-                  className="w-full py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-[0.97] text-black text-sm font-bold transition-all animate-in fade-in zoom-in-95 duration-300"
-                >
-                  {t('Voir mon indice', 'See my hint')}
-                </button>
-              ) : (
-                <ProgressBar current={countdown} total={AD_DURATION_SECONDS} />
-              )}
-            </div>
+            <ProgressDots current={adsDone} total={ADS_REQUIRED} />
+
+            <button
+              onClick={handleDismiss}
+              className="text-xs text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors"
+            >
+              {t('Annuler', 'Cancel')}
+            </button>
           </div>
         )}
 
         {/* ── REVEAL ─────────────────────────────────────────────────────── */}
-        {phase === 'reveal' && (
+        {(phase === 'reveal' || isComplete) && (
           <div className="flex flex-col items-center gap-7 w-full animate-in fade-in slide-in-from-bottom-3 duration-300">
             <div className="text-center space-y-1">
               <p className="text-[11px] font-semibold text-amber-400 uppercase tracking-widest">
@@ -290,6 +367,7 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
             </div>
           </div>
         )}
+
       </div>
     </div>
   )
