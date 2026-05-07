@@ -13,38 +13,62 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)))
 }
 
+// Call this directly from a user gesture (button click) to request permission and subscribe.
+export async function subscribeToPush(): Promise<boolean> {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false
+  if (!PUBLIC_VAPID_KEY) return false
+  try {
+    const permission = await Notification.requestPermission()
+    if (permission !== 'granted') return false
+
+    const reg = await navigator.serviceWorker.ready
+    const existing = await reg.pushManager.getSubscription()
+    const sub = existing ?? await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY),
+    })
+
+    const json = sub.toJSON() as { endpoint: string; keys?: { p256dh: string; auth: string } }
+    if (!json.keys) return false
+
+    const res = await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(json),
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
+export async function unsubscribeFromPush(): Promise<void> {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+  try {
+    const reg = await navigator.serviceWorker.ready
+    const sub = await reg.pushManager.getSubscription()
+    if (sub) await sub.unsubscribe()
+  } catch { /* ignore */ }
+}
+
 export function usePushSubscription() {
   const { status } = useSession()
 
   useEffect(() => {
+    // On login, if permission is already granted, silently refresh the subscription record.
+    // This covers users who already granted permission in a previous session.
     if (status !== 'authenticated') return
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
     if (!PUBLIC_VAPID_KEY) return
+    if (Notification.permission !== 'granted') return
 
-    async function syncSubscription() {
+    async function refreshSubscription() {
       try {
-        // Check user's saved preference first
-        const profileRes = await fetch('/api/profile')
-        if (!profileRes.ok) return
-        const profile = await profileRes.json()
-        const wantsPush = profile.push_notifications !== false
-
         const reg = await navigator.serviceWorker.ready
         const existing = await reg.pushManager.getSubscription()
+        if (!existing) return // They haven't subscribed yet — wait for manual trigger
 
-        if (!wantsPush) {
-          // User opted out — unsubscribe if still subscribed
-          if (existing) await existing.unsubscribe()
-          return
-        }
-
-        // User wants push — subscribe (or refresh existing)
-        const sub = existing ?? await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY),
-        })
-
-        const json = sub.toJSON() as { endpoint: string; keys?: { p256dh: string; auth: string } }
+        const json = existing.toJSON() as { endpoint: string; keys?: { p256dh: string; auth: string } }
         if (!json.keys) return
 
         await fetch('/api/push/subscribe', {
@@ -52,11 +76,9 @@ export function usePushSubscription() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(json),
         })
-      } catch {
-        // Permission denied or push not supported — silently ignore
-      }
+      } catch { /* ignore */ }
     }
 
-    syncSubscription()
+    refreshSubscription()
   }, [status])
 }

@@ -8,6 +8,7 @@ import { OnboardingModal } from './onboarding-modal'
 import { RewardedAdModal } from './rewarded-ad-modal'
 import { useGameStore } from '@/hooks/use-game-store'
 import { useHint } from '@/hooks/use-hint'
+import { subscribeToPush, unsubscribeFromPush } from '@/hooks/use-push-subscription'
 import { Sparkles, Lightbulb, Trash2, BarChart2, Hand, MousePointer } from 'lucide-react'
 
 const PROGRESS_MILESTONES = [10, 20, 50, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900]
@@ -279,8 +280,14 @@ export function AlchemyGame() {
           }
         }}
         pushNotificationsEnabled={pushNotificationsEnabled}
-        onTogglePushNotifications={() => {
+        onTogglePushNotifications={async () => {
           const next = !pushNotificationsEnabled
+          if (next) {
+            const ok = await subscribeToPush()
+            if (!ok) return // permission denied — don't toggle on
+          } else {
+            await unsubscribeFromPush()
+          }
           setPushNotificationsEnabled(next)
           if (session?.user?.id) {
             fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push_notifications: next }) })
