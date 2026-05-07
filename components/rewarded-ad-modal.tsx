@@ -11,22 +11,32 @@ const AD_DURATION_SECONDS = 15
 // Call it with a callback — it opens the full-page interstitial, then calls
 // back with true (completed) or false (blocked/failed).
 //
-// ZONE IDs — update these when you create new zones in Monetag dashboard:
-const MONETAG_INTERSTITIAL_FN = 'show_9136159' // ← replace with your zone function name
-
+// Monetag injects a function on window when the tag loads.
+// With data-zone="237069" the injected function is window.__show_237069.
+// We also try common variants in case the SDK version differs.
 async function showMonetagInterstitial(): Promise<boolean> {
   const w = window as Record<string, unknown>
-  const showAd = w[MONETAG_INTERSTITIAL_FN] as ((cb?: (ok: boolean) => void) => Promise<boolean> | void) | undefined
 
-  if (typeof showAd !== 'function') {
-    // SDK not loaded yet or blocked — resolve false so countdown fallback works
+  // Try all known Monetag function name patterns for zone 237069
+  const candidates = ['__show_237069', 'show_237069', '__show__237069']
+  let showAd: ((cb?: (ok: boolean) => void) => Promise<boolean> | void) | undefined
+
+  for (const name of candidates) {
+    if (typeof w[name] === 'function') {
+      showAd = w[name] as (cb?: (ok: boolean) => void) => Promise<boolean> | void
+      break
+    }
+  }
+
+  if (!showAd) {
+    // SDK not loaded or blocked — countdown fallback handles it
     return false
   }
 
   return new Promise<boolean>((resolve) => {
     try {
-      const result = showAd((ok: boolean) => resolve(!!ok))
-      // Some Monetag zones return a Promise instead of using a callback
+      const result = showAd!((ok: boolean) => resolve(!!ok))
+      // Some Monetag zones return a Promise instead of using callback
       if (result && typeof (result as Promise<boolean>).then === 'function') {
         (result as Promise<boolean>).then(ok => resolve(!!ok)).catch(() => resolve(false))
       }
