@@ -1,12 +1,11 @@
 import { neon } from '@neondatabase/serverless'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/auth'
 import { NextRequest, NextResponse } from 'next/server'
 
 const sql = neon(process.env.DATABASE_URL!)
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await auth()
   const userId = session?.user?.id ?? null
 
   const body = await req.json()
