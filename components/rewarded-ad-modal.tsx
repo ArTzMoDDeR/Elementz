@@ -6,7 +6,7 @@ import type { HintResult } from '@/hooks/use-hint'
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const ADS_REQUIRED   = 5   // number of ad clicks required
-const DWELL_SECONDS  = 2   // seconds user must stay on the ad page
+const DWELL_MS       = 2000 // ms user must wait before the confirm button appears
 
 // Storage key — per hint so progress resets for each new hint request
 const storageKey = (hintKey: string) => `hint_ad_progress_${hintKey}`
@@ -105,26 +105,6 @@ function ProgressDots({ current, total }: { current: number; total: number }) {
   )
 }
 
-// ── Dwell ring ────────────────────────────────────────────────────────────────
-function DwellRing({ elapsed, total }: { elapsed: number; total: number }) {
-  const pct = Math.min(elapsed / total, 1)
-  const r   = 28
-  const circ = 2 * Math.PI * r
-  return (
-    <svg width="72" height="72" className="-rotate-90">
-      <circle cx="36" cy="36" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="4" />
-      <circle
-        cx="36" cy="36" r={r} fill="none"
-        stroke="#fbbf24" strokeWidth="4"
-        strokeDasharray={circ}
-        strokeDashoffset={circ * (1 - pct)}
-        strokeLinecap="round"
-        className="transition-all duration-200 ease-linear"
-      />
-    </svg>
-  )
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }: Props) {
@@ -136,12 +116,9 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
     catch { return 0 }
   })
 
-  const [phase,        setPhase]        = useState<Phase>('intro')
-  const [dwellElapsed, setDwellElapsed] = useState(0)
-  const dwellRef  = useRef<ReturnType<typeof setInterval> | null>(null)
-  const returnRef = useRef<ReturnType<typeof setTimeout>  | null>(null)
-  // Timestamp when the user clicked the ad link (to measure dwell on return)
-  const clickedAt = useRef<number>(0)
+  const [phase,         setPhase]        = useState<Phase>('intro')
+  const [canConfirm,    setCanConfirm]   = useState(false)
+  const dwellRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
@@ -159,37 +136,12 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
     try { sessionStorage.setItem(storageKey(hintKey), String(adsDone)) } catch { /* ignore */ }
   }, [adsDone, hintKey])
 
-  // When user returns to the tab after clicking the ad, measure dwell time
+  // When dwell phase starts, unlock the confirm button after DWELL_MS
   useEffect(() => {
     if (phase !== 'dwell') return
-
-    const onVisible = () => {
-      if (document.visibilityState !== 'visible') return
-      const elapsed = (Date.now() - clickedAt.current) / 1000
-      if (elapsed >= DWELL_SECONDS) {
-        // Enough dwell time — count this ad
-        creditAd()
-      } else {
-        // Not enough time — start a countdown for the remainder
-        const remaining = DWELL_SECONDS - elapsed
-        let count = 0
-        dwellRef.current = setInterval(() => {
-          count += 0.2
-          setDwellElapsed(Math.min(elapsed + count, DWELL_SECONDS))
-          if (count >= remaining) {
-            clearInterval(dwellRef.current!)
-            creditAd()
-          }
-        }, 200)
-      }
-    }
-
-    document.addEventListener('visibilitychange', onVisible)
-    return () => {
-      document.removeEventListener('visibilitychange', onVisible)
-      if (dwellRef.current) clearInterval(dwellRef.current)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    setCanConfirm(false)
+    dwellRef.current = setTimeout(() => setCanConfirm(true), DWELL_MS)
+    return () => { if (dwellRef.current) clearTimeout(dwellRef.current) }
   }, [phase])
 
   const creditAd = useCallback(() => {
@@ -206,23 +158,21 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
   }, [])
 
   const handleAdClick = useCallback(() => {
-    // Open Monetag interstitial
     openMonetagAd()
-    // Record when user left
-    clickedAt.current = Date.now()
-    setDwellElapsed(0)
     setPhase('dwell')
   }, [])
 
+  const handleConfirm = useCallback(() => {
+    creditAd()
+  }, [creditAd])
+
   const handleDismiss = () => {
-    if (dwellRef.current)  clearInterval(dwellRef.current)
-    if (returnRef.current) clearTimeout(returnRef.current)
+    if (dwellRef.current) clearTimeout(dwellRef.current)
     onDismiss()
   }
 
   useEffect(() => () => {
-    if (dwellRef.current)  clearInterval(dwellRef.current)
-    if (returnRef.current) clearTimeout(returnRef.current)
+    if (dwellRef.current) clearTimeout(dwellRef.current)
   }, [])
 
   const isComplete = adsDone >= ADS_REQUIRED
@@ -299,26 +249,37 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
           </div>
         )}
 
-        {/* ── DWELL — waiting for user to return ────────────────────────── */}
+        {/* ── DWELL — confirm after 2s ───────────────────────────────────── */}
         {phase === 'dwell' && (
           <div className="flex flex-col items-center gap-7 w-full animate-in fade-in duration-200">
-            <div className="relative flex items-center justify-center">
-              <DwellRing elapsed={dwellElapsed} total={DWELL_SECONDS} />
-              <span className="absolute text-xs font-bold text-amber-400 tabular-nums">
-                {dwellElapsed >= DWELL_SECONDS ? '✓' : `${Math.ceil(DWELL_SECONDS - dwellElapsed)}s`}
-              </span>
+            <div className="w-16 h-16 rounded-3xl bg-amber-400/10 border border-amber-400/15 flex items-center justify-center">
+              <ExternalLink className="w-7 h-7 text-amber-400" />
             </div>
 
             <div className="text-center space-y-1.5">
-              <h2 className="text-base font-bold text-foreground">
-                {t('Pub ouverte…', 'Ad opened…')}
+              <h2 className="text-lg font-bold text-foreground">
+                {t('Pub ouverte !', 'Ad opened!')}
               </h2>
               <p className="text-sm text-muted-foreground/60 leading-relaxed">
-                {t('Reste 2s sur la page de la pub,\npuis reviens ici.', 'Stay 2s on the ad page,\nthen come back here.')}
+                {canConfirm
+                  ? t('Clique sur le bouton ci-dessous pour valider.', 'Click the button below to confirm.')
+                  : t('Patiente 2s sur la pub…', 'Wait 2s on the ad…')}
               </p>
             </div>
 
             <ProgressDots current={adsDone} total={ADS_REQUIRED} />
+
+            <button
+              onClick={handleConfirm}
+              disabled={!canConfirm}
+              className="w-full py-3.5 rounded-2xl text-sm font-bold transition-all active:scale-[0.97] flex items-center justify-center gap-2 disabled:cursor-not-allowed"
+              style={{
+                background: canConfirm ? '#fbbf24' : 'rgba(251,191,36,0.15)',
+                color: canConfirm ? '#000' : 'rgba(251,191,36,0.4)',
+              }}
+            >
+              {canConfirm ? t('Compter cette pub', 'Count this ad') : t('Patiente…', 'Wait…')}
+            </button>
 
             <button
               onClick={handleDismiss}
