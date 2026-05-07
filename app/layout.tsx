@@ -96,11 +96,11 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className="bg-background">
       <head>
         <Script
-          id="monetag-onclick"
+          id="monetag-direct-link"
+          src="https://quge5.com/88/tag.min.js"
+          data-zone="237078"
           strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `(function(s){s.dataset.zone='10975622',s.src='https://al5sm.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`,
-          }}
+          data-cfasync="false"
         />
       </head>
       <body className="font-sans antialiased">
