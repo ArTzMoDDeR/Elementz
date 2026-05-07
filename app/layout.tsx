@@ -95,11 +95,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className="bg-background">
       <body className="font-sans antialiased">
-        {/* Monetag interstitial ad tag — zone ID 10975448
-            Loads afterInteractive so it never blocks page render.
-            Replace the src with your zone-specific tag from Monetag dashboard. */}
+        {/* Monetag native interstitial ad — zone 237069 */}
         <Script
-          src="https://ophoacln.com/act/files/tag.min.js?z=10975448"
+          src="https://quge5.com/88/tag.min.js"
+          data-zone="237069"
           strategy="afterInteractive"
           data-cfasync="false"
         />
