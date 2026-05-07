@@ -94,6 +94,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="bg-background">
+      <head>
+        <Script
+          id="monetag-onclick"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(s){s.dataset.zone='10975622',s.src='https://al5sm.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`,
+          }}
+        />
+      </head>
       <body className="font-sans antialiased">
         <SessionProvider>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
