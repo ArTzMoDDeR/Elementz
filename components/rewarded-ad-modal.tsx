@@ -6,46 +6,52 @@ import type { HintResult } from '@/hooks/use-hint'
 
 const AD_DURATION_SECONDS = 15
 
-// ── Monetag interstitial ad service ──────────────────────────────────────────
-// Monetag injects window.show_9136159 (or similar) when the tag.min.js loads.
-// Call it with a callback — it opens the full-page interstitial, then calls
-// back with true (completed) or false (blocked/failed).
-//
-// Monetag injects a function on window when the tag loads.
-// With data-zone="237069" the injected function is window.__show_237069.
-// We also try common variants in case the SDK version differs.
-async function showMonetagInterstitial(): Promise<boolean> {
-  const w = window as Record<string, unknown>
+// ── Monetag on-demand interstitial ───────────────────────────────────────────
+// Loads the Monetag interstitial script only when the user clicks "Watch ad".
+// The script fires the ad immediately on load (one-shot), never auto-plays.
+// Zone 237069 — replace with your Interstitial zone ID from Monetag dashboard.
+const MONETAG_ZONE = '237069'
+const MONETAG_TAG_URL = `https://quge5.com/88/tag.min.js`
 
-  // Try all known Monetag function name patterns for zone 237069
-  const candidates = ['__show_237069', 'show_237069', '__show__237069']
-  let showAd: ((cb?: (ok: boolean) => void) => Promise<boolean> | void) | undefined
-
-  for (const name of candidates) {
-    if (typeof w[name] === 'function') {
-      showAd = w[name] as (cb?: (ok: boolean) => void) => Promise<boolean> | void
-      break
-    }
-  }
-
-  if (!showAd) {
-    // SDK not loaded or blocked — countdown fallback handles it
-    return false
-  }
-
-  return new Promise<boolean>((resolve) => {
-    try {
-      const result = showAd!((ok: boolean) => resolve(!!ok))
-      // Some Monetag zones return a Promise instead of using callback
-      if (result && typeof (result as Promise<boolean>).then === 'function') {
-        (result as Promise<boolean>).then(ok => resolve(!!ok)).catch(() => resolve(false))
+function loadMonetagOnce(): Promise<boolean> {
+  return new Promise((resolve) => {
+    // If already injected, try calling the show function directly
+    const w = window as Record<string, unknown>
+    const candidates = [`__show_${MONETAG_ZONE}`, `show_${MONETAG_ZONE}`]
+    for (const name of candidates) {
+      if (typeof w[name] === 'function') {
+        const fn = w[name] as (cb?: (ok: boolean) => void) => void
+        try { fn((ok) => resolve(!!ok)) } catch { resolve(false) }
+        return
       }
-    } catch {
-      resolve(false)
     }
+
+    // Inject the script — it auto-fires the interstitial on load
+    const existing = document.getElementById('monetag-interstitial-script')
+    if (existing) { resolve(false); return }
+
+    const script = document.createElement('script')
+    script.id = 'monetag-interstitial-script'
+    script.src = MONETAG_TAG_URL
+    script.setAttribute('data-zone', MONETAG_ZONE)
+    script.setAttribute('data-cfasync', 'false')
+    script.async = true
+    script.onload = () => {
+      // Give the script a tick to register its show function, then call it
+      setTimeout(() => {
+        for (const name of candidates) {
+          if (typeof w[name] === 'function') {
+            const fn = w[name] as (cb?: (ok: boolean) => void) => void
+            try { fn((ok) => resolve(!!ok)); return } catch { break }
+          }
+        }
+        resolve(false)
+      }, 300)
+    }
+    script.onerror = () => resolve(false)
+    document.head.appendChild(script)
   })
 }
-
 // ─────────────────────────────────────────────────────────────────────────────
 
 type ElementDef = { number: number; name: string; imageUrl?: string; color?: string }
@@ -148,10 +154,9 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
     setPhase('playing')
     startCountdown()
 
-    // Fire Monetag interstitial — it opens a full-page overlay natively.
-    // If it resolves true (ad completed), go straight to reveal.
-    // If false (blocked / no fill), the 15s countdown fallback handles skip.
-    const completed = await showMonetagInterstitial()
+    // Load + fire Monetag interstitial on-demand (only at user click).
+    // If completed → go straight to reveal. If blocked → 15s countdown fallback.
+    const completed = await loadMonetagOnce()
     if (completed) goToReveal()
   }, [goToReveal, startCountdown])
 

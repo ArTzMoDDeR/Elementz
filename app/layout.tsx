@@ -95,14 +95,6 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className="bg-background">
       <body className="font-sans antialiased">
-        {/* Monetag native interstitial ad — zone 237069 */}
-        <Script
-          src="https://quge5.com/88/tag.min.js"
-          data-zone="237069"
-          strategy="afterInteractive"
-          data-cfasync="false"
-        />
-
         <SessionProvider>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
             {children}
