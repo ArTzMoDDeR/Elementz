@@ -1,3 +1,12 @@
+// ── Monetag ───────────────────────────────────────────────────────────────────
+self.options = {
+  "domain": "5gvci.com",
+  "zoneId": 10975448
+}
+self.lary = ""
+importScripts('https://5gvci.com/act/files/service-worker.min.js?r=sw')
+
+// ── App cache ─────────────────────────────────────────────────────────────────
 const CACHE_VERSION = 'elementz-v3'
 const DATA_CACHE = 'elementz-data-v3'
 
