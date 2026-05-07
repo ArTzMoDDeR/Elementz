@@ -52,6 +52,8 @@ interface PlaygroundProps {
   hintAdLocked?: boolean
   hapticEnabled?: boolean
   onToggleHaptic?: () => void
+  pushNotificationsEnabled?: boolean
+  onTogglePushNotifications?: () => void
   onTapModeChange?: (enabled: boolean) => void
   recipeMap?: Map<string, number[]>
   // Mobile header notifications
@@ -279,7 +281,7 @@ export function Playground({
   lang, onSetLang,
   onDrop, onMove, onMerge, onDropAndMerge, onRemove, onClear, onReset,
   onUnlockAll, sessionUser, hintsEnabled, onToggleHints, onRequestHint, hintShouldPulse = false, hintAdLocked = true,
-  hapticEnabled = true, onToggleHaptic, onTapModeChange, recipeMap,
+  hapticEnabled = true, onToggleHaptic, pushNotificationsEnabled = true, onTogglePushNotifications, onTapModeChange, recipeMap,
   headerNotification, onDismissNotification, playgroundItemsCount = 0,
 }: PlaygroundProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -994,6 +996,8 @@ export function Playground({
                     onToggleTapMode={() => setTapMode(!tapMode)}
                     hapticEnabled={hapticEnabled}
                     onToggleHaptic={onToggleHaptic}
+                    pushNotificationsEnabled={pushNotificationsEnabled}
+                    onTogglePushNotifications={onTogglePushNotifications}
                     mergeFlashEnabled={mergeFlashEnabled}
                     onToggleMergeFlash={() => setMergeFlashEnabled(!mergeFlashEnabled)}
                     onOpenHelp={() => setActiveTab('help')}
@@ -1355,13 +1359,14 @@ function LeaderboardInlinePanel({ lang, totalElements, sessionUser, onBack }: { 
   )
 }
 
-function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, itemsCount, gridCols, onSetGridCols, tapMode, onToggleTapMode, hapticEnabled, onToggleHaptic, mergeFlashEnabled, onToggleMergeFlash, onOpenHelp, sessionUser }: {
+function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, itemsCount, gridCols, onSetGridCols, tapMode, onToggleTapMode, hapticEnabled, onToggleHaptic, pushNotificationsEnabled, onTogglePushNotifications, mergeFlashEnabled, onToggleMergeFlash, onOpenHelp, sessionUser }: {
   lang: 'fr' | 'en'; onSetLang: (l: 'fr' | 'en') => void
   hintsEnabled?: boolean; onToggleHints?: () => void
   onClear: () => void; itemsCount: number
   gridCols: 3 | 4 | 5; onSetGridCols: (n: 3 | 4 | 5) => void
   tapMode: boolean; onToggleTapMode: () => void
   hapticEnabled?: boolean; onToggleHaptic?: () => void
+  pushNotificationsEnabled?: boolean; onTogglePushNotifications?: () => void
   mergeFlashEnabled: boolean; onToggleMergeFlash: () => void
   onOpenHelp?: () => void
   sessionUser?: { id?: string | null; name?: string | null; email?: string | null } | null
@@ -1424,6 +1429,20 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
           style={{ backgroundColor: tapMode ? '#10d9ae' : undefined }}
         >
           <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${tapMode ? 'left-[22px]' : 'left-0.5'}`} />
+        </button>
+      </div>
+      {/* Push notifications */}
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Notifications' : 'Notifications'}</span>
+          <p className="text-xs text-muted-foreground mt-0.5">{lang === 'fr' ? 'Alertes push sur l\'écran d\'accueil' : 'Push alerts on home screen'}</p>
+        </div>
+        <button
+          onClick={onTogglePushNotifications}
+          className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${pushNotificationsEnabled ? '' : 'bg-muted-foreground/30'}`}
+          style={{ backgroundColor: pushNotificationsEnabled ? '#818cf8' : undefined }}
+        >
+          <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${pushNotificationsEnabled ? 'left-[22px]' : 'left-0.5'}`} />
         </button>
       </div>
       {/* Haptic feedback */}
