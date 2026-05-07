@@ -6,7 +6,7 @@ import {
   Search, Upload, Check, FileUp, Plus, X, Trash2, Save, Hash,
   ArrowDownAZ, Pencil, ChevronLeft, ChevronRight, RefreshCw, Shield, ShieldOff,
   Users, Layers, Scroll, BarChart3, AlertCircle, CheckCircle2, Clock, Mail, Send, CheckCheck,
-  TrendingUp, Activity, Repeat2, Download,
+  TrendingUp, Activity, Repeat2, Download, Bell,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -1817,9 +1817,108 @@ function StatsTab() {
   )
 }
 
+// ─── Push Notifications Tab ───────────────────────────────────────────────────
+function PushTab() {
+  const [title,   setTitle]   = useState('')
+  const [body,    setBody]    = useState('')
+  const [url,     setUrl]     = useState('https://elementz.fun')
+  const [loading, setLoading] = useState(false)
+  const [result,  setResult]  = useState<{ sent: number; failed: number; cleaned: number } | null>(null)
+  const [count,   setCount]   = useState<number | null>(null)
+  const [error,   setError]   = useState('')
+
+  useEffect(() => {
+    fetch('/api/admin/push')
+      .then(r => r.json())
+      .then(d => setCount(d.count))
+      .catch(() => {})
+  }, [])
+
+  const send = async () => {
+    if (!title.trim() || !body.trim()) { setError('Titre et message requis'); return }
+    setError(''); setResult(null); setLoading(true)
+    try {
+      const res = await fetch('/api/admin/push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, body, url, icon: '/logo.png' }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error ?? 'Erreur serveur'); return }
+      setResult(data)
+      setTitle(''); setBody(''); setUrl('https://elementz.fun')
+    } catch { setError('Erreur réseau') }
+    finally { setLoading(false) }
+  }
+
+  return (
+    <div className="p-6 max-w-xl space-y-6">
+      <div>
+        <h2 className="text-lg font-bold text-foreground">Notifications push</h2>
+        <p className="text-sm text-muted-foreground/60 mt-1">
+          {count !== null ? `${count} abonné${count !== 1 ? 's' : ''} actif${count !== 1 ? 's' : ''}` : 'Chargement…'}
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        <div>
+          <label className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-widest block mb-1.5">Titre</label>
+          <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Nouvelle mise à jour !" maxLength={64} />
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-widest block mb-1.5">Message</label>
+          <textarea
+            value={body}
+            onChange={e => setBody(e.target.value)}
+            placeholder="Un nouvel élément vient d'être ajouté…"
+            maxLength={160}
+            rows={3}
+            className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/30 resize-none focus:outline-none focus:ring-1 focus:ring-white/20 transition-all"
+          />
+          <p className="text-[10px] text-muted-foreground/30 mt-1 text-right">{body.length}/160</p>
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-widest block mb-1.5">URL de destination</label>
+          <Input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://elementz.fun" />
+        </div>
+      </div>
+
+      {error && (
+        <div className="flex items-center gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          {error}
+        </div>
+      )}
+
+      {result && (
+        <div className="flex items-center gap-2 text-sm text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3">
+          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+          {result.sent} envoyée{result.sent !== 1 ? 's' : ''}, {result.failed} échouée{result.failed !== 1 ? 's' : ''}, {result.cleaned} abonnement{result.cleaned !== 1 ? 's' : ''} nettoyé{result.cleaned !== 1 ? 's' : ''}
+        </div>
+      )}
+
+      <button
+        onClick={send}
+        disabled={loading || !title.trim() || !body.trim()}
+        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-foreground text-background text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.97] transition-all"
+      >
+        <Bell className="w-4 h-4" />
+        {loading ? 'Envoi…' : 'Envoyer à tous'}
+      </button>
+
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-2">
+        <p className="text-xs font-semibold text-muted-foreground/40 uppercase tracking-widest">Infos VAPID</p>
+        <p className="text-xs text-muted-foreground/50 leading-relaxed">
+          Pour que les notifications fonctionnent, tu dois définir <code className="text-amber-400/70">NEXT_PUBLIC_VAPID_PUBLIC_KEY</code> et <code className="text-amber-400/70">VAPID_PRIVATE_KEY</code> dans les variables d&apos;environnement Vercel. Génère une paire avec <code className="text-amber-400/70">npx web-push generate-vapid-keys</code>.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Admin Page ──────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'elements' | 'quests' | 'users' | 'email' | 'stats'
+type Tab = 'overview' | 'elements' | 'quests' | 'users' | 'email' | 'stats' | 'push'
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'overview',  label: 'Vue d\'ensemble', icon: BarChart3  },
@@ -1828,6 +1927,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'quests',    label: 'Quêtes',          icon: Scroll     },
   { id: 'users',     label: 'Utilisateurs',    icon: Users      },
   { id: 'email',     label: 'E-mail',          icon: Mail       },
+  { id: 'push',      label: 'Notifications',   icon: Bell       },
 ]
 
 // ─── CSV download helper ──────────────────────────────────────────────────────
@@ -2000,6 +2100,7 @@ export default function AdminPanel() {
         {tab === 'quests'    && <QuestsTab />}
         {tab === 'users'     && <UsersTab />}
         {tab === 'email'     && <EmailTab />}
+        {tab === 'push'      && <PushTab />}
       </main>
     </div>
   )
