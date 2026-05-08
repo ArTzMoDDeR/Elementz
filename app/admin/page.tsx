@@ -934,12 +934,14 @@ function AddModal({ onClose, onAdded }: { onClose: () => void; onAdded: (el: Ele
   const [error, setError] = useState('')
 
   const create = async () => {
+    if (saving) return
     if (!nameFr.trim()) { setError('Le nom français est requis'); return }
-    setSaving(true)
-    const res = await fetch('/api/elements', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name_french: nameFr.trim(), name_english: nameEn.trim() }) })
-    if (res.ok) { const el = await res.json(); onAdded(el) }
-    else { const err = await res.json().catch(() => ({})); setError(`Erreur: ${err.detail || err.error || res.status}`) }
-    setSaving(false)
+    setSaving(true); setError('')
+    try {
+      const res = await fetch('/api/elements', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name_french: nameFr.trim(), name_english: nameEn.trim() }) })
+      if (res.ok) { const el = await res.json(); onAdded(el) }
+      else { const err = await res.json().catch(() => ({})); setError(`Erreur: ${err.detail || err.error || res.status}`) }
+    } finally { setSaving(false) }
   }
 
   return (
@@ -2023,8 +2025,8 @@ export default function AdminPanel() {
       </aside>
 
       {/* ── Top bar (mobile) ─────────────────────────────────────────────── */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-30 border-b border-white/[0.06] flex items-center justify-between px-4 h-14"
-        style={{ background: 'rgba(10,10,10,0.92)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingTop: 'env(safe-area-inset-top)' }}
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-30 border-b border-white/[0.06] flex items-end justify-between px-4 pb-3"
+        style={{ background: 'rgba(10,10,10,0.92)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingTop: 'calc(env(safe-area-inset-top) + 12px)', minHeight: 'calc(env(safe-area-inset-top) + 56px)' }}
       >
         <a href="/" className="flex items-center gap-2">
           <img src="/logo.png" alt="Elementz" className="w-7 h-7 rounded-xl" />
@@ -2093,7 +2095,9 @@ export default function AdminPanel() {
       )}
 
       {/* ── Content ──────────────────────────────────────────────────────── */}
-      <main className="flex-1 lg:mr-[300px] min-w-0 h-full overflow-y-auto no-scrollbar pt-20 pb-10 lg:pt-10 px-4 lg:px-10 xl:px-16 2xl:px-24">
+      <main className="flex-1 lg:mr-[300px] min-w-0 h-full overflow-y-auto no-scrollbar pb-10 lg:pt-10 px-4 lg:px-10 xl:px-16 2xl:px-24"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 72px)' }}
+      >
         {tab === 'overview'  && <OverviewTab />}
         {tab === 'stats'     && <StatsTab />}
         {tab === 'elements'  && <ElementsTab />}
