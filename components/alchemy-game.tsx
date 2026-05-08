@@ -13,11 +13,48 @@ import { Sparkles, Lightbulb, Trash2, BarChart2, Hand, MousePointer } from 'luci
 
 const PROGRESS_MILESTONES = [10, 20, 50, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900]
 
+function PushPromptModal({ lang, onAccept, onDecline }: { lang: string; onAccept: () => void; onDecline: () => void }) {
+  const t = (fr: string, en: string) => lang === 'fr' ? fr : en
+  return (
+    <div className="fixed inset-0 z-[9998] flex items-end justify-center sm:items-center bg-black/50 backdrop-blur-sm" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <div className="w-full max-w-sm bg-card border border-border rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden mx-4 sm:mx-0 mb-4 sm:mb-0">
+        <div className="px-6 pt-6 pb-8 flex flex-col gap-5">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+              <span className="text-2xl">🔔</span>
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-foreground">{t('Activer les notifications ?', 'Enable notifications?')}</h2>
+              <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+                {t(
+                  "Reçois une alerte quand de nouveaux éléments sont ajoutés ou quand il y a une mise à jour.",
+                  "Get notified when new elements are added or when there's an update."
+                )}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <button onClick={onDecline}
+              className="flex-1 h-12 rounded-2xl bg-muted/50 border border-border text-foreground/60 font-semibold text-sm active:scale-[0.98] transition-transform">
+              {t('Non merci', 'No thanks')}
+            </button>
+            <button onClick={onAccept}
+              className="flex-1 h-12 rounded-2xl bg-indigo-500 text-white font-semibold text-sm active:scale-[0.98] transition-transform">
+              {t('Activer', 'Enable')}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function AlchemyGame() {
   const [mounted, setMounted] = useState(false)
   const { data: session } = useSession()
   const { setTheme } = useTheme()
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [showPushPrompt, setShowPushPrompt] = useState(false)
   const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(true)
   const {
     lang,
@@ -158,7 +195,7 @@ export function AlchemyGame() {
     return null
   }, [hintVisible, currentHint, hintLabel, newlyDiscovered, progressToast, tapModeToast, hintsToast, lang, elements])
 
-  const handleOnboardingComplete = async (prefs: { lang: 'fr' | 'en'; theme: 'dark' | 'light'; haptic: boolean; username: string; avatar: string }) => {
+  const handleOnboardingComplete = async (prefs: { lang: 'fr' | 'en'; theme: 'dark' | 'light'; haptic: boolean; username: string; avatar: string; enablePush: boolean }) => {
     setShowOnboarding(false)
     setLang(prefs.lang)
     setTheme(prefs.theme)
@@ -171,10 +208,18 @@ export function AlchemyGame() {
         theme: prefs.theme,
         haptic_feedback: prefs.haptic,
         onboarding_done: true,
+        push_prompt_shown: true,
+        push_notifications: prefs.enablePush,
         username: prefs.username || null,
         avatar: prefs.avatar,
       }),
     })
+    if (prefs.enablePush) {
+      const ok = await subscribeToPush(prefs.lang)
+      setPushNotificationsEnabled(ok)
+    } else {
+      setPushNotificationsEnabled(false)
+    }
   }
 
   const handleDismissNotification = () => {
@@ -198,6 +243,10 @@ export function AlchemyGame() {
         if (d.theme === 'light' || d.theme === 'dark') setTheme(d.theme)
         // Apply saved push notifications preference
         if (typeof d.push_notifications === 'boolean') setPushNotificationsEnabled(d.push_notifications)
+        // Show one-time push prompt for existing users who haven't been asked yet
+        if (d.onboarding_done && !d.push_prompt_shown && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+          setShowPushPrompt(true)
+        }
         // Show onboarding if never done
         if (!d.onboarding_done) setShowOnboarding(true)
       })
@@ -237,6 +286,23 @@ export function AlchemyGame() {
   return (
     <div className="game-container bg-background">
       {showOnboarding && <OnboardingModal elementsByName={elementsByName} onComplete={handleOnboardingComplete} />}
+
+      {/* One-time push notification permission prompt for existing users */}
+      {showPushPrompt && (
+        <PushPromptModal
+          lang={lang}
+          onAccept={async () => {
+            setShowPushPrompt(false)
+            const ok = await subscribeToPush(lang as 'fr' | 'en')
+            setPushNotificationsEnabled(ok)
+            fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push_prompt_shown: true, push_notifications: ok }) })
+          }}
+          onDecline={() => {
+            setShowPushPrompt(false)
+            fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push_prompt_shown: true, push_notifications: false }) })
+          }}
+        />
+      )}
 
       {/* Rewarded ad modal — shown when user clicks hint button (1 ad = 1 hint) */}
       {showAdModal && currentHint && (

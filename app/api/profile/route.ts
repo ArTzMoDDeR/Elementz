@@ -16,6 +16,7 @@ export async function GET() {
         up.show_in_leaderboard,
         up.haptic_feedback,
         up.push_notifications,
+        up.push_prompt_shown,
         up.avatar,
         up.theme,
         up.onboarding_done,
@@ -23,7 +24,7 @@ export async function GET() {
         RANK() OVER (ORDER BY COUNT(u.element_number) DESC)::int AS rank
       FROM user_progress up
       LEFT JOIN unlocks u ON u.user_id = up.user_id
-      GROUP BY up.user_id, up.username, up.show_in_leaderboard, up.haptic_feedback, up.avatar
+      GROUP BY up.user_id, up.username, up.show_in_leaderboard, up.haptic_feedback, up.push_notifications, up.push_prompt_shown, up.avatar
     )
     SELECT * FROM rankings WHERE user_id = ${session.user.id}
     LIMIT 1
@@ -50,6 +51,7 @@ export async function GET() {
     show_in_leaderboard: row.show_in_leaderboard ?? true,
     haptic_feedback: row.haptic_feedback ?? true,
     push_notifications: row.push_notifications ?? true,
+    push_prompt_shown: row.push_prompt_shown ?? false,
     discovered_count: row.discovered_count ?? 0,
     avatar: row.avatar ?? null,
     rank: row.rank ?? null,
@@ -68,7 +70,7 @@ export async function PATCH(req: Request) {
   const sql = neon(process.env.DATABASE_URL!)
 
   const body = await req.json()
-  const { username, show_in_leaderboard, avatar, haptic_feedback, push_notifications, theme, onboarding_done } = body
+  const { username, show_in_leaderboard, avatar, haptic_feedback, push_notifications, push_prompt_shown, theme, onboarding_done } = body
 
   if (username !== undefined) {
     if (typeof username !== 'string') return NextResponse.json({ error: 'Invalid username' }, { status: 400 })
@@ -89,14 +91,15 @@ export async function PATCH(req: Request) {
   }
 
   await sql`
-    INSERT INTO user_progress (user_id, username, show_in_leaderboard, avatar, haptic_feedback, push_notifications, theme, onboarding_done)
-    VALUES (${session.user.id}, ${username?.trim() ?? null}, ${show_in_leaderboard ?? true}, ${avatar ?? null}, ${haptic_feedback ?? true}, ${push_notifications ?? true}, ${theme ?? 'dark'}, ${onboarding_done ?? false})
+    INSERT INTO user_progress (user_id, username, show_in_leaderboard, avatar, haptic_feedback, push_notifications, push_prompt_shown, theme, onboarding_done)
+    VALUES (${session.user.id}, ${username?.trim() ?? null}, ${show_in_leaderboard ?? true}, ${avatar ?? null}, ${haptic_feedback ?? true}, ${push_notifications ?? true}, ${push_prompt_shown ?? false}, ${theme ?? 'dark'}, ${onboarding_done ?? false})
     ON CONFLICT (user_id) DO UPDATE SET
       username = CASE WHEN ${username !== undefined} THEN EXCLUDED.username ELSE user_progress.username END,
       show_in_leaderboard = CASE WHEN ${show_in_leaderboard !== undefined} THEN EXCLUDED.show_in_leaderboard ELSE user_progress.show_in_leaderboard END,
       avatar = CASE WHEN ${avatar !== undefined} THEN EXCLUDED.avatar ELSE user_progress.avatar END,
       haptic_feedback = CASE WHEN ${haptic_feedback !== undefined} THEN EXCLUDED.haptic_feedback ELSE user_progress.haptic_feedback END,
       push_notifications = CASE WHEN ${push_notifications !== undefined} THEN EXCLUDED.push_notifications ELSE user_progress.push_notifications END,
+      push_prompt_shown = CASE WHEN ${push_prompt_shown !== undefined} THEN EXCLUDED.push_prompt_shown ELSE user_progress.push_prompt_shown END,
       theme = CASE WHEN ${theme !== undefined} THEN EXCLUDED.theme ELSE user_progress.theme END,
       onboarding_done = CASE WHEN ${onboarding_done !== undefined} THEN EXCLUDED.onboarding_done ELSE user_progress.onboarding_done END
   `
