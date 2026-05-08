@@ -6,7 +6,7 @@ import {
   Search, Upload, Check, FileUp, Plus, X, Trash2, Save, Hash,
   ArrowDownAZ, Pencil, ChevronLeft, ChevronRight, RefreshCw, Shield, ShieldOff,
   Users, Layers, Scroll, BarChart3, AlertCircle, CheckCircle2, Clock, Mail, Send, CheckCheck,
-  TrendingUp, Activity, Repeat2, Download, Bell,
+  TrendingUp, Activity, Repeat2, Download, Bell, Send,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -1820,146 +1820,306 @@ function StatsTab() {
 }
 
 // ─── Push Notifications Tab ───────────────────────────────────────────────────
-function PushTab() {
-  const [target,  setTarget]  = useState<'all' | 'fr' | 'en'>('all')
-  const [titleFr, setTitleFr] = useState('')
-  const [bodyFr,  setBodyFr]  = useState('')
-  const [titleEn, setTitleEn] = useState('')
-  const [bodyEn,  setBodyEn]  = useState('')
-  const [url,     setUrl]     = useState('https://elementz.fun')
-  const [loading, setLoading] = useState(false)
-  const [result,  setResult]  = useState<{ sent: number; failed: number; cleaned: number } | null>(null)
-  const [counts,  setCounts]  = useState<{ count: number; fr: number; en: number } | null>(null)
-  const [error,   setError]   = useState('')
+type Subscriber = { id: number; label: string; lang: string; last_seen: string; email: string }
+type SendResult = { id: number; label: string; lang: string; status: 'sent' | 'failed' | 'expired' }
+type LogEntry = {
+  ts: string
+  titleFr?: string; bodyFr?: string
+  titleEn?: string; bodyEn?: string
+  target: string
+  results: SendResult[]
+  sent: number; failed: number; cleaned: number
+}
 
-  const refreshCounts = () => {
-    fetch('/api/admin/push').then(r => r.json()).then(d => setCounts(d)).catch(() => {})
+function PushTab() {
+  const [titleFr,      setTitleFr]      = useState('')
+  const [bodyFr,       setBodyFr]       = useState('')
+  const [titleEn,      setTitleEn]      = useState('')
+  const [bodyEn,       setBodyEn]       = useState('')
+  const [url,          setUrl]          = useState('https://elementz.fun')
+  const [loading,      setLoading]      = useState(false)
+  const [counts,       setCounts]       = useState<{ count: number; fr: number; en: number } | null>(null)
+  const [subscribers,  setSubscribers]  = useState<Subscriber[]>([])
+  const [selected,     setSelected]     = useState<Set<number>>(new Set())
+  const [filterLang,   setFilterLang]   = useState<'all' | 'fr' | 'en'>('all')
+  const [log,          setLog]          = useState<LogEntry[]>([])
+  const [error,        setError]        = useState('')
+  const consoleRef = useRef<HTMLDivElement>(null)
+
+  const loadSubscribers = () => {
+    fetch('/api/admin/push')
+      .then(r => r.json())
+      .then(d => {
+        setCounts({ count: d.count, fr: d.fr, en: d.en })
+        setSubscribers(d.subscribers ?? [])
+        // Select all by default
+        setSelected(new Set((d.subscribers ?? []).map((s: Subscriber) => s.id)))
+      })
+      .catch(() => {})
   }
 
-  useEffect(() => { refreshCounts() }, [])
+  useEffect(() => { loadSubscribers() }, [])
+
+  // Scroll console to bottom on new log entry
+  useEffect(() => {
+    if (consoleRef.current) consoleRef.current.scrollTop = consoleRef.current.scrollHeight
+  }, [log])
+
+  const filteredSubs = subscribers.filter(s => filterLang === 'all' || s.lang === filterLang)
+  const allFilteredSelected = filteredSubs.length > 0 && filteredSubs.every(s => selected.has(s.id))
+
+  const toggleSub = (id: number) => {
+    setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  }
+  const toggleAll = () => {
+    if (allFilteredSelected) {
+      setSelected(prev => { const n = new Set(prev); filteredSubs.forEach(s => n.delete(s.id)); return n })
+    } else {
+      setSelected(prev => { const n = new Set(prev); filteredSubs.forEach(s => n.add(s.id)); return n })
+    }
+  }
+
+  const selectedSubs = subscribers.filter(s => selected.has(s.id))
+  const selectedFr = selectedSubs.filter(s => s.lang === 'fr')
+  const selectedEn = selectedSubs.filter(s => s.lang === 'en')
+  const needsFr = selectedFr.length > 0
+  const needsEn = selectedEn.length > 0
 
   const send = async () => {
-    const needsFr = target === 'all' || target === 'fr'
-    const needsEn = target === 'all' || target === 'en'
+    if (selected.size === 0) { setError('Selectionne au moins un destinataire'); return }
     if (needsFr && (!titleFr.trim() || !bodyFr.trim())) { setError('Titre et message FR requis'); return }
     if (needsEn && (!titleEn.trim() || !bodyEn.trim())) { setError('Titre et message EN requis'); return }
-    setError(''); setResult(null); setLoading(true)
+    setError(''); setLoading(true)
+
+    const allResults: SendResult[] = []
+    let totalSent = 0, totalFailed = 0, totalCleaned = 0
+
     try {
-      if (target === 'all') {
-        // Send FR and EN separately so each gets their language
-        const [resFr, resEn] = await Promise.all([
-          fetch('/api/admin/push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: titleFr, body: bodyFr, url, icon: '/logo.png', lang: 'fr' }) }),
-          fetch('/api/admin/push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: titleEn, body: bodyEn, url, icon: '/logo.png', lang: 'en' }) }),
-        ])
-        const [dFr, dEn] = await Promise.all([resFr.json(), resEn.json()])
-        if (!resFr.ok || !resEn.ok) { setError(dFr.error ?? dEn.error ?? 'Erreur serveur'); return }
-        setResult({ sent: (dFr.sent ?? 0) + (dEn.sent ?? 0), failed: (dFr.failed ?? 0) + (dEn.failed ?? 0), cleaned: (dFr.cleaned ?? 0) + (dEn.cleaned ?? 0) })
-      } else {
-        const res = await fetch('/api/admin/push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: target === 'fr' ? titleFr : titleEn, body: target === 'fr' ? bodyFr : bodyEn, url, icon: '/logo.png', lang: target }) })
-        const data = await res.json()
-        if (!res.ok) { setError(data.error ?? 'Erreur serveur'); return }
-        setResult(data)
+      const requests: Promise<Response>[] = []
+      if (needsFr) {
+        requests.push(fetch('/api/admin/push', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: titleFr, body: bodyFr, url, icon: '/logo.png', targetIds: selectedFr.map(s => s.id) }) }))
       }
-      refreshCounts()
-    } catch { setError('Erreur réseau') }
+      if (needsEn) {
+        requests.push(fetch('/api/admin/push', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: titleEn, body: bodyEn, url, icon: '/logo.png', targetIds: selectedEn.map(s => s.id) }) }))
+      }
+      const responses = await Promise.all(requests)
+      const bodies = await Promise.all(responses.map(r => r.json()))
+      for (const d of bodies) {
+        totalSent    += d.sent    ?? 0
+        totalFailed  += d.failed  ?? 0
+        totalCleaned += d.cleaned ?? 0
+        allResults.push(...(d.results ?? []))
+      }
+
+      const entry: LogEntry = {
+        ts: new Date().toLocaleTimeString('fr-FR'),
+        ...(needsFr && { titleFr, bodyFr }),
+        ...(needsEn && { titleEn, bodyEn }),
+        target: `${selected.size} destinataire${selected.size > 1 ? 's' : ''}`,
+        results: allResults,
+        sent: totalSent, failed: totalFailed, cleaned: totalCleaned,
+      }
+      setLog(prev => [...prev, entry])
+      loadSubscribers()
+    } catch { setError('Erreur reseau') }
     finally { setLoading(false) }
   }
 
-  const targetCount = counts ? (target === 'fr' ? counts.fr : target === 'en' ? counts.en : counts.count) : null
+  const formatDate = (iso: string) => {
+    const d = new Date(iso)
+    return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  }
 
   return (
-    <div className="p-6 max-w-xl space-y-6">
+    <div className="p-4 lg:p-6 grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6 max-w-6xl">
 
-      {/* Header with per-lang counts */}
-      <div>
-        <h2 className="text-lg font-bold text-foreground">Notifications push</h2>
-        <div className="flex items-center gap-2 mt-2 flex-wrap">
+      {/* ── Left column: compose + subscriber list ── */}
+      <div className="space-y-5">
+
+        {/* Stats bar */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <h2 className="text-lg font-bold text-foreground mr-2">Notifications push</h2>
           {counts ? (
             <>
               <span className="text-xs px-2.5 py-1 rounded-full bg-white/[0.05] border border-white/[0.08] text-muted-foreground/70">
-                Total&nbsp;<strong className="text-foreground">{counts.count}</strong>
+                Total <strong className="text-foreground">{counts.count}</strong>
               </span>
               <span className="text-xs px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400">
-                FR&nbsp;<strong>{counts.fr}</strong>
+                FR <strong>{counts.fr}</strong>
               </span>
               <span className="text-xs px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">
-                EN&nbsp;<strong>{counts.en}</strong>
+                EN <strong>{counts.en}</strong>
               </span>
+              <button onClick={loadSubscribers} className="ml-auto text-muted-foreground/40 hover:text-foreground transition-colors">
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
             </>
-          ) : <span className="text-sm text-muted-foreground/40">Chargement…</span>}
+          ) : <span className="text-sm text-muted-foreground/40">Chargement...</span>}
         </div>
+
+        {/* Subscriber list with checkboxes */}
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+          {/* List header */}
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] bg-white/[0.02]">
+            <button onClick={toggleAll}
+              className={`w-4 h-4 rounded flex items-center justify-center border transition-all flex-shrink-0 ${allFilteredSelected ? 'bg-foreground border-foreground' : 'border-white/20 hover:border-white/40'}`}>
+              {allFilteredSelected && <Check className="w-2.5 h-2.5 text-background" />}
+            </button>
+            <span className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-widest flex-1">
+              {selected.size > 0 ? `${selected.size} selectionne${selected.size > 1 ? 's' : ''}` : 'Destinataires'}
+            </span>
+            {/* Lang filter */}
+            <div className="flex gap-1">
+              {(['all', 'fr', 'en'] as const).map(l => (
+                <button key={l} onClick={() => setFilterLang(l)}
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-all ${filterLang === l ? 'bg-white/10 text-foreground' : 'text-muted-foreground/40 hover:text-muted-foreground'}`}>
+                  {l === 'all' ? 'Tous' : l}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Subscriber rows */}
+          <div className="max-h-72 overflow-y-auto no-scrollbar divide-y divide-white/[0.04]">
+            {filteredSubs.length === 0 ? (
+              <div className="px-4 py-6 text-center text-sm text-muted-foreground/30">Aucun abonne</div>
+            ) : filteredSubs.map(sub => (
+              <button key={sub.id} onClick={() => toggleSub(sub.id)}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-white/[0.03] ${selected.has(sub.id) ? 'bg-white/[0.02]' : ''}`}>
+                <div className={`w-4 h-4 rounded flex items-center justify-center border transition-all flex-shrink-0 ${selected.has(sub.id) ? 'bg-foreground border-foreground' : 'border-white/20'}`}>
+                  {selected.has(sub.id) && <Check className="w-2.5 h-2.5 text-background" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{sub.label}</p>
+                  <p className="text-[10px] text-muted-foreground/40 truncate">{sub.email}</p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${sub.lang === 'fr' ? 'bg-blue-500/15 text-blue-400' : 'bg-amber-500/15 text-amber-400'}`}>
+                    {sub.lang}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground/30">{formatDate(sub.last_seen)}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Message compose */}
+        <div className="space-y-4">
+          {needsFr && (
+            <div className="space-y-3 rounded-2xl border border-blue-500/20 bg-blue-500/[0.04] p-4">
+              <p className="text-xs font-bold text-blue-400 uppercase tracking-widest">Francais</p>
+              <div>
+                <label className="text-xs text-muted-foreground/50 block mb-1">Titre</label>
+                <Input value={titleFr} onChange={e => setTitleFr(e.target.value)} placeholder="Nouvel element disponible !" maxLength={64} />
+              </div>
+              <div>
+                <textarea value={bodyFr} onChange={e => setBodyFr(e.target.value)} placeholder="Un nouvel element vient d'etre ajoute..." maxLength={160} rows={2}
+                  className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/30 resize-none focus:outline-none focus:ring-1 focus:ring-white/20 transition-all" />
+                <p className="text-[10px] text-muted-foreground/30 mt-0.5 text-right">{bodyFr.length}/160</p>
+              </div>
+            </div>
+          )}
+          {needsEn && (
+            <div className="space-y-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.04] p-4">
+              <p className="text-xs font-bold text-amber-400 uppercase tracking-widest">English</p>
+              <div>
+                <label className="text-xs text-muted-foreground/50 block mb-1">Title</label>
+                <Input value={titleEn} onChange={e => setTitleEn(e.target.value)} placeholder="New element available!" maxLength={64} />
+              </div>
+              <div>
+                <textarea value={bodyEn} onChange={e => setBodyEn(e.target.value)} placeholder="A new element was just added..." maxLength={160} rows={2}
+                  className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/30 resize-none focus:outline-none focus:ring-1 focus:ring-white/20 transition-all" />
+                <p className="text-[10px] text-muted-foreground/30 mt-0.5 text-right">{bodyEn.length}/160</p>
+              </div>
+            </div>
+          )}
+          {!needsFr && !needsEn && (
+            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-6 text-center text-sm text-muted-foreground/40">
+              Selectionne des destinataires pour composer le message
+            </div>
+          )}
+
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-widest block mb-1.5">URL de destination</label>
+            <Input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://elementz.fun" />
+          </div>
+        </div>
+
+        {error && (
+          <div className="flex items-center gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />{error}
+          </div>
+        )}
+
+        <button onClick={send} disabled={loading || selected.size === 0}
+          className="flex items-center gap-2 px-5 py-3 rounded-xl bg-foreground text-background text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.97] transition-all w-full justify-center">
+          {loading ? <><RefreshCw className="w-4 h-4 animate-spin" /> Envoi en cours...</> : <><Send className="w-4 h-4" /> Envoyer a {selected.size} destinataire{selected.size > 1 ? 's' : ''}</>}
+        </button>
       </div>
 
-      {/* Target selector */}
-      <div>
-        <label className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-widest block mb-2">Envoyer à</label>
-        <div className="flex gap-2">
-          {(['all', 'fr', 'en'] as const).map(t => (
-            <button key={t} onClick={() => setTarget(t)}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${target === t ? 'bg-foreground text-background border-transparent' : 'bg-transparent text-muted-foreground border-white/[0.08] hover:border-white/20'}`}>
-              {t === 'all' ? 'Tous' : t.toUpperCase()}
-              {counts && <span className="ml-1.5 opacity-50 text-xs">({t === 'fr' ? counts.fr : t === 'en' ? counts.en : counts.count})</span>}
+      {/* ── Right column: console ── */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-widest">Console</p>
+          {log.length > 0 && (
+            <button onClick={() => setLog([])} className="text-[10px] text-muted-foreground/30 hover:text-muted-foreground transition-colors">
+              Effacer
             </button>
+          )}
+        </div>
+
+        <div ref={consoleRef}
+          className="h-[520px] rounded-2xl border border-white/[0.06] bg-[#0a0a0a] overflow-y-auto no-scrollbar font-mono text-xs p-3 space-y-4">
+          {log.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center gap-2 text-muted-foreground/20 select-none">
+              <Bell className="w-8 h-8" />
+              <p>En attente d&apos;envoi...</p>
+            </div>
+          ) : log.map((entry, i) => (
+            <div key={i} className="space-y-2">
+              {/* Entry header */}
+              <div className="flex items-center gap-2 text-muted-foreground/40">
+                <span className="text-[10px]">{entry.ts}</span>
+                <span className="flex-1 border-t border-white/[0.06]" />
+                <span>{entry.target}</span>
+              </div>
+              {/* Messages sent */}
+              {entry.titleFr && (
+                <p className="text-indigo-400/70"><span className="text-muted-foreground/30">FR </span>&quot;{entry.titleFr}&quot; — {entry.bodyFr}</p>
+              )}
+              {entry.titleEn && (
+                <p className="text-amber-400/70"><span className="text-muted-foreground/30">EN </span>&quot;{entry.titleEn}&quot; — {entry.bodyEn}</p>
+              )}
+              {/* Summary */}
+              <div className="flex gap-3">
+                <span className="text-emerald-400">{entry.sent} envoye{entry.sent > 1 ? 's' : ''}</span>
+                {entry.failed > 0 && <span className="text-red-400">{entry.failed} echoue{entry.failed > 1 ? 's' : ''}</span>}
+                {entry.cleaned > 0 && <span className="text-orange-400">{entry.cleaned} expire{entry.cleaned > 1 ? 's' : ''}</span>}
+              </div>
+              {/* Per-user results */}
+              <div className="space-y-0.5 pl-2 border-l border-white/[0.06]">
+                {entry.results.map((r, j) => (
+                  <div key={j} className="flex items-center gap-2">
+                    {r.status === 'sent'    && <span className="text-emerald-500">+</span>}
+                    {r.status === 'failed'  && <span className="text-red-500">!</span>}
+                    {r.status === 'expired' && <span className="text-orange-400">x</span>}
+                    <span className={
+                      r.status === 'sent'    ? 'text-foreground/70' :
+                      r.status === 'failed'  ? 'text-red-400/80' :
+                      'text-orange-400/60 line-through'
+                    }>{r.label}</span>
+                    <span className={`text-[9px] font-bold uppercase ${r.lang === 'fr' ? 'text-blue-500/50' : 'text-amber-500/50'}`}>{r.lang}</span>
+                    {r.status === 'failed'  && <span className="text-red-500/50 text-[9px]">FAIL</span>}
+                    {r.status === 'expired' && <span className="text-orange-500/50 text-[9px]">EXPIRE</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </div>
-
-      {/* FR message block */}
-      {(target === 'all' || target === 'fr') && (
-        <div className="space-y-3 rounded-2xl border border-blue-500/20 bg-blue-500/[0.04] p-4">
-          <p className="text-xs font-bold text-blue-400 uppercase tracking-widest">Francais</p>
-          <div>
-            <label className="text-xs text-muted-foreground/50 block mb-1">Titre</label>
-            <Input value={titleFr} onChange={e => setTitleFr(e.target.value)} placeholder="Nouvel element disponible !" maxLength={64} />
-          </div>
-          <div>
-            <textarea value={bodyFr} onChange={e => setBodyFr(e.target.value)} placeholder="Un nouvel element vient d'etre ajoute..." maxLength={160} rows={2}
-              className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/30 resize-none focus:outline-none focus:ring-1 focus:ring-white/20 transition-all" />
-            <p className="text-[10px] text-muted-foreground/30 mt-0.5 text-right">{bodyFr.length}/160</p>
-          </div>
-        </div>
-      )}
-
-      {/* EN message block */}
-      {(target === 'all' || target === 'en') && (
-        <div className="space-y-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.04] p-4">
-          <p className="text-xs font-bold text-amber-400 uppercase tracking-widest">English</p>
-          <div>
-            <label className="text-xs text-muted-foreground/50 block mb-1">Title</label>
-            <Input value={titleEn} onChange={e => setTitleEn(e.target.value)} placeholder="New element available!" maxLength={64} />
-          </div>
-          <div>
-            <textarea value={bodyEn} onChange={e => setBodyEn(e.target.value)} placeholder="A new element was just added..." maxLength={160} rows={2}
-              className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/30 resize-none focus:outline-none focus:ring-1 focus:ring-white/20 transition-all" />
-            <p className="text-[10px] text-muted-foreground/30 mt-0.5 text-right">{bodyEn.length}/160</p>
-          </div>
-        </div>
-      )}
-
-      {/* URL */}
-      <div>
-        <label className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-widest block mb-1.5">URL de destination</label>
-        <Input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://elementz.fun" />
-      </div>
-
-      {error && (
-        <div className="flex items-center gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />{error}
-        </div>
-      )}
-
-      {result && (
-        <div className="flex items-center gap-2 text-sm text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3">
-          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-          {result.sent} envoyee{result.sent !== 1 ? 's' : ''} · {result.failed} echouee{result.failed !== 1 ? 's' : ''} · {result.cleaned} nettoyee{result.cleaned !== 1 ? 's' : ''}
-        </div>
-      )}
-
-      <button onClick={send} disabled={loading}
-        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-foreground text-background text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.97] transition-all">
-        <Bell className="w-4 h-4" />
-        {loading ? 'Envoi…' : `Envoyer${targetCount !== null ? ` (${targetCount})` : ''}`}
-      </button>
     </div>
   )
 }
