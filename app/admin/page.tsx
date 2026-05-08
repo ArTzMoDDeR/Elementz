@@ -1821,99 +1821,145 @@ function StatsTab() {
 
 // ─── Push Notifications Tab ───────────────────────────────────────────────────
 function PushTab() {
-  const [title,   setTitle]   = useState('')
-  const [body,    setBody]    = useState('')
+  const [target,  setTarget]  = useState<'all' | 'fr' | 'en'>('all')
+  const [titleFr, setTitleFr] = useState('')
+  const [bodyFr,  setBodyFr]  = useState('')
+  const [titleEn, setTitleEn] = useState('')
+  const [bodyEn,  setBodyEn]  = useState('')
   const [url,     setUrl]     = useState('https://elementz.fun')
   const [loading, setLoading] = useState(false)
   const [result,  setResult]  = useState<{ sent: number; failed: number; cleaned: number } | null>(null)
-  const [count,   setCount]   = useState<number | null>(null)
+  const [counts,  setCounts]  = useState<{ count: number; fr: number; en: number } | null>(null)
   const [error,   setError]   = useState('')
 
-  useEffect(() => {
-    fetch('/api/admin/push')
-      .then(r => r.json())
-      .then(d => setCount(d.count))
-      .catch(() => {})
-  }, [])
+  const refreshCounts = () => {
+    fetch('/api/admin/push').then(r => r.json()).then(d => setCounts(d)).catch(() => {})
+  }
+
+  useEffect(() => { refreshCounts() }, [])
 
   const send = async () => {
-    if (!title.trim() || !body.trim()) { setError('Titre et message requis'); return }
+    const needsFr = target === 'all' || target === 'fr'
+    const needsEn = target === 'all' || target === 'en'
+    if (needsFr && (!titleFr.trim() || !bodyFr.trim())) { setError('Titre et message FR requis'); return }
+    if (needsEn && (!titleEn.trim() || !bodyEn.trim())) { setError('Titre et message EN requis'); return }
     setError(''); setResult(null); setLoading(true)
     try {
-      const res = await fetch('/api/admin/push', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, body, url, icon: '/logo.png' }),
-      })
-      const data = await res.json()
-      if (!res.ok) { setError(data.error ?? 'Erreur serveur'); return }
-      setResult(data)
-      setTitle(''); setBody(''); setUrl('https://elementz.fun')
+      if (target === 'all') {
+        // Send FR and EN separately so each gets their language
+        const [resFr, resEn] = await Promise.all([
+          fetch('/api/admin/push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: titleFr, body: bodyFr, url, icon: '/logo.png', lang: 'fr' }) }),
+          fetch('/api/admin/push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: titleEn, body: bodyEn, url, icon: '/logo.png', lang: 'en' }) }),
+        ])
+        const [dFr, dEn] = await Promise.all([resFr.json(), resEn.json()])
+        if (!resFr.ok || !resEn.ok) { setError(dFr.error ?? dEn.error ?? 'Erreur serveur'); return }
+        setResult({ sent: (dFr.sent ?? 0) + (dEn.sent ?? 0), failed: (dFr.failed ?? 0) + (dEn.failed ?? 0), cleaned: (dFr.cleaned ?? 0) + (dEn.cleaned ?? 0) })
+      } else {
+        const res = await fetch('/api/admin/push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: target === 'fr' ? titleFr : titleEn, body: target === 'fr' ? bodyFr : bodyEn, url, icon: '/logo.png', lang: target }) })
+        const data = await res.json()
+        if (!res.ok) { setError(data.error ?? 'Erreur serveur'); return }
+        setResult(data)
+      }
+      refreshCounts()
     } catch { setError('Erreur réseau') }
     finally { setLoading(false) }
   }
 
+  const targetCount = counts ? (target === 'fr' ? counts.fr : target === 'en' ? counts.en : counts.count) : null
+
   return (
     <div className="p-6 max-w-xl space-y-6">
+
+      {/* Header with per-lang counts */}
       <div>
         <h2 className="text-lg font-bold text-foreground">Notifications push</h2>
-        <p className="text-sm text-muted-foreground/60 mt-1">
-          {count !== null ? `${count} abonné${count !== 1 ? 's' : ''} actif${count !== 1 ? 's' : ''}` : 'Chargement…'}
-        </p>
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
+          {counts ? (
+            <>
+              <span className="text-xs px-2.5 py-1 rounded-full bg-white/[0.05] border border-white/[0.08] text-muted-foreground/70">
+                Total&nbsp;<strong className="text-foreground">{counts.count}</strong>
+              </span>
+              <span className="text-xs px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                FR&nbsp;<strong>{counts.fr}</strong>
+              </span>
+              <span className="text-xs px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                EN&nbsp;<strong>{counts.en}</strong>
+              </span>
+            </>
+          ) : <span className="text-sm text-muted-foreground/40">Chargement…</span>}
+        </div>
       </div>
 
-      <div className="space-y-3">
-        <div>
-          <label className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-widest block mb-1.5">Titre</label>
-          <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Nouvelle mise à jour !" maxLength={64} />
+      {/* Target selector */}
+      <div>
+        <label className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-widest block mb-2">Envoyer à</label>
+        <div className="flex gap-2">
+          {(['all', 'fr', 'en'] as const).map(t => (
+            <button key={t} onClick={() => setTarget(t)}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${target === t ? 'bg-foreground text-background border-transparent' : 'bg-transparent text-muted-foreground border-white/[0.08] hover:border-white/20'}`}>
+              {t === 'all' ? 'Tous' : t.toUpperCase()}
+              {counts && <span className="ml-1.5 opacity-50 text-xs">({t === 'fr' ? counts.fr : t === 'en' ? counts.en : counts.count})</span>}
+            </button>
+          ))}
         </div>
-        <div>
-          <label className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-widest block mb-1.5">Message</label>
-          <textarea
-            value={body}
-            onChange={e => setBody(e.target.value)}
-            placeholder="Un nouvel élément vient d'être ajouté…"
-            maxLength={160}
-            rows={3}
-            className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/30 resize-none focus:outline-none focus:ring-1 focus:ring-white/20 transition-all"
-          />
-          <p className="text-[10px] text-muted-foreground/30 mt-1 text-right">{body.length}/160</p>
+      </div>
+
+      {/* FR message block */}
+      {(target === 'all' || target === 'fr') && (
+        <div className="space-y-3 rounded-2xl border border-blue-500/20 bg-blue-500/[0.04] p-4">
+          <p className="text-xs font-bold text-blue-400 uppercase tracking-widest">Francais</p>
+          <div>
+            <label className="text-xs text-muted-foreground/50 block mb-1">Titre</label>
+            <Input value={titleFr} onChange={e => setTitleFr(e.target.value)} placeholder="Nouvel element disponible !" maxLength={64} />
+          </div>
+          <div>
+            <textarea value={bodyFr} onChange={e => setBodyFr(e.target.value)} placeholder="Un nouvel element vient d'etre ajoute..." maxLength={160} rows={2}
+              className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/30 resize-none focus:outline-none focus:ring-1 focus:ring-white/20 transition-all" />
+            <p className="text-[10px] text-muted-foreground/30 mt-0.5 text-right">{bodyFr.length}/160</p>
+          </div>
         </div>
-        <div>
-          <label className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-widest block mb-1.5">URL de destination</label>
-          <Input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://elementz.fun" />
+      )}
+
+      {/* EN message block */}
+      {(target === 'all' || target === 'en') && (
+        <div className="space-y-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.04] p-4">
+          <p className="text-xs font-bold text-amber-400 uppercase tracking-widest">English</p>
+          <div>
+            <label className="text-xs text-muted-foreground/50 block mb-1">Title</label>
+            <Input value={titleEn} onChange={e => setTitleEn(e.target.value)} placeholder="New element available!" maxLength={64} />
+          </div>
+          <div>
+            <textarea value={bodyEn} onChange={e => setBodyEn(e.target.value)} placeholder="A new element was just added..." maxLength={160} rows={2}
+              className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/30 resize-none focus:outline-none focus:ring-1 focus:ring-white/20 transition-all" />
+            <p className="text-[10px] text-muted-foreground/30 mt-0.5 text-right">{bodyEn.length}/160</p>
+          </div>
         </div>
+      )}
+
+      {/* URL */}
+      <div>
+        <label className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-widest block mb-1.5">URL de destination</label>
+        <Input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://elementz.fun" />
       </div>
 
       {error && (
         <div className="flex items-center gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          {error}
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />{error}
         </div>
       )}
 
       {result && (
         <div className="flex items-center gap-2 text-sm text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3">
           <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-          {result.sent} envoyée{result.sent !== 1 ? 's' : ''}, {result.failed} échouée{result.failed !== 1 ? 's' : ''}, {result.cleaned} abonnement{result.cleaned !== 1 ? 's' : ''} nettoyé{result.cleaned !== 1 ? 's' : ''}
+          {result.sent} envoyee{result.sent !== 1 ? 's' : ''} · {result.failed} echouee{result.failed !== 1 ? 's' : ''} · {result.cleaned} nettoyee{result.cleaned !== 1 ? 's' : ''}
         </div>
       )}
 
-      <button
-        onClick={send}
-        disabled={loading || !title.trim() || !body.trim()}
-        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-foreground text-background text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.97] transition-all"
-      >
+      <button onClick={send} disabled={loading}
+        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-foreground text-background text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.97] transition-all">
         <Bell className="w-4 h-4" />
-        {loading ? 'Envoi…' : 'Envoyer à tous'}
+        {loading ? 'Envoi…' : `Envoyer${targetCount !== null ? ` (${targetCount})` : ''}`}
       </button>
-
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-2">
-        <p className="text-xs font-semibold text-muted-foreground/40 uppercase tracking-widest">Infos VAPID</p>
-        <p className="text-xs text-muted-foreground/50 leading-relaxed">
-          Pour que les notifications fonctionnent, tu dois définir <code className="text-amber-400/70">NEXT_PUBLIC_VAPID_PUBLIC_KEY</code> et <code className="text-amber-400/70">VAPID_PRIVATE_KEY</code> dans les variables d&apos;environnement Vercel. Génère une paire avec <code className="text-amber-400/70">npx web-push generate-vapid-keys</code>.
-        </p>
-      </div>
     </div>
   )
 }

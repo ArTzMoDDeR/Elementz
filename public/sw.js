@@ -1,5 +1,5 @@
-const CACHE_VERSION = 'elementz-v3'
-const DATA_CACHE = 'elementz-data-v3'
+const CACHE_VERSION = 'elementz-v4'
+const DATA_CACHE = 'elementz-data-v4'
 
 const STATIC_ASSETS = [
   '/',

@@ -2,13 +2,13 @@
 
 import { useState } from 'react'
 import { useTheme } from 'next-themes'
-import { Globe, Sun, Moon, ChevronRight, Check, Lightbulb, Trash2, Scroll, ArrowLeft, User, Smile } from 'lucide-react'
+import { Globe, Sun, Moon, ChevronRight, Check, Lightbulb, Trash2, Scroll, ArrowLeft, User, Smile, Bell } from 'lucide-react'
 import type { ElementDef } from '@/lib/game-data'
 
 type Props = {
   /** Keyed by current-lang name (+ FR fallback keys) for avatar lookups */
   elementsByName: Map<string, ElementDef>
-  onComplete: (prefs: { lang: 'fr' | 'en'; theme: 'dark' | 'light'; haptic: boolean; username: string; avatar: string }) => void
+  onComplete: (prefs: { lang: 'fr' | 'en'; theme: 'dark' | 'light'; haptic: boolean; username: string; avatar: string; enablePush: boolean }) => void
 }
 
 const STARTERS = ['eau', 'feu', 'terre', 'air'] as const
@@ -19,7 +19,7 @@ const STARTER_LABELS: Record<string, { fr: string; en: string; emoji: string }> 
   air:   { fr: 'Air',  en: 'Air',   emoji: '💨' },
 }
 
-const STEPS = ['lang', 'theme', 'combine', 'hint', 'clear', 'quests', 'username', 'avatar'] as const
+const STEPS = ['lang', 'theme', 'combine', 'hint', 'clear', 'quests', 'username', 'avatar', 'notifications'] as const
 type Step = typeof STEPS[number]
 
 export function OnboardingModal({ elementsByName, onComplete }: Props) {
@@ -29,6 +29,7 @@ export function OnboardingModal({ elementsByName, onComplete }: Props) {
   const [username, setUsername] = useState('')
   const [usernameError, setUsernameError] = useState('')
   const [avatar, setAvatar] = useState<string>('feu')
+  const [enablePush, setEnablePush] = useState(false)
   const { setTheme: applyTheme } = useTheme()
 
   const stepIndex = STEPS.indexOf(step)
@@ -53,7 +54,7 @@ export function OnboardingModal({ elementsByName, onComplete }: Props) {
     if (nextIndex < STEPS.length) {
       setStep(STEPS[nextIndex])
     } else {
-      onComplete({ lang, theme: selectedTheme, haptic: false, username: username.trim(), avatar })
+      onComplete({ lang, theme: selectedTheme, haptic: false, username: username.trim(), avatar, enablePush })
     }
   }
 
@@ -341,6 +342,41 @@ export function OnboardingModal({ elementsByName, onComplete }: Props) {
             </>
           )}
 
+          {/* STEP: Notifications */}
+          {step === 'notifications' && (
+            <>
+              <div className="flex flex-col gap-1 text-center">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-2">
+                  <Bell className="w-6 h-6 text-indigo-400" />
+                </div>
+                <h2 className="text-xl font-bold text-foreground">{t('Notifications', 'Notifications')}</h2>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {t(
+                    "Reçois des notifications sur ton écran d'accueil pour les nouveaux éléments et les mises à jour. Tu peux désactiver cette option dans les paramètres plus tard.",
+                    "Receive push notifications on your home screen for new elements and updates. You can disable this in settings anytime."
+                  )}
+                </p>
+              </div>
+              <div className="flex gap-3">
+                {[true, false].map(choice => (
+                  <button
+                    key={String(choice)}
+                    onClick={() => setEnablePush(choice)}
+                    className={`flex-1 py-4 rounded-2xl border-2 transition-all font-semibold text-base flex flex-col items-center gap-2 ${
+                      enablePush === choice
+                        ? 'border-indigo-500 bg-indigo-500/8 text-indigo-400'
+                        : 'border-border bg-muted/40 text-muted-foreground hover:border-border/80'
+                    }`}
+                  >
+                    {choice ? <Bell className="w-6 h-6" /> : <span className="w-6 h-6 flex items-center justify-center text-2xl">✕</span>}
+                    <span className="text-sm">{choice ? t('Oui', 'Yes') : t('Non', 'No')}</span>
+                    {enablePush === choice && <Check className="w-3.5 h-3.5" />}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
           {/* Navigation buttons */}
           <div className="flex gap-3">
             {stepIndex > 0 && (
@@ -355,7 +391,7 @@ export function OnboardingModal({ elementsByName, onComplete }: Props) {
               onClick={handleNext}
               className="flex-1 h-13 rounded-2xl bg-primary text-primary-foreground font-semibold text-base flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
             >
-              {isLast
+              {step === 'notifications'
                 ? t('Commencer à jouer !', "Let's play!")
                 : <>{t('Continuer', 'Continue')} <ChevronRight className="w-4 h-4" /></>
               }
