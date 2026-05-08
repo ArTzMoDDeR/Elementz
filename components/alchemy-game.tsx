@@ -244,8 +244,20 @@ export function AlchemyGame() {
         // Apply saved push notifications preference
         if (typeof d.push_notifications === 'boolean') setPushNotificationsEnabled(d.push_notifications)
         // Show one-time push prompt for existing users who haven't been asked yet
-        if (d.onboarding_done && !d.push_prompt_shown && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
-          setShowPushPrompt(true)
+        if (d.onboarding_done && !d.push_prompt_shown && typeof window !== 'undefined' && 'Notification' in window) {
+          if (Notification.permission === 'default') {
+            // Never asked — show the popup
+            setShowPushPrompt(true)
+          } else if (Notification.permission === 'granted') {
+            // Already granted in browser — silently re-subscribe and mark as shown
+            subscribeToPush(d.lang === 'fr' ? 'fr' : 'en').then(ok => {
+              setPushNotificationsEnabled(ok)
+              fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push_prompt_shown: true, push_notifications: ok }) })
+            })
+          } else {
+            // Denied — just mark as shown, no popup
+            fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push_prompt_shown: true, push_notifications: false }) })
+          }
         }
         // Show onboarding if never done
         if (!d.onboarding_done) setShowOnboarding(true)
