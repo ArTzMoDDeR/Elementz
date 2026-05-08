@@ -117,16 +117,11 @@ self.addEventListener('push', (event) => {
   let data = {}
   try { data = event.data.json() } catch { data = { title: 'Elementz', body: event.data.text() } }
 
-  const { title = '', body = '', icon = '/apple-icon.png', badge = '/apple-icon.png', url = '/' } = data
-
-  // Use "Elementz" as the notification title (app name).
-  // Combine the actual title + body so Android doesn't show "from Elementz" as a subtitle.
-  const notifTitle = 'Elementz'
-  const notifBody = title ? (body ? `${title}\n${body}` : title) : body
+  const { title = 'Elementz', body = '', icon = '/apple-icon.png', badge = '/apple-icon.png', url = '/' } = data
 
   event.waitUntil(
-    self.registration.showNotification(notifTitle, {
-      body: notifBody,
+    self.registration.showNotification(title, {
+      body,
       icon,
       badge,
       data: { url },

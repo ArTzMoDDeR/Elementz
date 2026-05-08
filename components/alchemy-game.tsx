@@ -243,12 +243,12 @@ export function AlchemyGame() {
         if (d.theme === 'light' || d.theme === 'dark') setTheme(d.theme)
         // Apply saved push notifications preference
         if (typeof d.push_notifications === 'boolean') setPushNotificationsEnabled(d.push_notifications)
-        // Show one-time push prompt for users who haven't been asked yet.
-        // We check onboarding_done to avoid double-showing during onboarding (which has its own step).
-        // Delay 2.5s so the game is fully mounted and visible before the popup appears.
+        // Show one-time push prompt for users who haven't been asked yet
+        // Skip if onboarding is pending — onboarding already has its own notifications step
         if (!d.push_prompt_shown && d.onboarding_done && typeof window !== 'undefined' && 'Notification' in window) {
           if (Notification.permission === 'default') {
-            setTimeout(() => setShowPushPrompt(true), 2500)
+            // Small delay so the popup appears after the page is fully rendered
+            setTimeout(() => setShowPushPrompt(true), 1500)
           } else if (Notification.permission === 'granted') {
             // Already granted — silently re-subscribe and mark as shown
             subscribeToPush(d.lang === 'fr' ? 'fr' : 'en').then(ok => {
