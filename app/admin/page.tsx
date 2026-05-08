@@ -6,7 +6,7 @@ import {
   Search, Upload, Check, FileUp, Plus, X, Trash2, Save, Hash,
   ArrowDownAZ, Pencil, ChevronLeft, ChevronRight, RefreshCw, Shield, ShieldOff,
   Users, Layers, Scroll, BarChart3, AlertCircle, CheckCircle2, Clock, Mail, Send, CheckCheck,
-  TrendingUp, Activity, Repeat2, Download, Bell, Send,
+  TrendingUp, Activity, Repeat2, Download, Bell,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -1821,13 +1821,13 @@ function StatsTab() {
 
 // ─── Push Notifications Tab ───────────────────────────────────────────────────
 type Subscriber = { id: number; label: string; lang: string; last_seen: string; email: string }
-type SendResult = { id: number; label: string; lang: string; status: 'sent' | 'failed' | 'expired' }
+type PushSendResult = { id: number; label: string; lang: string; status: 'sent' | 'failed' | 'expired' }
 type LogEntry = {
   ts: string
   titleFr?: string; bodyFr?: string
   titleEn?: string; bodyEn?: string
   target: string
-  results: SendResult[]
+  results: PushSendResult[]
   sent: number; failed: number; cleaned: number
 }
 
@@ -1891,7 +1891,7 @@ function PushTab() {
     if (needsEn && (!titleEn.trim() || !bodyEn.trim())) { setError('Titre et message EN requis'); return }
     setError(''); setLoading(true)
 
-    const allResults: SendResult[] = []
+    const allResults: PushSendResult[] = []
     let totalSent = 0, totalFailed = 0, totalCleaned = 0
 
     try {
