@@ -243,11 +243,24 @@ export function AlchemyGame() {
         if (d.theme === 'light' || d.theme === 'dark') setTheme(d.theme)
         // Apply saved push notifications preference
         if (typeof d.push_notifications === 'boolean') setPushNotificationsEnabled(d.push_notifications)
-        // Show one-time push prompt for existing users who haven't been asked yet
-        if (d.onboarding_done && !d.push_prompt_shown && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
-          setShowPushPrompt(true)
+        // Show one-time push prompt for users who haven't been asked yet
+        // Skip if onboarding is pending — onboarding already has its own notifications step
+        if (!d.push_prompt_shown && d.onboarding_done && typeof window !== 'undefined' && 'Notification' in window) {
+          if (Notification.permission === 'default') {
+            // Small delay so the popup appears after the page is fully rendered
+            setTimeout(() => setShowPushPrompt(true), 1500)
+          } else if (Notification.permission === 'granted') {
+            // Already granted — silently re-subscribe and mark as shown
+            subscribeToPush(d.lang === 'fr' ? 'fr' : 'en').then(ok => {
+              setPushNotificationsEnabled(ok)
+              fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push_prompt_shown: true, push_notifications: ok }) })
+            })
+          } else {
+            // Denied — mark as shown silently
+            fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push_prompt_shown: true, push_notifications: false }) })
+          }
         }
-        // Show onboarding if never done
+        // Show onboarding if never done (onboarding handles push prompt internally via its last step)
         if (!d.onboarding_done) setShowOnboarding(true)
       })
       .catch(() => {})
