@@ -14,7 +14,8 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 // Call this directly from a user gesture (button click) to request permission and subscribe.
-export async function subscribeToPush(): Promise<boolean> {
+// Pass the user's current lang so the subscription is tagged correctly for targeted notifications.
+export async function subscribeToPush(lang: 'fr' | 'en' = 'en'): Promise<boolean> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false
   if (!PUBLIC_VAPID_KEY) return false
   try {
@@ -34,7 +35,7 @@ export async function subscribeToPush(): Promise<boolean> {
     const res = await fetch('/api/push/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(json),
+      body: JSON.stringify({ ...json, lang }),
     })
     return res.ok
   } catch {
@@ -66,15 +67,20 @@ export function usePushSubscription() {
       try {
         const reg = await navigator.serviceWorker.ready
         const existing = await reg.pushManager.getSubscription()
-        if (!existing) return // They haven't subscribed yet — wait for manual trigger
+        if (!existing) return
 
         const json = existing.toJSON() as { endpoint: string; keys?: { p256dh: string; auth: string } }
         if (!json.keys) return
 
+        // Fetch current lang from profile to keep subscription lang in sync
+        const profileRes = await fetch('/api/profile')
+        const profile = profileRes.ok ? await profileRes.json() : {}
+        const lang: 'fr' | 'en' = profile.lang === 'fr' ? 'fr' : 'en'
+
         await fetch('/api/push/subscribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(json),
+          body: JSON.stringify({ ...json, lang }),
         })
       } catch { /* ignore */ }
     }

@@ -17,18 +17,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { title, body, icon, url } = await req.json() as {
+  const { title, body, icon, url, lang } = await req.json() as {
     title: string
     body: string
     icon?: string
     url?: string
+    lang?: 'fr' | 'en' | 'all'
   }
 
   if (!title?.trim() || !body?.trim()) {
     return NextResponse.json({ error: 'title and body are required' }, { status: 400 })
   }
 
-  const subs = await sql`SELECT endpoint, p256dh, auth FROM push_subscriptions`
+  // Filter by language if specified
+  const subs = lang && lang !== 'all'
+    ? await sql`SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE lang = ${lang}`
+    : await sql`SELECT endpoint, p256dh, auth FROM push_subscriptions`
 
   const payload = JSON.stringify({
     title,
@@ -74,6 +78,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const [{ count }] = await sql`SELECT COUNT(*)::int AS count FROM push_subscriptions`
-  return NextResponse.json({ count })
+  const rows = await sql`
+    SELECT lang, COUNT(*)::int AS count
+    FROM push_subscriptions
+    GROUP BY lang
+  `
+  const total = rows.reduce((acc: number, r: { count: number }) => acc + r.count, 0)
+  const fr = rows.find((r: { lang: string }) => r.lang === 'fr')?.count ?? 0
+  const en = rows.find((r: { lang: string }) => r.lang === 'en')?.count ?? 0
+  return NextResponse.json({ count: total, fr, en })
 }

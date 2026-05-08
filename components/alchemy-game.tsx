@@ -283,7 +283,7 @@ export function AlchemyGame() {
         onTogglePushNotifications={async () => {
           const next = !pushNotificationsEnabled
           if (next) {
-            const ok = await subscribeToPush()
+            const ok = await subscribeToPush(lang as 'fr' | 'en')
             if (!ok) return // permission denied — don't toggle on
           } else {
             await unsubscribeFromPush()
