@@ -260,11 +260,11 @@ function ScratchBanner({ count, lang, onClick }: {
 }) {
   if (count === 0) {
     return (
-      <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-muted/50 border border-border">
-        <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
-          <Ticket className="w-4 h-4 text-muted-foreground/40" />
+      <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-muted/30 border border-border/40">
+        <div className="w-8 h-8 rounded-xl bg-muted/50 flex items-center justify-center flex-shrink-0">
+          <Ticket className="w-4 h-4 text-muted-foreground/30" />
         </div>
-        <p className="text-sm text-muted-foreground/50 font-medium">
+        <p className="text-sm text-muted-foreground/40 font-medium">
           {lang === 'fr' ? 'Termine une quête pour gratter' : 'Complete a quest to scratch'}
         </p>
       </div>
@@ -274,22 +274,22 @@ function ScratchBanner({ count, lang, onClick }: {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-[0.98] transition-all"
+      className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-card border border-border hover:bg-muted/40 active:scale-[0.98] transition-all"
     >
-      <div className="w-8 h-8 rounded-xl bg-black/15 flex items-center justify-center flex-shrink-0">
-        <Ticket className="w-4 h-4 text-black" />
+      <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
+        <Ticket className="w-4 h-4 text-foreground/60" />
       </div>
       <div className="flex-1 text-left">
-        <p className="text-sm font-bold text-black leading-tight">
+        <p className="text-sm font-semibold text-foreground leading-tight">
           {lang === 'fr' ? 'Gratter ma récompense' : 'Scratch my reward'}
         </p>
-        <p className="text-[11px] text-black/60 font-medium">
+        <p className="text-[11px] text-muted-foreground/50 font-medium mt-0.5">
           {count === 1
             ? (lang === 'fr' ? '1 quête terminée' : '1 quest ready')
             : (lang === 'fr' ? `${count} quêtes terminées` : `${count} quests ready`)}
         </p>
       </div>
-      <ChevronRight className="w-4 h-4 text-black/50 flex-shrink-0" />
+      <ChevronRight className="w-4 h-4 text-muted-foreground/30 flex-shrink-0" />
     </button>
   )
 }
@@ -323,74 +323,55 @@ function QuestRow({ quest, lang, onClaim, onScratch }: {
     setClaiming(false)
   }
 
-  // Accent color
-  const accent = isDone
-    ? 'text-muted-foreground/30'
-    : isClaimed
-    ? 'text-primary'
-    : isReady
-    ? 'text-amber-400'
-    : quest.is_daily
-    ? 'text-sky-400'
-    : 'text-muted-foreground'
-
-  const trackColor = quest.is_daily ? 'bg-sky-400' : isReady ? 'bg-amber-400' : 'bg-primary'
+  const iconBg = isDone ? 'bg-muted/50' : isClaimed ? 'bg-muted/50' : isReady ? 'bg-foreground/8' : quest.is_daily ? 'bg-muted/50' : 'bg-muted/50'
+  const iconColor = isDone ? 'text-muted-foreground/25' : isClaimed ? 'text-muted-foreground/40' : isReady ? 'text-foreground/80' : quest.is_daily ? 'text-foreground/60' : 'text-muted-foreground/60'
+  const trackColor = isReady ? 'bg-foreground/70' : 'bg-muted-foreground/30'
 
   return (
-    <div className={`border-b border-border/30 last:border-b-0 ${isDone ? 'opacity-40' : ''}`}>
-      {/* Main row — clickable to toggle accordion */}
+    <div className={`border-b border-border/20 last:border-b-0 ${isDone ? 'opacity-35' : ''}`}>
       <button
-        className="w-full flex items-center gap-3 py-3 text-left"
+        className="w-full flex items-center gap-3 py-3.5 text-left"
         onClick={() => setOpen(o => !o)}
         aria-expanded={open}
       >
-        {/* Icon */}
-        <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${isDone ? 'bg-muted' : isReady ? 'bg-amber-400/10' : quest.is_daily ? 'bg-sky-400/10' : 'bg-muted'}`}>
+        <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>
           {isDone
-            ? <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground/30" />
-            : <Icon className={`w-3.5 h-3.5 ${accent}`} />
+            ? <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground/25" />
+            : <Icon className={`w-3.5 h-3.5 ${iconColor}`} />
           }
         </div>
 
-        {/* Title + progress */}
         <div className="flex-1 min-w-0">
-          <span className={`text-sm font-semibold leading-tight block truncate ${isDone ? 'line-through' : 'text-foreground'}`}>
+          <span className={`text-sm font-medium leading-tight block truncate ${isDone ? 'line-through text-muted-foreground/40' : 'text-foreground'}`}>
             {title}
           </span>
           {!isClaimed && (
-            <div className="flex items-center gap-2 mt-1">
-              <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-700 ${trackColor}`}
-                  style={{ width: `${pct}%` }}
-                />
+            <div className="flex items-center gap-2 mt-1.5">
+              <div className="flex-1 h-[3px] rounded-full bg-muted overflow-hidden">
+                <div className={`h-full rounded-full transition-all duration-700 ${trackColor}`} style={{ width: `${pct}%` }} />
               </div>
-              <span className="text-[10px] tabular-nums text-muted-foreground/40 flex-shrink-0">
+              <span className="text-[10px] tabular-nums text-muted-foreground/35 flex-shrink-0">
                 {quest.progress}/{quest.target_value}
               </span>
             </div>
           )}
           {isClaimed && !allScratched && (
-            <span className="text-[10px] text-primary/70 font-medium">
-              {lang === 'fr' ? 'En attente de scratch' : 'Waiting to scratch'}
+            <span className="text-[10px] text-muted-foreground/50 font-medium mt-0.5 block">
+              {lang === 'fr' ? 'Prête à gratter' : 'Ready to scratch'}
             </span>
           )}
         </div>
 
-        {/* Right indicator */}
         {isReady && !isClaimed ? (
-          <div className="flex-shrink-0 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+          <div className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-foreground/60" />
         ) : (
-          <ChevronRight
-            className={`w-3.5 h-3.5 text-muted-foreground/30 flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
-          />
+          <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground/25 flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
         )}
       </button>
 
-      {/* Accordion description */}
       {open && desc && (
-        <div className="pb-3 pl-11 pr-1">
-          <p className="text-[11px] text-muted-foreground/60 leading-relaxed">{desc}</p>
+        <div className="pb-3.5 pl-11 pr-1">
+          <p className="text-[11px] text-muted-foreground/50 leading-relaxed">{desc}</p>
         </div>
       )}
     </div>
@@ -399,16 +380,14 @@ function QuestRow({ quest, lang, onClaim, onScratch }: {
 
 // ─── Section ───��──────────────────────────────────────────────────────────────
 
-function Section({ label, color = 'muted', children }: {
+function Section({ label, children }: {
   label: string
-  color?: 'amber' | 'sky' | 'muted'
   children: React.ReactNode
 }) {
-  const cls = { amber: 'text-amber-400', sky: 'text-sky-400', muted: 'text-muted-foreground/40' }[color]
   return (
-    <div className="flex flex-col">
-      <p className={`text-[10px] font-bold uppercase tracking-widest px-0.5 mb-1 ${cls}`}>{label}</p>
-      <div className="rounded-2xl bg-card border border-border/50 px-3">
+    <div className="flex flex-col gap-1">
+      <p className="text-[10px] font-semibold uppercase tracking-widest px-0.5 text-muted-foreground/40">{label}</p>
+      <div className="rounded-2xl bg-card border border-border/40 px-3">
         {children}
       </div>
     </div>
@@ -420,9 +399,9 @@ function Section({ label, color = 'muted', children }: {
 function DailyChip({ lang }: { lang: 'fr' | 'en' }) {
   const countdown = useDailyCountdown()
   return (
-    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky-400/10 border border-sky-400/20 self-start">
-      <Clock className="w-3 h-3 text-sky-400 flex-shrink-0" />
-      <span className="text-[10px] font-bold text-sky-400 tabular-nums">{countdown}</span>
+    <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-muted/60 border border-border/40 self-start">
+      <Clock className="w-3 h-3 text-muted-foreground/50 flex-shrink-0" />
+      <span className="text-[10px] font-semibold text-muted-foreground/70 tabular-nums">{countdown}</span>
     </div>
   )
 }
@@ -627,9 +606,9 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
 
             {/* Daily quests */}
             {hasDaily && (
-              <Section label={t('Journalières', 'Daily')} color="sky">
-                <div className="flex items-center justify-between py-2.5 border-b border-border/30">
-                  <span className="text-[10px] text-sky-400/70 font-medium">{t('Réinitialisation dans', 'Resets in')}</span>
+              <Section label={t('Journalières', 'Daily')}>
+                <div className="flex items-center justify-between py-2.5 border-b border-border/20">
+                  <span className="text-[10px] text-muted-foreground/40 font-medium">{t('Réinitialisation dans', 'Resets in')}</span>
                   <DailyChip lang={lang} />
                 </div>
                 {pendingDaily.map(q => (
@@ -640,7 +619,7 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
 
             {/* Permanent quests */}
             {hasPermanent && (
-              <Section label={t('Quêtes', 'Quests')} color="muted">
+              <Section label={t('Quêtes', 'Quests')}>
                 {pendingPermanent.map(q => (
                   <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={setScratchQuestId} />
                 ))}
@@ -649,7 +628,7 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
 
             {/* Done quests */}
             {done.length > 0 && (
-              <Section label={t('Terminées', 'Completed')} color="muted">
+              <Section label={t('Terminées', 'Completed')}>
                 {done.map(q => (
                   <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={setScratchQuestId} />
                 ))}

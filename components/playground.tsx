@@ -678,7 +678,7 @@ export function Playground({
           style={isMobile ? { cursor: 'row-resize', touchAction: 'none' } : undefined}
         >
           {/* ── Header row 1: clear (abs left) · centered logo+counter · crown (abs right) ── */}
-          <div className="relative flex items-center h-9">
+          <div className="relative flex items-center h-10">
 
             {/* Clear button — absolute left so it doesn't shift the center */}
             <button
@@ -710,10 +710,10 @@ export function Playground({
                   )}
                 </div>
               ) : (
-                <div className="flex items-center gap-2 pointer-events-none select-none">
-                  <img src="/logo.svg" alt="Elementz" className="w-5 h-5 rounded-full flex-shrink-0" draggable={false} onError={e => { (e.target as HTMLImageElement).src = '/logo.png' }} />
-                  <span className="font-bold text-sm tracking-tight text-foreground">Elementz</span>
-                  <span className="text-[11px] tabular-nums font-medium px-1.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground" suppressHydrationWarning>
+                <div className="flex items-center gap-2.5 pointer-events-none select-none">
+                  <img src="/logo.svg" alt="Elementz" className="w-6 h-6 rounded-full flex-shrink-0" draggable={false} onError={e => { (e.target as HTMLImageElement).src = '/logo.png' }} />
+                  <span className="font-bold text-base tracking-tight text-foreground">Elementz</span>
+                  <span className="text-xs tabular-nums font-medium px-2 py-0.5 rounded-full bg-muted/70 text-muted-foreground" suppressHydrationWarning>
                     {discovered.size}<span className="opacity-50">/{totalElements}</span>
                   </span>
                 </div>
@@ -930,7 +930,7 @@ export function Playground({
                   profileView === 'leaderboard'
                     ? <LeaderboardInlinePanel lang={lang} totalElements={totalElements} sessionUser={sessionUser} onBack={() => setProfileView('profile')} />
                     : profileView === 'codex'
-                      ? <CodexInlinePanel lang={lang} elements={elements} discovered={discovered} totalElements={totalElements} onGoToPlay={() => { setProfileView('profile'); setActiveTab('home') }} onBack={() => setProfileView('profile')} />
+                      ? <CodexInlinePanel lang={lang} elements={elements} discovered={discovered} totalElements={totalElements} onGoToPlay={() => setProfileView('profile')} />
                       : <ProfileInlinePanel
                           lang={lang}
                           sessionUser={sessionUser}
@@ -1027,30 +1027,25 @@ export function Playground({
               )
             })}
 
-            {/* Center: Hint — circle, sober, raised */}
-            <div className="flex-1 flex flex-col items-center justify-center py-2 relative">
+            {/* Center: Hint — circle, sober, slightly raised */}
+            <div className="flex-1 flex flex-col items-center justify-center py-3 relative">
               <button
                 onPointerDown={e => e.stopPropagation()}
                 onClick={e => { e.stopPropagation(); onRequestHint?.() }}
                 aria-label={lang === 'fr' ? 'Obtenir un indice' : 'Get a hint'}
                 className={`
-                  relative flex items-center justify-center
-                  w-14 h-14 rounded-full tap-spring select-none
+                  flex items-center justify-center
+                  w-12 h-12 rounded-full tap-spring select-none
                   bg-card border-2 border-border
-                  shadow-[0_2px_8px_0_rgba(0,0,0,0.18)]
-                  hover:border-muted-foreground/30 hover:bg-muted/60
+                  shadow-[0_1px_6px_0_rgba(0,0,0,0.15)]
+                  hover:bg-muted/60
                   active:scale-95
                   transition-all duration-150
-                  -translate-y-3
-                  ${hintShouldPulse ? 'border-amber-400/60 shadow-[0_0_0_4px_rgba(251,191,36,0.12)]' : ''}
+                  -translate-y-2
+                  ${hintShouldPulse ? 'border-amber-400/70 shadow-[0_0_0_4px_rgba(251,191,36,0.1)]' : ''}
                 `}
               >
-                <Lightbulb className={`w-6 h-6 ${hintShouldPulse ? 'text-amber-400' : 'text-foreground/70'}`} />
-                {hintAdLocked && !hintShouldPulse && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-background border border-border flex items-center justify-center shadow-sm">
-                    <Play className="w-2 h-2 text-muted-foreground fill-current" />
-                  </span>
-                )}
+                <Lightbulb className={`w-5 h-5 ${hintShouldPulse ? 'text-amber-400' : 'text-foreground/60'}`} />
               </button>
             </div>
 
@@ -1840,7 +1835,7 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-muted p-1 border border-border">
                   {el.img
                     ? <img src={el.img} alt={name} className="w-full h-full object-contain pointer-events-none" draggable={false} />
-                    : <Atom className="w-4 h-4 text-muted-foreground" />
+                    : <AtomIcon className="w-4 h-4 text-muted-foreground" />
                   }
                 </div>
                 <span className="text-sm text-foreground font-medium flex-1 truncate">{name}</span>
