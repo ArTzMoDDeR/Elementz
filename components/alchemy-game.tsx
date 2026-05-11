@@ -9,7 +9,7 @@ import { RewardedAdModal } from './rewarded-ad-modal'
 import { useGameStore } from '@/hooks/use-game-store'
 import { useHint } from '@/hooks/use-hint'
 import { subscribeToPush, unsubscribeFromPush } from '@/hooks/use-push-subscription'
-import { Sparkles, Lightbulb, Trash2, BarChart2, Hand, MousePointer, Lock } from 'lucide-react'
+import { Lightbulb, Trash2, BarChart2, Hand, MousePointer, Lock } from 'lucide-react'
 import EmailSignIn from '@/components/email-sign-in'
 
 const PROGRESS_MILESTONES = [10, 20, 50, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900]
@@ -173,7 +173,7 @@ const DISCOVERY_MESSAGES_EN = [
   (name: string) => `Awesome! You just created ${name}`,
 ]
 
-function MobileDiscoveryPill({
+function DiscoveryPill({
   newlyDiscovered,
   lastComboIngredients,
   elements,
@@ -234,7 +234,7 @@ function MobileDiscoveryPill({
 
   return (
     <div
-      className="md:hidden fixed inset-x-0 top-0 z-[200] flex justify-center pointer-events-none"
+      className="fixed inset-x-0 top-0 z-[200] flex justify-center pointer-events-none"
       style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
       <div
@@ -615,25 +615,6 @@ export function AlchemyGame() {
           </div>
         )}
 
-        {/* Desktop-only discovery toast (no sheet on desktop) */}
-        {newlyDiscovered != null && (() => {
-          const el = elements.get(newlyDiscovered)
-          if (!el) return null
-          return (
-            <div className="animate-in slide-in-from-left-4 fade-in duration-200 pointer-events-auto">
-              <div className="flex items-center gap-2.5 pl-3 pr-3 py-2.5 bg-card border border-border rounded-xl shadow-lg backdrop-blur-sm">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-                <span className="text-xs text-muted-foreground leading-snug">
-                  {lang === 'fr' ? 'Nouveau' : 'Discovered'} <span className="font-semibold text-foreground">{el.name}</span>
-                </span>
-                {el.imageUrl && (
-                  <img src={el.imageUrl} alt={el.name} className="w-6 h-6 object-contain flex-shrink-0" />
-                )}
-              </div>
-            </div>
-          )
-        })()}
-
         {/* Tap / Grab mode */}
         {tapModeToast !== null && (
           <div className="animate-in slide-in-from-left-4 fade-in duration-200 pointer-events-auto">
@@ -670,7 +651,7 @@ export function AlchemyGame() {
       </div>
 
       {/* ── iOS-style top discovery pill (mobile only) ───────────────── */}
-      <MobileDiscoveryPill
+      <DiscoveryPill
         newlyDiscovered={newlyDiscovered}
         lastComboIngredients={lastComboIngredients}
         elements={elements}
