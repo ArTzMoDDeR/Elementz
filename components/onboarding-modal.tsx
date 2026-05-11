@@ -15,6 +15,8 @@ type Props = {
   onComplete: (prefs: { lang: 'fr' | 'en'; theme: 'dark' | 'light'; haptic: boolean; username: string; avatar: string; enablePush: boolean }) => void
   /** Called when the tutorial discovers new elements — saves to inventory */
   onTutorialDiscover: (nums: number[]) => void
+  /** Called immediately when user picks a language so the game store rebuilds element names */
+  onLangChange?: (lang: 'fr' | 'en') => void
 }
 
 const STARTERS = ['eau', 'feu', 'terre', 'air'] as const
@@ -324,7 +326,6 @@ function MiniPlayground({
                 transform: `translate(-50%, -50%) scale(${scale})`,
                 zIndex: isDragging ? 20 : 5,
                 transition: isDragging ? 'none' : 'left 0.12s, top 0.12s, transform 0.1s',
-                filter: isNear ? `drop-shadow(0 0 8px ${item.el.color ?? 'oklch(0.72 0.17 145)'}aa)` : undefined,
               }}
             >
               <ElementBadge element={item.el} size="md" />
@@ -338,7 +339,7 @@ function MiniPlayground({
 
 // ─── Main OnboardingModal ─────────────────────────────────────────────────────
 
-export function OnboardingModal({ elementsByName, elements, recipeMap, onComplete, onTutorialDiscover }: Props) {
+export function OnboardingModal({ elementsByName, elements, recipeMap, onComplete, onTutorialDiscover, onLangChange }: Props) {
   const [step, setStep]               = useState<Step>('lang')
   const [lang, setLang]               = useState<'fr' | 'en'>('en')
   const [selectedTheme, setTheme]     = useState<'dark' | 'light'>('dark')
@@ -348,8 +349,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
   const [enablePush, setEnablePush]   = useState(false)
   const { setTheme: applyTheme }      = useTheme()
 
-  // Combine step: track GIF plays and whether user combined
-  const [gifPlayCount, setGifPlayCount] = useState(0)
+  // Combine step: track tutorial phase
   const [tutorialPhase, setTutorialPhase] = useState<'gif' | 'playground'>('gif')
   const [tutorialDone, setTutorialDone] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -360,7 +360,6 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
   // Reset combine state when re-entering the step
   const handleSetStep = (s: Step) => {
     if (s === 'combine') {
-      setGifPlayCount(0)
       setTutorialPhase('gif')
       setTutorialDone(false)
     }
@@ -368,13 +367,8 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
   }
 
   const handleVideoEnded = () => {
-    const next = gifPlayCount + 1
-    setGifPlayCount(next)
-    if (next >= 2) {
-      setTutorialPhase('playground')
-    } else {
-      videoRef.current?.play()
-    }
+    setGifPlayCount(1)
+    setTutorialPhase('playground')
   }
 
   const validateUsername = (val: string) => {
@@ -460,7 +454,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                 {(['fr', 'en'] as const).map(l => (
                   <button
                     key={l}
-                    onClick={() => setLang(l)}
+                    onClick={() => { setLang(l); onLangChange?.(l) }}
                     className={`flex-1 py-6 rounded-2xl border-2 transition-all font-semibold text-lg flex flex-col items-center gap-3 ${
                       lang === l
                         ? 'border-primary bg-primary/8 text-primary'
@@ -527,7 +521,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                 </div>
               </div>
 
-              {/* Phase 1: GIF tutorial (plays 2x) */}
+              {/* Phase 1: GIF tutorial (plays once) */}
               {tutorialPhase === 'gif' && (
                 <div className="flex flex-col gap-3">
                   <div className="rounded-2xl overflow-hidden border border-border bg-muted/20 shadow-xl">
@@ -541,21 +535,8 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                       className="w-full h-auto block"
                     />
                   </div>
-                  <div className="flex justify-center gap-1.5">
-                    {[0, 1].map(i => (
-                      <div
-                        key={i}
-                        className={`h-1.5 rounded-full transition-all ${
-                          gifPlayCount > i ? 'w-6 bg-primary/60' : i === gifPlayCount ? 'w-6 bg-primary' : 'w-3 bg-muted/40'
-                        }`}
-                      />
-                    ))}
-                  </div>
                   <p className="text-center text-xs text-muted-foreground/60">
-                    {t(
-                      gifPlayCount === 0 ? 'Regarde comment combiner des éléments…' : 'Encore une fois…',
-                      gifPlayCount === 0 ? 'Watch how to combine elements…' : 'One more time…'
-                    )}
+                    {t('Regarde comment combiner des éléments…', 'Watch how to combine elements…')}
                   </p>
                 </div>
               )}

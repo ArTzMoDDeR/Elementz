@@ -206,7 +206,7 @@ function MobileDiscoveryPill({
   return (
     <div
       className="md:hidden fixed inset-x-0 top-0 z-[200] flex justify-center pointer-events-none"
-      style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 10px)' }}
+      style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0px)' }}
     >
       <div
         ref={pillRef}
@@ -219,25 +219,34 @@ function MobileDiscoveryPill({
         onPointerCancel={onPointerUp}
       >
         <div
-          className={`w-full rounded-2xl px-4 py-3 flex flex-col gap-1 ${exiting ? 'ios-notif-exit' : 'ios-notif-enter'}`}
+          className={`w-full rounded-b-2xl px-4 py-3 flex flex-row items-center gap-3 ${exiting ? 'ios-notif-exit' : 'ios-notif-enter'}`}
           style={{
             background: 'color-mix(in oklch, var(--card) 96%, transparent)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
             border: '1px solid color-mix(in oklch, var(--foreground) 8%, transparent)',
+            borderTop: 'none',
             boxShadow: '0 4px 24px rgba(0,0,0,0.22), 0 1px 0 rgba(255,255,255,0.05) inset',
             transform: `translateY(${translateY}px)`,
             transition: dragStart.current ? 'none' : 'transform 0.2s cubic-bezier(0.32,0.72,0,1)',
           }}
         >
-          <span className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 leading-none select-none">
-            {lang === 'fr' ? 'Nouveau' : 'New'}
-          </span>
-          <span className="text-[13px] font-semibold text-foreground leading-snug select-none">
-            {ingA && ingB
-              ? `${ingA.name} + ${ingB.name} → ${el.name}`
-              : el.name}
-          </span>
+          {/* Element icon */}
+          {el.imageUrl && (
+            <div className="w-9 h-9 rounded-xl bg-muted/40 flex items-center justify-center flex-shrink-0 overflow-hidden">
+              <img src={el.imageUrl} alt={el.name} className="w-6 h-6 object-contain" draggable={false} />
+            </div>
+          )}
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 leading-none select-none">
+              {lang === 'fr' ? 'Nouveau' : 'New'}
+            </span>
+            <span className="text-[13px] font-semibold text-foreground leading-snug select-none truncate">
+              {ingA && ingB
+                ? `${ingA.name} + ${ingB.name} → ${el.name}`
+                : el.name}
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -474,6 +483,7 @@ export function AlchemyGame() {
           recipeMap={recipeMap}
           onComplete={handleOnboardingComplete}
           onTutorialDiscover={discoverElements}
+          onLangChange={setLang}
         />
       )}
 

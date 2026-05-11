@@ -274,22 +274,26 @@ function ScratchBanner({ count, lang, onClick }: {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-card border border-border hover:bg-muted/40 active:scale-[0.98] transition-all"
+      className="w-full flex items-center gap-3.5 px-5 py-4 rounded-2xl active:scale-[0.98] transition-all"
+      style={{
+        background: 'linear-gradient(135deg, #818cf8 0%, #6366f1 100%)',
+        boxShadow: '0 4px 20px rgba(99,102,241,0.35)',
+      }}
     >
-      <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
-        <Ticket className="w-4 h-4 text-foreground/60" />
+      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.18)' }}>
+        <Ticket className="w-4.5 h-4.5 text-white" />
       </div>
       <div className="flex-1 text-left">
-        <p className="text-sm font-semibold text-foreground leading-tight">
+        <p className="text-sm font-bold text-white leading-tight">
           {lang === 'fr' ? 'Gratter ma récompense' : 'Scratch my reward'}
         </p>
-        <p className="text-[11px] text-muted-foreground/50 font-medium mt-0.5">
+        <p className="text-[11px] font-medium mt-0.5" style={{ color: 'rgba(255,255,255,0.65)' }}>
           {count === 1
             ? (lang === 'fr' ? '1 quête terminée' : '1 quest ready')
             : (lang === 'fr' ? `${count} quêtes terminées` : `${count} quests ready`)}
         </p>
       </div>
-      <ChevronRight className="w-4 h-4 text-muted-foreground/30 flex-shrink-0" />
+      <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.5)' }} />
     </button>
   )
 }
@@ -604,31 +608,7 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
         ) : (
           <div className="flex flex-col gap-4">
 
-            {/* Progress banner */}
-            {quests.length > 0 && (
-              <div className="rounded-2xl px-4 py-3 flex items-center gap-3" style={{ background: '#818cf810', border: '1px solid #818cf820' }}>
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#818cf820' }}>
-                  <Trophy className="w-4 h-4" style={{ color: '#818cf8' }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-foreground">
-                    {quests.filter(q => q.claimed_at).length}
-                    <span className="text-muted-foreground font-normal"> / {quests.length} {t('quêtes accomplies', 'quests completed')}</span>
-                  </p>
-                  <div className="mt-1.5 h-1 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${Math.round((quests.filter(q => q.claimed_at).length / quests.length) * 100)}%`,
-                        background: '#818cf8',
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Scratch CTA — always visible */}
+            {/* Scratch CTA — always at top */}
             <ScratchBanner count={scratchable.length} lang={lang} onClick={openScratch} />
 
             {/* Daily quests */}
