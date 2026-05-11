@@ -109,6 +109,8 @@ function MiniPlayground({
   const [justMerged, setJustMerged] = useState<ElementDef | null>(null)
   const [doneList, setDoneList]     = useState<ElementDef[]>([])
   const [allDone, setAllDone]       = useState(false)
+  // id of the item that is the merge target while dragging (proximity glow)
+  const [nearId, setNearId]         = useState<string | null>(null)
 
   // Refs for use inside stable pointer handlers
   const itemsRef    = useRef<MiniItem[]>([])
@@ -119,6 +121,9 @@ function MiniPlayground({
   useEffect(() => { mergingRef.current = merging },  [merging])
   useEffect(() => { allDoneRef.current = allDone },  [allDone])
   useEffect(() => { comboRef.current   = comboIndex },[comboIndex])
+
+  // Reset nearId when combo resets
+  useEffect(() => { setNearId(null) }, [comboIndex])
 
   const buildItems = useCallback((idx: number): MiniItem[] => {
     const combo = TUTORIAL_COMBOS[idx]
@@ -182,6 +187,14 @@ function MiniPlayground({
     const ny = Math.max(8, Math.min(92, ((e.clientY - rect.top)  / rect.height) * 100 - drag.current.offsetY))
     const id = drag.current.id
     setItems(prev => prev.map(i => i.id === id ? { ...i, x: nx, y: ny } : i))
+
+    // Proximity glow: find the other item and check distance
+    const other = itemsRef.current.find(i => i.id !== id)
+    if (other) {
+      const dist = Math.hypot(nx - other.x, ny - other.y)
+      setNearId(dist < MERGE_DIST_PCT ? other.id : null)
+    }
+
     e.preventDefault()
   }, [])
 
@@ -189,6 +202,7 @@ function MiniPlayground({
     if (!drag.current || mergingRef.current || allDoneRef.current) return
     if (drag.current.pointerId !== e.pointerId) return
     drag.current = null
+    setNearId(null)
 
     const current = itemsRef.current
     const [itemA, itemB] = current
@@ -253,15 +267,13 @@ function MiniPlayground({
       {/* Instruction */}
       <div className="flex items-center justify-center min-h-[28px]">
         {allDone ? (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+          <div className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
             <span className="text-xs font-semibold text-emerald-400">
               {t('Parfait ! Tu maîtrises les combinaisons.', "Perfect! You've mastered combining.")}
             </span>
           </div>
         ) : justMerged ? (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+          <div className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
             <span className="text-xs font-semibold text-emerald-400">
               {justMerged.name} {t('découvert !', 'discovered!')}
             </span>
@@ -308,34 +320,28 @@ function MiniPlayground({
         )}
 
         {/* Items — pointer events disabled so all events bubble up to arena */}
-        {items.map(item => (
-          <div
-            key={item.id}
-            className="absolute pointer-events-none select-none"
-            style={{
-              left: `${item.x}%`,
-              top:  `${item.y}%`,
-              transform: 'translate(-50%, -50%)',
-              zIndex: drag.current?.id === item.id ? 20 : 5,
-              transition: drag.current?.id === item.id ? 'none' : 'left 0.12s, top 0.12s',
-            }}
-          >
-            <ElementBadge element={item.el} size="md" />
-          </div>
-        ))}
-      </div>
-
-      {/* Discovered list */}
-      {doneList.length > 0 && (
-        <div className="flex items-center gap-2 justify-center flex-wrap">
-          <span className="text-[10px] text-muted-foreground/50 font-medium">{t('Découverts :', 'Discovered:')}</span>
-          {doneList.map(el => (
-            <div key={el.number} className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-              <span className="text-[10px] font-semibold text-emerald-400">{el.name}</span>
+        {items.map(item => {
+          const isDragging = drag.current?.id === item.id
+          const isNear     = nearId === item.id
+          const scale      = isDragging ? 1.08 : isNear ? 1.06 : 1
+          return (
+            <div
+              key={item.id}
+              className="absolute pointer-events-none select-none"
+              style={{
+                left: `${item.x}%`,
+                top:  `${item.y}%`,
+                transform: `translate(-50%, -50%) scale(${scale})`,
+                zIndex: isDragging ? 20 : 5,
+                transition: isDragging ? 'none' : 'left 0.12s, top 0.12s, transform 0.1s',
+                filter: isNear ? `drop-shadow(0 0 8px ${item.el.color ?? 'oklch(0.72 0.17 145)'}aa)` : undefined,
+              }}
+            >
+              <ElementBadge element={item.el} size="md" />
             </div>
-          ))}
-        </div>
-      )}
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -412,7 +418,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
     <div className="fixed inset-0 z-[9999] flex flex-col bg-background">
 
       {/* ── Top bar: progress ── */}
-      <div className="flex items-center gap-1.5 px-4 pt-safe-top pt-4 pb-3 sm:px-8 sm:pt-6">
+      <div className="flex items-center gap-1.5 px-4 pb-3 sm:px-8" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}>
         {/* Back */}
         {stepIndex > 0 ? (
           <button
@@ -523,8 +529,8 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
           {step === 'combine' && (
             <>
               <div className="flex flex-col items-center gap-5 text-center">
-                <div className={`w-20 h-20 rounded-3xl ${color.bg} ring-1 ${color.ring} flex items-center justify-center text-4xl`}>
-                  ✨
+                <div className={`w-20 h-20 rounded-3xl ${color.bg} ring-1 ${color.ring} flex items-center justify-center`}>
+                  <Sparkles className={`w-10 h-10 ${color.icon}`} />
                 </div>
                 <div className="space-y-2">
                   <h1 className="text-3xl sm:text-4xl font-bold text-foreground text-balance">
@@ -532,9 +538,11 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                   </h1>
                   <p className="text-base text-muted-foreground leading-relaxed">
                     {t(
-                      'Glisse un élément sur un autre pour les combiner et découvrir de nouveaux éléments. Il y en a plus de 700 à découvrir !',
-                      'Drag one element onto another to combine them and discover new ones. There are over 700 to find!'
+                      'Glisse un élément sur un autre pour les combiner et découvrir de nouveaux éléments.',
+                      'Drag one element onto another to combine them and discover new ones.'
                     )}
+                    <br />
+                    {t('Il y en a plus de 700 à découvrir !', 'There are over 700 to find!')}
                   </p>
                 </div>
               </div>
@@ -854,7 +862,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
       </div>
 
       {/* ── Bottom CTA ── */}
-      <div className="px-6 pb-safe-bottom pb-8 pt-4 sm:px-8 sm:pb-10">
+      <div className="px-6 pt-4 sm:px-8" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 2rem)' }}>
         <div className="w-full max-w-lg mx-auto">
           <button
             onClick={handleNext}
