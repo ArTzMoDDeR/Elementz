@@ -56,15 +56,6 @@ interface PlaygroundProps {
   onTogglePushNotifications?: () => void
   onTapModeChange?: (enabled: boolean) => void
   recipeMap?: Map<string, number[]>
-  // Mobile header notifications
-  headerNotification?: {
-    type: 'discovery' | 'hint' | 'progress' | 'tapMode' | 'hintsToggle'
-    message: string
-    icon?: React.ReactNode
-    image?: string
-    color?: string
-  } | null
-  onDismissNotification?: () => void
   playgroundItemsCount?: number
 }
 
@@ -282,7 +273,7 @@ export function Playground({
   onDrop, onMove, onMerge, onDropAndMerge, onRemove, onClear, onReset,
   onUnlockAll, sessionUser, hintsEnabled, onToggleHints, onRequestHint, hintShouldPulse = false, hintAdLocked = true,
   hapticEnabled = true, onToggleHaptic, pushNotificationsEnabled = true, onTogglePushNotifications, onTapModeChange, recipeMap,
-  headerNotification, onDismissNotification, playgroundItemsCount = 0,
+  playgroundItemsCount = 0,
 }: PlaygroundProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const inventoryRef = useRef<HTMLDivElement>(null)
@@ -860,29 +851,15 @@ export function Playground({
               <Trash2 className="w-3.5 h-3.5" />
             </button>
 
-            {/* Center: perfectly centered logo+title+counter or notification */}
+            {/* Center: logo + title + counter */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              {headerNotification ? (
-                <div
-                  className="flex items-center gap-2 min-w-0 cursor-pointer pointer-events-auto"
-                  onPointerDown={e => e.stopPropagation()}
-                  onClick={onDismissNotification}
-                >
-                  {headerNotification.icon}
-                  <span className="text-xs text-muted-foreground truncate">{headerNotification.message}</span>
-                  {headerNotification.image && (
-                    <img src={headerNotification.image} alt="" className="w-5 h-5 object-contain flex-shrink-0" />
-                  )}
-                </div>
-              ) : (
-                <div className="flex items-center gap-2.5 pointer-events-none select-none">
-                  <img src="/logo.svg" alt="Elementz" className="w-6 h-6 rounded-full flex-shrink-0" draggable={false} onError={e => { (e.target as HTMLImageElement).src = '/logo.png' }} />
-                  <span className="font-bold text-base tracking-tight text-foreground">Elementz</span>
-                  <span className="text-xs tabular-nums font-medium px-2 py-0.5 rounded-full bg-muted/70 text-muted-foreground" suppressHydrationWarning>
-                    {discovered.size}<span className="opacity-50">/{totalElements}</span>
-                  </span>
-                </div>
-              )}
+              <div className="flex items-center gap-2.5 pointer-events-none select-none">
+                <img src="/logo.svg" alt="Elementz" className="w-6 h-6 rounded-full flex-shrink-0" draggable={false} onError={e => { (e.target as HTMLImageElement).src = '/logo.png' }} />
+                <span className="font-bold text-base tracking-tight text-foreground">Elementz</span>
+                <span className="text-xs tabular-nums font-medium px-2 py-0.5 rounded-full bg-muted/70 text-muted-foreground" suppressHydrationWarning>
+                  {discovered.size}<span className="opacity-50">/{totalElements}</span>
+                </span>
+              </div>
             </div>
 
             {/* Crown easter egg — absolute right, only at 100% */}
