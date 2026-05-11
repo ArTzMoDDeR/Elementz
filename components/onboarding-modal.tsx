@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useTheme } from 'next-themes'
-import { Globe, Sun, Moon, ChevronRight, Lightbulb, Scroll, ArrowLeft, User, Smile, Bell, Ticket, Sparkles, Check } from 'lucide-react'
+import { Globe, Sun, Moon, ChevronRight, Lightbulb, Scroll, ArrowLeft, User, Smile, Bell, Ticket, Check } from 'lucide-react'
 import type { ElementDef } from '@/lib/game-data'
 import { ElementBadge } from '@/components/element-badge'
 
@@ -529,9 +529,6 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
           {step === 'combine' && (
             <>
               <div className="flex flex-col items-center gap-5 text-center">
-                <div className={`w-20 h-20 rounded-3xl ${color.bg} ring-1 ${color.ring} flex items-center justify-center`}>
-                  <Sparkles className={`w-10 h-10 ${color.icon}`} />
-                </div>
                 <div className="space-y-2">
                   <h1 className="text-3xl sm:text-4xl font-bold text-foreground text-balance">
                     {t('Combine des éléments', 'Combine elements')}
