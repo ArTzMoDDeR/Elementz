@@ -20,6 +20,15 @@ input, textarea, [contenteditable] {
   user-select: text;
 }
 
+/* Hint idle glow — slow amber shimmer after 90s without clicking hint */
+@keyframes hint-idle-glow {
+  0%, 100% { box-shadow: 0 0 0 0px rgba(251, 191, 36, 0); border-color: rgba(251, 191, 36, 0.15); }
+  50%       { box-shadow: 0 0 12px 3px rgba(251, 191, 36, 0.18); border-color: rgba(251, 191, 36, 0.5); }
+}
+.hint-idle-glow {
+  animation: hint-idle-glow 3s ease-in-out infinite;
+}
+
 /* Prevent iOS rubber-band / overscroll bounce globally */
 html, body {
   overscroll-behavior: none;
