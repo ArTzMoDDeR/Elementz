@@ -276,24 +276,25 @@ function ScratchBanner({ count, lang, onClick }: {
       onClick={onClick}
       className="w-full flex items-center gap-3.5 px-5 py-4 rounded-2xl active:scale-[0.98] transition-all"
       style={{
-        background: 'linear-gradient(135deg, #818cf8 0%, #6366f1 100%)',
-        boxShadow: '0 4px 20px rgba(99,102,241,0.35)',
+        background: 'rgba(99,102,241,0.18)',
+        border: '3px solid #6366f1',
+        boxShadow: '0 4px 20px rgba(99,102,241,0.15)',
       }}
     >
-      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.18)' }}>
-        <Ticket className="w-4.5 h-4.5 text-white" />
+      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(99,102,241,0.25)' }}>
+        <Ticket className="w-4 h-4" style={{ color: '#818cf8' }} />
       </div>
       <div className="flex-1 text-left">
-        <p className="text-sm font-bold text-white leading-tight">
+        <p className="text-sm font-bold leading-tight" style={{ color: '#818cf8' }}>
           {lang === 'fr' ? 'Gratter ma récompense' : 'Scratch my reward'}
         </p>
-        <p className="text-[11px] font-medium mt-0.5" style={{ color: 'rgba(255,255,255,0.65)' }}>
+        <p className="text-[11px] font-medium mt-0.5" style={{ color: '#818cf880' }}>
           {count === 1
             ? (lang === 'fr' ? '1 quête terminée' : '1 quest ready')
             : (lang === 'fr' ? `${count} quêtes terminées` : `${count} quests ready`)}
         </p>
       </div>
-      <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.5)' }} />
+      <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: '#818cf860' }} />
     </button>
   )
 }
@@ -329,7 +330,8 @@ function QuestRow({ quest, lang, onClaim, onScratch }: {
 
   const iconBg = isDone ? 'bg-muted/50' : isClaimed ? 'bg-muted/50' : isReady ? 'bg-foreground/8' : quest.is_daily ? 'bg-muted/50' : 'bg-muted/50'
   const iconColor = isDone ? 'text-muted-foreground/25' : isClaimed ? 'text-muted-foreground/40' : isReady ? 'text-foreground/80' : quest.is_daily ? 'text-foreground/60' : 'text-muted-foreground/60'
-  const trackColor = isReady ? 'bg-foreground/70' : 'bg-muted-foreground/30'
+  const trackColor = isReady ? '' : 'bg-muted-foreground/30'
+  const trackStyle = isReady ? { background: '#818cf8' } : {}
 
   return (
     <div className={`border-b border-border/20 last:border-b-0 ${isDone ? 'opacity-35' : ''}`}>
@@ -352,7 +354,10 @@ function QuestRow({ quest, lang, onClaim, onScratch }: {
           {!isClaimed && (
             <div className="flex items-center gap-2 mt-1.5">
               <div className="flex-1 h-[3px] rounded-full bg-muted overflow-hidden">
-                <div className={`h-full rounded-full transition-all duration-700 ${trackColor}`} style={{ width: `${pct}%` }} />
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ${trackColor}`}
+                  style={{ width: `${pct}%`, ...trackStyle }}
+                />
               </div>
               <span className="text-[10px] tabular-nums text-muted-foreground/35 flex-shrink-0">
                 {quest.progress}/{quest.target_value}
@@ -366,10 +371,11 @@ function QuestRow({ quest, lang, onClaim, onScratch }: {
           )}
         </div>
 
+        {/* Dot or chevron — self-center aligns with the row midpoint */}
         {isReady && !isClaimed ? (
-          <div className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-foreground/60" />
+          <div className="flex-shrink-0 self-center w-1.5 h-1.5 rounded-full" style={{ background: '#818cf8' }} />
         ) : (
-          <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground/25 flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
+          <ChevronRight className={`w-3.5 h-3.5 flex-shrink-0 self-center transition-transform duration-200 ${open ? 'rotate-90' : ''} text-muted-foreground/25`} />
         )}
       </button>
 
@@ -596,9 +602,7 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
             </p>
             <h2 className="text-lg font-bold text-foreground leading-tight">{t('Quêtes', 'Quests')}</h2>
           </div>
-          <div className="w-9 h-9 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: '#818cf820', border: '1px solid #818cf830' }}>
-            <Star className="w-4 h-4" style={{ color: '#818cf8' }} />
-          </div>
+
         </div>
 
         {loading ? (
