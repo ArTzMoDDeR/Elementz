@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useTheme } from 'next-themes'
-import { Globe, Sun, Moon, ChevronRight, Lightbulb, Trash2, Scroll, ArrowLeft, User, Smile, Bell, Ticket } from 'lucide-react'
+import { Globe, Sun, Moon, ChevronRight, Lightbulb, Trash2, Scroll, ArrowLeft, User, Smile, Bell, Ticket, Sparkles } from 'lucide-react'
 import type { ElementDef } from '@/lib/game-data'
 
 type Props = {
@@ -33,6 +33,192 @@ const STEP_COLOR: Record<Step, { from: string; icon: string; ring: string; bg: s
   notifications: { from: 'from-indigo-500', icon: 'text-indigo-400', ring: 'ring-indigo-500/30', bg: 'bg-indigo-500/10' },
 }
 
+// ─── Mini tutorial playground for combine step ────────────────────────────────
+
+type MiniEl = { id: string; name: string; el: ElementDef | null; emoji: string; x: number; y: number }
+type MiniDrag = { id: string; startX: number; startY: number; offsetX: number; offsetY: number }
+
+function MiniPlayground({
+  lang,
+  elementsByName,
+  onCombined,
+}: {
+  lang: 'fr' | 'en'
+  elementsByName: Map<string, ElementDef>
+  onCombined: () => void
+}) {
+  const areaRef = useRef<HTMLDivElement>(null)
+  const t = (fr: string, en: string) => lang === 'fr' ? fr : en
+
+  // Water + Air are the two tutorial elements; result = Steam/Vapeur
+  const waterEl  = elementsByName.get('water') ?? elementsByName.get('eau') ?? null
+  const airEl    = elementsByName.get('air')   ?? elementsByName.get('Air') ?? null
+  const steamEl  = elementsByName.get('steam') ?? elementsByName.get('vapeur') ?? null
+
+  const [items, setItems] = useState<MiniEl[]>([
+    { id: 'w', name: lang === 'fr' ? 'Eau' : 'Water', el: waterEl, emoji: '💧', x: 55, y: 45 },
+    { id: 'a', name: lang === 'fr' ? 'Air' : 'Air',   el: airEl,   emoji: '💨', x: 45, y: 45 },
+  ])
+  const [combined, setCombined] = useState(false)
+  const [result, setResult]     = useState<{ name: string; el: ElementDef | null; emoji: string } | null>(null)
+  const [flash, setFlash]       = useState(false)
+  const drag = useRef<MiniDrag | null>(null)
+
+  // Reset to fresh Water+Air when lang changes
+  useEffect(() => {
+    if (combined) return
+    setItems([
+      { id: 'w', name: lang === 'fr' ? 'Eau' : 'Water', el: waterEl, emoji: '💧', x: 55, y: 45 },
+      { id: 'a', name: lang === 'fr' ? 'Air' : 'Air',   el: airEl,   emoji: '💨', x: 45, y: 45 },
+    ])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang])
+
+  const onPointerDown = useCallback((e: React.PointerEvent, id: string) => {
+    if (combined) return
+    e.currentTarget.setPointerCapture(e.pointerId)
+    const area = areaRef.current!.getBoundingClientRect()
+    const item = items.find(i => i.id === id)!
+    drag.current = {
+      id,
+      startX: item.x,
+      startY: item.y,
+      offsetX: e.clientX - area.left - (item.x / 100) * area.width,
+      offsetY: e.clientY - area.top  - (item.y / 100) * area.height,
+    }
+  }, [combined, items])
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!drag.current || combined) return
+    const area = areaRef.current!.getBoundingClientRect()
+    const nx = Math.max(5, Math.min(95, ((e.clientX - area.left - drag.current.offsetX) / area.width)  * 100))
+    const ny = Math.max(5, Math.min(95, ((e.clientY - area.top  - drag.current.offsetY) / area.height) * 100))
+    setItems(prev => prev.map(i => i.id === drag.current!.id ? { ...i, x: nx, y: ny } : i))
+  }, [combined])
+
+  const onPointerUp = useCallback(() => {
+    if (!drag.current || combined) return
+    const [a, b] = items
+    const dist = Math.hypot(a.x - b.x, a.y - b.y)
+    if (dist < 18) {
+      // Merge!
+      setFlash(true)
+      setTimeout(() => setFlash(false), 400)
+      const res = steamEl
+        ? { name: lang === 'fr' ? 'Vapeur' : 'Steam', el: steamEl, emoji: '🌫️' }
+        : { name: lang === 'fr' ? 'Vapeur' : 'Steam', el: null, emoji: '🌫️' }
+      setResult(res)
+      setCombined(true)
+      setItems([{ id: 'r', name: res.name, el: res.el, emoji: res.emoji, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }])
+      onCombined()
+    }
+    drag.current = null
+  }, [combined, items, steamEl, lang, onCombined])
+
+  function ElementChip({ item }: { item: MiniEl }) {
+    const el = item.el
+    return (
+      <div
+        className="absolute flex flex-col items-center gap-1 cursor-grab active:cursor-grabbing select-none touch-none"
+        style={{
+          left: `${item.x}%`,
+          top:  `${item.y}%`,
+          transform: 'translate(-50%, -50%)',
+          zIndex: drag.current?.id === item.id ? 10 : 1,
+        }}
+        onPointerDown={e => onPointerDown(e, item.id)}
+      >
+        <div
+          className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-transform active:scale-95"
+          style={{
+            background: el ? `${el.color}22` : 'rgba(255,255,255,0.06)',
+            border: `1.5px solid ${el ? el.color + '60' : 'rgba(255,255,255,0.12)'}`,
+            boxShadow: el ? `0 0 14px ${el.color}30` : 'none',
+          }}
+        >
+          {el?.imageUrl
+            ? <img src={el.imageUrl} alt={item.name} draggable={false} className="w-10 h-10 object-contain pointer-events-none" />
+            : <span className="text-3xl leading-none pointer-events-none">{item.emoji}</span>
+          }
+        </div>
+        <span className="text-[11px] font-semibold text-foreground/80 bg-background/70 px-1.5 py-0.5 rounded-lg backdrop-blur-sm whitespace-nowrap">
+          {item.name}
+        </span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Phase label */}
+      <div className="flex items-center justify-center gap-2">
+        {combined ? (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="text-xs font-semibold text-emerald-400">
+              {t('Bien joué !', 'Nice one!')}
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
+            <span className="text-xs font-semibold text-cyan-400 animate-pulse">
+              {t('A toi de jouer — glisse un élément sur l\'autre', 'Your turn — drag one element onto the other')}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Arena */}
+      <div
+        ref={areaRef}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerLeave={onPointerUp}
+        className={`relative w-full rounded-2xl border overflow-hidden select-none transition-colors ${
+          flash ? 'border-cyan-400/60 bg-cyan-400/10' : combined ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-border bg-muted/10'
+        }`}
+        style={{ height: 160, touchAction: 'none' }}
+      >
+        {/* Subtle grid dots */}
+        <div
+          className="absolute inset-0 opacity-10 pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
+            backgroundSize: '24px 24px',
+          }}
+        />
+
+        {items.map(item => <ElementChip key={item.id} item={item} />)}
+
+        {/* Merge flash burst */}
+        {flash && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-20 h-20 rounded-full bg-cyan-400/30 animate-ping" />
+          </div>
+        )}
+
+        {/* Result label after combine */}
+        {combined && result && (
+          <div className="absolute inset-x-0 bottom-2 flex justify-center pointer-events-none">
+            <div className="px-3 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/25 text-xs font-semibold text-emerald-400">
+              {result.name} {t('découvert !', 'discovered!')}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Instruction when not yet combined */}
+      {!combined && (
+        <p className="text-center text-xs text-muted-foreground/60">
+          {t('Rapproche Eau et Air pour les combiner', 'Bring Water and Air together to combine them')}
+        </p>
+      )}
+    </div>
+  )
+}
+
+// ─── Main OnboardingModal ─────────────────────────────────────────────────────
+
 export function OnboardingModal({ elementsByName, onComplete }: Props) {
   const [step, setStep]               = useState<Step>('lang')
   const [lang, setLang]               = useState<'fr' | 'en'>('en')
@@ -43,9 +229,35 @@ export function OnboardingModal({ elementsByName, onComplete }: Props) {
   const [enablePush, setEnablePush]   = useState(false)
   const { setTheme: applyTheme }      = useTheme()
 
+  // Combine step: track GIF plays and whether user combined
+  const [gifPlayCount, setGifPlayCount] = useState(0)
+  const [tutorialPhase, setTutorialPhase] = useState<'gif' | 'playground'>('gif')
+  const [tutorialDone, setTutorialDone] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
+
   const stepIndex = STEPS.indexOf(step)
   const color     = STEP_COLOR[step]
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
+
+  // Reset combine state when re-entering the step
+  const handleSetStep = (s: Step) => {
+    if (s === 'combine') {
+      setGifPlayCount(0)
+      setTutorialPhase('gif')
+      setTutorialDone(false)
+    }
+    setStep(s)
+  }
+
+  const handleVideoEnded = () => {
+    const next = gifPlayCount + 1
+    setGifPlayCount(next)
+    if (next >= 2) {
+      setTutorialPhase('playground')
+    } else {
+      videoRef.current?.play()
+    }
+  }
 
   const validateUsername = (val: string) => {
     const trimmed = val.trim()
@@ -62,13 +274,16 @@ export function OnboardingModal({ elementsByName, onComplete }: Props) {
       if (err) { setUsernameError(err); return }
     }
     const nextIndex = stepIndex + 1
-    if (nextIndex < STEPS.length) setStep(STEPS[nextIndex])
+    if (nextIndex < STEPS.length) handleSetStep(STEPS[nextIndex])
     else onComplete({ lang, theme: selectedTheme, haptic: false, username: username.trim(), avatar, enablePush })
   }
 
   const handleBack = () => {
-    if (stepIndex > 0) setStep(STEPS[stepIndex - 1])
+    if (stepIndex > 0) handleSetStep(STEPS[stepIndex - 1])
   }
+
+  // Next button is disabled on combine step until user completes the tutorial (played 2x GIF + combined)
+  const nextDisabled = step === 'combine' && !tutorialDone
 
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col bg-background">
@@ -135,7 +350,8 @@ export function OnboardingModal({ elementsByName, onComplete }: Props) {
                         : 'border-border bg-muted/30 text-muted-foreground hover:border-border/80'
                     }`}
                   >
-                    <span className="text-4xl">{l === 'fr' ? '🇫🇷' : '🇬🇧'}</span>
+                    {/* US flag for English, FR flag for French */}
+                    <span className="text-4xl">{l === 'fr' ? '🇫🇷' : '🇺🇸'}</span>
                     <span>{l === 'fr' ? 'Français' : 'English'}</span>
                   </button>
                 ))}
@@ -199,9 +415,48 @@ export function OnboardingModal({ elementsByName, onComplete }: Props) {
                   </p>
                 </div>
               </div>
-              <div className="rounded-2xl overflow-hidden border border-border bg-muted/20 shadow-xl">
-                <video src="/tutohelp.webm" autoPlay loop muted playsInline className="w-full h-auto block" />
-              </div>
+
+              {/* Phase 1: GIF tutorial (plays 2x) */}
+              {tutorialPhase === 'gif' && (
+                <div className="flex flex-col gap-3">
+                  <div className="rounded-2xl overflow-hidden border border-border bg-muted/20 shadow-xl">
+                    <video
+                      ref={videoRef}
+                      src="/tutohelp.webm"
+                      autoPlay
+                      muted
+                      playsInline
+                      onEnded={handleVideoEnded}
+                      className="w-full h-auto block"
+                    />
+                  </div>
+                  <div className="flex justify-center gap-1.5">
+                    {[0, 1].map(i => (
+                      <div
+                        key={i}
+                        className={`h-1.5 rounded-full transition-all ${
+                          gifPlayCount > i ? 'w-6 bg-primary/60' : i === gifPlayCount ? 'w-6 bg-primary' : 'w-3 bg-muted/40'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-center text-xs text-muted-foreground/60">
+                    {t(
+                      gifPlayCount === 0 ? 'Regarde comment combiner des éléments…' : 'Encore une fois…',
+                      gifPlayCount === 0 ? 'Watch how to combine elements…' : 'One more time…'
+                    )}
+                  </p>
+                </div>
+              )}
+
+              {/* Phase 2: Interactive mini-playground */}
+              {tutorialPhase === 'playground' && (
+                <MiniPlayground
+                  lang={lang}
+                  elementsByName={elementsByName}
+                  onCombined={() => setTutorialDone(true)}
+                />
+              )}
             </>
           )}
 
@@ -478,11 +733,14 @@ export function OnboardingModal({ elementsByName, onComplete }: Props) {
         <div className="w-full max-w-lg mx-auto">
           <button
             onClick={handleNext}
-            className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-semibold text-base flex items-center justify-center gap-2 active:scale-[0.98] transition-transform shadow-lg"
+            disabled={nextDisabled}
+            className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-semibold text-base flex items-center justify-center gap-2 active:scale-[0.98] transition-transform shadow-lg disabled:opacity-40 disabled:pointer-events-none"
           >
             {step === 'notifications'
               ? t('Commencer à jouer !', "Let's play!")
-              : <>{t('Continuer', 'Continue')} <ChevronRight className="w-5 h-5" /></>
+              : step === 'combine' && tutorialPhase === 'gif'
+                ? <>{t('Regarde d\'abord…', 'Watch first…')}</>
+                : <>{t('Continuer', 'Continue')} <ChevronRight className="w-5 h-5" /></>
             }
           </button>
         </div>

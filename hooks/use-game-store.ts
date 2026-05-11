@@ -217,25 +217,47 @@ export function useGameStore() {
       )
       const validDisc = new Set<number>(baseNums)
 
+      // Read any guest progress saved in localStorage (used for migration to DB below)
+      const localDiscovered = new Set<number>()
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY)
+        if (saved) {
+          const parsed = JSON.parse(saved) as unknown[]
+          parsed.forEach(raw => {
+            const n = Number(raw)
+            if (Number.isInteger(n) && n > 0 && elMap.has(n)) localDiscovered.add(n)
+          })
+        }
+      } catch {}
+
       if (progressData?.discovered && Array.isArray(progressData.discovered)) {
         // Server returns element numbers directly
         progressData.discovered.forEach((num: unknown) => {
           const n = Number(num)
           if (Number.isInteger(n) && n > 0 && elMap.has(n)) validDisc.add(n)
         })
+
+        // New account migration: if DB is empty (only base elements after server fetch)
+        // and localStorage has more discoveries, flush them to DB.
+        const isNewAccount = progressData.discovered.length === 0 && localDiscovered.size > baseNums.size
+        if (isNewAccount) {
+          // Merge localStorage discoveries into validDisc
+          localDiscovered.forEach(n => validDisc.add(n))
+          // Non-base elements are the ones to save (base elements don't need to be inserted)
+          const toSave = [...localDiscovered].filter(n => !baseNums.has(n))
+          if (toSave.length > 0) {
+            fetch('/api/progress', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ discovered: toSave, combo_ingredients: [] }),
+            }).catch(() => {})
+          }
+        }
+
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...validDisc])) } catch {}
       } else {
         // Not logged in — load from localStorage (may contain old name-based data; ignore if so)
-        try {
-          const saved = localStorage.getItem(STORAGE_KEY)
-          if (saved) {
-            const parsed = JSON.parse(saved) as unknown[]
-            parsed.forEach(raw => {
-              const n = Number(raw)
-              if (Number.isInteger(n) && n > 0 && elMap.has(n)) validDisc.add(n)
-            })
-          }
-        } catch {}
+        localDiscovered.forEach(n => validDisc.add(n))
       }
 
       setDiscovered(validDisc)
@@ -251,6 +273,27 @@ export function useGameStore() {
     if (sessionStatus === 'loading') return
     loadGameData()
   }, [sessionStatus, loadGameData])
+
+  // ─── Reset on logout ──────────────────────────────────────────────────────
+  // When the session transitions from logged-in to unauthenticated, clear all
+  // progress from localStorage and reset discovered to the 4 base elements.
+  const prevUserIdRef = useRef<string | null | undefined>(undefined)
+  useEffect(() => {
+    if (sessionStatus === 'loading') return
+    const currentId = session?.user?.id ?? null
+    // If we had a user and now we don't — this is a logout
+    if (prevUserIdRef.current != null && prevUserIdRef.current !== undefined && currentId === null) {
+      const baseNums = new Set(
+        dbRows
+          .filter(r => ['eau', 'feu', 'terre', 'air'].includes(r.name_french.toLowerCase()))
+          .map(r => r.number)
+      )
+      setDiscovered(baseNums)
+      setPlayground([])
+      try { localStorage.removeItem(STORAGE_KEY) } catch {}
+    }
+    prevUserIdRef.current = currentId
+  }, [session?.user?.id, sessionStatus, dbRows])
 
   // Reload elements+recipes when the tab regains focus (catches admin edits in another tab)
   useEffect(() => {

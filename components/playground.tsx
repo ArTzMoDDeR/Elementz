@@ -746,6 +746,7 @@ export function Playground({
                   onToggleMergeFlash={() => setMergeFlashEnabled(!mergeFlashEnabled)}
                   onOpenHelp={() => setActiveTab('help')}
                   sessionUser={sessionUser}
+                  onSignOut={() => { try { localStorage.removeItem('alchemy-discovered-v4') } catch {} onReset(); signOut({ callbackUrl: '/' }) }}
                 />
               )}
 
@@ -1085,6 +1086,7 @@ export function Playground({
                     onToggleMergeFlash={() => setMergeFlashEnabled(!mergeFlashEnabled)}
                     onOpenHelp={() => setActiveTab('help')}
                     sessionUser={sessionUser}
+                    onSignOut={() => { try { localStorage.removeItem('alchemy-discovered-v4') } catch {} onReset(); signOut({ callbackUrl: '/' }) }}
                   />
                 )}
                 {activeTab === 'help' && (
@@ -1474,7 +1476,7 @@ function LeaderboardInlinePanel({ lang, totalElements, sessionUser, onBack }: { 
   )
 }
 
-function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, itemsCount, gridCols, onSetGridCols, tapMode, onToggleTapMode, hapticEnabled, onToggleHaptic, pushNotificationsEnabled, onTogglePushNotifications, mergeFlashEnabled, onToggleMergeFlash, onOpenHelp, sessionUser }: {
+function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, itemsCount, gridCols, onSetGridCols, tapMode, onToggleTapMode, hapticEnabled, onToggleHaptic, pushNotificationsEnabled, onTogglePushNotifications, mergeFlashEnabled, onToggleMergeFlash, onOpenHelp, sessionUser, onSignOut }: {
   lang: 'fr' | 'en'; onSetLang: (l: 'fr' | 'en') => void
   hintsEnabled?: boolean; onToggleHints?: () => void
   onClear: () => void; itemsCount: number
@@ -1485,6 +1487,7 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
   mergeFlashEnabled: boolean; onToggleMergeFlash: () => void
   onOpenHelp?: () => void
   sessionUser?: { id?: string | null; name?: string | null; email?: string | null } | null
+  onSignOut?: () => void
 }) {
   const { theme, setTheme } = useTheme()
   const isDark = theme === 'dark'
@@ -1627,7 +1630,7 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
       {sessionUser && (
         <div className="rounded-2xl border border-border overflow-hidden">
           <button
-            onClick={() => { signOut({ callbackUrl: '/' }) }}
+            onClick={() => { try { localStorage.removeItem('alchemy-discovered-v4') } catch {} onSignOut?.() }}
             className="w-full flex items-center gap-3 px-4 py-3.5 bg-card hover:bg-muted/50 active:bg-muted transition-colors cursor-pointer"
           >
             <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
@@ -1689,7 +1692,7 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
                     setDeleting(true)
                     try {
                       await fetch('/api/account/delete', { method: 'DELETE' })
-                      try { localStorage.removeItem('alchemy-discovered-v3') } catch {}
+                      try { localStorage.removeItem('alchemy-discovered-v4') } catch {}
                       signOut({ callbackUrl: '/' })
                     } catch {
                       setDeleting(false)
