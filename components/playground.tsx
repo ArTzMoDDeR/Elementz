@@ -940,6 +940,7 @@ export function Playground({
                           onAvatarChange={setTabAvatarKey}
                           onOpenLeaderboard={() => setProfileView('leaderboard')}
                           onOpenCodex={() => setProfileView('codex')}
+                          onSignOut={() => { try { localStorage.removeItem('alchemy-discovered-v4') } catch {} onReset(); signOut({ callbackUrl: '/' }) }}
                         />
                 )}
                 {activeTab === 'profile' && !sessionUser && (
@@ -1524,7 +1525,7 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
       {sessionUser && (
       <div className="rounded-2xl border border-border overflow-hidden">
         <button
-          onClick={() => { try { localStorage.removeItem('alchemy-discovered-v4') } catch {} onReset(); signOut({ callbackUrl: '/' }) }}
+          onClick={() => { onSignOut ? onSignOut() : signOut({ callbackUrl: '/' }) }}
           className="w-full flex items-center gap-3 px-4 py-3.5 bg-card hover:bg-red-500/5 active:bg-red-500/10 transition-colors cursor-pointer"
         >
           <div className="w-8 h-8 rounded-xl bg-red-500/10 flex items-center justify-center flex-shrink-0">
@@ -1645,7 +1646,7 @@ function HelpPanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: () => void })
   )
 }
 
-function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, totalElements, onAvatarChange, onOpenLeaderboard, onOpenCodex }: {
+function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, totalElements, onAvatarChange, onOpenLeaderboard, onOpenCodex, onSignOut }: {
   lang: 'fr' | 'en'
   sessionUser: { name?: string | null; email?: string | null; image?: string | null }
   /** Keyed by current-lang name (+ FR fallback) — used for avatar display and picker */
@@ -1655,6 +1656,7 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
   onAvatarChange?: (key: string) => void
   onOpenLeaderboard?: () => void
   onOpenCodex?: () => void
+  onSignOut?: () => void
 }) {
   const TOTAL_ELEMENTS = totalElements
   type ProfileData = {
