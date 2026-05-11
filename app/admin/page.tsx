@@ -993,7 +993,7 @@ function AddModal({ onClose, onAdded }: { onClose: () => void; onAdded: (el: Ele
   )
 }
 
-const PAGE_SIZE = 120
+const PAGE_SIZE = 60
 
 function ElementsTab() {
   const [elements, setElements] = useState<Element[]>([])
@@ -1006,6 +1006,7 @@ function ElementsTab() {
   const [editingElement, setEditingElement] = useState<Element | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [page, setPage] = useState(1)
+  const sentinelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { fetchElements() }, [])
 
@@ -1054,9 +1055,20 @@ function ElementsTab() {
       .sort((a, b) => sortBy === 'alpha' ? a.name_french.localeCompare(b.name_french, 'fr') : a.number - b.number)
   }, [elements, search, filterStatus, sortBy])
 
-  const totalPages = Math.max(1, Math.ceil(filteredElements.length / PAGE_SIZE))
   const visibleElements = filteredElements.slice(0, page * PAGE_SIZE)
   const hasMore = page * PAGE_SIZE < filteredElements.length
+
+  // Auto-advance page when sentinel enters viewport (infinite scroll — no button needed)
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel || !hasMore) return
+    const observer = new IntersectionObserver(
+      entries => { if (entries[0].isIntersecting) setPage(p => p + 1) },
+      { rootMargin: '300px' }
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [hasMore, visibleElements.length])
 
   const stats = useMemo(() => ({
     total: elements.length,
@@ -1135,16 +1147,8 @@ function ElementsTab() {
                 <ElementCard key={el.number} element={el} uploading={uploading} onEdit={setEditingElement} onUpload={handleFileUpload} />
               ))}
             </div>
-            {hasMore && (
-              <div className="flex flex-col items-center gap-1.5 pt-6 pb-2">
-                <button
-                  onClick={() => setPage(p => p + 1)}
-                  className="px-6 py-2.5 rounded-xl bg-muted hover:bg-muted/80 text-sm font-medium text-foreground transition-colors"
-                >
-                  Charger plus ({filteredElements.length - visibleElements.length} restants)
-                </button>
-              </div>
-            )}
+            {/* Sentinel: IntersectionObserver watches this to auto-load the next slice */}
+            {hasMore && <div ref={sentinelRef} className="h-4 w-full" />}
           </>
         )
       }
@@ -1507,7 +1511,7 @@ function EmailTab() {
   )
 }
 
-// ─── Tab: Stats ──────────────────────────────────────────────────────────────
+// ─── Tab: Stats ─────────────────��────────────────────────────────────────────
 
 type DayCount = { day: string; count: number }
 type Granularity = 'hour' | 'day' | 'week'
