@@ -348,6 +348,9 @@ export function AlchemyGame() {
     setLang(prefs.lang)
     setTheme(prefs.theme)
     setHapticEnabled(prefs.haptic)
+    // Mark onboarding as done in localStorage so we can recover if the PATCH
+    // fails (e.g. guest flow — no session yet) and avoid re-showing on next sign-in.
+    try { localStorage.setItem('onboarding-done', '1') } catch {}
     await fetch('/api/lang', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lang: prefs.lang }) })
     await fetch('/api/profile', {
       method: 'PATCH',
@@ -408,8 +411,23 @@ export function AlchemyGame() {
             fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push_prompt_shown: true, push_notifications: false }) })
           }
         }
-        // Show onboarding if never done (onboarding handles push prompt internally via its last step)
-        if (!d.onboarding_done) setShowOnboarding(true)
+        // Show onboarding if never done (onboarding handles push prompt internally via its last step).
+        // If the localStorage flag is set, the user completed onboarding as a guest but the PATCH
+        // failed (no session). Silently save it now and skip re-showing the modal.
+        if (!d.onboarding_done) {
+          let guestDone = false
+          try { guestDone = localStorage.getItem('onboarding-done') === '1' } catch {}
+          if (guestDone) {
+            try { localStorage.removeItem('onboarding-done') } catch {}
+            fetch('/api/profile', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ onboarding_done: true }),
+            }).catch(() => {})
+          } else {
+            setShowOnboarding(true)
+          }
+        }
       })
       .catch(() => {})
   }, [session?.user?.id])

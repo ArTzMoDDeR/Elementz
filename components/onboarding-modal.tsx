@@ -408,31 +408,33 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
 
       {/* ── Top bar: progress ── */}
       <div className="flex items-center gap-1.5 px-4 pb-3 sm:px-8" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}>
-        {/* Back */}
+        {/* Back — fixed width so bars stay centered */}
         {stepIndex > 0 ? (
           <button
             onClick={handleBack}
-            className="mr-2 w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors flex-shrink-0"
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors flex-shrink-0"
             aria-label="Back"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
         ) : (
-          <div className="mr-2 w-9 flex-shrink-0" />
+          <div className="w-9 flex-shrink-0" />
         )}
-        {/* Steps bar */}
-        {STEPS.map((s, i) => (
-          <div
-            key={s}
-            className={`h-1 rounded-full flex-1 transition-all duration-500 ${
-              i < stepIndex  ? 'bg-primary/50' :
-              i === stepIndex ? 'bg-primary' :
-              'bg-muted/40'
-            }`}
-          />
-        ))}
-        {/* Step counter */}
-        <span className="ml-2 text-xs text-muted-foreground/50 font-medium flex-shrink-0 tabular-nums">
+        {/* Steps bar — grows to fill remaining space between the two fixed-width sides */}
+        <div className="flex flex-1 items-center gap-1.5">
+          {STEPS.map((s, i) => (
+            <div
+              key={s}
+              className={`h-1 rounded-full flex-1 transition-all duration-500 ${
+                i < stepIndex  ? 'bg-primary/50' :
+                i === stepIndex ? 'bg-primary' :
+                'bg-muted/40'
+              }`}
+            />
+          ))}
+        </div>
+        {/* Step counter — fixed width matching the back button */}
+        <span className="ml-1.5 w-9 text-right text-xs text-muted-foreground/50 font-medium flex-shrink-0 tabular-nums">
           {stepIndex + 1}/{STEPS.length}
         </span>
       </div>
