@@ -238,13 +238,13 @@ export function useGameStore() {
           if (Number.isInteger(n) && n > 0 && elMap.has(n)) validDisc.add(n)
         })
 
-        // New account migration: if DB is empty (only base elements after server fetch)
-        // and localStorage has more discoveries, flush them to DB.
-        const isNewAccount = progressData.discovered.length === 0 && localDiscovered.size > baseNums.size
-        if (isNewAccount) {
+        // New account migration: if DB has no discoveries and localStorage has any,
+        // flush them all to DB so progress isn't lost after sign-up.
+        const isNewAccount = progressData.discovered.length === 0
+        if (isNewAccount && localDiscovered.size > 0) {
           // Merge localStorage discoveries into validDisc
           localDiscovered.forEach(n => validDisc.add(n))
-          // Non-base elements are the ones to save (base elements don't need to be inserted)
+          // Non-base elements are the ones to save (base elements are implicit)
           const toSave = [...localDiscovered].filter(n => !baseNums.has(n))
           if (toSave.length > 0) {
             fetch('/api/progress', {
