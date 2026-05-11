@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { ElementBadge } from './element-badge'
-import { Search, X, ArrowUpDown, ArrowLeft, ChevronUp, ChevronDown, ChevronRight, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Hand, MousePointer, Medal, Atom as AtomIcon, Star, Shield, Trophy, Sun, Moon, Play } from 'lucide-react'
+import { Search, X, ArrowLeft, ChevronUp, ChevronDown, ChevronRight, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Medal, Atom as AtomIcon, Star, Shield, Trophy, Sun, Moon, Play } from 'lucide-react'
 import { HouseSimple, Bell, Gear, Lifebuoy, Question, User, UserCircle, Scroll, Books } from '@phosphor-icons/react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import { HelpModal } from './help-modal'
@@ -346,8 +346,8 @@ export function Playground({
   const [helpOpen, setHelpOpen] = useState(false)
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'home' | 'quests' | 'codex' | 'settings' | 'help' | 'profile'>('home')
-  const [profileView, setProfileView] = useState<'profile' | 'leaderboard'>('profile')
+  const [activeTab, setActiveTab] = useState<'home' | 'quests' | 'settings' | 'help' | 'profile'>('home')
+  const [profileView, setProfileView] = useState<'profile' | 'leaderboard' | 'codex'>('profile')
   const [questBadge, setQuestBadge] = useState(false)
 
   // Poll quest readiness every 30s to show badge dot
@@ -677,25 +677,25 @@ export function Playground({
           onPointerDown={isMobile ? handleDragHandlePointerDown : undefined}
           style={isMobile ? { cursor: 'row-resize', touchAction: 'none' } : undefined}
         >
-          {/* Header — same layout on mobile and desktop: [clear] [logo+counter] [hint] */}
-          <div className="flex items-center gap-2" style={{ transform: 'translateY(-3px)' }}>
+          {/* ── Header row 1: clear · logo/notif · hint ── */}
+          <div className="flex items-center gap-2.5">
 
-            {/* Clear button — neutral when empty, red 3D when active */}
+            {/* Clear button */}
             <button
               onPointerDown={e => e.stopPropagation()}
               onClick={e => { e.stopPropagation(); if (items.length > 0) onClear() }}
               disabled={items.length === 0}
               title={lang === 'fr' ? 'Vider le terrain' : 'Clear field'}
-              className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center tap-spring transition-all disabled:opacity-30 disabled:pointer-events-none ${
+              className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center tap-spring transition-all disabled:opacity-25 disabled:pointer-events-none ${
                 items.length > 0
-                  ? 'bg-zinc-700 text-zinc-100 hover:bg-zinc-600'
-                  : 'bg-muted text-muted-foreground'
+                  ? 'bg-red-500/15 text-red-400 border border-red-500/20 hover:bg-red-500/25'
+                  : 'bg-muted/40 text-muted-foreground/40 border border-transparent'
               }`}
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
 
-            {/* Center: logo + title + counter — or notification */}
+            {/* Center: logo+title+counter or notification */}
             {headerNotification ? (
               <div
                 className="flex-1 flex items-center justify-center gap-2 min-w-0 cursor-pointer"
@@ -709,59 +709,57 @@ export function Playground({
                 )}
               </div>
             ) : (
-              <div className="flex-1 flex items-center justify-center gap-2">
-                <img src="/logo.svg" alt="Elementz" className="w-6 h-6 rounded-full flex-shrink-0 pointer-events-none select-none" draggable={false} onError={e => { (e.target as HTMLImageElement).src = '/logo.png' }} />
-                <span className="font-bold text-sm tracking-tight">Elementz</span>
-                <span className="text-xs tabular-nums text-muted-foreground" suppressHydrationWarning>
-                  {discovered.size}<span className="opacity-40">/{totalElements}</span>
+              <div className="flex-1 flex items-center justify-center gap-2.5 min-w-0">
+                <img src="/logo.svg" alt="Elementz" className="w-5 h-5 rounded-full flex-shrink-0 pointer-events-none select-none" draggable={false} onError={e => { (e.target as HTMLImageElement).src = '/logo.png' }} />
+                <span className="font-bold text-sm tracking-tight text-foreground">Elementz</span>
+                <span className="text-[11px] tabular-nums font-medium px-1.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground" suppressHydrationWarning>
+                  {discovered.size}<span className="opacity-50">/{totalElements}</span>
                 </span>
               </div>
             )}
 
-            {/* Hint button — hidden when all 592 elements are discovered */}
+            {/* Hint button — 3D glow effect */}
             {discovered.size >= totalElements ? (
-              /* Easter egg for players who completed the game */
               <div
-                className="flex-shrink-0 flex items-center gap-1.5 h-10 px-3 rounded-2xl bg-gradient-to-r from-yellow-400/20 via-pink-400/20 to-cyan-400/20 border border-yellow-400/30 select-none cursor-default"
+                className="flex-shrink-0 flex items-center gap-1.5 h-9 px-2.5 rounded-xl bg-gradient-to-r from-yellow-400/20 via-pink-400/20 to-cyan-400/20 border border-yellow-400/30 select-none cursor-default"
                 title={lang === 'fr' ? 'Maître alchimiste !' : 'Alchemy master!'}
               >
-                <span className="text-base leading-none" role="img" aria-label="crown">👑</span>
-                <span className="text-xs font-bold hidden sm:inline bg-gradient-to-r from-yellow-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
-                  {lang === 'fr' ? 'GG !' : 'GG!'}
-                </span>
+                <span className="text-sm leading-none" role="img" aria-label="crown">👑</span>
               </div>
             ) : (
               <button
                 onPointerDown={e => e.stopPropagation()}
                 onClick={e => { e.stopPropagation(); onRequestHint?.() }}
-                title={lang === 'fr' ? 'Indice' : 'Hint'}
-                className={`relative flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center tap-spring transition-all ${
+                title={lang === 'fr' ? 'Obtenir un indice' : 'Get a hint'}
+                className={`relative flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center tap-spring transition-all select-none ${
                   hintShouldPulse
-                    ? 'bg-amber-400 text-amber-900 animate-pulse'
-                    : 'bg-muted text-muted-foreground hover:text-foreground'
+                    ? 'bg-amber-400 text-amber-900 shadow-[0_0_16px_4px_rgba(251,191,36,0.45),0_2px_0_0_rgba(0,0,0,0.3)] animate-pulse'
+                    : 'bg-amber-400/90 text-amber-900 shadow-[0_4px_0_0_rgba(120,80,0,0.5),0_0_12px_2px_rgba(251,191,36,0.25)] hover:shadow-[0_4px_0_0_rgba(120,80,0,0.5),0_0_20px_6px_rgba(251,191,36,0.4)] active:shadow-[0_1px_0_0_rgba(120,80,0,0.5)] active:translate-y-[3px]'
                 }`}
+                style={{ transform: hintShouldPulse ? undefined : undefined }}
               >
                 <Lightbulb className="w-4 h-4 flex-shrink-0" />
-                {/* Small play badge when ad unlock is required */}
                 {hintAdLocked && !hintShouldPulse && (
-                  <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-background border border-border flex items-center justify-center">
-                    <Play className="w-1.5 h-1.5 text-muted-foreground fill-current" />
+                  <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-background border border-border flex items-center justify-center shadow-sm">
+                    <Play className="w-2 h-2 text-amber-500 fill-current" />
                   </span>
                 )}
               </button>
             )}
-
           </div>
+
+          {/* ── Header row 2: search + sort — only on home tab ── */}
           {activeTab === 'home' && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 pt-0.5">
+              {/* Search input */}
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50 pointer-events-none" />
                 <input
                   type="text"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder={lang === 'fr' ? 'Rechercher...' : 'Search...'}
-                  className="w-full h-10 pl-9 pr-8 bg-muted/50 border border-input rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-ring focus:bg-background transition-colors"
+                  className="w-full h-9 pl-8 pr-7 bg-muted/40 border border-border/50 rounded-xl text-[13px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-border focus:bg-muted/60 transition-all"
                   style={{ fontSize: '16px' }}
                   onPointerDown={e => e.stopPropagation()}
                   onTouchStart={e => e.stopPropagation()}
@@ -771,13 +769,13 @@ export function Playground({
                   spellCheck={false}
                 />
                 {search && (
-                  <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                    <X className="w-3.5 h-3.5" />
+                  <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground transition-colors">
+                    <X className="w-3 h-3" />
                   </button>
                 )}
               </div>
-              {/* iOS segmented sort switcher */}
-              <div className="flex h-10 items-center rounded-xl bg-muted p-0.5 gap-0 flex-shrink-0">
+              {/* Sort pill switcher */}
+              <div className="flex h-9 items-center rounded-xl bg-muted/40 border border-border/40 p-0.5 gap-0 flex-shrink-0">
                 {(['name', 'recent'] as const).map(type => {
                   const isActive = sortBy === type
                   const label = type === 'name'
@@ -790,39 +788,21 @@ export function Playground({
                       onClick={() => toggleSort(type)}
                       className={`flex items-center gap-1 h-full px-3 rounded-[10px] text-xs font-semibold transition-all whitespace-nowrap tap-spring ${
                         isActive
-                          ? 'bg-foreground text-background shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground'
+                          ? 'bg-foreground/90 text-background shadow-sm'
+                          : 'text-muted-foreground/60 hover:text-muted-foreground'
                       }`}
                     >
-                      {type === 'name' && <ArrowUpDown className="w-3 h-3 flex-shrink-0" />}
                       {label}
                       {Arrow && <Arrow className="w-3 h-3 flex-shrink-0" />}
                     </button>
                   )
                 })}
               </div>
-
-              {/* Tap / Grab icon-only button */}
-              <button
-                onClick={() => setTapMode(!tapMode)}
-                onPointerDown={e => e.stopPropagation()}
-                title={tapMode ? (lang === 'fr' ? 'Passer en mode drag' : 'Switch to drag') : (lang === 'fr' ? 'Passer en mode tap' : 'Switch to tap')}
-                className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 tap-spring transition-colors ${
-                  tapMode ? 'bg-violet-600 text-violet-100' : 'bg-emerald-600 text-emerald-100'
-                }`}
-              >
-                {tapMode ? <MousePointer className="w-4 h-4" /> : <Hand className="w-4 h-4" />}
-              </button>
             </div>
           )}
         </div>
 
-        {/* Chevron row — only in drag mode, mobile home tab */}
-        {isMobile && activeTab === 'home' && !tapMode && (
-          <ChevronScrollBar scrollRef={inventoryScrollRef} />
-        )}
-
-        {/* Scrollable content area — home: chevron-controlled in drag mode / free scroll in tap mode */}
+        {/* Scrollable content area */}
         <div className="flex-1 min-h-0">
           {activeTab === 'home' ? (
             <div
@@ -897,53 +877,7 @@ export function Playground({
             <div className="h-full overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div className="px-4 py-4">
                 {activeTab === 'quests' && sessionUser && <QuestInlinePanel lang={lang} onGoToPlay={() => setActiveTab('home')} />}
-                {activeTab === 'codex' && sessionUser && (
-                  <CodexInlinePanel
-                    lang={lang}
-                    elements={elements}
-                    discovered={discovered}
-                    totalElements={totalElements}
-                    onGoToPlay={() => setActiveTab('home')}
-                  />
-                )}
-                {activeTab === 'codex' && !sessionUser && (
-                  <div className="flex flex-col items-center gap-4 py-6">
-                    <div className="w-14 h-14 rounded-2xl bg-muted/50 border border-border flex items-center justify-center">
-                      <Books size={24} weight="regular" className="text-foreground/40" />
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm font-semibold text-foreground">{lang === 'fr' ? 'Non connecté' : 'Not signed in'}</p>
-                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{lang === 'fr' ? 'Connecte-toi pour voir tes recettes débloquées' : 'Sign in to see your unlocked recipes'}</p>
-                    </div>
-                    <div className="flex flex-col gap-2 w-full">
-                      <form action={signInWithGoogle}>
-                        <button type="submit" className="w-full flex items-center justify-center gap-2.5 h-11 px-5 rounded-xl bg-foreground text-background text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition-all">
-                          <svg width="16" height="16" viewBox="0 0 24 24" className="flex-shrink-0">
-                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                          </svg>
-                          {lang === 'fr' ? 'Continuer avec Google' : 'Continue with Google'}
-                        </button>
-                      </form>
-                      <form action={signInWithDiscord}>
-                        <button type="submit" className="w-full flex items-center justify-center gap-2.5 h-11 px-5 rounded-xl bg-[#5865F2] text-white text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition-all">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="flex-shrink-0">
-                            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.002.022.015.043.03.056a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
-                          </svg>
-                          {lang === 'fr' ? 'Continuer avec Discord' : 'Continue with Discord'}
-                        </button>
-                      </form>
-                      <div className="flex items-center gap-2 my-1">
-                        <div className="flex-1 h-px bg-border" />
-                        <span className="text-xs text-muted-foreground">{lang === 'fr' ? 'ou par email' : 'or by email'}</span>
-                        <div className="flex-1 h-px bg-border" />
-                      </div>
-                      <EmailSignIn lang={lang} />
-                    </div>
-                  </div>
-                )}
+
                 {activeTab === 'quests' && !sessionUser && (
                   <div className="flex flex-col items-center gap-4 py-6">
                     <div className="w-14 h-14 rounded-2xl bg-muted/50 border border-border flex items-center justify-center">
@@ -1010,15 +944,18 @@ export function Playground({
                 {activeTab === 'profile' && sessionUser && (
                   profileView === 'leaderboard'
                     ? <LeaderboardInlinePanel lang={lang} totalElements={totalElements} sessionUser={sessionUser} onBack={() => setProfileView('profile')} />
-                    : <ProfileInlinePanel
-                        lang={lang}
-                        sessionUser={sessionUser}
-                        elementsByName={elementsByName}
-                        discovered={discovered}
-                        totalElements={totalElements}
-                        onAvatarChange={setTabAvatarKey}
-                        onOpenLeaderboard={() => setProfileView('leaderboard')}
-                      />
+                    : profileView === 'codex'
+                      ? <CodexInlinePanel lang={lang} elements={elements} discovered={discovered} totalElements={totalElements} onGoToPlay={() => { setProfileView('profile'); setActiveTab('home') }} onBack={() => setProfileView('profile')} />
+                      : <ProfileInlinePanel
+                          lang={lang}
+                          sessionUser={sessionUser}
+                          elementsByName={elementsByName}
+                          discovered={discovered}
+                          totalElements={totalElements}
+                          onAvatarChange={setTabAvatarKey}
+                          onOpenLeaderboard={() => setProfileView('leaderboard')}
+                          onOpenCodex={() => setProfileView('codex')}
+                        />
                 )}
                 {activeTab === 'profile' && !sessionUser && (
                   <div className="flex flex-col items-center gap-4 py-6">
@@ -1080,7 +1017,6 @@ export function Playground({
             {([
               { id: 'home',     icon: HouseSimple, labelFr: 'Jeu',      labelEn: 'Play'     },
               { id: 'quests',   icon: Bell,        labelFr: 'Quêtes',   labelEn: 'Quests'   },
-              { id: 'codex',    icon: Books,       labelFr: 'Recettes', labelEn: 'Recipes'  },
               { id: 'settings', icon: Gear,        labelFr: 'Réglages', labelEn: 'Settings' },
               { id: 'profile',  icon: User,        labelFr: 'Profil',   labelEn: 'Profile'  },
             ] as const).map(({ id, icon: Icon, labelFr, labelEn }) => {
@@ -1097,7 +1033,7 @@ export function Playground({
                     }
                     setActiveTab(prev => {
                       const next = prev === id && id !== 'home' ? 'home' : id
-                      if (next !== 'profile') setProfileView('profile')
+                      setProfileView('profile')
                       return next
                     })
                     if (id === 'quests') setQuestBadge(false)
@@ -1155,7 +1091,7 @@ export function Playground({
       {/* Modals */}
       {helpOpen && <HelpModal lang={lang} onSetLang={onSetLang} onClose={() => setHelpOpen(false)} />}
       {leaderboardOpen && <LeaderboardModal lang={lang} onClose={() => setLeaderboardOpen(false)} />}
-      {profileOpen && sessionUser && <ProfileModal lang={lang} sessionUser={sessionUser} elementsByName={elementsByName} discovered={discovered} totalElements={totalElements} onClose={() => setProfileOpen(false)} onOpenLeaderboard={() => { setProfileOpen(false); setLeaderboardOpen(true) }} />}
+      {profileOpen && sessionUser && <ProfileModal lang={lang} sessionUser={sessionUser} elementsByName={elementsByName} discovered={discovered} totalElements={totalElements} onClose={() => setProfileOpen(false)} onOpenLeaderboard={() => { setProfileOpen(false); setLeaderboardOpen(true) }} onSignOut={onReset} />}
     </div>
   )
 }
@@ -1584,7 +1520,7 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
       {sessionUser && (
       <div className="rounded-2xl border border-border overflow-hidden">
         <button
-          onClick={() => { try { localStorage.removeItem('alchemy-discovered-v3') } catch {} signOut({ callbackUrl: '/' }) }}
+          onClick={() => { try { localStorage.removeItem('alchemy-discovered-v4') } catch {} onReset(); signOut({ callbackUrl: '/' }) }}
           className="w-full flex items-center gap-3 px-4 py-3.5 bg-card hover:bg-red-500/5 active:bg-red-500/10 transition-colors cursor-pointer"
         >
           <div className="w-8 h-8 rounded-xl bg-red-500/10 flex items-center justify-center flex-shrink-0">
@@ -1705,7 +1641,7 @@ function HelpPanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: () => void })
   )
 }
 
-function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, totalElements, onAvatarChange, onOpenLeaderboard }: {
+function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, totalElements, onAvatarChange, onOpenLeaderboard, onOpenCodex }: {
   lang: 'fr' | 'en'
   sessionUser: { name?: string | null; email?: string | null; image?: string | null }
   /** Keyed by current-lang name (+ FR fallback) — used for avatar display and picker */
@@ -1714,6 +1650,7 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
   totalElements: number
   onAvatarChange?: (key: string) => void
   onOpenLeaderboard?: () => void
+  onOpenCodex?: () => void
 }) {
   const TOTAL_ELEMENTS = totalElements
   type ProfileData = {
@@ -1905,7 +1842,7 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
         </div>
       )}
 
-      {/* Leaderboard section */}
+      {/* Leaderboard + Recettes section */}
       <div className="rounded-2xl border border-border overflow-hidden divide-y divide-border">
         <div
           onClick={onOpenLeaderboard}
@@ -1916,6 +1853,18 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-foreground">{t('Classement', 'Leaderboard')}</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground/40 flex-shrink-0" />
+        </div>
+        <div
+          onClick={onOpenCodex}
+          className="flex items-center gap-3 px-4 py-3.5 bg-card cursor-pointer active:bg-muted/60"
+        >
+          <div className="w-8 h-8 rounded-xl bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
+            <Books size={16} weight="regular" className="text-cyan-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground">{t('Recettes', 'Recipes')}</p>
           </div>
           <ChevronRight className="w-4 h-4 text-muted-foreground/40 flex-shrink-0" />
         </div>
