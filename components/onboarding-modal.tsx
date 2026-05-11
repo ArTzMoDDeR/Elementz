@@ -380,6 +380,11 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
   }
 
   const handleNext = () => {
+    // "Got it!" on the gif phase transitions to the interactive playground
+    if (step === 'combine' && tutorialPhase === 'gif') {
+      setTutorialPhase('playground')
+      return
+    }
     if (step === 'theme') applyTheme(selectedTheme)
     if (step === 'username') {
       const err = validateUsername(username)
@@ -395,7 +400,8 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
   }
 
   // Next button is disabled on combine step until user completes the tutorial (played 2x GIF + combined)
-  const nextDisabled = step === 'combine' && !tutorialDone
+  // Disabled only during the interactive playground phase (not the gif phase)
+  const nextDisabled = step === 'combine' && tutorialPhase === 'playground' && !tutorialDone
 
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col bg-background">
@@ -531,7 +537,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                       autoPlay
                       muted
                       playsInline
-                      onEnded={handleVideoEnded}
+                      loop
                       className="w-full h-auto block"
                     />
                   </div>
@@ -828,7 +834,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
             {step === 'notifications'
               ? t('Commencer à jouer !', "Let's play!")
               : step === 'combine' && tutorialPhase === 'gif'
-                ? <>{t('Regarde d\'abord…', 'Watch first…')}</>
+                ? <>{t('C\'est compris !', 'Got it!')} <ChevronRight className="w-5 h-5" /></>
                 : <>{t('Continuer', 'Continue')} <ChevronRight className="w-5 h-5" /></>
             }
           </button>
