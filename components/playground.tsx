@@ -668,7 +668,7 @@ export function Playground({
       {/* MOBILE FULLSCREEN PANEL — quests / settings / profile (non-home tabs) */}
       {isMobile && activeTab !== 'home' && (
         <div
-          className="fixed inset-0 bg-background flex flex-col relative"
+          className="fixed inset-0 bg-background flex flex-col"
           style={{
             zIndex: 150,
             paddingTop: 'env(safe-area-inset-top, 0px)',
