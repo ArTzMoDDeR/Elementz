@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { X, Lightbulb, Plus, Lock, PlayCircle } from 'lucide-react'
+import { Lightbulb, Plus, Lock, PlayCircle } from 'lucide-react'
 import type { HintResult } from '@/hooks/use-hint'
 
 // ── AdSense config ────────────────────────────────────────────────────────────
@@ -188,18 +188,13 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
   // ── INTRO / LOADING ───────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center">
-      <div className="absolute inset-0 bg-background/95 backdrop-blur-2xl" />
+      {/* Backdrop — click outside to dismiss */}
+      <div
+        className="absolute inset-0 bg-background/95 backdrop-blur-2xl"
+        onClick={phase === 'loading' ? undefined : handleDismiss}
+      />
 
       <div className="relative z-10 w-full max-w-sm mx-auto flex flex-col items-center px-6 gap-8 animate-in fade-in duration-200">
-
-        {/* Close — never fires an ad */}
-        <button
-          onClick={handleDismiss}
-          className="absolute -top-2 right-0 w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-muted-foreground/40 hover:text-foreground hover:bg-white/10 transition-colors"
-          aria-label={t(lang, 'Fermer', 'Close')}
-        >
-          <X className="w-4 h-4" />
-        </button>
 
         {/* Header */}
         <div className="text-center space-y-1.5 pt-2">

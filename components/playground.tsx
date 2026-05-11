@@ -677,16 +677,16 @@ export function Playground({
           onPointerDown={isMobile ? handleDragHandlePointerDown : undefined}
           style={isMobile ? { cursor: 'row-resize', touchAction: 'none' } : undefined}
         >
-          {/* ── Header row 1: clear · logo/notif · hint ── */}
-          <div className="flex items-center gap-2.5">
+          {/* ── Header row 1: clear (abs left) · centered logo+counter · crown (abs right) ── */}
+          <div className="relative flex items-center h-9">
 
-            {/* Clear button */}
+            {/* Clear button — absolute left so it doesn't shift the center */}
             <button
               onPointerDown={e => e.stopPropagation()}
               onClick={e => { e.stopPropagation(); if (items.length > 0) onClear() }}
               disabled={items.length === 0}
               title={lang === 'fr' ? 'Vider le terrain' : 'Clear field'}
-              className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center tap-spring transition-all disabled:opacity-25 disabled:pointer-events-none ${
+              className={`absolute left-0 w-9 h-9 rounded-xl flex items-center justify-center tap-spring transition-all disabled:opacity-25 disabled:pointer-events-none ${
                 items.length > 0
                   ? 'bg-red-500/15 text-red-400 border border-red-500/20 hover:bg-red-500/25'
                   : 'bg-muted/40 text-muted-foreground/40 border border-transparent'
@@ -695,33 +695,35 @@ export function Playground({
               <Trash2 className="w-3.5 h-3.5" />
             </button>
 
-            {/* Center: logo+title+counter or notification */}
-            {headerNotification ? (
-              <div
-                className="flex-1 flex items-center justify-center gap-2 min-w-0 cursor-pointer"
-                onPointerDown={e => e.stopPropagation()}
-                onClick={onDismissNotification}
-              >
-                {headerNotification.icon}
-                <span className="text-xs text-muted-foreground truncate">{headerNotification.message}</span>
-                {headerNotification.image && (
-                  <img src={headerNotification.image} alt="" className="w-5 h-5 object-contain flex-shrink-0" />
-                )}
-              </div>
-            ) : (
-              <div className="flex-1 flex items-center justify-center gap-2.5 min-w-0">
-                <img src="/logo.svg" alt="Elementz" className="w-5 h-5 rounded-full flex-shrink-0 pointer-events-none select-none" draggable={false} onError={e => { (e.target as HTMLImageElement).src = '/logo.png' }} />
-                <span className="font-bold text-sm tracking-tight text-foreground">Elementz</span>
-                <span className="text-[11px] tabular-nums font-medium px-1.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground" suppressHydrationWarning>
-                  {discovered.size}<span className="opacity-50">/{totalElements}</span>
-                </span>
-              </div>
-            )}
+            {/* Center: perfectly centered logo+title+counter or notification */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              {headerNotification ? (
+                <div
+                  className="flex items-center gap-2 min-w-0 cursor-pointer pointer-events-auto"
+                  onPointerDown={e => e.stopPropagation()}
+                  onClick={onDismissNotification}
+                >
+                  {headerNotification.icon}
+                  <span className="text-xs text-muted-foreground truncate">{headerNotification.message}</span>
+                  {headerNotification.image && (
+                    <img src={headerNotification.image} alt="" className="w-5 h-5 object-contain flex-shrink-0" />
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 pointer-events-none select-none">
+                  <img src="/logo.svg" alt="Elementz" className="w-5 h-5 rounded-full flex-shrink-0" draggable={false} onError={e => { (e.target as HTMLImageElement).src = '/logo.png' }} />
+                  <span className="font-bold text-sm tracking-tight text-foreground">Elementz</span>
+                  <span className="text-[11px] tabular-nums font-medium px-1.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground" suppressHydrationWarning>
+                    {discovered.size}<span className="opacity-50">/{totalElements}</span>
+                  </span>
+                </div>
+              )}
+            </div>
 
-            {/* Crown easter egg — only shown at 100% completion */}
+            {/* Crown easter egg — absolute right, only at 100% */}
             {discovered.size >= totalElements && (
               <div
-                className="flex-shrink-0 flex items-center gap-1.5 h-9 px-2.5 rounded-xl bg-gradient-to-r from-yellow-400/20 via-pink-400/20 to-cyan-400/20 border border-yellow-400/30 select-none cursor-default"
+                className="absolute right-0 flex items-center gap-1.5 h-9 px-2.5 rounded-xl bg-gradient-to-r from-yellow-400/20 via-pink-400/20 to-cyan-400/20 border border-yellow-400/30 select-none cursor-default"
                 title={lang === 'fr' ? 'Maître alchimiste !' : 'Alchemy master!'}
               >
                 <span className="text-sm leading-none" role="img" aria-label="crown">👑</span>
@@ -1025,7 +1027,7 @@ export function Playground({
               )
             })}
 
-            {/* Center: Hint — raised 3D amber button */}
+            {/* Center: Hint — circle, sober, raised */}
             <div className="flex-1 flex flex-col items-center justify-center py-2 relative">
               <button
                 onPointerDown={e => e.stopPropagation()}
@@ -1033,20 +1035,20 @@ export function Playground({
                 aria-label={lang === 'fr' ? 'Obtenir un indice' : 'Get a hint'}
                 className={`
                   relative flex items-center justify-center
-                  w-14 h-14 rounded-2xl tap-spring select-none
-                  bg-amber-400
-                  shadow-[0_5px_0_0_rgba(100,65,0,0.55),0_0_16px_4px_rgba(251,191,36,0.3)]
-                  hover:shadow-[0_5px_0_0_rgba(100,65,0,0.55),0_0_24px_8px_rgba(251,191,36,0.45)]
-                  active:shadow-[0_1px_0_0_rgba(100,65,0,0.55)] active:translate-y-[4px]
-                  transition-shadow
+                  w-14 h-14 rounded-full tap-spring select-none
+                  bg-card border-2 border-border
+                  shadow-[0_2px_8px_0_rgba(0,0,0,0.18)]
+                  hover:border-muted-foreground/30 hover:bg-muted/60
+                  active:scale-95
+                  transition-all duration-150
                   -translate-y-3
-                  ${hintShouldPulse ? 'animate-pulse' : ''}
+                  ${hintShouldPulse ? 'border-amber-400/60 shadow-[0_0_0_4px_rgba(251,191,36,0.12)]' : ''}
                 `}
               >
-                <Lightbulb className="w-6 h-6 text-amber-950" />
+                <Lightbulb className={`w-6 h-6 ${hintShouldPulse ? 'text-amber-400' : 'text-foreground/70'}`} />
                 {hintAdLocked && !hintShouldPulse && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-background border border-border flex items-center justify-center shadow-sm">
-                    <Play className="w-2 h-2 text-amber-500 fill-current" />
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-background border border-border flex items-center justify-center shadow-sm">
+                    <Play className="w-2 h-2 text-muted-foreground fill-current" />
                   </span>
                 )}
               </button>
