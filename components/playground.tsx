@@ -712,39 +712,20 @@ export function Playground({
               <div className="flex-1 flex items-center justify-center gap-2.5 min-w-0">
                 <img src="/logo.svg" alt="Elementz" className="w-5 h-5 rounded-full flex-shrink-0 pointer-events-none select-none" draggable={false} onError={e => { (e.target as HTMLImageElement).src = '/logo.png' }} />
                 <span className="font-bold text-sm tracking-tight text-foreground">Elementz</span>
-                <span className="text-sm tabular-nums font-semibold text-foreground" suppressHydrationWarning>
-                  {discovered.size}<span className="text-muted-foreground/50 font-normal">/{totalElements}</span>
+                <span className="text-[11px] tabular-nums font-medium px-1.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground" suppressHydrationWarning>
+                  {discovered.size}<span className="opacity-50">/{totalElements}</span>
                 </span>
               </div>
             )}
 
-            {/* Hint button — 3D glow effect */}
-            {discovered.size >= totalElements ? (
+            {/* Crown easter egg — only shown at 100% completion */}
+            {discovered.size >= totalElements && (
               <div
                 className="flex-shrink-0 flex items-center gap-1.5 h-9 px-2.5 rounded-xl bg-gradient-to-r from-yellow-400/20 via-pink-400/20 to-cyan-400/20 border border-yellow-400/30 select-none cursor-default"
                 title={lang === 'fr' ? 'Maître alchimiste !' : 'Alchemy master!'}
               >
                 <span className="text-sm leading-none" role="img" aria-label="crown">👑</span>
               </div>
-            ) : (
-              <button
-                onPointerDown={e => e.stopPropagation()}
-                onClick={e => { e.stopPropagation(); onRequestHint?.() }}
-                title={lang === 'fr' ? 'Obtenir un indice' : 'Get a hint'}
-                className={`relative flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center tap-spring transition-all select-none ${
-                  hintShouldPulse
-                    ? 'bg-amber-400 text-amber-900 shadow-[0_0_16px_4px_rgba(251,191,36,0.45),0_2px_0_0_rgba(0,0,0,0.3)] animate-pulse'
-                    : 'bg-amber-400/90 text-amber-900 shadow-[0_4px_0_0_rgba(120,80,0,0.5),0_0_12px_2px_rgba(251,191,36,0.25)] hover:shadow-[0_4px_0_0_rgba(120,80,0,0.5),0_0_20px_6px_rgba(251,191,36,0.4)] active:shadow-[0_1px_0_0_rgba(120,80,0,0.5)] active:translate-y-[3px]'
-                }`}
-                style={{ transform: hintShouldPulse ? undefined : undefined }}
-              >
-                <Lightbulb className="w-4 h-4 flex-shrink-0" />
-                {hintAdLocked && !hintShouldPulse && (
-                  <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-background border border-border flex items-center justify-center shadow-sm">
-                    <Play className="w-2 h-2 text-amber-500 fill-current" />
-                  </span>
-                )}
-              </button>
             )}
           </div>
 
@@ -759,7 +740,7 @@ export function Playground({
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder={lang === 'fr' ? 'Rechercher...' : 'Search...'}
-                  className="w-full h-9 pl-8 pr-7 bg-muted/40 border border-border/50 rounded-xl text-[13px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/40 focus:ring-2 focus:ring-foreground/15 focus:bg-muted/60 transition-all"
+                  className="w-full h-9 pl-8 pr-7 bg-muted/40 border border-border/50 rounded-xl text-[13px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-[3px] focus:border-foreground/30 focus:bg-muted/60 transition-[background-color,border-color]"
                   style={{ fontSize: '16px' }}
                   onPointerDown={e => e.stopPropagation()}
                   onTouchStart={e => e.stopPropagation()}
@@ -790,8 +771,8 @@ export function Playground({
                         i === 0 ? 'border-r border-border/50' : ''
                       } ${
                         isActive
-                          ? 'bg-foreground text-background'
-                          : 'text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/50'
+                          ? 'bg-muted-foreground/20 text-foreground'
+                          : 'text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50'
                       }`}
                     >
                       {label}
@@ -1015,47 +996,84 @@ export function Playground({
           className="flex-shrink-0 border-t border-white/[0.06] glass"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 12px) + 2px)' }}
         >
-          <div className="flex items-stretch">
+          <div className="flex items-center">
+
+            {/* Left: Jeu + Quetes */}
             {([
-              { id: 'home',     icon: HouseSimple, labelFr: 'Jeu',      labelEn: 'Play'     },
-              { id: 'quests',   icon: Bell,        labelFr: 'Quêtes',   labelEn: 'Quests'   },
-              { id: 'settings', icon: Gear,        labelFr: 'Réglages', labelEn: 'Settings' },
-              { id: 'profile',  icon: User,        labelFr: 'Profil',   labelEn: 'Profile'  },
-            ] as const).map(({ id, icon: Icon, labelFr, labelEn }) => {
+              { id: 'home',   icon: HouseSimple, label: lang === 'fr' ? 'Jeu'    : 'Play'   },
+              { id: 'quests', icon: Bell,        label: lang === 'fr' ? 'Quêtes' : 'Quests' },
+            ] as const).map(({ id, icon: Icon, label }) => {
               const isActive = activeTab === id
-              const isProfileWithUser = id === 'profile' && !!sessionUser
-              const label = lang === 'fr' ? labelFr : labelEn
               return (
                 <button
                   key={id}
                   onClick={() => {
-                    // Haptic selection feedback on tab switch
-                    if (!isActive && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-                      try { navigator.vibrate(10) } catch {}
-                    }
-                    setActiveTab(prev => {
-                      const next = prev === id && id !== 'home' ? 'home' : id
-                      setProfileView('profile')
-                      return next
-                    })
+                    if (!isActive && typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10) } catch {} }
+                    setActiveTab(prev => { const next = prev === id && id !== 'home' ? 'home' : id; setProfileView('profile'); return next })
                     if (id === 'quests') setQuestBadge(false)
                   }}
-                  className="flex-1 flex flex-col items-center justify-center gap-1 pt-2.5 pb-1 relative tap-spring"
+                  className="flex-1 flex flex-col items-center justify-center py-3 relative tap-spring"
                   aria-label={label}
                 >
-                  {/* Active pill indicator */}
-                  {isActive && (
-                    <span
-                      className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-foreground"
-                      style={{ transition: 'width 0.2s cubic-bezier(0.34,1.56,0.64,1)' }}
-                    />
-                  )}
+                  <div className="relative">
+                    <Icon size={24} weight={isActive ? 'fill' : 'regular'} className={`transition-colors duration-150 ${isActive ? 'text-foreground' : 'text-muted-foreground/50'}`} />
+                    {id === 'quests' && questBadge && !isActive && (
+                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 border border-card" />
+                    )}
+                  </div>
+                </button>
+              )
+            })}
 
+            {/* Center: Hint — raised 3D amber button */}
+            <div className="flex-1 flex flex-col items-center justify-center py-2 relative">
+              <button
+                onPointerDown={e => e.stopPropagation()}
+                onClick={e => { e.stopPropagation(); onRequestHint?.() }}
+                aria-label={lang === 'fr' ? 'Obtenir un indice' : 'Get a hint'}
+                className={`
+                  relative flex items-center justify-center
+                  w-14 h-14 rounded-2xl tap-spring select-none
+                  bg-amber-400
+                  shadow-[0_5px_0_0_rgba(100,65,0,0.55),0_0_16px_4px_rgba(251,191,36,0.3)]
+                  hover:shadow-[0_5px_0_0_rgba(100,65,0,0.55),0_0_24px_8px_rgba(251,191,36,0.45)]
+                  active:shadow-[0_1px_0_0_rgba(100,65,0,0.55)] active:translate-y-[4px]
+                  transition-shadow
+                  -translate-y-3
+                  ${hintShouldPulse ? 'animate-pulse' : ''}
+                `}
+              >
+                <Lightbulb className="w-6 h-6 text-amber-950" />
+                {hintAdLocked && !hintShouldPulse && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-background border border-border flex items-center justify-center shadow-sm">
+                    <Play className="w-2 h-2 text-amber-500 fill-current" />
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Right: Settings + Profile */}
+            {([
+              { id: 'settings', icon: Gear, label: lang === 'fr' ? 'Réglages' : 'Settings' },
+              { id: 'profile',  icon: User, label: lang === 'fr' ? 'Profil'   : 'Profile'  },
+            ] as const).map(({ id, icon: Icon, label }) => {
+              const isActive = activeTab === id
+              const isProfileWithUser = id === 'profile' && !!sessionUser
+              return (
+                <button
+                  key={id}
+                  onClick={() => {
+                    if (!isActive && typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10) } catch {} }
+                    setActiveTab(prev => { const next = prev === id && id !== 'home' ? 'home' : id; setProfileView('profile'); return next })
+                  }}
+                  className="flex-1 flex flex-col items-center justify-center py-3 relative tap-spring"
+                  aria-label={label}
+                >
                   {isProfileWithUser ? (() => {
                     const tabEl = tabAvatarKey ? elementsByName.get(tabAvatarKey) : null
                     return (
                       <div
-                        className={`w-7 h-7 rounded-full overflow-hidden border-[1.5px] transition-all flex-shrink-0 bg-muted flex items-center justify-center ${isActive ? 'border-foreground' : 'border-muted-foreground/25'}`}
+                        className={`w-7 h-7 rounded-full overflow-hidden flex-shrink-0 bg-muted flex items-center justify-center transition-all ${isActive ? 'border-[2px] border-foreground' : 'border border-muted-foreground/25'}`}
                         style={tabEl?.color ? { backgroundColor: `${tabEl.color}22` } : undefined}
                       >
                         {tabEl?.imageUrl ? (
@@ -1066,25 +1084,12 @@ export function Playground({
                       </div>
                     )
                   })() : (
-                    <div className="relative">
-                      <Icon
-                        size={24}
-                        weight={isActive ? 'fill' : 'regular'}
-                        className={`transition-all duration-150 ${isActive ? 'text-foreground' : 'text-muted-foreground/60'}`}
-                      />
-                      {id === 'quests' && questBadge && !isActive && (
-                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 border border-card" />
-                      )}
-                    </div>
+                    <Icon size={24} weight={isActive ? 'fill' : 'regular'} className={`transition-colors duration-150 ${isActive ? 'text-foreground' : 'text-muted-foreground/50'}`} />
                   )}
-
-                  {/* Label */}
-                  <span className={`text-[10px] font-medium leading-none transition-colors duration-150 ${isActive ? 'text-foreground' : 'text-muted-foreground/50'}`}>
-                    {label}
-                  </span>
                 </button>
               )
             })}
+
           </div>
         </div>
 
