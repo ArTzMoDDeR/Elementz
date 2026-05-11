@@ -174,14 +174,21 @@ export function Inventory({
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Rechercher..."
-            className="w-full h-10 pl-10 pr-10 bg-background border border-input rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-shadow"
+            className="w-full h-10 pl-10 pr-10 bg-background rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none transition-shadow"
+            style={{
+              border: '1.5px solid rgba(255,255,255,0.18)',
+              outline: 'none',
+            }}
+            onFocus={e => { e.currentTarget.style.border = '1.5px solid rgba(255,255,255,0.38)' }}
+            onBlur={e => { e.currentTarget.style.border = '1.5px solid rgba(255,255,255,0.18)' }}
           />
           {search && (
             <button
               onClick={() => setSearch('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 hover:bg-muted rounded p-1 transition-colors"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full bg-muted-foreground/20 hover:bg-muted-foreground/35 transition-colors"
+              aria-label="Clear search"
             >
-              <X className="w-3.5 h-3.5 text-muted-foreground" />
+              <X className="w-3.5 h-3.5 text-foreground/70" />
             </button>
           )}
         </div>
