@@ -3,15 +3,13 @@ import { auth } from '@/auth'
 import { NextRequest, NextResponse } from 'next/server'
 import webpush from 'web-push'
 
-const sql = neon(process.env.DATABASE_URL!)
-
-webpush.setVapidDetails(
-  `mailto:${process.env.EMAIL_FROM ?? 'admin@elementz.fun'}`,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!,
-)
-
 export async function POST(req: NextRequest) {
+  const sql = neon(process.env.DATABASE_URL!)
+  webpush.setVapidDetails(
+    `mailto:${process.env.EMAIL_FROM ?? 'admin@elementz.fun'}`,
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!,
+  )
   const session = await auth()
   if (!(session?.user as { isAdmin?: boolean })?.isAdmin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -81,6 +79,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const sql = neon(process.env.DATABASE_URL!)
   const session = await auth()
   if (!(session?.user as { isAdmin?: boolean })?.isAdmin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
