@@ -12,7 +12,7 @@ export async function GET() {
       ORDER BY number
     `
     return NextResponse.json(elements, {
-      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' },
+      headers: { 'Cache-Control': 'no-store' },
     })
   } catch (err) {
     console.error('[v0] /api/elements error:', err instanceof Error ? err.message : err)

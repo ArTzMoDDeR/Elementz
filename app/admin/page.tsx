@@ -1014,7 +1014,7 @@ function ElementsTab() {
 
   const fetchElements = async () => {
     try {
-      const res = await fetch('/api/elements')
+      const res = await fetch('/api/elements', { cache: 'no-store' })
       const data = await res.json()
       setElements(Array.isArray(data) ? data : [])
     } catch {}
