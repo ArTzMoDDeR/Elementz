@@ -669,13 +669,20 @@ export function Playground({
       {/* MOBILE FULLSCREEN PANEL — quests / settings / profile (non-home tabs) */}
       {isMobile && activeTab !== 'home' && (
         <div
-          className="fixed inset-0 bg-background flex flex-col"
+          className="fixed inset-0 bg-background flex flex-col relative"
           style={{
             zIndex: 150,
             paddingTop: 'env(safe-area-inset-top, 0px)',
             paddingBottom: 'calc(56px + env(safe-area-inset-bottom, 0px))',
           }}
         >
+          {/* Legal page overlay — covers the fullscreen panel but keeps navbar below */}
+          {legalPage && (
+            <div className="absolute inset-0 bg-background flex flex-col" style={{ zIndex: 10 }}>
+              <LegalPageInline lang={lang} page={legalPage} onBack={() => setLegalPage(null)} />
+            </div>
+          )}
+
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div className="px-4 py-4">
@@ -746,13 +753,6 @@ export function Playground({
                 <HelpPanel lang={lang} onBack={() => setActiveTab('settings')} />
               )}
 
-              {/* ── Legal page (in-app, mobile fullscreen) ── */}
-              {legalPage && (
-                <div className="absolute inset-0 bg-background flex flex-col z-10">
-                  <LegalPageInline lang={lang} page={legalPage} onBack={() => setLegalPage(null)} />
-                </div>
-              )}
-
               {/* ── Profile: logged in ── */}
               {activeTab === 'profile' && sessionUser && (
                 profileView === 'leaderboard'
@@ -813,7 +813,7 @@ export function Playground({
       {/* INVENTORY PANEL */}
       <div
         ref={inventoryRef}
-        className="absolute bottom-0 left-0 right-0 md:bottom-0 md:left-auto md:top-0 md:right-0 md:h-full md:w-[300px] lg:w-[400px] bg-card/95 backdrop-blur-xl border-t md:border-t-0 md:border-l border-border flex flex-col"
+        className="absolute bottom-0 left-0 right-0 md:bottom-0 md:left-auto md:top-0 md:right-0 md:h-full md:w-[300px] lg:w-[400px] bg-card/95 backdrop-blur-xl border-t md:border-t-0 md:border-l border-border flex flex-col relative"
         style={{
           zIndex: isMobile && activeTab !== 'home' ? 200 : 120,
           height: isMobile
@@ -1090,11 +1090,6 @@ export function Playground({
                 {activeTab === 'help' && (
                   <HelpPanel lang={lang} onBack={() => setActiveTab('settings')} />
                 )}
-                {legalPage && (
-                  <div className="absolute inset-0 bg-card flex flex-col z-10">
-                    <LegalPageInline lang={lang} page={legalPage} onBack={() => setLegalPage(null)} />
-                  </div>
-                )}
                 {activeTab === 'profile' && sessionUser && (
                   profileView === 'leaderboard'
                     ? <LeaderboardInlinePanel lang={lang} totalElements={totalElements} sessionUser={sessionUser} onBack={() => setProfileView('profile')} />
@@ -1269,6 +1264,13 @@ export function Playground({
 
           </div>
         </div>
+
+        {/* Legal page overlay — desktop: covers entire inventory panel, navbar stays below */}
+        {!isMobile && legalPage && (
+          <div className="absolute inset-0 bg-card/95 backdrop-blur-xl flex flex-col" style={{ zIndex: 10 }}>
+            <LegalPageInline lang={lang} page={legalPage} onBack={() => setLegalPage(null)} />
+          </div>
+        )}
 
       </div>
 
@@ -1733,19 +1735,35 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
   )
 }
 
+function LegalSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="text-xs font-semibold text-foreground">{title}</h2>
+      {children}
+    </section>
+  )
+}
+
 function LegalPageInline({ lang, page, onBack }: { lang: 'fr' | 'en'; page: 'terms' | 'privacy' | 'legal'; onBack: () => void }) {
+  const contact = 'contact@elementz.fun'
+  const domain = 'https://elementz.fun'
+  const host = 'Vercel Inc., 340 Pine Street, Suite 701, San Francisco, CA 94104, USA'
+  const db = 'Neon Inc. — PostgreSQL serverless, région EU'
+
   const titles: Record<typeof page, { fr: string; en: string }> = {
     terms:   { fr: "Conditions d'utilisation", en: 'Terms of Service' },
     privacy: { fr: 'Politique de confidentialité', en: 'Privacy Policy' },
     legal:   { fr: 'Mentions légales', en: 'Legal Notice' },
   }
   const title = lang === 'fr' ? titles[page].fr : titles[page].en
-  const path = page === 'terms' ? '/terms' : page === 'privacy' ? '/privacy' : '/legal'
+
+  const prose = 'text-xs text-foreground/70 leading-relaxed'
+  const link = 'underline text-foreground/80 hover:text-foreground transition-colors'
 
   return (
     <div className="flex flex-col h-full">
-      {/* Back header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border flex-shrink-0">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border flex-shrink-0 bg-card/95">
         <button
           onClick={onBack}
           className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center hover:bg-muted/80 active:scale-95 transition-all flex-shrink-0"
@@ -1755,13 +1773,85 @@ function LegalPageInline({ lang, page, onBack }: { lang: 'fr' | 'en'; page: 'ter
         </button>
         <h2 className="text-sm font-semibold text-foreground">{title}</h2>
       </div>
-      {/* Iframe — renders the real page content without leaving the app */}
-      <iframe
-        src={path}
-        title={title}
-        className="flex-1 w-full border-0 bg-background"
-        style={{ minHeight: '70vh' }}
-      />
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex flex-col gap-4 px-4 py-4">
+
+          {/* ── TERMS ── */}
+          {page === 'terms' && lang === 'fr' && <>
+            <LegalSection title="1. Acceptation"><p className={prose}>En accédant à Elementz sur <a href={domain} className={link}>{domain}</a>, vous acceptez les présentes conditions.</p></LegalSection>
+            <LegalSection title="2. Description du service"><p className={prose}>Elementz est un jeu d&apos;alchimie gratuit dans lequel les joueurs combinent des éléments pour en découvrir de nouveaux. Le service est fourni « en l&apos;état ».</p></LegalSection>
+            <LegalSection title="3. Comptes"><ul className={`list-disc list-inside flex flex-col gap-1 ${prose}`}><li>Vous devez fournir des informations exactes.</li><li>Vous êtes responsable de la sécurité de votre compte.</li><li>Un compte par personne.</li><li>Vous pouvez supprimer votre compte depuis l&apos;onglet Réglages.</li></ul></LegalSection>
+            <LegalSection title="4. Utilisation acceptable"><ul className={`list-disc list-inside flex flex-col gap-1 ${prose}`}><li>Pas de bots, scripts ou triche.</li><li>Pas d&apos;extraction massive des données.</li><li>Pas de pseudo ou avatar offensant.</li><li>Signalez les failles à <a href={`mailto:${contact}`} className={link}>{contact}</a>.</li></ul></LegalSection>
+            <LegalSection title="5. Propriété intellectuelle"><p className={prose}>Tout le contenu, le design et le code sont la propriété exclusive d&apos;Eugène Garcia, Paris. Certains pictogrammes proviennent de <strong className="text-foreground">Twemoji</strong> (Twitter, Inc.) sous licence <a href="https://creativecommons.org/licenses/by/4.0/" className={link}>CC BY 4.0</a>.</p></LegalSection>
+            <LegalSection title="6. Résiliation"><p className={prose}>Nous pouvons suspendre des comptes qui enfreignent ces conditions. Vous pouvez résilier à tout moment depuis Réglages.</p></LegalSection>
+            <LegalSection title="7–8. Garanties & responsabilité"><p className={prose}>Le service est fourni « en l&apos;état ». Eugène Garcia ne saurait être tenu responsable des dommages indirects.</p></LegalSection>
+            <LegalSection title="9. Modifications"><p className={prose}>Nous pouvons mettre à jour ces conditions à tout moment. La poursuite de l&apos;utilisation vaut acceptation.</p></LegalSection>
+            <LegalSection title="10. Droit applicable"><p className={prose}>Droit français — tribunaux compétents français.</p></LegalSection>
+            <LegalSection title="11. Contact"><p className={prose}><a href={`mailto:${contact}`} className={link}>{contact}</a></p></LegalSection>
+          </>}
+          {page === 'terms' && lang === 'en' && <>
+            <LegalSection title="1. Acceptance"><p className={prose}>By accessing Elementz at <a href={domain} className={link}>{domain}</a>, you agree to these Terms.</p></LegalSection>
+            <LegalSection title="2. Description"><p className={prose}>Elementz is a free alchemy game where players combine elements to discover new ones. The service is provided &ldquo;as is&rdquo;.</p></LegalSection>
+            <LegalSection title="3. Accounts"><ul className={`list-disc list-inside flex flex-col gap-1 ${prose}`}><li>Provide accurate information.</li><li>You are responsible for your account security.</li><li>One account per person.</li><li>Delete your account from Settings.</li></ul></LegalSection>
+            <LegalSection title="4. Acceptable use"><ul className={`list-disc list-inside flex flex-col gap-1 ${prose}`}><li>No bots, scripts, or cheats.</li><li>No bulk data extraction.</li><li>No offensive username or avatar.</li><li>Report bugs to <a href={`mailto:${contact}`} className={link}>{contact}</a>.</li></ul></LegalSection>
+            <LegalSection title="5. Intellectual property"><p className={prose}>All content, design and code belong to Eugène Garcia, Paris. Some pictograms come from <strong className="text-foreground">Twemoji</strong> (Twitter, Inc.) under <a href="https://creativecommons.org/licenses/by/4.0/" className={link}>CC BY 4.0</a>.</p></LegalSection>
+            <LegalSection title="6. Termination"><p className={prose}>We may suspend accounts violating these Terms. You may delete your account from Settings.</p></LegalSection>
+            <LegalSection title="7–8. Warranties & liability"><p className={prose}>Service provided &ldquo;as is&rdquo;. Eugène Garcia is not liable for indirect or consequential damages.</p></LegalSection>
+            <LegalSection title="9. Changes"><p className={prose}>We may update these Terms at any time. Continued use constitutes acceptance.</p></LegalSection>
+            <LegalSection title="10. Governing law"><p className={prose}>French law — French courts.</p></LegalSection>
+            <LegalSection title="11. Contact"><p className={prose}><a href={`mailto:${contact}`} className={link}>{contact}</a></p></LegalSection>
+          </>}
+
+          {/* ── PRIVACY ── */}
+          {page === 'privacy' && lang === 'fr' && <>
+            <LegalSection title="1. Qui sommes-nous"><p className={prose}>Service opéré par Eugène Garcia, Paris. <a href={domain} className={link}>{domain}</a></p></LegalSection>
+            <LegalSection title="2. Données collectées"><ul className={`list-disc list-inside flex flex-col gap-1 ${prose}`}><li><strong className="text-foreground">E-mail</strong> — connexion OTP.</li><li><strong className="text-foreground">Google</strong> (nom, e-mail, avatar) — OAuth.</li><li><strong className="text-foreground">Discord</strong> (pseudo, e-mail, avatar) — OAuth.</li><li><strong className="text-foreground">Progression</strong> — éléments, quêtes, pseudo, avatar.</li><li><strong className="text-foreground">Analytics</strong> — Vercel Analytics, anonymes.</li></ul></LegalSection>
+            <LegalSection title="3. Finalités"><ul className={`list-disc list-inside flex flex-col gap-1 ${prose}`}><li>Authentification & session.</li><li>Sauvegarde & synchronisation de la progression.</li><li>Affichage dans le classement.</li><li>Envoi du code OTP.</li><li>Amélioration du jeu.</li></ul></LegalSection>
+            <LegalSection title="4. Hébergement"><p className={prose}><strong className="text-foreground">Neon</strong> (PostgreSQL, EU) · <strong className="text-foreground">Resend</strong> (e-mail) · <strong className="text-foreground">Vercel</strong> (app). Tous conformes RGPD.</p></LegalSection>
+            <LegalSection title="5. Conservation"><p className={prose}>Données conservées tant que le compte est actif. Suppression complète depuis Réglages. OTP invalide après 10 min.</p></LegalSection>
+            <LegalSection title="6. Vos droits (RGPD)"><p className={prose}>Accès, rectification, effacement, portabilité, opposition : <a href={`mailto:${contact}`} className={link}>{contact}</a>.</p></LegalSection>
+            <LegalSection title="7. Cookies"><p className={prose}>Un seul cookie de session (<code className="bg-muted px-1 py-0.5 rounded">next-auth.session-token</code>). Aucun cookie publicitaire.</p></LegalSection>
+            <LegalSection title="8. Mineurs"><p className={prose}>Service non destiné aux moins de 13 ans.</p></LegalSection>
+            <LegalSection title="9. Ressources tierces"><p className={prose}>Certains pictogrammes proviennent de <strong className="text-foreground">Twemoji</strong> (Twitter, Inc.) sous <a href="https://creativecommons.org/licenses/by/4.0/" className={link}>CC BY 4.0</a>.</p></LegalSection>
+            <LegalSection title="10. Contact"><p className={prose}><a href={`mailto:${contact}`} className={link}>{contact}</a></p></LegalSection>
+          </>}
+          {page === 'privacy' && lang === 'en' && <>
+            <LegalSection title="1. Who we are"><p className={prose}>Operated by Eugène Garcia, Paris. <a href={domain} className={link}>{domain}</a></p></LegalSection>
+            <LegalSection title="2. Data we collect"><ul className={`list-disc list-inside flex flex-col gap-1 ${prose}`}><li><strong className="text-foreground">Email</strong> — OTP sign-in.</li><li><strong className="text-foreground">Google</strong> (name, email, avatar) — OAuth.</li><li><strong className="text-foreground">Discord</strong> (username, email, avatar) — OAuth.</li><li><strong className="text-foreground">Game progress</strong> — elements, quests, username, avatar.</li><li><strong className="text-foreground">Analytics</strong> — Vercel Analytics, anonymous.</li></ul></LegalSection>
+            <LegalSection title="3. Why we collect it"><ul className={`list-disc list-inside flex flex-col gap-1 ${prose}`}><li>Authentication & session.</li><li>Save & sync progress.</li><li>Leaderboard display.</li><li>Send OTP email.</li><li>Improve the game.</li></ul></LegalSection>
+            <LegalSection title="4. Storage & processors"><p className={prose}><strong className="text-foreground">Neon</strong> (PostgreSQL, EU) · <strong className="text-foreground">Resend</strong> (email) · <strong className="text-foreground">Vercel</strong> (app). All GDPR-compliant.</p></LegalSection>
+            <LegalSection title="5. Retention"><p className={prose}>Data kept while account is active. Permanent deletion from Settings. OTP codes expire after 10 min.</p></LegalSection>
+            <LegalSection title="6. Your rights (GDPR)"><p className={prose}>Access, rectify, erase, port, object: <a href={`mailto:${contact}`} className={link}>{contact}</a>.</p></LegalSection>
+            <LegalSection title="7. Cookies"><p className={prose}>One session cookie (<code className="bg-muted px-1 py-0.5 rounded">next-auth.session-token</code>). No advertising cookies.</p></LegalSection>
+            <LegalSection title="8. Children"><p className={prose}>Not directed to children under 13.</p></LegalSection>
+            <LegalSection title="9. Third-party assets"><p className={prose}>Some pictograms from <strong className="text-foreground">Twemoji</strong> (Twitter, Inc.) under <a href="https://creativecommons.org/licenses/by/4.0/" className={link}>CC BY 4.0</a>.</p></LegalSection>
+            <LegalSection title="10. Contact"><p className={prose}><a href={`mailto:${contact}`} className={link}>{contact}</a></p></LegalSection>
+          </>}
+
+          {/* ── LEGAL NOTICE ── */}
+          {page === 'legal' && lang === 'fr' && <>
+            <LegalSection title="Éditeur"><p className={prose}><strong className="text-foreground">Elementz</strong> — Eugène Garcia, Paris, France.<br /><a href={`mailto:${contact}`} className={link}>{contact}</a></p></LegalSection>
+            <LegalSection title="Directeur de la publication"><p className={prose}>Eugène Garcia</p></LegalSection>
+            <LegalSection title="Hébergement"><p className={prose}><a href={domain} className={link}>{domain}</a> est hébergé par :<br /><span className="text-foreground/60">{host}</span><br />Base de données : <span className="text-foreground/60">{db}</span></p></LegalSection>
+            <LegalSection title="Propriété intellectuelle"><p className={prose}>Contenu, design et code : propriété exclusive d&apos;Eugène Garcia. Certains pictogrammes proviennent de <strong className="text-foreground">Twemoji</strong> (Twitter, Inc.) sous <a href="https://creativecommons.org/licenses/by/4.0/" className={link}>CC BY 4.0</a>.</p></LegalSection>
+            <LegalSection title="Données personnelles"><p className={prose}>Voir la Politique de confidentialité. DPO : <a href={`mailto:${contact}`} className={link}>{contact}</a></p></LegalSection>
+            <LegalSection title="Cookies"><p className={prose}>Cookie de session unique, strictement nécessaire. Aucun cookie publicitaire.</p></LegalSection>
+            <LegalSection title="Loi applicable"><p className={prose}>Droit français — tribunaux compétents français.</p></LegalSection>
+          </>}
+          {page === 'legal' && lang === 'en' && <>
+            <LegalSection title="Publisher"><p className={prose}><strong className="text-foreground">Elementz</strong> — Eugène Garcia, Paris, France.<br /><a href={`mailto:${contact}`} className={link}>{contact}</a></p></LegalSection>
+            <LegalSection title="Publication director"><p className={prose}>Eugène Garcia</p></LegalSection>
+            <LegalSection title="Hosting"><p className={prose}><a href={domain} className={link}>{domain}</a> is hosted by:<br /><span className="text-foreground/60">{host}</span><br />Database: <span className="text-foreground/60">Neon Inc. — PostgreSQL serverless, EU region</span></p></LegalSection>
+            <LegalSection title="Intellectual property"><p className={prose}>All content, design and code: exclusive property of Eugène Garcia. Some pictograms from <strong className="text-foreground">Twemoji</strong> (Twitter, Inc.) under <a href="https://creativecommons.org/licenses/by/4.0/" className={link}>CC BY 4.0</a>.</p></LegalSection>
+            <LegalSection title="Personal data"><p className={prose}>See Privacy Policy. DPO: <a href={`mailto:${contact}`} className={link}>{contact}</a></p></LegalSection>
+            <LegalSection title="Cookies"><p className={prose}>Single session cookie, strictly necessary. No advertising cookies.</p></LegalSection>
+            <LegalSection title="Governing law"><p className={prose}>French law — French courts.</p></LegalSection>
+          </>}
+
+        </div>
+      </div>
     </div>
   )
 }
