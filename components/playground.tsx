@@ -347,6 +347,11 @@ export function Playground({
   const [helpOpen, setHelpOpen] = useState(false)
   const [hintIdleGlow, setHintIdleGlow] = useState(false)
   const hintIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<'home' | 'quests' | 'settings' | 'help' | 'profile'>('home')
+  const [profileView, setProfileView] = useState<'profile' | 'leaderboard' | 'codex'>('profile')
+  const [questBadge, setQuestBadge] = useState(false)
 
   // Reset mobile scroll to top whenever the active tab changes
   useEffect(() => {
@@ -364,11 +369,6 @@ export function Playground({
     }, 90_000)
     return () => { if (hintIdleTimer.current) clearTimeout(hintIdleTimer.current) }
   }, [])
-  const [leaderboardOpen, setLeaderboardOpen] = useState(false)
-  const [profileOpen, setProfileOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'home' | 'quests' | 'settings' | 'help' | 'profile'>('home')
-  const [profileView, setProfileView] = useState<'profile' | 'leaderboard' | 'codex'>('profile')
-  const [questBadge, setQuestBadge] = useState(false)
 
   // Poll quest readiness every 30s to show badge dot
   useEffect(() => {
