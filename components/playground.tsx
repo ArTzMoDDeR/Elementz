@@ -287,6 +287,7 @@ export function Playground({
   const containerRef = useRef<HTMLDivElement>(null)
   const inventoryRef = useRef<HTMLDivElement>(null)
   const inventoryScrollRef = useRef<HTMLDivElement>(null)
+  const mobileScrollRef = useRef<HTMLDivElement>(null)
 
   const [tabAvatarKey, setTabAvatarKey] = useState<string | null>(null)
   const [gridCols, setGridColsState] = useState<3 | 4 | 5>(4)
@@ -346,6 +347,11 @@ export function Playground({
   const [helpOpen, setHelpOpen] = useState(false)
   const [hintIdleGlow, setHintIdleGlow] = useState(false)
   const hintIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Reset mobile scroll to top whenever the active tab changes
+  useEffect(() => {
+    if (mobileScrollRef.current) mobileScrollRef.current.scrollTop = 0
+  }, [activeTab])
 
   // After 90s of inactivity, glow the hint button for 15s then auto-reset
   useEffect(() => {
@@ -676,7 +682,11 @@ export function Playground({
           }}
         >
           {/* Scrollable content */}
-          <div className="flex-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div
+            ref={mobileScrollRef}
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
             <div className="px-4 py-4">
 
               {/* ── Quests: logged in ── */}
@@ -1493,7 +1503,7 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
         <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Langue' : 'Language'}</span>
         <div className="flex items-center bg-muted/50 border border-border rounded-xl p-1 h-9 gap-0.5">
           <button className={`px-3 h-full text-base rounded-lg transition-colors ${lang === 'fr' ? 'bg-background shadow' : 'opacity-40 hover:opacity-70'}`} onClick={() => onSetLang('fr')}>🇫🇷</button>
-          <button className={`px-3 h-full text-base rounded-lg transition-colors ${lang === 'en' ? 'bg-background shadow' : 'opacity-40 hover:opacity-70'}`} onClick={() => onSetLang('en')}>🇬🇧</button>
+          <button className={`px-3 h-full text-base rounded-lg transition-colors ${lang === 'en' ? 'bg-background shadow' : 'opacity-40 hover:opacity-70'}`} onClick={() => onSetLang('en')}>🇺🇸</button>
         </div>
       </div>
       {/* Theme */}
