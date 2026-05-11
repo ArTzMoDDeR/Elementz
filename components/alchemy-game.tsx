@@ -147,6 +147,32 @@ function PushPromptModal({ lang, onAccept, onDecline }: { lang: string; onAccept
 // ─── iOS-style top discovery pill ────────────────────────────────────────────
 type ElementDef = { number: number; name: string; imageUrl?: string; color?: string }
 
+const DISCOVERY_MESSAGES_FR = [
+  (name: string) => `Bravo ! Tu viens de découvrir ${name}`,
+  (name: string) => `Incroyable ! ${name} est maintenant débloqué`,
+  (name: string) => `Bien joué ! Tu as trouvé ${name}`,
+  (name: string) => `Nouveau ! ${name} rejoint ta collection`,
+  (name: string) => `Excellent ! Tu as créé ${name}`,
+  (name: string) => `Super ! ${name} vient d'apparaître`,
+  (name: string) => `Magnifique ! ${name} est découvert`,
+  (name: string) => `Impressionnant ! Tu as débloqué ${name}`,
+  (name: string) => `Parfait ! ${name} est à toi`,
+  (name: string) => `Génial ! Tu viens de créer ${name}`,
+]
+
+const DISCOVERY_MESSAGES_EN = [
+  (name: string) => `Bravo! You just discovered ${name}`,
+  (name: string) => `Incredible! ${name} is now unlocked`,
+  (name: string) => `Nice one! You found ${name}`,
+  (name: string) => `New! ${name} joins your collection`,
+  (name: string) => `Excellent! You created ${name}`,
+  (name: string) => `Amazing! ${name} just appeared`,
+  (name: string) => `Wonderful! ${name} is discovered`,
+  (name: string) => `Impressive! You unlocked ${name}`,
+  (name: string) => `Perfect! ${name} is yours`,
+  (name: string) => `Awesome! You just created ${name}`,
+]
+
 function MobileDiscoveryPill({
   newlyDiscovered,
   lastComboIngredients,
@@ -162,14 +188,16 @@ function MobileDiscoveryPill({
 }) {
   const pillRef = useRef<HTMLDivElement>(null)
   const dragStart = useRef<{ y: number; startTranslate: number } | null>(null)
-  const [translateY, setTranslateY] = useState(0)
-  const [exiting, setExiting]       = useState(false)
+  const [translateY, setTranslateY]   = useState(0)
+  const [exiting, setExiting]         = useState(false)
+  const [msgIndex, setMsgIndex]       = useState(0)
 
-  // Reset on new discovery
+  // Reset on new discovery and pick a fresh random message variant
   useEffect(() => {
     if (newlyDiscovered != null) {
       setTranslateY(0)
       setExiting(false)
+      setMsgIndex(Math.floor(Math.random() * 10))
     }
   }, [newlyDiscovered])
 
@@ -200,13 +228,14 @@ function MobileDiscoveryPill({
   if (newlyDiscovered == null) return null
   const el = elements.get(newlyDiscovered)
   if (!el) return null
-  const ingA = lastComboIngredients ? elements.get(lastComboIngredients[0]) : null
-  const ingB = lastComboIngredients ? elements.get(lastComboIngredients[1]) : null
+
+  const messages = lang === 'fr' ? DISCOVERY_MESSAGES_FR : DISCOVERY_MESSAGES_EN
+  const message  = messages[msgIndex]?.(el.name) ?? `${lang === 'fr' ? 'Nouveau' : 'New'}: ${el.name}`
 
   return (
     <div
       className="md:hidden fixed inset-x-0 top-0 z-[200] flex justify-center pointer-events-none"
-      style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0px)' }}
+      style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
       <div
         ref={pillRef}
@@ -219,13 +248,12 @@ function MobileDiscoveryPill({
         onPointerCancel={onPointerUp}
       >
         <div
-          className={`w-full rounded-b-2xl px-4 py-3 flex flex-row items-center gap-3 ${exiting ? 'ios-notif-exit' : 'ios-notif-enter'}`}
+          className={`w-full rounded-2xl px-4 py-3 flex flex-row items-center gap-3 ${exiting ? 'ios-notif-exit' : 'ios-notif-enter'}`}
           style={{
             background: 'color-mix(in oklch, var(--card) 96%, transparent)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
             border: '1px solid color-mix(in oklch, var(--foreground) 8%, transparent)',
-            borderTop: 'none',
             boxShadow: '0 4px 24px rgba(0,0,0,0.22), 0 1px 0 rgba(255,255,255,0.05) inset',
             transform: `translateY(${translateY}px)`,
             transition: dragStart.current ? 'none' : 'transform 0.2s cubic-bezier(0.32,0.72,0,1)',
@@ -241,10 +269,8 @@ function MobileDiscoveryPill({
             <span className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 leading-none select-none">
               {lang === 'fr' ? 'Nouveau' : 'New'}
             </span>
-            <span className="text-[13px] font-semibold text-foreground leading-snug select-none truncate">
-              {ingA && ingB
-                ? `${ingA.name} + ${ingB.name} → ${el.name}`
-                : el.name}
+            <span className="text-[13px] font-semibold text-foreground leading-snug select-none">
+              {message}
             </span>
           </div>
         </div>
