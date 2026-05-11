@@ -713,36 +713,32 @@ function ElementCard({ element, uploading, onEdit, onUpload }: {
   onUpload: (number: number, file: File) => void
 }) {
   return (
-    <div className="relative group flex flex-col bg-card border border-border rounded-xl overflow-hidden hover:border-border/80 transition-colors cursor-pointer" onClick={() => onEdit(element)}>
-      {/* Image area */}
-      <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden p-2">
+    <div
+      className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer border border-transparent hover:bg-muted/50 hover:border-border/40 transition-colors"
+      onClick={() => onEdit(element)}
+    >
+      {/* Thumbnail — fixed small size, no aspect-square expansion */}
+      <div className="w-8 h-8 rounded-lg bg-muted flex-shrink-0 flex items-center justify-center overflow-hidden">
         {element.img
-          ? <img src={element.img} alt={element.name_french} className="w-full h-full object-contain" loading="lazy" decoding="async" />
-          : <span className="text-[10px] font-mono text-muted-foreground/30">#{element.number}</span>
+          ? <img src={element.img} alt={element.name_french} width={32} height={32} className="object-contain" loading="lazy" decoding="async" />
+          : <span className="text-[9px] font-mono text-muted-foreground/40">?</span>
         }
-        {/* Hover overlay */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 gap-1.5">
-          <label className="cursor-pointer" onClick={e => e.stopPropagation()}>
-            <input type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden"
-              onChange={e => { const f = e.target.files?.[0]; if (f) onUpload(element.number, f) }} />
-            <div className="w-7 h-7 rounded-lg bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/25 transition-colors">
-              {uploading.has(element.number) ? <Spinner /> : <Upload className="w-3 h-3" />}
-            </div>
-          </label>
-          <div className="w-7 h-7 rounded-lg bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white">
-            <Pencil className="w-3 h-3" />
-          </div>
+      </div>
+      {/* Text */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate text-foreground leading-tight">{element.name_french}</p>
+        <p className="text-[10px] font-mono text-muted-foreground/40 leading-tight">#{element.number}</p>
+      </div>
+      {/* Missing image dot */}
+      {!element.img && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />}
+      {/* Upload button */}
+      <label className="flex-shrink-0 cursor-pointer" onClick={e => e.stopPropagation()}>
+        <input type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden"
+          onChange={e => { const f = e.target.files?.[0]; if (f) onUpload(element.number, f) }} />
+        <div className="w-7 h-7 rounded-lg bg-muted hover:bg-muted/80 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+          {uploading.has(element.number) ? <Spinner /> : <Upload className="w-3 h-3" />}
         </div>
-      </div>
-      {/* Label */}
-      <div className="px-2 py-1.5">
-        <p className="text-[10px] font-semibold truncate leading-tight text-foreground">{element.name_french}</p>
-        <p className="text-[9px] font-mono text-muted-foreground/40 leading-tight">#{element.number}</p>
-      </div>
-      {/* No-image dot */}
-      {!element.img && (
-        <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-amber-400" />
-      )}
+      </label>
     </div>
   )
 }
@@ -993,7 +989,7 @@ function AddModal({ onClose, onAdded }: { onClose: () => void; onAdded: (el: Ele
   )
 }
 
-const PAGE_SIZE = 60
+const PAGE_SIZE = 150
 
 function ElementsTab() {
   const [elements, setElements] = useState<Element[]>([])
@@ -1142,7 +1138,7 @@ function ElementsTab() {
         ? <p className="text-sm text-muted-foreground text-center py-16">Aucun élément trouvé</p>
         : (
           <>
-            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-2">
+            <div className="flex flex-col divide-y divide-border/30">
               {visibleElements.map(el => (
                 <ElementCard key={el.number} element={el} uploading={uploading} onEdit={setEditingElement} onUpload={handleFileUpload} />
               ))}
