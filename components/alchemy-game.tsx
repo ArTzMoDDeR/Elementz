@@ -173,6 +173,7 @@ export function AlchemyGame() {
     dropAndMerge,
     resetProgress,
     unlockAll,
+    discoverElements,
   } = useGameStore()
 
   const {
@@ -396,7 +397,15 @@ export function AlchemyGame() {
 
   return (
     <div className="game-container bg-background">
-      {showOnboarding && <OnboardingModal elementsByName={elementsByName} onComplete={handleOnboardingComplete} />}
+      {showOnboarding && (
+        <OnboardingModal
+          elementsByName={elementsByName}
+          elements={elements}
+          recipeMap={recipeMap}
+          onComplete={handleOnboardingComplete}
+          onTutorialDiscover={discoverElements}
+        />
+      )}
 
       {showGuestWall && (
         <GuestWallOverlay lang={lang} />

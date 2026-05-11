@@ -2,12 +2,19 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useTheme } from 'next-themes'
-import { Globe, Sun, Moon, ChevronRight, Lightbulb, Trash2, Scroll, ArrowLeft, User, Smile, Bell, Ticket, Sparkles } from 'lucide-react'
+import { Globe, Sun, Moon, ChevronRight, Lightbulb, Scroll, ArrowLeft, User, Smile, Bell, Ticket, Sparkles, Check } from 'lucide-react'
 import type { ElementDef } from '@/lib/game-data'
+import { ElementBadge } from '@/components/element-badge'
 
 type Props = {
   elementsByName: Map<string, ElementDef>
+  /** Map<number, ElementDef> — for number-based recipe lookups */
+  elements: Map<number, ElementDef>
+  /** RecipeMap keyed by "n1|n2" */
+  recipeMap: Map<string, number[]>
   onComplete: (prefs: { lang: 'fr' | 'en'; theme: 'dark' | 'light'; haptic: boolean; username: string; avatar: string; enablePush: boolean }) => void
+  /** Called when the tutorial discovers new elements — saves to inventory */
+  onTutorialDiscover: (nums: number[]) => void
 }
 
 const STARTERS = ['eau', 'feu', 'terre', 'air'] as const
@@ -35,134 +42,202 @@ const STEP_COLOR: Record<Step, { from: string; icon: string; ring: string; bg: s
 
 // ─── Mini tutorial playground for combine step ────────────────────────────────
 
-type MiniEl = { id: string; name: string; el: ElementDef | null; emoji: string; x: number; y: number }
-type MiniDrag = { id: string; startX: number; startY: number; offsetX: number; offsetY: number }
+// The 3 tutorial combos — both fr and en names so we can find them regardless of active lang
+const TUTORIAL_COMBOS = [
+  { fr_a: 'eau',    en_a: 'water', fr_b: 'air',    en_b: 'air',   fr_result: 'pluie',      en_result: 'rain' },
+  { fr_a: 'pluie',  en_a: 'rain',  fr_b: 'terre',  en_b: 'earth', fr_result: 'plante',     en_result: 'plant' },
+  { fr_a: 'plante', en_a: 'plant', fr_b: 'pluie',  en_b: 'rain',  fr_result: 'champignon', en_result: 'mushroom' },
+] as const
+
+type MiniItem = {
+  id: string
+  num: number
+  el: ElementDef
+  x: number  // percent of container width
+  y: number  // percent of container height
+}
+
+type MiniDrag = { id: string; offsetX: number; offsetY: number }
+
+const MERGE_DIST_PCT = 20 // % of container width
 
 function MiniPlayground({
   lang,
-  elementsByName,
-  onCombined,
+  elements,
+  recipeMap,
+  onAllDone,
+  onTutorialDiscover,
 }: {
   lang: 'fr' | 'en'
-  elementsByName: Map<string, ElementDef>
-  onCombined: () => void
+  elements: Map<number, ElementDef>
+  recipeMap: Map<string, number[]>
+  onAllDone: () => void
+  onTutorialDiscover: (nums: number[]) => void
 }) {
-  const areaRef = useRef<HTMLDivElement>(null)
+  const areaRef   = useRef<HTMLDivElement>(null)
+  const drag      = useRef<MiniDrag | null>(null)
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
-  // Water + Air are the two tutorial elements; result = Steam/Vapeur
-  const waterEl  = elementsByName.get('water') ?? elementsByName.get('eau') ?? null
-  const airEl    = elementsByName.get('air')   ?? elementsByName.get('Air') ?? null
-  const steamEl  = elementsByName.get('steam') ?? elementsByName.get('vapeur') ?? null
-
-  const [items, setItems] = useState<MiniEl[]>([
-    { id: 'w', name: lang === 'fr' ? 'Eau' : 'Water', el: waterEl, emoji: '💧', x: 55, y: 45 },
-    { id: 'a', name: lang === 'fr' ? 'Air' : 'Air',   el: airEl,   emoji: '💨', x: 45, y: 45 },
-  ])
-  const [combined, setCombined] = useState(false)
-  const [result, setResult]     = useState<{ name: string; el: ElementDef | null; emoji: string } | null>(null)
-  const [flash, setFlash]       = useState(false)
-  const drag = useRef<MiniDrag | null>(null)
-
-  // Reset to fresh Water+Air when lang changes
+  // Build a fast lookup: current-lang name → ElementDef, rebuilt when elements change
+  const byFrName = useRef<Map<string, ElementDef>>(new Map())
   useEffect(() => {
-    if (combined) return
-    setItems([
-      { id: 'w', name: lang === 'fr' ? 'Eau' : 'Water', el: waterEl, emoji: '💧', x: 55, y: 45 },
-      { id: 'a', name: lang === 'fr' ? 'Air' : 'Air',   el: airEl,   emoji: '💨', x: 45, y: 45 },
-    ])
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lang])
+    const m = new Map<string, ElementDef>()
+    elements.forEach(el => m.set(el.name.toLowerCase(), el))
+    byFrName.current = m
+  }, [elements])
+
+  // Resolve an element by multiple possible names (fr and en) or find by number
+  const getEl = useCallback((frName: string): ElementDef | null => {
+    // Try direct lowercase match
+    const direct = byFrName.current.get(frName.toLowerCase())
+    if (direct) return direct
+    // Fallback: scan all elements
+    for (const el of elements.values()) {
+      if (el.name.toLowerCase() === frName.toLowerCase()) return el
+    }
+    return null
+  }, [elements])
+
+  // Resolve the result of a combo by recipeMap numbers
+  const getResult = useCallback((aEl: ElementDef, bEl: ElementDef): ElementDef | null => {
+    const results = recipeMap.get(`${aEl.number}|${bEl.number}`)
+      ?? recipeMap.get(`${bEl.number}|${aEl.number}`)
+    if (!results || results.length === 0) return null
+    return elements.get(results[0]) ?? null
+  }, [recipeMap, elements])
+
+  const [comboIndex, setComboIndex]   = useState(0)
+  const [items, setItems]             = useState<MiniItem[]>([])
+  const [merging, setMerging]         = useState(false)
+  const [flash, setFlash]             = useState(false)
+  const [justMerged, setJustMerged]   = useState<ElementDef | null>(null)
+  const [doneList, setDoneList]       = useState<ElementDef[]>([])
+  const [allDone, setAllDone]         = useState(false)
+
+  // Build initial items for current combo — try current-lang name, then both fr/en fallbacks
+  const buildItems = useCallback((idx: number): MiniItem[] => {
+    const combo = TUTORIAL_COMBOS[idx]
+    const aEl = getEl(combo.fr_a) ?? getEl(combo.en_a)
+    const bEl = getEl(combo.fr_b) ?? getEl(combo.en_b)
+    if (!aEl || !bEl) return []
+    return [
+      { id: 'a', num: aEl.number, el: aEl, x: 30, y: 50 },
+      { id: 'b', num: bEl.number, el: bEl, x: 70, y: 50 },
+    ]
+  }, [getEl])
+
+  // Init / reset when comboIndex or elements change
+  useEffect(() => {
+    setItems(buildItems(comboIndex))
+    setMerging(false)
+    setFlash(false)
+    setJustMerged(null)
+  }, [comboIndex, buildItems])
 
   const onPointerDown = useCallback((e: React.PointerEvent, id: string) => {
-    if (combined) return
+    if (merging || allDone) return
     e.currentTarget.setPointerCapture(e.pointerId)
     const area = areaRef.current!.getBoundingClientRect()
-    const item = items.find(i => i.id === id)!
+    const item = items.find(i => i.id === id)
+    if (!item) return
     drag.current = {
       id,
-      startX: item.x,
-      startY: item.y,
       offsetX: e.clientX - area.left - (item.x / 100) * area.width,
       offsetY: e.clientY - area.top  - (item.y / 100) * area.height,
     }
-  }, [combined, items])
+  }, [merging, allDone, items])
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!drag.current || combined) return
+    if (!drag.current || merging || allDone) return
     const area = areaRef.current!.getBoundingClientRect()
-    const nx = Math.max(5, Math.min(95, ((e.clientX - area.left - drag.current.offsetX) / area.width)  * 100))
-    const ny = Math.max(5, Math.min(95, ((e.clientY - area.top  - drag.current.offsetY) / area.height) * 100))
+    const nx = Math.max(8, Math.min(92, ((e.clientX - area.left - drag.current.offsetX) / area.width)  * 100))
+    const ny = Math.max(8, Math.min(92, ((e.clientY - area.top  - drag.current.offsetY) / area.height) * 100))
     setItems(prev => prev.map(i => i.id === drag.current!.id ? { ...i, x: nx, y: ny } : i))
-  }, [combined])
+  }, [merging, allDone])
 
   const onPointerUp = useCallback(() => {
-    if (!drag.current || combined) return
-    const [a, b] = items
-    const dist = Math.hypot(a.x - b.x, a.y - b.y)
-    if (dist < 18) {
-      // Merge!
-      setFlash(true)
-      setTimeout(() => setFlash(false), 400)
-      const res = steamEl
-        ? { name: lang === 'fr' ? 'Vapeur' : 'Steam', el: steamEl, emoji: '🌫️' }
-        : { name: lang === 'fr' ? 'Vapeur' : 'Steam', el: null, emoji: '🌫️' }
-      setResult(res)
-      setCombined(true)
-      setItems([{ id: 'r', name: res.name, el: res.el, emoji: res.emoji, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }])
-      onCombined()
-    }
+    if (!drag.current || merging || allDone) return
+    const id = drag.current.id
     drag.current = null
-  }, [combined, items, steamEl, lang, onCombined])
+    const [itemA, itemB] = items
+    if (!itemA || !itemB) return
+    const dist = Math.hypot(itemA.x - itemB.x, itemA.y - itemB.y)
+    const pct  = areaRef.current ? (areaRef.current.getBoundingClientRect().width > 0
+      ? MERGE_DIST_PCT : 20) : 20
+    if (dist > pct) return
 
-  function ElementChip({ item }: { item: MiniEl }) {
-    const el = item.el
-    return (
-      <div
-        className="absolute flex flex-col items-center gap-1 cursor-grab active:cursor-grabbing select-none touch-none"
-        style={{
-          left: `${item.x}%`,
-          top:  `${item.y}%`,
-          transform: 'translate(-50%, -50%)',
-          zIndex: drag.current?.id === item.id ? 10 : 1,
-        }}
-        onPointerDown={e => onPointerDown(e, item.id)}
-      >
-        <div
-          className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-transform active:scale-95"
-          style={{
-            background: el ? `${el.color}22` : 'rgba(255,255,255,0.06)',
-            border: `1.5px solid ${el ? el.color + '60' : 'rgba(255,255,255,0.12)'}`,
-            boxShadow: el ? `0 0 14px ${el.color}30` : 'none',
-          }}
-        >
-          {el?.imageUrl
-            ? <img src={el.imageUrl} alt={item.name} draggable={false} className="w-10 h-10 object-contain pointer-events-none" />
-            : <span className="text-3xl leading-none pointer-events-none">{item.emoji}</span>
-          }
-        </div>
-        <span className="text-[11px] font-semibold text-foreground/80 bg-background/70 px-1.5 py-0.5 rounded-lg backdrop-blur-sm whitespace-nowrap">
-          {item.name}
-        </span>
-      </div>
-    )
-  }
+    // Merge!
+    const resultEl = getResult(itemA.el, itemB.el)
+    setMerging(true)
+    setFlash(true)
+    setTimeout(() => setFlash(false), 350)
+
+    if (resultEl) {
+      onTutorialDiscover([resultEl.number])
+      const cx = (itemA.x + itemB.x) / 2
+      const cy = (itemA.y + itemB.y) / 2
+      setItems([{ id: 'r', num: resultEl.number, el: resultEl, x: cx, y: cy }])
+      setJustMerged(resultEl)
+      setDoneList(prev => [...prev, resultEl])
+
+      // After 1.8s, move to next combo or finish
+      setTimeout(() => {
+        const next = comboIndex + 1
+        if (next >= TUTORIAL_COMBOS.length) {
+          setAllDone(true)
+          onAllDone()
+        } else {
+          setComboIndex(next)
+        }
+      }, 1800)
+    }
+  }, [merging, allDone, items, getResult, comboIndex, onTutorialDiscover, onAllDone])
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Phase label */}
+
+      {/* Progress row — 3 steps */}
       <div className="flex items-center justify-center gap-2">
-        {combined ? (
+        {TUTORIAL_COMBOS.map((_, i) => {
+          const done = i < comboIndex || allDone || (i === comboIndex && justMerged !== null)
+          const active = i === comboIndex && !allDone
+          return (
+            <div key={i} className="flex items-center gap-1">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all text-xs font-bold ${
+                done    ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400' :
+                active  ? 'bg-cyan-500/20 border border-cyan-500/40 text-cyan-400' :
+                          'bg-muted/30 border border-border text-muted-foreground/40'
+              }`}>
+                {done ? <Check className="w-3 h-3" /> : i + 1}
+              </div>
+              {i < TUTORIAL_COMBOS.length - 1 && (
+                <div className={`w-5 h-0.5 rounded-full transition-all ${done ? 'bg-emerald-500/40' : 'bg-border'}`} />
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Instruction */}
+      <div className="flex items-center justify-center min-h-[28px]">
+        {allDone ? (
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+            <Sparkles className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
             <span className="text-xs font-semibold text-emerald-400">
-              {t('Bien joué !', 'Nice one!')}
+              {t('Parfait ! Tu maîtrises les combinaisons.', "Perfect! You've mastered combining.")}
+            </span>
+          </div>
+        ) : justMerged ? (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+            <span className="text-xs font-semibold text-emerald-400">
+              {justMerged.name} {t('découvert !', 'discovered!')}
             </span>
           </div>
         ) : (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
+          <div className="px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
             <span className="text-xs font-semibold text-cyan-400 animate-pulse">
-              {t('A toi de jouer — glisse un élément sur l\'autre', 'Your turn — drag one element onto the other')}
+              {t('Glisse un élément sur l\'autre', 'Drag one element onto the other')}
             </span>
           </div>
         )}
@@ -175,43 +250,56 @@ function MiniPlayground({
         onPointerUp={onPointerUp}
         onPointerLeave={onPointerUp}
         className={`relative w-full rounded-2xl border overflow-hidden select-none transition-colors ${
-          flash ? 'border-cyan-400/60 bg-cyan-400/10' : combined ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-border bg-muted/10'
+          flash     ? 'border-cyan-400/60' :
+          allDone   ? 'border-emerald-500/40 bg-emerald-500/5' :
+          justMerged? 'border-emerald-500/30' :
+                      'border-border'
         }`}
-        style={{ height: 160, touchAction: 'none' }}
+        style={{ height: 180, touchAction: 'none' }}
       >
-        {/* Subtle grid dots */}
+        {/* Dot grid — identical to real playground */}
         <div
-          className="absolute inset-0 opacity-10 pointer-events-none"
+          className="absolute inset-0 pointer-events-none"
           style={{
-            backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
-            backgroundSize: '24px 24px',
+            backgroundImage: 'radial-gradient(circle, oklch(0.6 0.01 250 / 0.18) 1.5px, transparent 1.5px)',
+            backgroundSize: '28px 28px',
           }}
         />
 
-        {items.map(item => <ElementChip key={item.id} item={item} />)}
-
-        {/* Merge flash burst */}
+        {/* Merge flash */}
         {flash && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-20 h-20 rounded-full bg-cyan-400/30 animate-ping" />
-          </div>
+          <div className="absolute inset-0 pointer-events-none" style={{ background: 'oklch(0.72 0.17 145 / 0.12)', animation: 'mergeFlash 0.35s ease-out forwards' }} />
         )}
 
-        {/* Result label after combine */}
-        {combined && result && (
-          <div className="absolute inset-x-0 bottom-2 flex justify-center pointer-events-none">
-            <div className="px-3 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/25 text-xs font-semibold text-emerald-400">
-              {result.name} {t('découvert !', 'discovered!')}
-            </div>
+        {/* Items */}
+        {items.map(item => (
+          <div
+            key={item.id}
+            className="absolute cursor-grab active:cursor-grabbing select-none touch-none"
+            style={{
+              left: `${item.x}%`,
+              top:  `${item.y}%`,
+              transform: 'translate(-50%, -50%)',
+              zIndex: drag.current?.id === item.id ? 20 : 5,
+              transition: drag.current?.id === item.id ? 'none' : 'left 0.15s, top 0.15s',
+            }}
+            onPointerDown={e => onPointerDown(e, item.id)}
+          >
+            <ElementBadge element={item.el} size="sm" />
           </div>
-        )}
+        ))}
       </div>
 
-      {/* Instruction when not yet combined */}
-      {!combined && (
-        <p className="text-center text-xs text-muted-foreground/60">
-          {t('Rapproche Eau et Air pour les combiner', 'Bring Water and Air together to combine them')}
-        </p>
+      {/* Mini discovered list */}
+      {doneList.length > 0 && (
+        <div className="flex items-center gap-2 justify-center flex-wrap">
+          <span className="text-[10px] text-muted-foreground/50 font-medium">{t('Découverts :', 'Discovered:')}</span>
+          {doneList.map(el => (
+            <div key={el.number} className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+              <span className="text-[10px] font-semibold text-emerald-400">{el.name}</span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )
@@ -219,7 +307,7 @@ function MiniPlayground({
 
 // ─── Main OnboardingModal ─────────────────────────────────────────────────────
 
-export function OnboardingModal({ elementsByName, onComplete }: Props) {
+export function OnboardingModal({ elementsByName, elements, recipeMap, onComplete, onTutorialDiscover }: Props) {
   const [step, setStep]               = useState<Step>('lang')
   const [lang, setLang]               = useState<'fr' | 'en'>('en')
   const [selectedTheme, setTheme]     = useState<'dark' | 'light'>('dark')
@@ -453,8 +541,10 @@ export function OnboardingModal({ elementsByName, onComplete }: Props) {
               {tutorialPhase === 'playground' && (
                 <MiniPlayground
                   lang={lang}
-                  elementsByName={elementsByName}
-                  onCombined={() => setTutorialDone(true)}
+                  elements={elements}
+                  recipeMap={recipeMap}
+                  onAllDone={() => setTutorialDone(true)}
+                  onTutorialDiscover={onTutorialDiscover}
                 />
               )}
             </>
