@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 
 import {
   Search, Upload, Check, FileUp, Plus, X, Trash2, Save, Hash,
-  ArrowDownAZ, Pencil, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ChevronsUpDown, RefreshCw, Shield, ShieldOff,
+  ArrowDownAZ, ArrowUp, ArrowDown, Pencil, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ChevronsUpDown, RefreshCw, Shield, ShieldOff,
   Users, Layers, Scroll, BarChart3, AlertCircle, CheckCircle2, Clock, Mail, Send, CheckCheck,
   TrendingUp, Activity, Repeat2, Download, Bell,
 } from 'lucide-react'
@@ -998,6 +998,7 @@ function ElementsTab() {
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'with' | 'without' | 'no-recipe'>('all')
   const [sortBy, setSortBy] = useState<'number' | 'alpha'>('number')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [isDragging, setIsDragging] = useState(false)
   const [editingElement, setEditingElement] = useState<Element | null>(null)
   const [showAdd, setShowAdd] = useState(false)
@@ -1007,7 +1008,7 @@ function ElementsTab() {
   useEffect(() => { fetchElements() }, [])
 
   // Reset to page 1 whenever filters change
-  useEffect(() => { setPage(1) }, [search, filterStatus, sortBy])
+  useEffect(() => { setPage(1) }, [search, filterStatus, sortBy, sortDir])
 
   const fetchElements = async () => {
     try {
@@ -1048,8 +1049,13 @@ function ElementsTab() {
         if (filterStatus === 'without') return !el.img
         return true
       })
-      .sort((a, b) => sortBy === 'alpha' ? a.name_french.localeCompare(b.name_french, 'fr') : a.number - b.number)
-  }, [elements, search, filterStatus, sortBy])
+      .sort((a, b) => {
+        const base = sortBy === 'alpha'
+          ? a.name_french.localeCompare(b.name_french, 'fr')
+          : a.number - b.number
+        return sortDir === 'asc' ? base : -base
+      })
+  }, [elements, search, filterStatus, sortBy, sortDir])
 
   const visibleElements = filteredElements.slice(0, page * PAGE_SIZE)
   const hasMore = page * PAGE_SIZE < filteredElements.length
@@ -1120,12 +1126,27 @@ function ElementsTab() {
             <Input placeholder="Numéro ou nom..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 text-sm" />
           </div>
           <div className="flex items-center bg-muted rounded-lg p-0.5 gap-0.5">
-            {([['number', Hash, 'N°'], ['alpha', ArrowDownAZ, 'A-Z']] as const).map(([key, Icon, lbl]) => (
-              <button key={key} onClick={() => setSortBy(key)}
-                className={`flex items-center gap-1 px-3 h-7 rounded-md text-xs font-medium transition-colors ${sortBy === key ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-                <Icon className="w-3 h-3" />{lbl}
-              </button>
-            ))}
+            {([['number', Hash, 'N°'], ['alpha', ArrowDownAZ, 'A-Z']] as ['number' | 'alpha', typeof Hash, string][]).map(([key, Icon, lbl]) => {
+              const active = sortBy === key
+              return (
+                <button
+                  key={key}
+                  onClick={() => {
+                    if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+                    else { setSortBy(key); setSortDir('asc') }
+                  }}
+                  className={`flex items-center gap-1 px-3 h-7 rounded-md text-xs font-medium transition-colors ${active ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <Icon className="w-3 h-3" />
+                  {lbl}
+                  {active && (
+                    sortDir === 'asc'
+                      ? <ArrowUp className="w-2.5 h-2.5 ml-0.5" />
+                      : <ArrowDown className="w-2.5 h-2.5 ml-0.5" />
+                  )}
+                </button>
+              )
+            })}
           </div>
           <Button size="sm" onClick={() => setShowAdd(true)} className="h-9">
             <Plus className="w-3.5 h-3.5 mr-1" />Ajouter
