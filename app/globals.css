@@ -90,6 +90,22 @@ html, body {
   animation: slideDown 0.28s cubic-bezier(0.32, 0.72, 0, 1) forwards;
 }
 
+/* iOS-style top notification pill */
+@keyframes iosNotifIn {
+  from { transform: translateY(-110%); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+@keyframes iosNotifOut {
+  from { transform: translateY(0);     opacity: 1; }
+  to   { transform: translateY(-110%); opacity: 0; }
+}
+.ios-notif-enter {
+  animation: iosNotifIn 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.ios-notif-exit {
+  animation: iosNotifOut 0.28s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
 :root {
   /* Light mode — warm stone, not blinding white */
   --background: oklch(0.96 0.006 65);

@@ -124,6 +124,7 @@ export function useGameStore() {
   const [discovered, setDiscovered] = useState<Set<number>>(new Set())
   const [playground, setPlayground] = useState<PlaygroundItem[]>([])
   const [newlyDiscovered, setNewlyDiscovered] = useState<number | null>(null)
+  const [lastComboIngredients, setLastComboIngredients] = useState<[number, number] | null>(null)
   const [initialized, setInitialized] = useState(false)
   const [totalDbCount, setTotalDbCount] = useState(0)
   const [lastUnlockTime, setLastUnlockTime] = useState(Date.now())
@@ -428,6 +429,7 @@ export function useGameStore() {
 
       if (newlyDiscoveredTimerRef.current) clearTimeout(newlyDiscoveredTimerRef.current)
       setNewlyDiscovered(newResults[0])
+      setLastComboIngredients([ingredientA, ingredientB])
       setLastUnlockTime(Date.now())
       newlyDiscoveredTimerRef.current = setTimeout(() => {
         setNewlyDiscovered(null)
@@ -565,6 +567,7 @@ export function useGameStore() {
     playground,
     /** number | null — DB number of the most recently discovered element */
     newlyDiscovered,
+    lastComboIngredients,
     initialized,
     totalElements: totalDbCount,
     lastUnlockTime,

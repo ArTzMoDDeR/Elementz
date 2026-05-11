@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useEffect, useMemo } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useSession, signIn } from 'next-auth/react'
 import { useTheme } from 'next-themes'
 import { Playground } from './playground'
@@ -144,6 +144,106 @@ function PushPromptModal({ lang, onAccept, onDecline }: { lang: string; onAccept
   )
 }
 
+// ─── iOS-style top discovery pill ────────────────────────────────────────────
+type ElementDef = { number: number; name: string; imageUrl?: string; color?: string }
+
+function MobileDiscoveryPill({
+  newlyDiscovered,
+  lastComboIngredients,
+  elements,
+  lang,
+  onDismiss,
+}: {
+  newlyDiscovered: number | null
+  lastComboIngredients: [number, number] | null
+  elements: Map<number, ElementDef>
+  lang: 'fr' | 'en'
+  onDismiss: () => void
+}) {
+  const pillRef = useRef<HTMLDivElement>(null)
+  const dragStart = useRef<{ y: number; startTranslate: number } | null>(null)
+  const [translateY, setTranslateY] = useState(0)
+  const [exiting, setExiting]       = useState(false)
+
+  // Reset on new discovery
+  useEffect(() => {
+    if (newlyDiscovered != null) {
+      setTranslateY(0)
+      setExiting(false)
+    }
+  }, [newlyDiscovered])
+
+  const dismiss = () => {
+    setExiting(true)
+    setTimeout(onDismiss, 260)
+  }
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    dragStart.current = { y: e.clientY, startTranslate: translateY }
+    pillRef.current?.setPointerCapture(e.pointerId)
+  }
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!dragStart.current) return
+    const dy = e.clientY - dragStart.current.y
+    // Only allow upward drag (negative direction)
+    setTranslateY(Math.min(0, dragStart.current.startTranslate + dy))
+  }
+  const onPointerUp = (e: React.PointerEvent) => {
+    if (!dragStart.current) return
+    const dy = e.clientY - dragStart.current.y
+    dragStart.current = null
+    if (dy < -40) { dismiss(); return }
+    // Snap back
+    setTranslateY(0)
+  }
+
+  if (newlyDiscovered == null) return null
+  const el = elements.get(newlyDiscovered)
+  if (!el) return null
+  const ingA = lastComboIngredients ? elements.get(lastComboIngredients[0]) : null
+  const ingB = lastComboIngredients ? elements.get(lastComboIngredients[1]) : null
+
+  return (
+    <div
+      className="md:hidden fixed inset-x-0 top-0 z-[200] flex justify-center pointer-events-none"
+      style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 10px)' }}
+    >
+      <div
+        ref={pillRef}
+        className="pointer-events-auto"
+        style={{ width: '90%', maxWidth: 420 }}
+        onClick={dismiss}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+      >
+        <div
+          className={`w-full rounded-2xl px-4 py-3 flex flex-col gap-1 ${exiting ? 'ios-notif-exit' : 'ios-notif-enter'}`}
+          style={{
+            background: 'color-mix(in oklch, var(--card) 96%, transparent)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid color-mix(in oklch, var(--foreground) 8%, transparent)',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.22), 0 1px 0 rgba(255,255,255,0.05) inset',
+            transform: `translateY(${translateY}px)`,
+            transition: dragStart.current ? 'none' : 'transform 0.2s cubic-bezier(0.32,0.72,0,1)',
+          }}
+        >
+          <span className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 leading-none select-none">
+            {lang === 'fr' ? 'Nouveau' : 'New'}
+          </span>
+          <span className="text-[13px] font-semibold text-foreground leading-snug select-none">
+            {ingA && ingB
+              ? `${ingA.name} + ${ingB.name} → ${el.name}`
+              : el.name}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function AlchemyGame() {
   const [mounted, setMounted] = useState(false)
   const { data: session } = useSession()
@@ -162,6 +262,7 @@ export function AlchemyGame() {
     recipeMap,
     playground,
     newlyDiscovered,
+    lastComboIngredients,
     initialized,
     totalElements,
     lastUnlockTime,
@@ -241,55 +342,6 @@ export function AlchemyGame() {
     setProgressToast({ count, pct })
     progressToastTimer.current = setTimeout(() => setProgressToast(null), 2500)
   }, [newlyDiscovered])
-
-  // Build mobile header notification (priority: discovery > progress > tapMode > hintsToggle)
-  const headerNotification = useMemo(() => {
-    // New discovery
-    if (newlyDiscovered != null) {
-      const el = elements.get(newlyDiscovered)
-      if (el) {
-        return {
-          type: 'discovery' as const,
-          message: `${lang === 'fr' ? 'Nouveau' : 'Discovered'} ${el.name}`,
-          icon: <Sparkles className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />,
-          image: el.imageUrl || undefined,
-        }
-      }
-    }
-    // Progress milestone
-    if (progressToast) {
-      return {
-        type: 'progress' as const,
-        message: lang === 'fr'
-          ? `${progressToast.count} éléments — ${progressToast.pct}% découverts`
-          : `${progressToast.count} elements — ${progressToast.pct}% discovered`,
-        icon: <BarChart2 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#15e9ff' }} />,
-      }
-    }
-    // Tap mode change
-    if (tapModeToast !== null) {
-      return {
-        type: 'tapMode' as const,
-        message: lang === 'fr'
-          ? tapModeToast ? 'Mode tap activé' : 'Mode drag activé'
-          : tapModeToast ? 'Tap mode on' : 'Drag mode on',
-        icon: tapModeToast
-          ? <MousePointer className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#10d9ae' }} />
-          : <Hand className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#fe8f27' }} />,
-      }
-    }
-    // Hints toggled
-    if (hintsToast !== null) {
-      return {
-        type: 'hintsToggle' as const,
-        message: lang === 'fr'
-          ? hintsToast ? 'Indices activés' : 'Indices désactivés'
-          : hintsToast ? 'Hints enabled' : 'Hints disabled',
-        icon: <Lightbulb className={`w-3.5 h-3.5 flex-shrink-0 ${hintsToast ? 'text-amber-400' : 'text-muted-foreground'}`} />,
-      }
-    }
-    return null
-  }, [hintVisible, currentHint, hintLabel, newlyDiscovered, progressToast, tapModeToast, hintsToast, lang, elements])
 
   const handleOnboardingComplete = async (prefs: { lang: 'fr' | 'en'; theme: 'dark' | 'light'; haptic: boolean; username: string; avatar: string; enablePush: boolean }) => {
     setShowOnboarding(false)
@@ -484,8 +536,7 @@ export function AlchemyGame() {
           }
         }}
         onTapModeChange={handleTapModeChange}
-        headerNotification={headerNotification}
-        onDismissNotification={handleDismissNotification}
+
         playgroundItemsCount={playground.length}
         recipeMap={recipeMap}
       />
@@ -564,47 +615,14 @@ export function AlchemyGame() {
 
       </div>
 
-      {/* ── iOS Discovery Bottom Sheet (mobile only) ───────────────── */}
-      {newlyDiscovered != null && (() => {
-        const el = elements.get(newlyDiscovered)
-        if (!el) return null
-        return (
-          <div
-            className="md:hidden fixed inset-x-0 bottom-0 z-[200] pointer-events-none"
-            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 16px) + 72px)' }}
-          >
-            <div
-              className="mx-4 pointer-events-auto sheet-enter"
-              onClick={handleDismissNotification}
-            >
-              <div
-                className="glass rounded-3xl border border-white/[0.08] shadow-2xl px-4 py-4 flex items-center gap-4"
-                style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.06) inset' }}
-              >
-                {/* Element image */}
-                <div className="w-14 h-14 rounded-2xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center flex-shrink-0">
-                  {el.imageUrl
-                    ? <img src={el.imageUrl} alt={el.name} className="w-10 h-10 object-contain" draggable={false} />
-                    : <Sparkles className="w-6 h-6 text-amber-400" />
-                  }
-                </div>
-                {/* Text */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wider">
-                    {lang === 'fr' ? 'Nouvel élément' : 'New element'}
-                  </p>
-                  <p className="text-lg font-bold text-foreground leading-tight mt-0.5 truncate">{el.name}</p>
-                  <p className="text-[11px] text-muted-foreground/50 mt-0.5">
-                    {discovered.size}<span className="opacity-50">/{totalElements}</span>
-                  </p>
-                </div>
-                {/* Sparkle icon */}
-                <Sparkles className="w-5 h-5 text-amber-400 flex-shrink-0 opacity-70" />
-              </div>
-            </div>
-          </div>
-        )
-      })()}
+      {/* ── iOS-style top discovery pill (mobile only) ───────────────── */}
+      <MobileDiscoveryPill
+        newlyDiscovered={newlyDiscovered}
+        lastComboIngredients={lastComboIngredients}
+        elements={elements}
+        lang={lang}
+        onDismiss={handleDismissNotification}
+      />
     </div>
   )
 }

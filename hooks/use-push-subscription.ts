@@ -72,10 +72,11 @@ export function usePushSubscription() {
         const json = existing.toJSON() as { endpoint: string; keys?: { p256dh: string; auth: string } }
         if (!json.keys) return
 
-        // Fetch current lang from profile to keep subscription lang in sync
-        const profileRes = await fetch('/api/profile')
-        const profile = profileRes.ok ? await profileRes.json() : {}
-        const lang: 'fr' | 'en' = profile.lang === 'fr' ? 'fr' : 'en'
+        // Fetch lang from /api/lang — this is set before /api/profile in onboarding,
+        // so it's always up to date and avoids race conditions with /api/profile.
+        const langRes = await fetch('/api/lang')
+        const langData = langRes.ok ? await langRes.json() : {}
+        const lang: 'fr' | 'en' = langData.lang === 'fr' ? 'fr' : 'en'
 
         await fetch('/api/push/subscribe', {
           method: 'POST',
