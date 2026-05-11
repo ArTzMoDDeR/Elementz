@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useTheme } from 'next-themes'
-import { Globe, Sun, Moon, ChevronRight, Check, Lightbulb, Trash2, Scroll, ArrowLeft, User, Smile, Bell, Ticket } from 'lucide-react'
+import { Globe, Sun, Moon, ChevronRight, Lightbulb, Trash2, Scroll, ArrowLeft, User, Smile, Bell, Ticket } from 'lucide-react'
 import type { ElementDef } from '@/lib/game-data'
 
 type Props = {
@@ -137,7 +137,6 @@ export function OnboardingModal({ elementsByName, onComplete }: Props) {
                   >
                     <span className="text-4xl">{l === 'fr' ? '🇫🇷' : '🇬🇧'}</span>
                     <span>{l === 'fr' ? 'Français' : 'English'}</span>
-                    {lang === l && <Check className="w-4 h-4" />}
                   </button>
                 ))}
               </div>
@@ -175,7 +174,6 @@ export function OnboardingModal({ elementsByName, onComplete }: Props) {
                   >
                     {th === 'dark' ? <Moon className="w-8 h-8" /> : <Sun className="w-8 h-8" />}
                     <span>{th === 'dark' ? t('Sombre', 'Dark') : t('Clair', 'Light')}</span>
-                    {selectedTheme === th && <Check className="w-4 h-4" />}
                   </button>
                 ))}
               </div>
@@ -364,42 +362,69 @@ export function OnboardingModal({ elementsByName, onComplete }: Props) {
                   </p>
                 </div>
               </div>
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 {STARTERS.map(key => {
                   const info = STARTER_LABELS[key]
                   const el = elementsByName.get(lang === 'fr' ? info.fr.toLowerCase() : info.en.toLowerCase())
                     ?? elementsByName.get(info.fr.toLowerCase())
                     ?? elementsByName.get(info.en.toLowerCase())
                   const selected = avatar === key
+                  const elColor = el?.color ?? '#818cf8'
                   return (
                     <button
                       key={key}
                       onClick={() => setAvatar(key)}
-                      className={`flex flex-col items-center gap-3 py-5 rounded-2xl border-2 transition-all ${
-                        selected
-                          ? 'border-primary bg-primary/8'
-                          : 'border-border bg-muted/30 hover:border-border/80'
-                      }`}
+                      className="flex flex-col items-center gap-4 py-7 rounded-3xl transition-all relative overflow-hidden"
+                      style={{
+                        background: selected
+                          ? `linear-gradient(145deg, ${elColor}22, ${elColor}0a)`
+                          : 'rgba(255,255,255,0.03)',
+                        border: selected
+                          ? `2px solid ${elColor}80`
+                          : '2px solid rgba(255,255,255,0.07)',
+                        boxShadow: selected
+                          ? `0 0 28px ${elColor}30, inset 0 1px 0 ${elColor}25`
+                          : 'none',
+                      }}
                     >
-                      {el?.imageUrl ? (
+                      {/* Glow blob behind icon when selected */}
+                      {selected && (
                         <div
-                          className="w-12 h-12 rounded-2xl flex items-center justify-center p-2"
-                          style={{ background: `${el.color}25` }}
-                        >
+                          className="absolute top-3 left-1/2 -translate-x-1/2 w-20 h-20 rounded-full blur-2xl opacity-30 pointer-events-none"
+                          style={{ background: elColor }}
+                        />
+                      )}
+                      <div
+                        className="relative w-16 h-16 rounded-2xl flex items-center justify-center p-2.5 transition-all"
+                        style={{
+                          background: selected ? `${elColor}25` : `${elColor}12`,
+                          boxShadow: selected ? `0 0 0 3px ${elColor}35` : 'none',
+                        }}
+                      >
+                        {el?.imageUrl ? (
                           <img
                             src={el.imageUrl}
                             alt={el.name}
                             className="w-full h-full object-contain pointer-events-none"
                             draggable={false}
                           />
-                        </div>
-                      ) : (
-                        <span className="text-4xl leading-none">{info.emoji}</span>
-                      )}
-                      <span className={`text-xs font-semibold ${selected ? 'text-primary' : 'text-muted-foreground'}`}>
-                        {lang === 'fr' ? info.fr : info.en}
-                      </span>
-                      {selected && <Check className="w-3.5 h-3.5 text-primary" />}
+                        ) : (
+                          <span className="text-4xl leading-none">{info.emoji}</span>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-center gap-1">
+                        <span className={`text-sm font-bold transition-colors ${selected ? 'text-foreground' : 'text-muted-foreground'}`}>
+                          {lang === 'fr' ? info.fr : info.en}
+                        </span>
+                        {selected && (
+                          <span
+                            className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                            style={{ background: `${elColor}25`, color: elColor }}
+                          >
+                            {lang === 'fr' ? 'Sélectionné' : 'Selected'}
+                          </span>
+                        )}
+                      </div>
                     </button>
                   )
                 })}
@@ -439,7 +464,6 @@ export function OnboardingModal({ elementsByName, onComplete }: Props) {
                   >
                     <span className="text-4xl">{choice ? '🔔' : '🔕'}</span>
                     <span className="text-base">{choice ? t('Activer', 'Enable') : t('Non merci', 'No thanks')}</span>
-                    {enablePush === choice && <Check className="w-4 h-4" />}
                   </button>
                 ))}
               </div>

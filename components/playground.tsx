@@ -1492,8 +1492,8 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
       <div className="flex items-center justify-between gap-4">
         <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Langue' : 'Language'}</span>
         <div className="flex items-center bg-muted/50 border border-border rounded-xl p-1 h-9 gap-0.5">
-          <button className={`px-4 h-full text-sm font-semibold rounded-lg transition-colors ${lang === 'fr' ? 'bg-background shadow text-foreground' : 'text-muted-foreground'}`} onClick={() => onSetLang('fr')}>FR</button>
-          <button className={`px-4 h-full text-sm font-semibold rounded-lg transition-colors ${lang === 'en' ? 'bg-background shadow text-foreground' : 'text-muted-foreground'}`} onClick={() => onSetLang('en')}>EN</button>
+          <button className={`px-3 h-full text-base rounded-lg transition-colors ${lang === 'fr' ? 'bg-background shadow' : 'opacity-40 hover:opacity-70'}`} onClick={() => onSetLang('fr')}>🇫🇷</button>
+          <button className={`px-3 h-full text-base rounded-lg transition-colors ${lang === 'en' ? 'bg-background shadow' : 'opacity-40 hover:opacity-70'}`} onClick={() => onSetLang('en')}>🇬🇧</button>
         </div>
       </div>
       {/* Theme */}
@@ -1536,20 +1536,22 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
           <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${tapMode ? 'left-[22px]' : 'left-0.5'}`} />
         </button>
       </div>
-      {/* Push notifications */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Notifications' : 'Notifications'}</span>
-          <p className="text-xs text-muted-foreground mt-0.5">{lang === 'fr' ? 'Alertes push sur l\'écran d\'accueil' : 'Push alerts on home screen'}</p>
+      {/* Push notifications — only for logged-in users */}
+      {sessionUser && (
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Notifications' : 'Notifications'}</span>
+            <p className="text-xs text-muted-foreground mt-0.5">{lang === 'fr' ? 'Alertes push sur l\'écran d\'accueil' : 'Push alerts on home screen'}</p>
+          </div>
+          <button
+            onClick={onTogglePushNotifications}
+            className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${pushNotificationsEnabled ? '' : 'bg-muted-foreground/30'}`}
+            style={{ backgroundColor: pushNotificationsEnabled ? '#818cf8' : undefined }}
+          >
+            <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${pushNotificationsEnabled ? 'left-[22px]' : 'left-0.5'}`} />
+          </button>
         </div>
-        <button
-          onClick={onTogglePushNotifications}
-          className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${pushNotificationsEnabled ? '' : 'bg-muted-foreground/30'}`}
-          style={{ backgroundColor: pushNotificationsEnabled ? '#818cf8' : undefined }}
-        >
-          <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${pushNotificationsEnabled ? 'left-[22px]' : 'left-0.5'}`} />
-        </button>
-      </div>
+      )}
       {/* Merge flash */}
       <div className="flex items-center justify-between gap-4">
         <div>

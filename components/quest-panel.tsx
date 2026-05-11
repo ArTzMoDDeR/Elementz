@@ -587,10 +587,13 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
             <ArrowLeft className="w-4 h-4 text-foreground/70" />
           </button>
           <div className="flex-1">
+            <p className="text-[10px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#818cf8' }}>
+              {t('Objectifs', 'Objectives')}
+            </p>
             <h2 className="text-lg font-bold text-foreground leading-tight">{t('Quêtes', 'Quests')}</h2>
           </div>
-          <div className="w-9 h-9 rounded-2xl bg-amber-400/10 border border-amber-400/15 flex items-center justify-center flex-shrink-0">
-            <Star className="w-4 h-4 text-amber-400" />
+          <div className="w-9 h-9 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: '#818cf820', border: '1px solid #818cf830' }}>
+            <Star className="w-4 h-4" style={{ color: '#818cf8' }} />
           </div>
         </div>
 
@@ -600,6 +603,30 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
           </div>
         ) : (
           <div className="flex flex-col gap-4">
+
+            {/* Progress banner */}
+            {quests.length > 0 && (
+              <div className="rounded-2xl px-4 py-3 flex items-center gap-3" style={{ background: '#818cf810', border: '1px solid #818cf820' }}>
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#818cf820' }}>
+                  <Trophy className="w-4 h-4" style={{ color: '#818cf8' }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-foreground">
+                    {quests.filter(q => q.claimed_at).length}
+                    <span className="text-muted-foreground font-normal"> / {quests.length} {t('quêtes accomplies', 'quests completed')}</span>
+                  </p>
+                  <div className="mt-1.5 h-1 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${Math.round((quests.filter(q => q.claimed_at).length / quests.length) * 100)}%`,
+                        background: '#818cf8',
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Scratch CTA — always visible */}
             <ScratchBanner count={scratchable.length} lang={lang} onClick={openScratch} />
