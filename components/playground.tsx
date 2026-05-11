@@ -1445,20 +1445,6 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
           <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${pushNotificationsEnabled ? 'left-[22px]' : 'left-0.5'}`} />
         </button>
       </div>
-      {/* Haptic feedback */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Vibration' : 'Haptic feedback'}</span>
-          <p className="text-xs text-muted-foreground mt-0.5">{lang === 'fr' ? 'Vibration sur découverte' : 'Vibrate on new discovery'}</p>
-        </div>
-        <button
-          onClick={onToggleHaptic}
-          className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${hapticEnabled ? '' : 'bg-muted-foreground/30'}`}
-          style={{ backgroundColor: hapticEnabled ? '#15e9ff' : undefined }}
-        >
-          <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${hapticEnabled ? 'left-[22px]' : 'left-0.5'}`} />
-        </button>
-      </div>
       {/* Merge flash */}
       <div className="flex items-center justify-between gap-4">
         <div>
@@ -1473,20 +1459,7 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
           <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${mergeFlashEnabled ? 'left-[22px]' : 'left-0.5'}`} />
         </button>
       </div>
-      {/* Hints */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Indices' : 'Hints'}</span>
-          <p className="text-xs text-muted-foreground mt-0.5">{lang === 'fr' ? 'Surligne les combinaisons' : 'Highlight combinations'}</p>
-        </div>
-        <button
-          onClick={onToggleHints}
-          className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${hintsEnabled ? '' : 'bg-muted-foreground/30'}`}
-          style={{ backgroundColor: hintsEnabled ? '#ffc338' : undefined }}
-        >
-          <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${hintsEnabled ? 'left-[22px]' : 'left-0.5'}`} />
-        </button>
-      </div>
+
 
 
       {/* How to play + Legal links */}
