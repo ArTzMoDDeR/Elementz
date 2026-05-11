@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 
 import {
   Search, Upload, Check, FileUp, Plus, X, Trash2, Save, Hash,
-  ArrowDownAZ, Pencil, ChevronLeft, ChevronRight, RefreshCw, Shield, ShieldOff,
+  ArrowDownAZ, Pencil, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ChevronsUpDown, RefreshCw, Shield, ShieldOff,
   Users, Layers, Scroll, BarChart3, AlertCircle, CheckCircle2, Clock, Mail, Send, CheckCheck,
   TrendingUp, Activity, Repeat2, Download, Bell,
 } from 'lucide-react'
@@ -325,6 +325,9 @@ function MissingElementsModal({ user, onClose }: { user: AdminUser; onClose: () 
 
 // ─── Tab: Users ─────────────────────────────────────────────────────────────────
 
+type SortKey = 'discovered' | 'rank' | 'last_active' | 'created_at'
+type SortDir = 'asc' | 'desc'
+
 function UsersTab() {
   const [users, setUsers] = useState<AdminUser[]>([])
   const [total, setTotal] = useState(0)
@@ -334,6 +337,8 @@ function UsersTab() {
   const [loading, setLoading] = useState(true)
   const [toggling, setToggling] = useState<string | null>(null)
   const [missingUser, setMissingUser] = useState<AdminUser | null>(null)
+  const [sortKey, setSortKey] = useState<SortKey>('discovered')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300)
@@ -368,6 +373,29 @@ function UsersTab() {
 
   const totalPages = Math.ceil(total / 25)
 
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDir('desc') }
+  }
+
+  const sortedUsers = [...users].sort((a, b) => {
+    let av: number | string = 0, bv: number | string = 0
+    if (sortKey === 'discovered')  { av = a.discovered ?? 0;       bv = b.discovered ?? 0 }
+    if (sortKey === 'rank')        { av = a.rank ?? 999999;         bv = b.rank ?? 999999 }
+    if (sortKey === 'last_active') { av = a.last_active ?? '';      bv = b.last_active ?? '' }
+    if (sortKey === 'created_at')  { av = a.created_at ?? '';       bv = b.created_at ?? '' }
+    if (av < bv) return sortDir === 'asc' ? -1 : 1
+    if (av > bv) return sortDir === 'asc' ? 1 : -1
+    return 0
+  })
+
+  const SortIcon = ({ k }: { k: SortKey }) => {
+    if (sortKey !== k) return <ChevronsUpDown className="w-3 h-3 ml-1 opacity-30 inline-block" />
+    return sortDir === 'asc'
+      ? <ChevronUp className="w-3 h-3 ml-1 opacity-80 inline-block" />
+      : <ChevronDown className="w-3 h-3 ml-1 opacity-80 inline-block" />
+  }
+
   return (
     <div className="space-y-4">
       {/* Toolbar */}
@@ -387,10 +415,18 @@ function UsersTab() {
               <tr className="border-b border-border bg-muted/30">
                 <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Utilisateur</th>
                 <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Pseudo</th>
-                <th className="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground">Découvertes</th>
-                <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">Classement</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Dernière activité</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Inscription</th>
+                <th className="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort('discovered')}>
+                  Découvertes<SortIcon k="discovered" />
+                </th>
+                <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort('rank')}>
+                  Classement<SortIcon k="rank" />
+                </th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort('last_active')}>
+                  Dernière activité<SortIcon k="last_active" />
+                </th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort('created_at')}>
+                  Inscription<SortIcon k="created_at" />
+                </th>
                 <th className="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground">Actions</th>
               </tr>
             </thead>
@@ -405,7 +441,7 @@ function UsersTab() {
                 <tr>
                   <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">Aucun utilisateur trouvé</td>
                 </tr>
-              ) : users.map(u => (
+              ) : sortedUsers.map(u => (
                 <tr key={u.id} className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors group">
                   <td className="px-4 py-3 max-w-[200px]">
                     <p className="font-medium truncate">{u.name ?? '—'}</p>
