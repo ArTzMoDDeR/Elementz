@@ -348,13 +348,17 @@ export function Playground({
   const [hintIdleGlow, setHintIdleGlow] = useState(false)
   const hintIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // After 90s of inactivity (no hint clicked), softly glow the hint button
+  // After 90s of inactivity, glow the hint button for 15s then auto-reset
   useEffect(() => {
     if (hintIdleTimer.current) clearTimeout(hintIdleTimer.current)
     setHintIdleGlow(false)
-    hintIdleTimer.current = setTimeout(() => setHintIdleGlow(true), 90_000)
+    hintIdleTimer.current = setTimeout(() => {
+      setHintIdleGlow(true)
+      // Auto-reset after 15s (5 × 3s cycles) so class is removed and icon color resets
+      setTimeout(() => setHintIdleGlow(false), 15_000)
+    }, 90_000)
     return () => { if (hintIdleTimer.current) clearTimeout(hintIdleTimer.current) }
-  }, []) // starts once on mount — resets handled on hint click below
+  }, [])
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'home' | 'quests' | 'settings' | 'help' | 'profile'>('home')
@@ -1159,7 +1163,7 @@ export function Playground({
           )}
         </div>
 
-        {/* ── TAB BAR — iOS Liquid Glass ───────────────────────────── */}
+        {/* ── TAB BAR — iOS Liquid Glass ────────────────────────���──── */}
         <div
           className="flex-shrink-0 border-t border-white/[0.06] glass"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 12px) + 2px)' }}
@@ -1202,7 +1206,10 @@ export function Playground({
                   // Reset idle glow timer
                   setHintIdleGlow(false)
                   if (hintIdleTimer.current) clearTimeout(hintIdleTimer.current)
-                  hintIdleTimer.current = setTimeout(() => setHintIdleGlow(true), 90_000)
+                  hintIdleTimer.current = setTimeout(() => {
+                    setHintIdleGlow(true)
+                    setTimeout(() => setHintIdleGlow(false), 15_000)
+                  }, 90_000)
                   onRequestHint?.()
                 }}
                 aria-label={lang === 'fr' ? 'Obtenir un indice' : 'Get a hint'}
@@ -2056,35 +2063,6 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
         </div>
       </div>
 
-      {/* Recent discoveries */}
-      {profile.last_discovered.length > 0 && (
-        <div className="rounded-2xl border border-border overflow-hidden divide-y divide-border">
-          <div className="px-4 py-2.5 bg-card">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('Dernières découvertes', 'Recent discoveries')}</p>
-          </div>
-          {profile.last_discovered.map((el, i) => {
-            const name = lang === 'fr' ? el.name_french : el.name_english
-            const diff = Date.now() - new Date(el.discovered_at).getTime()
-            const mins = Math.floor(diff / 60000)
-            const hours = Math.floor(diff / 3600000)
-            const days = Math.floor(diff / 86400000)
-            const ago = days > 0 ? t(`${days}j`, `${days}d`) : hours > 0 ? t(`${hours}h`, `${hours}h`) : t(`${mins}min`, `${mins}m`)
-            return (
-              <div key={i} className="flex items-center gap-3 px-4 py-3 bg-card">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-muted p-1 border border-border">
-                  {el.img
-                    ? <img src={el.img} alt={name} className="w-full h-full object-contain pointer-events-none" draggable={false} />
-                    : <AtomIcon className="w-4 h-4 text-muted-foreground" />
-                  }
-                </div>
-                <span className="text-sm text-foreground font-medium flex-1 truncate">{name}</span>
-                <span className="text-xs text-muted-foreground flex-shrink-0">{ago}</span>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
       {/* Leaderboard + Recettes section */}
       <div className="rounded-2xl border border-border overflow-hidden divide-y divide-border">
         <div
@@ -2126,6 +2104,35 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
           </button>
         </div>
       </div>
+
+      {/* Recent discoveries — last */}
+      {profile.last_discovered.length > 0 && (
+        <div className="rounded-2xl border border-border overflow-hidden divide-y divide-border">
+          <div className="px-4 py-2.5 bg-card">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('Dernières découvertes', 'Recent discoveries')}</p>
+          </div>
+          {profile.last_discovered.map((el, i) => {
+            const name = lang === 'fr' ? el.name_french : el.name_english
+            const diff = Date.now() - new Date(el.discovered_at).getTime()
+            const mins = Math.floor(diff / 60000)
+            const hours = Math.floor(diff / 3600000)
+            const days = Math.floor(diff / 86400000)
+            const ago = days > 0 ? t(`${days}j`, `${days}d`) : hours > 0 ? t(`${hours}h`, `${hours}h`) : t(`${mins}min`, `${mins}m`)
+            return (
+              <div key={i} className="flex items-center gap-3 px-4 py-3 bg-card">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-muted p-1 border border-border">
+                  {el.img
+                    ? <img src={el.img} alt={name} className="w-full h-full object-contain pointer-events-none" draggable={false} />
+                    : <AtomIcon className="w-4 h-4 text-muted-foreground" />
+                  }
+                </div>
+                <span className="text-sm text-foreground font-medium flex-1 truncate">{name}</span>
+                <span className="text-xs text-muted-foreground flex-shrink-0">{ago}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {/* Admin panel link — only visible for admins */}
       {profile?.is_admin && (
