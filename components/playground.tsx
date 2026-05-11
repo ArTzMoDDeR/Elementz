@@ -655,20 +655,26 @@ export function Playground({
       {isMobile && activeTab !== 'home' && (
         <div
           className="fixed inset-0 bg-background flex flex-col"
-          style={{ zIndex: 150, paddingBottom: 'calc(56px + env(safe-area-inset-bottom, 0px))' }}
+          style={{
+            zIndex: 150,
+            paddingTop: 'env(safe-area-inset-top, 0px)',
+            paddingBottom: 'calc(56px + env(safe-area-inset-bottom, 0px))',
+          }}
         >
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div className="px-4 py-4">
 
+              {/* ── Quests: logged in ── */}
               {activeTab === 'quests' && sessionUser && <QuestInlinePanel lang={lang} onGoToPlay={() => setActiveTab('home')} />}
 
+              {/* ── Quests: logged out ── */}
               {activeTab === 'quests' && !sessionUser && (
-                <div className="flex flex-col items-center gap-4 py-10">
+                <div className="flex flex-col items-center justify-center gap-5 min-h-[60vh] text-center px-4">
                   <div className="w-14 h-14 rounded-2xl bg-muted/50 border border-border flex items-center justify-center">
                     <Scroll size={24} weight="regular" className="text-foreground/40" />
                   </div>
-                  <div className="text-center">
+                  <div>
                     <p className="text-sm font-semibold text-foreground">{lang === 'fr' ? 'Non connecté' : 'Not signed in'}</p>
                     <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{lang === 'fr' ? 'Connecte-toi pour accéder aux quêtes' : 'Sign in to access quests'}</p>
                   </div>
@@ -685,12 +691,17 @@ export function Playground({
                         {lang === 'fr' ? 'Continuer avec Discord' : 'Continue with Discord'}
                       </button>
                     </form>
-                    <div className="flex items-center gap-2 my-1"><div className="flex-1 h-px bg-border" /><span className="text-xs text-muted-foreground">{lang === 'fr' ? 'ou par email' : 'or by email'}</span><div className="flex-1 h-px bg-border" /></div>
+                    <div className="flex items-center gap-2 my-1">
+                      <div className="flex-1 h-px bg-border" />
+                      <span className="text-xs text-muted-foreground">{lang === 'fr' ? 'ou par email (sans mot de passe !)' : 'or by email (no password!)'}</span>
+                      <div className="flex-1 h-px bg-border" />
+                    </div>
                     <EmailSignIn lang={lang} />
                   </div>
                 </div>
               )}
 
+              {/* ── Settings ── */}
               {activeTab === 'settings' && (
                 <SettingsPanel
                   lang={lang}
@@ -714,10 +725,12 @@ export function Playground({
                 />
               )}
 
+              {/* ── Help ── */}
               {activeTab === 'help' && (
                 <HelpPanel lang={lang} onBack={() => setActiveTab('settings')} />
               )}
 
+              {/* ── Profile: logged in ── */}
               {activeTab === 'profile' && sessionUser && (
                 profileView === 'leaderboard'
                   ? <LeaderboardInlinePanel lang={lang} totalElements={totalElements} sessionUser={sessionUser} onBack={() => setProfileView('profile')} />
@@ -736,12 +749,13 @@ export function Playground({
                       />
               )}
 
+              {/* ── Profile: logged out ── */}
               {activeTab === 'profile' && !sessionUser && (
-                <div className="flex flex-col items-center gap-4 py-10">
+                <div className="flex flex-col items-center justify-center gap-5 min-h-[60vh] text-center px-4">
                   <div className="w-14 h-14 rounded-2xl bg-muted/50 border border-border flex items-center justify-center">
                     <UserCircle size={24} weight="regular" className="text-foreground/40" />
                   </div>
-                  <div className="text-center">
+                  <div>
                     <p className="text-sm font-semibold text-foreground">{lang === 'fr' ? 'Non connecté' : 'Not signed in'}</p>
                     <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{lang === 'fr' ? 'Connecte-toi pour sauvegarder ta progression' : 'Sign in to save your progress'}</p>
                   </div>
@@ -758,7 +772,11 @@ export function Playground({
                         {lang === 'fr' ? 'Continuer avec Discord' : 'Continue with Discord'}
                       </button>
                     </form>
-                    <div className="flex items-center gap-2 my-1"><div className="flex-1 h-px bg-border" /><span className="text-xs text-muted-foreground">{lang === 'fr' ? 'ou par email' : 'or by email'}</span><div className="flex-1 h-px bg-border" /></div>
+                    <div className="flex items-center gap-2 my-1">
+                      <div className="flex-1 h-px bg-border" />
+                      <span className="text-xs text-muted-foreground">{lang === 'fr' ? 'ou par email (sans mot de passe !)' : 'or by email (no password!)'}</span>
+                      <div className="flex-1 h-px bg-border" />
+                    </div>
                     <EmailSignIn lang={lang} />
                   </div>
                 </div>
@@ -774,7 +792,7 @@ export function Playground({
         ref={inventoryRef}
         className="absolute bottom-0 left-0 right-0 md:bottom-0 md:left-auto md:top-0 md:right-0 md:h-full md:w-[300px] lg:w-[400px] bg-card/95 backdrop-blur-xl border-t md:border-t-0 md:border-l border-border flex flex-col"
         style={{
-          zIndex: isMobile && activeTab !== 'home' ? 200 : 100,
+          zIndex: isMobile && activeTab !== 'home' ? 200 : 120,
           height: isMobile
             ? activeTab !== 'home'
               ? undefined  // auto = just navbar content
