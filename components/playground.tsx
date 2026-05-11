@@ -344,6 +344,16 @@ export function Playground({
   const [sortBy, setSortBy] = useState<SortType>('name')
   const [sortReverse, setSortReverse] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [hintIdleGlow, setHintIdleGlow] = useState(false)
+  const hintIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // After 90s of inactivity (no hint clicked), softly glow the hint button
+  useEffect(() => {
+    if (hintIdleTimer.current) clearTimeout(hintIdleTimer.current)
+    setHintIdleGlow(false)
+    hintIdleTimer.current = setTimeout(() => setHintIdleGlow(true), 90_000)
+    return () => { if (hintIdleTimer.current) clearTimeout(hintIdleTimer.current) }
+  }, []) // starts once on mount — resets handled on hint click below
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'home' | 'quests' | 'settings' | 'help' | 'profile'>('home')
@@ -1168,23 +1178,32 @@ export function Playground({
               )
             })}
 
-            {/* Center: Hint — same size/padding as other tabs */}
+            {/* Center: Hint */}
             <div className="flex-1 flex flex-col items-center justify-center py-3">
               <button
                 onPointerDown={e => e.stopPropagation()}
-                onClick={e => { e.stopPropagation(); onRequestHint?.() }}
+                onClick={e => {
+                  e.stopPropagation()
+                  // Reset idle glow timer
+                  setHintIdleGlow(false)
+                  if (hintIdleTimer.current) clearTimeout(hintIdleTimer.current)
+                  hintIdleTimer.current = setTimeout(() => setHintIdleGlow(true), 90_000)
+                  onRequestHint?.()
+                }}
                 aria-label={lang === 'fr' ? 'Obtenir un indice' : 'Get a hint'}
                 className={`
                   flex items-center justify-center
-                  w-10 h-10 rounded-full tap-spring select-none
-                  bg-card border-2 border-border
+                  h-10 rounded-full tap-spring select-none
+                  border-2 border-border
                   hover:bg-muted/60
                   active:scale-95
-                  transition-all duration-150
-                  ${hintShouldPulse ? 'border-amber-400/70' : ''}
+                  transition-all duration-700
+                  ${hintShouldPulse ? 'border-amber-400/70 shadow-[0_0_0_4px_rgba(251,191,36,0.08)]' : ''}
+                  ${hintIdleGlow && !hintShouldPulse ? 'hint-idle-glow' : ''}
                 `}
+                style={{ width: 50, background: 'rgb(149 143 143 / 5%)' }}
               >
-                <Lightbulb size={26} className={hintShouldPulse ? 'text-amber-400' : 'text-foreground/60'} />
+                <Lightbulb size={20} className={hintShouldPulse || hintIdleGlow ? 'text-amber-400/80' : 'text-foreground/60'} />
               </button>
             </div>
 
@@ -1697,8 +1716,70 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
   )
 }
 
+function LegalPageInline({ lang, page, onBack }: { lang: 'fr' | 'en'; page: 'terms' | 'privacy' | 'legal'; onBack: () => void }) {
+  const [html, setHtml] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  const titles: Record<typeof page, { fr: string; en: string }> = {
+    terms:   { fr: 'Conditions d\'utilisation', en: 'Terms of Service' },
+    privacy: { fr: 'Politique de confidentialité', en: 'Privacy Policy' },
+    legal:   { fr: 'Mentions légales', en: 'Legal Notice' },
+  }
+  const title = lang === 'fr' ? titles[page].fr : titles[page].en
+  const path = page === 'terms' ? '/terms' : page === 'privacy' ? '/privacy' : '/legal'
+
+  useEffect(() => {
+    fetch(path)
+      .then(r => r.text())
+      .then(text => {
+        // Extract just the main content from the fetched HTML
+        const parser = new DOMParser()
+        const doc = parser.parseFromString(text, 'text/html')
+        const main = doc.querySelector('main') ?? doc.querySelector('[class*="max-w"]')
+        setHtml(main?.innerHTML ?? text)
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [path])
+
+  return (
+    <div className="flex flex-col gap-4 py-1">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onBack}
+          className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center hover:bg-muted/80 active:scale-95 transition-all flex-shrink-0"
+          aria-label={lang === 'fr' ? 'Retour' : 'Back'}
+        >
+          <ArrowLeft className="w-4 h-4 text-foreground/70" />
+        </button>
+        <h2 className="text-base font-bold text-foreground">{title}</h2>
+      </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-10">
+          <div className="w-5 h-5 rounded-full border-2 border-border border-t-foreground/40 animate-spin" />
+        </div>
+      ) : html ? (
+        <div
+          className="prose prose-sm prose-invert max-w-none text-muted-foreground [&_h1]:hidden [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:text-foreground [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-foreground [&_p]:text-xs [&_p]:leading-relaxed [&_li]:text-xs [&_a]:text-foreground/60 [&_.flex]:hidden [&_nav]:hidden [&_header]:hidden [&_button]:hidden"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      ) : (
+        <p className="text-sm text-muted-foreground text-center py-8">
+          {lang === 'fr' ? 'Impossible de charger la page.' : 'Could not load the page.'}
+        </p>
+      )}
+    </div>
+  )
+}
+
 function HelpPanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: () => void }) {
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
+  const [legalPage, setLegalPage] = useState<'terms' | 'privacy' | 'legal' | null>(null)
+
+  if (legalPage) {
+    return <LegalPageInline lang={lang} page={legalPage} onBack={() => setLegalPage(null)} />
+  }
+
   return (
     <div className="flex flex-col gap-4 py-1">
 
@@ -1726,60 +1807,111 @@ function HelpPanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: () => void })
 
       {/* Video */}
       <div className="rounded-2xl overflow-hidden border border-border bg-muted/20">
-        <video
-          src="/tutohelp.webm"
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          className="w-full h-auto block"
-        />
+        <video src="/tutohelp.webm" autoPlay loop muted playsInline preload="auto" className="w-full h-auto block" />
       </div>
 
-      {/* Description */}
-      <p className="text-sm text-muted-foreground leading-relaxed px-1">
-        {t(
-          'Glisse un élément sur un autre pour les combiner. Chaque combinaison peut révéler un nouvel élément.',
-          'Drag one element onto another to combine them. Each combination can reveal a new element.'
-        )}
-      </p>
+      {/* Core mechanic */}
+      <div className="rounded-2xl border border-border bg-card px-4 py-3.5 flex flex-col gap-1">
+        <p className="text-sm font-semibold text-foreground">{t('Le principe', 'The concept')}</p>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          {t(
+            'Glisse un élément sur un autre pour tenter une combinaison. Si une recette existe, un nouvel élément apparaît. Explore librement — il y a 593 éléments à découvrir.',
+            'Drag one element onto another to attempt a combination. If a recipe exists, a new element appears. Explore freely — there are 593 elements to discover.'
+          )}
+        </p>
+      </div>
 
-      {/* Tips */}
+      {/* Tips list */}
       <div className="rounded-2xl border border-border overflow-hidden divide-y divide-border">
-        <div className="flex items-center gap-3 px-4 py-3 bg-card">
-          <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
-            <Lightbulb className="w-4 h-4 text-amber-400" />
+        {/* Démarrer */}
+        <div className="flex items-start gap-3 px-4 py-3 bg-card">
+          <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0 mt-0.5">
+            <HouseSimple size={15} weight="fill" className="text-foreground/60" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground">{t('Indices automatiques', 'Auto hints')}</p>
+            <p className="text-sm font-medium text-foreground">{t('4 éléments de départ', '4 starting elements')}</p>
             <p className="text-xs text-muted-foreground leading-snug mt-0.5">
-              {t('Une suggestion apparaît après 1 min sans nouvelle découverte', 'A suggestion appears after 1 min without a new discovery')}
+              {t('Eau, Feu, Terre et Air sont disponibles dès le début. Tout part de là.', 'Water, Fire, Earth and Air are available from the start. Everything begins here.')}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3 px-4 py-3 bg-card">
-          <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
-            <Trash2 className="w-4 h-4 text-muted-foreground" />
+        {/* Inventaire */}
+        <div className="flex items-start gap-3 px-4 py-3 bg-card">
+          <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0 mt-0.5">
+            <Scroll size={15} weight="regular" className="text-muted-foreground" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground">{t('Inventaire', 'Inventory')}</p>
+            <p className="text-xs text-muted-foreground leading-snug mt-0.5">
+              {t('Tes éléments découverts sont listés en bas. Appuie dessus pour les poser sur le terrain, ou glisse-les directement.', 'Your discovered elements are listed below. Tap to place them on the board, or drag them directly.')}
+            </p>
+          </div>
+        </div>
+        {/* Vider */}
+        <div className="flex items-start gap-3 px-4 py-3 bg-card">
+          <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0 mt-0.5">
+            <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-foreground">{t('Vider le terrain', 'Clear the board')}</p>
             <p className="text-xs text-muted-foreground leading-snug mt-0.5">
-              {t('Retire tous les éléments posés en un clic — bouton en haut à gauche', 'Remove all placed elements in one tap — button top-left')}
+              {t('Le bouton en haut à gauche retire tous les éléments posés en un coup.', 'The button top-left removes all placed elements at once.')}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3 px-4 py-3 bg-card">
-          <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
-            <Scroll size={16} weight="regular" className="text-muted-foreground" />
+        {/* Indice */}
+        <div className="flex items-start gap-3 px-4 py-3 bg-card">
+          <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0 mt-0.5">
+            <Lightbulb className="w-3.5 h-3.5 text-foreground/50" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground">{t('Bouton Indice', 'Hint button')}</p>
+            <p className="text-xs text-muted-foreground leading-snug mt-0.5">
+              {t('Le bouton central de la barre de navigation révèle une combinaison possible. Il clignote doucement si tu sembles bloqué.', 'The central button in the navigation bar reveals a possible combination. It glows softly if you seem stuck.')}
+            </p>
+          </div>
+        </div>
+        {/* Quêtes */}
+        <div className="flex items-start gap-3 px-4 py-3 bg-card">
+          <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0 mt-0.5">
+            <Bell size={15} weight="regular" className="text-muted-foreground" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-foreground">{t('Quêtes', 'Quests')}</p>
             <p className="text-xs text-muted-foreground leading-snug mt-0.5">
-              {t('Accomplis des défis pour gagner des indices de recettes secrètes', 'Complete challenges to earn secret recipe hints')}
+              {t('Accomplis des défis quotidiens et permanents pour gagner des tickets à gratter révélant des recettes secrètes.', 'Complete daily and permanent challenges to earn scratch tickets revealing secret recipes.')}
             </p>
           </div>
         </div>
+        {/* Sauvegarde */}
+        <div className="flex items-start gap-3 px-4 py-3 bg-card">
+          <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0 mt-0.5">
+            <User size={15} weight="regular" className="text-muted-foreground" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground">{t('Sauvegarde', 'Save progress')}</p>
+            <p className="text-xs text-muted-foreground leading-snug mt-0.5">
+              {t('Sans compte, ta progression reste sur cet appareil. Connecte-toi pour la retrouver partout — sans mot de passe, juste un email.', "Without an account, your progress stays on this device. Sign in to access it everywhere — no password, just an email.")}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Legal links */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1">
+        {[
+          { key: 'terms' as const, fr: 'CGU', en: 'Terms' },
+          { key: 'privacy' as const, fr: 'Confidentialité', en: 'Privacy' },
+          { key: 'legal' as const, fr: 'Mentions légales', en: 'Legal' },
+        ].map(({ key, fr, en }) => (
+          <button
+            key={key}
+            onClick={() => setLegalPage(key)}
+            className="text-xs text-muted-foreground/50 hover:text-muted-foreground underline underline-offset-2 transition-colors"
+          >
+            {t(fr, en)}
+          </button>
+        ))}
       </div>
 
     </div>

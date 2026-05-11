@@ -90,8 +90,8 @@ const SLIDES: {
             <p className="text-sm font-medium text-foreground mb-1">{lang === 'fr' ? 'Indices' : 'Hints'}</p>
             <p className="text-xs text-muted-foreground leading-relaxed">
               {lang === 'fr'
-                ? 'Si tu bloques, une suggestion arrive automatiquement après 1 min sans nouvelle découverte.'
-                : 'If you get stuck, a suggestion appears automatically after 1 min without a new discovery.'}
+                ? 'Si tu bloques, le bouton indice (centre de la navbar) scintille après 90 secondes sans nouvelle découverte.'
+                : 'If you get stuck, the hint button (center of the navbar) glows after 90 seconds without a new discovery.'}
             </p>
           </div>
         </div>
@@ -159,7 +159,7 @@ const SLIDES: {
           <div className="flex items-center gap-2 my-1">
             <div className="flex-1 h-px bg-border" />
             <span className="text-xs text-muted-foreground">
-              {lang === 'fr' ? 'ou par email' : 'or by email'}
+              {lang === 'fr' ? 'ou par email (sans mot de passe !)' : 'or by email (no password!)'}
             </span>
             <div className="flex-1 h-px bg-border" />
           </div>
