@@ -36,6 +36,7 @@ interface ProfileModalProps {
   totalElements: number
   onClose: () => void
   onOpenLeaderboard?: () => void
+  onSignOut?: () => void
 }
 
 function hashStr(s: string): number {
@@ -81,7 +82,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
   )
 }
 
-export function ProfileModal({ lang, sessionUser, elementsByName, discovered, totalElements, onClose, onOpenLeaderboard }: ProfileModalProps) {
+export function ProfileModal({ lang, sessionUser, elementsByName, discovered, totalElements, onClose, onOpenLeaderboard, onSignOut }: ProfileModalProps) {
   const TOTAL_ELEMENTS = totalElements
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [editingName, setEditingName] = useState(false)
@@ -374,7 +375,8 @@ export function ProfileModal({ lang, sessionUser, elementsByName, discovered, to
             <Section>
               <Row
                 onClick={() => {
-                  try { localStorage.removeItem('alchemy-discovered-v3') } catch {}
+                  try { localStorage.removeItem('alchemy-discovered-v4') } catch {}
+                  onSignOut?.()
                   signOut({ callbackUrl: '/login' })
                 }}
               >

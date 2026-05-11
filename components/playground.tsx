@@ -1155,7 +1155,7 @@ export function Playground({
       {/* Modals */}
       {helpOpen && <HelpModal lang={lang} onSetLang={onSetLang} onClose={() => setHelpOpen(false)} />}
       {leaderboardOpen && <LeaderboardModal lang={lang} onClose={() => setLeaderboardOpen(false)} />}
-      {profileOpen && sessionUser && <ProfileModal lang={lang} sessionUser={sessionUser} elementsByName={elementsByName} discovered={discovered} totalElements={totalElements} onClose={() => setProfileOpen(false)} onOpenLeaderboard={() => { setProfileOpen(false); setLeaderboardOpen(true) }} />}
+      {profileOpen && sessionUser && <ProfileModal lang={lang} sessionUser={sessionUser} elementsByName={elementsByName} discovered={discovered} totalElements={totalElements} onClose={() => setProfileOpen(false)} onOpenLeaderboard={() => { setProfileOpen(false); setLeaderboardOpen(true) }} onSignOut={onReset} />}
     </div>
   )
 }
@@ -1584,7 +1584,7 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
       {sessionUser && (
       <div className="rounded-2xl border border-border overflow-hidden">
         <button
-          onClick={() => { try { localStorage.removeItem('alchemy-discovered-v3') } catch {} signOut({ callbackUrl: '/' }) }}
+          onClick={() => { try { localStorage.removeItem('alchemy-discovered-v4') } catch {} onReset(); signOut({ callbackUrl: '/' }) }}
           className="w-full flex items-center gap-3 px-4 py-3.5 bg-card hover:bg-red-500/5 active:bg-red-500/10 transition-colors cursor-pointer"
         >
           <div className="w-8 h-8 rounded-xl bg-red-500/10 flex items-center justify-center flex-shrink-0">
