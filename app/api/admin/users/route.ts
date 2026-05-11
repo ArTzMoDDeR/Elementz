@@ -16,8 +16,23 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const search = searchParams.get('q') ?? ''
   const page = parseInt(searchParams.get('page') ?? '1')
+  const sortKey = searchParams.get('sort') ?? 'created_at'
+  const sortDir = searchParams.get('dir') === 'asc' ? 'ASC' : 'DESC'
   const limit = 25
   const offset = (page - 1) * limit
+
+  // Build ORDER BY safely — only allow known columns
+  const allowedSorts: Record<string, string> = {
+    discovered:  'discovered',
+    rank:        'discovered', // rank = most discovered first
+    last_active: 'last_active',
+    created_at:  'u.created_at',
+  }
+  const orderCol = allowedSorts[sortKey] ?? 'u.created_at'
+  // For rank ascending means best rank first = most discovered DESC
+  const effectiveDir = sortKey === 'rank'
+    ? (sortDir === 'ASC' ? 'DESC' : 'ASC')
+    : sortDir
 
   const [rows, total] = await Promise.all([
     sql`
@@ -31,7 +46,7 @@ export async function GET(req: NextRequest) {
       LEFT JOIN unlocks ul ON ul.user_id = u.id
       WHERE u.email ILIKE ${'%' + search + '%'} OR u.name ILIKE ${'%' + search + '%'} OR COALESCE(up.username, '') ILIKE ${'%' + search + '%'}
       GROUP BY u.id, u.email, u.name, u.created_at, u.is_admin, up.username, up.show_in_leaderboard
-      ORDER BY u.created_at DESC
+      ORDER BY ${sql.unsafe(orderCol + ' ' + effectiveDir + ' NULLS LAST')}
       LIMIT ${limit} OFFSET ${offset}
     `,
     sql`
