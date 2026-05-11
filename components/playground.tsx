@@ -344,16 +344,21 @@ export function Playground({
   const [sortBy, setSortBy] = useState<SortType>('name')
   const [sortReverse, setSortReverse] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [legalPage, setLegalPage] = useState<'terms' | 'privacy' | 'legal' | null>(null)
   const [hintIdleGlow, setHintIdleGlow] = useState(false)
   const hintIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // After 90s of inactivity (no hint clicked), softly glow the hint button
+  // After 90s of inactivity, glow the hint button for 15s then auto-reset
   useEffect(() => {
     if (hintIdleTimer.current) clearTimeout(hintIdleTimer.current)
     setHintIdleGlow(false)
-    hintIdleTimer.current = setTimeout(() => setHintIdleGlow(true), 90_000)
+    hintIdleTimer.current = setTimeout(() => {
+      setHintIdleGlow(true)
+      // Auto-reset after 15s (5 × 3s cycles) so class is removed and icon color resets
+      setTimeout(() => setHintIdleGlow(false), 15_000)
+    }, 90_000)
     return () => { if (hintIdleTimer.current) clearTimeout(hintIdleTimer.current) }
-  }, []) // starts once on mount — resets handled on hint click below
+  }, [])
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'home' | 'quests' | 'settings' | 'help' | 'profile'>('home')
@@ -731,6 +736,7 @@ export function Playground({
                   mergeFlashEnabled={mergeFlashEnabled}
                   onToggleMergeFlash={() => setMergeFlashEnabled(!mergeFlashEnabled)}
                   onOpenHelp={() => setActiveTab('help')}
+                  onOpenLegal={(page) => setLegalPage(page)}
                   sessionUser={sessionUser}
                 />
               )}
@@ -738,6 +744,13 @@ export function Playground({
               {/* ── Help ── */}
               {activeTab === 'help' && (
                 <HelpPanel lang={lang} onBack={() => setActiveTab('settings')} />
+              )}
+
+              {/* ── Legal page (in-app, mobile fullscreen) ── */}
+              {legalPage && (
+                <div className="absolute inset-0 bg-background flex flex-col z-10">
+                  <LegalPageInline lang={lang} page={legalPage} onBack={() => setLegalPage(null)} />
+                </div>
               )}
 
               {/* ── Profile: logged in ── */}
@@ -1070,11 +1083,17 @@ export function Playground({
                     mergeFlashEnabled={mergeFlashEnabled}
                     onToggleMergeFlash={() => setMergeFlashEnabled(!mergeFlashEnabled)}
                     onOpenHelp={() => setActiveTab('help')}
+                    onOpenLegal={(page) => setLegalPage(page)}
                     sessionUser={sessionUser}
                   />
                 )}
                 {activeTab === 'help' && (
                   <HelpPanel lang={lang} onBack={() => setActiveTab('settings')} />
+                )}
+                {legalPage && (
+                  <div className="absolute inset-0 bg-card flex flex-col z-10">
+                    <LegalPageInline lang={lang} page={legalPage} onBack={() => setLegalPage(null)} />
+                  </div>
                 )}
                 {activeTab === 'profile' && sessionUser && (
                   profileView === 'leaderboard'
@@ -1144,7 +1163,7 @@ export function Playground({
           )}
         </div>
 
-        {/* ── TAB BAR — iOS Liquid Glass ───────────────────────────── */}
+        {/* ── TAB BAR — iOS Liquid Glass ────────────────────────���──── */}
         <div
           className="flex-shrink-0 border-t border-white/[0.06] glass"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 12px) + 2px)' }}
@@ -1187,7 +1206,10 @@ export function Playground({
                   // Reset idle glow timer
                   setHintIdleGlow(false)
                   if (hintIdleTimer.current) clearTimeout(hintIdleTimer.current)
-                  hintIdleTimer.current = setTimeout(() => setHintIdleGlow(true), 90_000)
+                  hintIdleTimer.current = setTimeout(() => {
+                    setHintIdleGlow(true)
+                    setTimeout(() => setHintIdleGlow(false), 15_000)
+                  }, 90_000)
                   onRequestHint?.()
                 }}
                 aria-label={lang === 'fr' ? 'Obtenir un indice' : 'Get a hint'}
@@ -1467,6 +1489,7 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
   pushNotificationsEnabled?: boolean; onTogglePushNotifications?: () => void
   mergeFlashEnabled: boolean; onToggleMergeFlash: () => void
   onOpenHelp?: () => void
+  onOpenLegal?: (page: 'terms' | 'privacy' | 'legal') => void
   sessionUser?: { id?: string | null; name?: string | null; email?: string | null } | null
 }) {
   const { theme, setTheme } = useTheme()
@@ -1572,10 +1595,8 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
           <span className="text-sm font-medium text-foreground">{t('Comment jouer', 'How to play')}</span>
           <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0 ml-auto" />
         </button>
-        <a
-          href="/privacy"
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          onClick={() => onOpenLegal?.('privacy')}
           className="w-full flex items-center gap-3 px-4 py-3.5 bg-card hover:bg-muted/40 active:bg-muted/60 transition-colors cursor-pointer"
         >
           <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
@@ -1583,11 +1604,9 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
           </div>
           <span className="text-sm font-medium text-foreground">{t('Politique de confidentialité', 'Privacy Policy')}</span>
           <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0 ml-auto" />
-        </a>
-        <a
-          href="/legal"
-          target="_blank"
-          rel="noopener noreferrer"
+        </button>
+        <button
+          onClick={() => onOpenLegal?.('legal')}
           className="w-full flex items-center gap-3 px-4 py-3.5 bg-card hover:bg-muted/40 active:bg-muted/60 transition-colors cursor-pointer"
         >
           <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
@@ -1595,11 +1614,9 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
           </div>
           <span className="text-sm font-medium text-foreground">{t('Mentions légales', 'Legal Notice')}</span>
           <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0 ml-auto" />
-        </a>
-        <a
-          href="/terms"
-          target="_blank"
-          rel="noopener noreferrer"
+        </button>
+        <button
+          onClick={() => onOpenLegal?.('terms')}
           className="w-full flex items-center gap-3 px-4 py-3.5 bg-card hover:bg-muted/40 active:bg-muted/60 transition-colors cursor-pointer"
         >
           <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
@@ -1607,7 +1624,7 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
           </div>
           <span className="text-sm font-medium text-foreground">{t("Conditions d'utilisation", 'Terms of Service')}</span>
           <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0 ml-auto" />
-        </a>
+        </button>
       </div>
 
       {/* Sign out (logged in only) — above delete */}
@@ -1717,34 +1734,18 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
 }
 
 function LegalPageInline({ lang, page, onBack }: { lang: 'fr' | 'en'; page: 'terms' | 'privacy' | 'legal'; onBack: () => void }) {
-  const [html, setHtml] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-
   const titles: Record<typeof page, { fr: string; en: string }> = {
-    terms:   { fr: 'Conditions d\'utilisation', en: 'Terms of Service' },
+    terms:   { fr: "Conditions d'utilisation", en: 'Terms of Service' },
     privacy: { fr: 'Politique de confidentialité', en: 'Privacy Policy' },
     legal:   { fr: 'Mentions légales', en: 'Legal Notice' },
   }
   const title = lang === 'fr' ? titles[page].fr : titles[page].en
   const path = page === 'terms' ? '/terms' : page === 'privacy' ? '/privacy' : '/legal'
 
-  useEffect(() => {
-    fetch(path)
-      .then(r => r.text())
-      .then(text => {
-        // Extract just the main content from the fetched HTML
-        const parser = new DOMParser()
-        const doc = parser.parseFromString(text, 'text/html')
-        const main = doc.querySelector('main') ?? doc.querySelector('[class*="max-w"]')
-        setHtml(main?.innerHTML ?? text)
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
-  }, [path])
-
   return (
-    <div className="flex flex-col gap-4 py-1">
-      <div className="flex items-center gap-3">
+    <div className="flex flex-col h-full">
+      {/* Back header */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border flex-shrink-0">
         <button
           onClick={onBack}
           className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center hover:bg-muted/80 active:scale-95 transition-all flex-shrink-0"
@@ -1752,33 +1753,21 @@ function LegalPageInline({ lang, page, onBack }: { lang: 'fr' | 'en'; page: 'ter
         >
           <ArrowLeft className="w-4 h-4 text-foreground/70" />
         </button>
-        <h2 className="text-base font-bold text-foreground">{title}</h2>
+        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
       </div>
-      {loading ? (
-        <div className="flex items-center justify-center py-10">
-          <div className="w-5 h-5 rounded-full border-2 border-border border-t-foreground/40 animate-spin" />
-        </div>
-      ) : html ? (
-        <div
-          className="prose prose-sm prose-invert max-w-none text-muted-foreground [&_h1]:hidden [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:text-foreground [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-foreground [&_p]:text-xs [&_p]:leading-relaxed [&_li]:text-xs [&_a]:text-foreground/60 [&_.flex]:hidden [&_nav]:hidden [&_header]:hidden [&_button]:hidden"
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
-      ) : (
-        <p className="text-sm text-muted-foreground text-center py-8">
-          {lang === 'fr' ? 'Impossible de charger la page.' : 'Could not load the page.'}
-        </p>
-      )}
+      {/* Iframe — renders the real page content without leaving the app */}
+      <iframe
+        src={path}
+        title={title}
+        className="flex-1 w-full border-0 bg-background"
+        style={{ minHeight: '70vh' }}
+      />
     </div>
   )
 }
 
 function HelpPanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: () => void }) {
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
-  const [legalPage, setLegalPage] = useState<'terms' | 'privacy' | 'legal' | null>(null)
-
-  if (legalPage) {
-    return <LegalPageInline lang={lang} page={legalPage} onBack={() => setLegalPage(null)} />
-  }
 
   return (
     <div className="flex flex-col gap-4 py-1">
@@ -1895,23 +1884,6 @@ function HelpPanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: () => void })
             </p>
           </div>
         </div>
-      </div>
-
-      {/* Legal links */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1">
-        {[
-          { key: 'terms' as const, fr: 'CGU', en: 'Terms' },
-          { key: 'privacy' as const, fr: 'Confidentialité', en: 'Privacy' },
-          { key: 'legal' as const, fr: 'Mentions légales', en: 'Legal' },
-        ].map(({ key, fr, en }) => (
-          <button
-            key={key}
-            onClick={() => setLegalPage(key)}
-            className="text-xs text-muted-foreground/50 hover:text-muted-foreground underline underline-offset-2 transition-colors"
-          >
-            {t(fr, en)}
-          </button>
-        ))}
       </div>
 
     </div>
@@ -2091,35 +2063,6 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
         </div>
       </div>
 
-      {/* Recent discoveries */}
-      {profile.last_discovered.length > 0 && (
-        <div className="rounded-2xl border border-border overflow-hidden divide-y divide-border">
-          <div className="px-4 py-2.5 bg-card">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('Dernières découvertes', 'Recent discoveries')}</p>
-          </div>
-          {profile.last_discovered.map((el, i) => {
-            const name = lang === 'fr' ? el.name_french : el.name_english
-            const diff = Date.now() - new Date(el.discovered_at).getTime()
-            const mins = Math.floor(diff / 60000)
-            const hours = Math.floor(diff / 3600000)
-            const days = Math.floor(diff / 86400000)
-            const ago = days > 0 ? t(`${days}j`, `${days}d`) : hours > 0 ? t(`${hours}h`, `${hours}h`) : t(`${mins}min`, `${mins}m`)
-            return (
-              <div key={i} className="flex items-center gap-3 px-4 py-3 bg-card">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-muted p-1 border border-border">
-                  {el.img
-                    ? <img src={el.img} alt={name} className="w-full h-full object-contain pointer-events-none" draggable={false} />
-                    : <AtomIcon className="w-4 h-4 text-muted-foreground" />
-                  }
-                </div>
-                <span className="text-sm text-foreground font-medium flex-1 truncate">{name}</span>
-                <span className="text-xs text-muted-foreground flex-shrink-0">{ago}</span>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
       {/* Leaderboard + Recettes section */}
       <div className="rounded-2xl border border-border overflow-hidden divide-y divide-border">
         <div
@@ -2161,6 +2104,35 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
           </button>
         </div>
       </div>
+
+      {/* Recent discoveries — last */}
+      {profile.last_discovered.length > 0 && (
+        <div className="rounded-2xl border border-border overflow-hidden divide-y divide-border">
+          <div className="px-4 py-2.5 bg-card">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('Dernières découvertes', 'Recent discoveries')}</p>
+          </div>
+          {profile.last_discovered.map((el, i) => {
+            const name = lang === 'fr' ? el.name_french : el.name_english
+            const diff = Date.now() - new Date(el.discovered_at).getTime()
+            const mins = Math.floor(diff / 60000)
+            const hours = Math.floor(diff / 3600000)
+            const days = Math.floor(diff / 86400000)
+            const ago = days > 0 ? t(`${days}j`, `${days}d`) : hours > 0 ? t(`${hours}h`, `${hours}h`) : t(`${mins}min`, `${mins}m`)
+            return (
+              <div key={i} className="flex items-center gap-3 px-4 py-3 bg-card">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-muted p-1 border border-border">
+                  {el.img
+                    ? <img src={el.img} alt={name} className="w-full h-full object-contain pointer-events-none" draggable={false} />
+                    : <AtomIcon className="w-4 h-4 text-muted-foreground" />
+                  }
+                </div>
+                <span className="text-sm text-foreground font-medium flex-1 truncate">{name}</span>
+                <span className="text-xs text-muted-foreground flex-shrink-0">{ago}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {/* Admin panel link — only visible for admins */}
       {profile?.is_admin && (
