@@ -21,7 +21,7 @@ export async function GET() {
       JOIN elements e3 ON e3.number = r.result_number
     `
     return NextResponse.json(rows, {
-      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' },
+      headers: { 'Cache-Control': 'no-store' },
     })
   } catch {
     return NextResponse.json([], { status: 200 })

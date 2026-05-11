@@ -182,17 +182,15 @@ export function useGameStore() {
     return () => window.removeEventListener('storage', handler)
   }, [])
 
-  // ─── Load everything from DB once ────────────────────────────────────────
-  useEffect(() => {
-    if (sessionStatus === 'loading') return
-
-    const savedLang = (() => {
+  // ─── Load everything from DB ─────────────────────────────────────────────
+  const loadGameData = useCallback((currentLang?: string) => {
+    const savedLang = currentLang ?? (() => {
       try { return (localStorage.getItem(LANG_KEY) as Lang | null) || 'en' } catch { return 'en' }
     })()
 
     Promise.all([
-      fetch('/api/elements').then(r => r.json()),
-      fetch('/api/recipes').then(r => r.json()).catch(() => []),
+      fetch('/api/elements', { cache: 'no-store' }).then(r => r.json()),
+      fetch('/api/recipes',  { cache: 'no-store' }).then(r => r.json()).catch(() => []),
       session?.user?.id
         ? fetch('/api/progress').then(r => r.json()).catch(() => null)
         : Promise.resolve(null),
@@ -243,11 +241,42 @@ export function useGameStore() {
       setDiscovered(validDisc)
       setInitialized(true)
     }).catch(() => {
-      // Minimal fallback — empty state
       setDiscovered(new Set())
       setInitialized(true)
     })
-  }, [sessionStatus, session?.user?.id])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id])
+
+  useEffect(() => {
+    if (sessionStatus === 'loading') return
+    loadGameData()
+  }, [sessionStatus, loadGameData])
+
+  // Reload elements+recipes when the tab regains focus (catches admin edits in another tab)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && initialized) {
+        Promise.all([
+          fetch('/api/elements', { cache: 'no-store' }).then(r => r.json()),
+          fetch('/api/recipes',  { cache: 'no-store' }).then(r => r.json()).catch(() => []),
+        ]).then(([elementsData, recipesData]) => {
+          const rows: DbRow[] = Array.isArray(elementsData) ? elementsData : []
+          if (rows.length === 0) return
+          setDbRows(rows)
+          setTotalDbCount(rows.length)
+          const recipes: RecipeRow[] = Array.isArray(recipesData) ? recipesData : []
+          setDbRecipes(recipes)
+          const lang = (() => { try { return (localStorage.getItem(LANG_KEY) as Lang | null) || 'en' } catch { return 'en' } })()
+          const elMap = buildElementMap(rows, lang)
+          setElements(elMap)
+          setElementsByName(buildNameIndex(elMap))
+          setRecipeMap(buildRecipeMap(recipes))
+        }).catch(() => {})
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [initialized])
 
   // ─── setLang — rebuilds display names only, no state translation needed ──
   const setLang = useCallback((newLang: Lang) => {
