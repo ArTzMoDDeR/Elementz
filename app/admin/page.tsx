@@ -347,16 +347,19 @@ function UsersTab() {
 
   useEffect(() => { setPage(1) }, [debouncedSearch])
 
+  // Reset to page 1 when sort changes
+  useEffect(() => { setPage(1) }, [sortKey, sortDir])
+
   const fetchUsers = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/admin/users?q=${encodeURIComponent(debouncedSearch)}&page=${page}`)
+      const res = await fetch(`/api/admin/users?q=${encodeURIComponent(debouncedSearch)}&page=${page}&sort=${sortKey}&dir=${sortDir}`)
       const data = await res.json()
       setUsers(data.users ?? [])
       setTotal(data.total ?? 0)
     } catch {}
     setLoading(false)
-  }, [debouncedSearch, page])
+  }, [debouncedSearch, page, sortKey, sortDir])
 
   useEffect(() => { fetchUsers() }, [fetchUsers])
 
@@ -378,16 +381,8 @@ function UsersTab() {
     else { setSortKey(key); setSortDir('desc') }
   }
 
-  const sortedUsers = [...users].sort((a, b) => {
-    let av: number | string = 0, bv: number | string = 0
-    if (sortKey === 'discovered')  { av = a.discovered ?? 0;       bv = b.discovered ?? 0 }
-    if (sortKey === 'rank')        { av = a.rank ?? 999999;         bv = b.rank ?? 999999 }
-    if (sortKey === 'last_active') { av = a.last_active ?? '';      bv = b.last_active ?? '' }
-    if (sortKey === 'created_at')  { av = a.created_at ?? '';       bv = b.created_at ?? '' }
-    if (av < bv) return sortDir === 'asc' ? -1 : 1
-    if (av > bv) return sortDir === 'asc' ? 1 : -1
-    return 0
-  })
+  // No client-side sort needed — API handles it server-side across all pages
+  const sortedUsers = users
 
   const SortIcon = ({ k }: { k: SortKey }) => {
     if (sortKey !== k) return <ChevronsUpDown className="w-3 h-3 ml-1 opacity-30 inline-block" />
