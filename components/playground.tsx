@@ -1943,9 +1943,6 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-foreground">{t('Classement', 'Leaderboard')}</p>
-            {profile.rank && (
-              <p className="text-xs text-muted-foreground">{t(`#${profile.rank} sur ${profile.total_players} joueurs`, `#${profile.rank} of ${profile.total_players} players`)}</p>
-            )}
           </div>
           <ChevronRight className="w-4 h-4 text-muted-foreground/40 flex-shrink-0" />
         </div>
