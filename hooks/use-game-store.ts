@@ -514,6 +514,19 @@ export function useGameStore() {
     return applyMerge(results, elementNum, target.element)
   }, [playground, recipeMap, generateId, applyMerge])
 
+  // ─── discoverElements — used by tutorial/onboarding to grant discoveries ──
+  const discoverElements = useCallback((nums: number[]) => {
+    const fresh = nums.filter(n => !discovered.has(n))
+    if (fresh.length === 0) return
+    setDiscovered(prev => new Set([...prev, ...fresh]))
+    if (session?.user?.id) {
+      fresh.forEach(n => pendingDiscovered.current.add(n))
+      const userId = session.user.id
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+      saveTimeoutRef.current = setTimeout(() => flushToDb(userId), 500)
+    }
+  }, [discovered, session?.user?.id, flushToDb])
+
   const resetProgress = useCallback(() => {
     const baseNums = new Set(
       dbRows
@@ -563,5 +576,6 @@ export function useGameStore() {
     dropAndMerge,
     resetProgress,
     unlockAll,
+    discoverElements,
   }
 }
