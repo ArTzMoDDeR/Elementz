@@ -1028,25 +1028,23 @@ export function Playground({
               )
             })}
 
-            {/* Center: Hint — circle, sober, slightly raised */}
-            <div className="flex-1 flex flex-col items-center justify-center py-3 relative">
+            {/* Center: Hint — same size/padding as other tabs */}
+            <div className="flex-1 flex flex-col items-center justify-center py-3">
               <button
                 onPointerDown={e => e.stopPropagation()}
                 onClick={e => { e.stopPropagation(); onRequestHint?.() }}
                 aria-label={lang === 'fr' ? 'Obtenir un indice' : 'Get a hint'}
                 className={`
                   flex items-center justify-center
-                  w-12 h-12 rounded-full tap-spring select-none
+                  w-10 h-10 rounded-full tap-spring select-none
                   bg-card border-2 border-border
-                  shadow-[0_1px_6px_0_rgba(0,0,0,0.15)]
                   hover:bg-muted/60
                   active:scale-95
                   transition-all duration-150
-                  -translate-y-2
-                  ${hintShouldPulse ? 'border-amber-400/70 shadow-[0_0_0_4px_rgba(251,191,36,0.1)]' : ''}
+                  ${hintShouldPulse ? 'border-amber-400/70' : ''}
                 `}
               >
-                <Lightbulb className={`w-5 h-5 ${hintShouldPulse ? 'text-amber-400' : 'text-foreground/60'}`} />
+                <Lightbulb size={24} className={hintShouldPulse ? 'text-amber-400' : 'text-foreground/60'} />
               </button>
             </div>
 
@@ -1453,6 +1451,21 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
         </a>
       </div>
 
+      {/* Sign out (logged in only) — above delete */}
+      {sessionUser && (
+        <div className="rounded-2xl border border-border overflow-hidden">
+          <button
+            onClick={() => { signOut({ callbackUrl: '/' }) }}
+            className="w-full flex items-center gap-3 px-4 py-3.5 bg-card hover:bg-muted/50 active:bg-muted transition-colors cursor-pointer"
+          >
+            <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
+              <LogOut className="w-4 h-4 text-foreground/70" />
+            </div>
+            <span className="text-sm font-medium text-foreground">{t('Se déconnecter', 'Sign out')}</span>
+          </button>
+        </div>
+      )}
+
       {/* Delete account (logged in only) */}
       {sessionUser && (
         <div className="rounded-2xl border border-border overflow-hidden">
@@ -1521,20 +1534,7 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
         </div>
       )}
 
-      {/* Sign out (logged in only) */}
-      {sessionUser && (
-      <div className="rounded-2xl border border-border overflow-hidden">
-        <button
-          onClick={() => { onSignOut ? onSignOut() : signOut({ callbackUrl: '/' }) }}
-          className="w-full flex items-center gap-3 px-4 py-3.5 bg-card hover:bg-red-500/5 active:bg-red-500/10 transition-colors cursor-pointer"
-        >
-          <div className="w-8 h-8 rounded-xl bg-red-500/10 flex items-center justify-center flex-shrink-0">
-            <LogOut className="w-4 h-4 text-red-400" />
-          </div>
-          <span className="text-sm font-medium text-red-400">{t('Se déconnecter', 'Sign out')}</span>
-        </button>
-      </div>
-      )}
+
 
       {/* Footer */}
       <div className="pt-2 pb-1 flex flex-col items-center gap-1">
