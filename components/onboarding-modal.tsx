@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useTheme } from 'next-themes'
-import { Globe, Sun, Moon, ChevronRight, Lightbulb, Scroll, ArrowLeft, User, Smile, Bell, Ticket, Check } from 'lucide-react'
+import { Sun, Moon, ChevronRight, Scroll, ArrowLeft, Ticket, Check } from 'lucide-react'
 import type { ElementDef } from '@/lib/game-data'
 import { ElementBadge } from '@/components/element-badge'
 
@@ -28,17 +28,7 @@ const STARTER_LABELS: Record<string, { fr: string; en: string; emoji: string }> 
 const STEPS = ['lang', 'theme', 'combine', 'hint', 'quests', 'username', 'avatar', 'notifications'] as const
 type Step = typeof STEPS[number]
 
-// Per-step accent color
-const STEP_COLOR: Record<Step, { from: string; icon: string; ring: string; bg: string }> = {
-  lang:          { from: 'from-blue-500',   icon: 'text-blue-400',   ring: 'ring-blue-500/30',   bg: 'bg-blue-500/10' },
-  theme:         { from: 'from-violet-500', icon: 'text-violet-400', ring: 'ring-violet-500/30', bg: 'bg-violet-500/10' },
-  combine:       { from: 'from-cyan-500',   icon: 'text-cyan-400',   ring: 'ring-cyan-500/30',   bg: 'bg-cyan-500/10' },
-  hint:          { from: 'from-amber-500',  icon: 'text-amber-400',  ring: 'ring-amber-500/30',  bg: 'bg-amber-500/10' },
-  quests:        { from: 'from-emerald-500',icon: 'text-emerald-400',ring: 'ring-emerald-500/30',bg: 'bg-emerald-500/10' },
-  username:      { from: 'from-pink-500',   icon: 'text-pink-400',   ring: 'ring-pink-500/30',   bg: 'bg-pink-500/10' },
-  avatar:        { from: 'from-orange-500', icon: 'text-orange-400', ring: 'ring-orange-500/30', bg: 'bg-orange-500/10' },
-  notifications: { from: 'from-indigo-500', icon: 'text-indigo-400', ring: 'ring-indigo-500/30', bg: 'bg-indigo-500/10' },
-}
+
 
 // ─── Mini tutorial playground for combine step ────────────────────────────────
 
@@ -365,7 +355,6 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
   const videoRef = useRef<HTMLVideoElement>(null)
 
   const stepIndex = STEPS.indexOf(step)
-  const color     = STEP_COLOR[step]
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
   // Reset combine state when re-entering the step
@@ -456,9 +445,6 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
           {step === 'lang' && (
             <>
               <div className="flex flex-col items-center gap-5 text-center">
-                <div className={`w-20 h-20 rounded-3xl ${color.bg} ring-1 ${color.ring} flex items-center justify-center`}>
-                  <Globe className={`w-10 h-10 ${color.icon}`} />
-                </div>
                 <div className="space-y-2">
                   <h1 className="text-3xl sm:text-4xl font-bold text-foreground text-balance">
                     {lang === 'fr' ? 'Choisis ta langue' : 'Choose your language'}
@@ -492,11 +478,6 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
           {step === 'theme' && (
             <>
               <div className="flex flex-col items-center gap-5 text-center">
-                <div className={`w-20 h-20 rounded-3xl ${color.bg} ring-1 ${color.ring} flex items-center justify-center`}>
-                  {selectedTheme === 'dark'
-                    ? <Moon className={`w-10 h-10 ${color.icon}`} />
-                    : <Sun className={`w-10 h-10 ${color.icon}`} />}
-                </div>
                 <div className="space-y-2">
                   <h1 className="text-3xl sm:text-4xl font-bold text-foreground text-balance">
                     {t('Choisis ton thème', 'Choose your theme')}
@@ -594,9 +575,6 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
           {step === 'hint' && (
             <>
               <div className="flex flex-col items-center gap-5 text-center">
-                <div className={`w-20 h-20 rounded-3xl ${color.bg} ring-1 ${color.ring} flex items-center justify-center`}>
-                  <Lightbulb className={`w-10 h-10 ${color.icon}`} />
-                </div>
                 <div className="space-y-2">
                   <h1 className="text-3xl sm:text-4xl font-bold text-foreground text-balance">
                     {t('Indices', 'Hints')}
@@ -646,9 +624,6 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
           {step === 'quests' && (
             <>
               <div className="flex flex-col items-center gap-5 text-center">
-                <div className={`w-20 h-20 rounded-3xl ${color.bg} ring-1 ${color.ring} flex items-center justify-center`}>
-                  <Scroll className={`w-10 h-10 ${color.icon}`} />
-                </div>
                 <div className="space-y-2">
                   <h1 className="text-3xl sm:text-4xl font-bold text-foreground text-balance">
                     {t('Quêtes', 'Quests')}
@@ -692,9 +667,6 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
           {step === 'username' && (
             <>
               <div className="flex flex-col items-center gap-5 text-center">
-                <div className={`w-20 h-20 rounded-3xl ${color.bg} ring-1 ${color.ring} flex items-center justify-center`}>
-                  <User className={`w-10 h-10 ${color.icon}`} />
-                </div>
                 <div className="space-y-2">
                   <h1 className="text-3xl sm:text-4xl font-bold text-foreground text-balance">
                     {t('Choisis ton pseudo', 'Choose your username')}
@@ -732,9 +704,6 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
           {step === 'avatar' && (
             <>
               <div className="flex flex-col items-center gap-5 text-center">
-                <div className={`w-20 h-20 rounded-3xl ${color.bg} ring-1 ${color.ring} flex items-center justify-center`}>
-                  <Smile className={`w-10 h-10 ${color.icon}`} />
-                </div>
                 <div className="space-y-2">
                   <h1 className="text-3xl sm:text-4xl font-bold text-foreground text-balance">
                     {t('Choisis ton avatar', 'Choose your avatar')}
@@ -747,73 +716,83 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                   </p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                {STARTERS.map(key => {
-                  const info = STARTER_LABELS[key]
-                  const el = elementsByName.get(lang === 'fr' ? info.fr.toLowerCase() : info.en.toLowerCase())
-                    ?? elementsByName.get(info.fr.toLowerCase())
-                    ?? elementsByName.get(info.en.toLowerCase())
-                  const selected = avatar === key
-                  const elColor = el?.color ?? '#818cf8'
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => setAvatar(key)}
-                      className="flex flex-col items-center gap-4 py-7 rounded-3xl transition-all relative overflow-hidden"
-                      style={{
-                        background: selected
-                          ? `linear-gradient(145deg, ${elColor}22, ${elColor}0a)`
-                          : 'rgba(255,255,255,0.03)',
-                        border: selected
-                          ? `2px solid ${elColor}80`
-                          : '2px solid rgba(255,255,255,0.07)',
-                        boxShadow: selected
-                          ? `0 0 28px ${elColor}30, inset 0 1px 0 ${elColor}25`
-                          : 'none',
-                      }}
-                    >
-                      {/* Glow blob behind icon when selected */}
-                      {selected && (
-                        <div
-                          className="absolute top-3 left-1/2 -translate-x-1/2 w-20 h-20 rounded-full blur-2xl opacity-30 pointer-events-none"
-                          style={{ background: elColor }}
-                        />
-                      )}
-                      <div
-                        className="relative w-16 h-16 rounded-2xl flex items-center justify-center p-2.5 transition-all"
-                        style={{
-                          background: selected ? `${elColor}25` : `${elColor}12`,
-                          boxShadow: selected ? `0 0 0 3px ${elColor}35` : 'none',
-                        }}
-                      >
-                        {el?.imageUrl ? (
-                          <img
-                            src={el.imageUrl}
-                            alt={el.name}
-                            className="w-full h-full object-contain pointer-events-none"
-                            draggable={false}
-                          />
-                        ) : (
-                          <span className="text-4xl leading-none">{info.emoji}</span>
-                        )}
-                      </div>
-                      <div className="flex flex-col items-center gap-1">
-                        <span className={`text-sm font-bold transition-colors ${selected ? 'text-foreground' : 'text-muted-foreground'}`}>
-                          {lang === 'fr' ? info.fr : info.en}
-                        </span>
-                        {selected && (
-                          <span
-                            className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                            style={{ background: `${elColor}25`, color: elColor }}
+              {/* All available avatar options: 4 base + 3 tutorial-discovered elements */}
+              {(() => {
+                const TUTORIAL_KEYS = [
+                  { key: 'pluie',      fr: 'Pluie',      en: 'Rain' },
+                  { key: 'plante',     fr: 'Plante',      en: 'Plant' },
+                  { key: 'champignon', fr: 'Champignon',  en: 'Mushroom' },
+                ]
+                const allOptions: { key: string; label: string; el: ElementDef | undefined }[] = [
+                  ...STARTERS.map(key => {
+                    const info = STARTER_LABELS[key]
+                    const el = elementsByName.get(lang === 'fr' ? info.fr.toLowerCase() : info.en.toLowerCase())
+                      ?? elementsByName.get(info.fr.toLowerCase())
+                      ?? elementsByName.get(info.en.toLowerCase())
+                    return { key, label: lang === 'fr' ? info.fr : info.en, el }
+                  }),
+                  ...TUTORIAL_KEYS.map(({ key, fr, en }) => {
+                    const el = elementsByName.get(lang === 'fr' ? fr.toLowerCase() : en.toLowerCase())
+                      ?? elementsByName.get(fr.toLowerCase())
+                      ?? elementsByName.get(en.toLowerCase())
+                    return { key, label: lang === 'fr' ? fr : en, el }
+                  }).filter(o => o.el !== undefined),
+                ]
+                return (
+                  <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                    {allOptions.map(({ key, label, el }) => {
+                      const selected = avatar === key
+                      const elColor = el?.color ?? '#818cf8'
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => setAvatar(key)}
+                          className="flex flex-col items-center gap-2 py-4 rounded-2xl transition-all relative overflow-hidden"
+                          style={{
+                            background: selected
+                              ? `linear-gradient(145deg, ${elColor}22, ${elColor}0a)`
+                              : 'rgba(255,255,255,0.03)',
+                            border: selected
+                              ? `2px solid ${elColor}80`
+                              : '2px solid rgba(255,255,255,0.07)',
+                            boxShadow: selected
+                              ? `0 0 20px ${elColor}25, inset 0 1px 0 ${elColor}20`
+                              : 'none',
+                          }}
+                        >
+                          {selected && (
+                            <div
+                              className="absolute top-2 left-1/2 -translate-x-1/2 w-14 h-14 rounded-full blur-xl opacity-25 pointer-events-none"
+                              style={{ background: elColor }}
+                            />
+                          )}
+                          <div
+                            className="relative w-11 h-11 rounded-xl flex items-center justify-center p-2 transition-all"
+                            style={{
+                              background: selected ? `${elColor}25` : `${elColor}12`,
+                              boxShadow: selected ? `0 0 0 2px ${elColor}35` : 'none',
+                            }}
                           >
-                            {lang === 'fr' ? 'Sélectionné' : 'Selected'}
+                            {el?.imageUrl ? (
+                              <img
+                                src={el.imageUrl}
+                                alt={label}
+                                className="w-full h-full object-contain pointer-events-none"
+                                draggable={false}
+                              />
+                            ) : (
+                              <span className="text-2xl leading-none">{STARTER_LABELS[key]?.emoji ?? '?'}</span>
+                            )}
+                          </div>
+                          <span className={`text-xs font-semibold transition-colors ${selected ? 'text-foreground' : 'text-muted-foreground'}`}>
+                            {label}
                           </span>
-                        )}
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
             </>
           )}
 
@@ -821,9 +800,6 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
           {step === 'notifications' && (
             <>
               <div className="flex flex-col items-center gap-5 text-center">
-                <div className={`w-20 h-20 rounded-3xl ${color.bg} ring-1 ${color.ring} flex items-center justify-center`}>
-                  <Bell className={`w-10 h-10 ${color.icon}`} />
-                </div>
                 <div className="space-y-2">
                   <h1 className="text-3xl sm:text-4xl font-bold text-foreground text-balance">
                     {t('Notifications', 'Notifications')}
