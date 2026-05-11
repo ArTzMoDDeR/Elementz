@@ -712,8 +712,8 @@ export function Playground({
               <div className="flex-1 flex items-center justify-center gap-2.5 min-w-0">
                 <img src="/logo.svg" alt="Elementz" className="w-5 h-5 rounded-full flex-shrink-0 pointer-events-none select-none" draggable={false} onError={e => { (e.target as HTMLImageElement).src = '/logo.png' }} />
                 <span className="font-bold text-sm tracking-tight text-foreground">Elementz</span>
-                <span className="text-[11px] tabular-nums font-medium px-1.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground" suppressHydrationWarning>
-                  {discovered.size}<span className="opacity-50">/{totalElements}</span>
+                <span className="text-sm tabular-nums font-semibold text-foreground" suppressHydrationWarning>
+                  {discovered.size}<span className="text-muted-foreground/50 font-normal">/{totalElements}</span>
                 </span>
               </div>
             )}
@@ -759,7 +759,7 @@ export function Playground({
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder={lang === 'fr' ? 'Rechercher...' : 'Search...'}
-                  className="w-full h-9 pl-8 pr-7 bg-muted/40 border border-border/50 rounded-xl text-[13px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-border focus:bg-muted/60 transition-all"
+                  className="w-full h-9 pl-8 pr-7 bg-muted/40 border border-border/50 rounded-xl text-[13px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/40 focus:ring-2 focus:ring-foreground/15 focus:bg-muted/60 transition-all"
                   style={{ fontSize: '16px' }}
                   onPointerDown={e => e.stopPropagation()}
                   onTouchStart={e => e.stopPropagation()}
@@ -774,9 +774,9 @@ export function Playground({
                   </button>
                 )}
               </div>
-              {/* Sort pill switcher */}
-              <div className="flex h-9 items-center rounded-xl bg-muted/40 border border-border/40 p-0.5 gap-0 flex-shrink-0">
-                {(['name', 'recent'] as const).map(type => {
+              {/* Sort switcher */}
+              <div className="flex h-9 items-center gap-0 flex-shrink-0 border border-border/50 rounded-xl overflow-hidden bg-muted/30">
+                {(['name', 'recent'] as const).map((type, i) => {
                   const isActive = sortBy === type
                   const label = type === 'name'
                     ? (lang === 'fr' ? 'Nom' : 'Name')
@@ -786,10 +786,12 @@ export function Playground({
                     <button
                       key={type}
                       onClick={() => toggleSort(type)}
-                      className={`flex items-center gap-1 h-full px-3 rounded-[10px] text-xs font-semibold transition-all whitespace-nowrap tap-spring ${
+                      className={`flex items-center gap-1 h-full px-3 text-xs font-semibold whitespace-nowrap transition-colors ${
+                        i === 0 ? 'border-r border-border/50' : ''
+                      } ${
                         isActive
-                          ? 'bg-foreground/90 text-background shadow-sm'
-                          : 'text-muted-foreground/60 hover:text-muted-foreground'
+                          ? 'bg-foreground text-background'
+                          : 'text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/50'
                       }`}
                     >
                       {label}
