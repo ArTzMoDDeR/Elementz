@@ -57,9 +57,10 @@ type MiniItem = {
   y: number  // percent of container height
 }
 
-type MiniDrag = { id: string; offsetX: number; offsetY: number }
+// Drag state stored in a ref — id of dragged item + touch offset from its center
+type MiniDrag = { id: string; offsetX: number; offsetY: number; pointerId: number }
 
-const MERGE_DIST_PCT = 20 // % of container width
+const MERGE_DIST_PCT = 22 // % of container width
 
 function MiniPlayground({
   lang,
@@ -74,47 +75,51 @@ function MiniPlayground({
   onAllDone: () => void
   onTutorialDiscover: (nums: number[]) => void
 }) {
-  const areaRef   = useRef<HTMLDivElement>(null)
-  const drag      = useRef<MiniDrag | null>(null)
+  const areaRef = useRef<HTMLDivElement>(null)
+  // All drag state lives in a ref — never in React state — so pointer handlers
+  // can read it synchronously without stale-closure issues on mobile.
+  const drag = useRef<MiniDrag | null>(null)
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
-  // Build a fast lookup: current-lang name → ElementDef, rebuilt when elements change
-  const byFrName = useRef<Map<string, ElementDef>>(new Map())
+  // name → ElementDef lookup rebuilt when elements change
+  const byName = useRef<Map<string, ElementDef>>(new Map())
   useEffect(() => {
     const m = new Map<string, ElementDef>()
     elements.forEach(el => m.set(el.name.toLowerCase(), el))
-    byFrName.current = m
+    byName.current = m
   }, [elements])
 
-  // Resolve an element by multiple possible names (fr and en) or find by number
-  const getEl = useCallback((frName: string): ElementDef | null => {
-    // Try direct lowercase match
-    const direct = byFrName.current.get(frName.toLowerCase())
-    if (direct) return direct
-    // Fallback: scan all elements
-    for (const el of elements.values()) {
-      if (el.name.toLowerCase() === frName.toLowerCase()) return el
-    }
-    return null
+  const getEl = useCallback((name: string): ElementDef | null => {
+    return byName.current.get(name.toLowerCase())
+      ?? [...elements.values()].find(el => el.name.toLowerCase() === name.toLowerCase())
+      ?? null
   }, [elements])
 
-  // Resolve the result of a combo by recipeMap numbers
   const getResult = useCallback((aEl: ElementDef, bEl: ElementDef): ElementDef | null => {
-    const results = recipeMap.get(`${aEl.number}|${bEl.number}`)
+    const r = recipeMap.get(`${aEl.number}|${bEl.number}`)
       ?? recipeMap.get(`${bEl.number}|${aEl.number}`)
-    if (!results || results.length === 0) return null
-    return elements.get(results[0]) ?? null
+    if (!r || r.length === 0) return null
+    return elements.get(r[0]) ?? null
   }, [recipeMap, elements])
 
-  const [comboIndex, setComboIndex]   = useState(0)
-  const [items, setItems]             = useState<MiniItem[]>([])
-  const [merging, setMerging]         = useState(false)
-  const [flash, setFlash]             = useState(false)
-  const [justMerged, setJustMerged]   = useState<ElementDef | null>(null)
-  const [doneList, setDoneList]       = useState<ElementDef[]>([])
-  const [allDone, setAllDone]         = useState(false)
+  const [comboIndex, setComboIndex] = useState(0)
+  const [items, setItems]           = useState<MiniItem[]>([])
+  const [merging, setMerging]       = useState(false)
+  const [flash, setFlash]           = useState(false)
+  const [justMerged, setJustMerged] = useState<ElementDef | null>(null)
+  const [doneList, setDoneList]     = useState<ElementDef[]>([])
+  const [allDone, setAllDone]       = useState(false)
 
-  // Build initial items for current combo — try current-lang name, then both fr/en fallbacks
+  // Refs for use inside stable pointer handlers
+  const itemsRef    = useRef<MiniItem[]>([])
+  const mergingRef  = useRef(false)
+  const allDoneRef  = useRef(false)
+  const comboRef    = useRef(0)
+  useEffect(() => { itemsRef.current   = items },    [items])
+  useEffect(() => { mergingRef.current = merging },  [merging])
+  useEffect(() => { allDoneRef.current = allDone },  [allDone])
+  useEffect(() => { comboRef.current   = comboIndex },[comboIndex])
+
   const buildItems = useCallback((idx: number): MiniItem[] => {
     const combo = TUTORIAL_COMBOS[idx]
     const aEl = getEl(combo.fr_a) ?? getEl(combo.en_a)
@@ -126,7 +131,6 @@ function MiniPlayground({
     ]
   }, [getEl])
 
-  // Init / reset when comboIndex or elements change
   useEffect(() => {
     setItems(buildItems(comboIndex))
     setMerging(false)
@@ -134,40 +138,68 @@ function MiniPlayground({
     setJustMerged(null)
   }, [comboIndex, buildItems])
 
-  const onPointerDown = useCallback((e: React.PointerEvent, id: string) => {
-    if (merging || allDone) return
-    e.currentTarget.setPointerCapture(e.pointerId)
-    const area = areaRef.current!.getBoundingClientRect()
-    const item = items.find(i => i.id === id)
-    if (!item) return
-    drag.current = {
-      id,
-      offsetX: e.clientX - area.left - (item.x / 100) * area.width,
-      offsetY: e.clientY - area.top  - (item.y / 100) * area.height,
+  // ── All pointer handlers go on the ARENA element (not the badge divs).
+  // This avoids the iOS bug where setPointerCapture on a child element throws
+  // when the element is inside a non-capturing scroll container.
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (mergingRef.current || allDoneRef.current) return
+    const area = areaRef.current
+    if (!area) return
+
+    // Find which item the pointer landed on by checking proximity to each item center
+    const rect = area.getBoundingClientRect()
+    const px = ((e.clientX - rect.left) / rect.width) * 100
+    const py = ((e.clientY - rect.top) / rect.height) * 100
+
+    let closest: MiniItem | null = null
+    let closestDist = Infinity
+    for (const item of itemsRef.current) {
+      const d = Math.hypot(item.x - px, item.y - py)
+      if (d < closestDist) { closestDist = d; closest = item }
     }
-  }, [merging, allDone, items])
+    // Only start drag if within ~18% of the container size from an item center
+    if (!closest || closestDist > 18) return
 
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!drag.current || merging || allDone) return
-    const area = areaRef.current!.getBoundingClientRect()
-    const nx = Math.max(8, Math.min(92, ((e.clientX - area.left - drag.current.offsetX) / area.width)  * 100))
-    const ny = Math.max(8, Math.min(92, ((e.clientY - area.top  - drag.current.offsetY) / area.height) * 100))
-    setItems(prev => prev.map(i => i.id === drag.current!.id ? { ...i, x: nx, y: ny } : i))
-  }, [merging, allDone])
+    // Capture pointer on the arena itself — safe on all browsers/iOS
+    try { area.setPointerCapture(e.pointerId) } catch {}
 
-  const onPointerUp = useCallback(() => {
-    if (!drag.current || merging || allDone) return
+    drag.current = {
+      id: closest.id,
+      pointerId: e.pointerId,
+      offsetX: px - closest.x,
+      offsetY: py - closest.y,
+    }
+    e.preventDefault()
+  }, [])
+
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!drag.current || mergingRef.current || allDoneRef.current) return
+    if (drag.current.pointerId !== e.pointerId) return
+    const area = areaRef.current
+    if (!area) return
+    const rect = area.getBoundingClientRect()
+    const nx = Math.max(8, Math.min(92, ((e.clientX - rect.left) / rect.width)  * 100 - drag.current.offsetX))
+    const ny = Math.max(8, Math.min(92, ((e.clientY - rect.top)  / rect.height) * 100 - drag.current.offsetY))
     const id = drag.current.id
+    setItems(prev => prev.map(i => i.id === id ? { ...i, x: nx, y: ny } : i))
+    e.preventDefault()
+  }, [])
+
+  const handlePointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!drag.current || mergingRef.current || allDoneRef.current) return
+    if (drag.current.pointerId !== e.pointerId) return
     drag.current = null
-    const [itemA, itemB] = items
+
+    const current = itemsRef.current
+    const [itemA, itemB] = current
     if (!itemA || !itemB) return
+
     const dist = Math.hypot(itemA.x - itemB.x, itemA.y - itemB.y)
-    const pct  = areaRef.current ? (areaRef.current.getBoundingClientRect().width > 0
-      ? MERGE_DIST_PCT : 20) : 20
-    if (dist > pct) return
+    if (dist > MERGE_DIST_PCT) return
 
     // Merge!
     const resultEl = getResult(itemA.el, itemB.el)
+    mergingRef.current = true
     setMerging(true)
     setFlash(true)
     setTimeout(() => setFlash(false), 350)
@@ -180,10 +212,10 @@ function MiniPlayground({
       setJustMerged(resultEl)
       setDoneList(prev => [...prev, resultEl])
 
-      // After 1.8s, move to next combo or finish
       setTimeout(() => {
-        const next = comboIndex + 1
+        const next = comboRef.current + 1
         if (next >= TUTORIAL_COMBOS.length) {
+          allDoneRef.current = true
           setAllDone(true)
           onAllDone()
         } else {
@@ -191,22 +223,22 @@ function MiniPlayground({
         }
       }, 1800)
     }
-  }, [merging, allDone, items, getResult, comboIndex, onTutorialDiscover, onAllDone])
+  }, [getResult, onTutorialDiscover, onAllDone])
 
   return (
     <div className="flex flex-col gap-3">
 
-      {/* Progress row — 3 steps */}
+      {/* Progress row */}
       <div className="flex items-center justify-center gap-2">
         {TUTORIAL_COMBOS.map((_, i) => {
-          const done = i < comboIndex || allDone || (i === comboIndex && justMerged !== null)
+          const done   = i < comboIndex || allDone || (i === comboIndex && justMerged !== null)
           const active = i === comboIndex && !allDone
           return (
             <div key={i} className="flex items-center gap-1">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all text-xs font-bold ${
-                done    ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400' :
-                active  ? 'bg-cyan-500/20 border border-cyan-500/40 text-cyan-400' :
-                          'bg-muted/30 border border-border text-muted-foreground/40'
+                done   ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400' :
+                active ? 'bg-cyan-500/20 border border-cyan-500/40 text-cyan-400' :
+                         'bg-muted/30 border border-border text-muted-foreground/40'
               }`}>
                 {done ? <Check className="w-3 h-3" /> : i + 1}
               </div>
@@ -237,27 +269,28 @@ function MiniPlayground({
         ) : (
           <div className="px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
             <span className="text-xs font-semibold text-cyan-400 animate-pulse">
-              {t('Glisse un élément sur l\'autre', 'Drag one element onto the other')}
+              {t("Glisse un élément sur l'autre", 'Drag one element onto the other')}
             </span>
           </div>
         )}
       </div>
 
-      {/* Arena */}
+      {/* Arena — all pointer events handled HERE, not on child elements */}
       <div
         ref={areaRef}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerLeave={onPointerUp}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         className={`relative w-full rounded-2xl border overflow-hidden select-none transition-colors ${
-          flash     ? 'border-cyan-400/60' :
-          allDone   ? 'border-emerald-500/40 bg-emerald-500/5' :
-          justMerged? 'border-emerald-500/30' :
-                      'border-border'
+          flash      ? 'border-cyan-400/60' :
+          allDone    ? 'border-emerald-500/40 bg-emerald-500/5' :
+          justMerged ? 'border-emerald-500/30' :
+                       'border-border'
         }`}
-        style={{ height: 180, touchAction: 'none' }}
+        style={{ height: 260, touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
       >
-        {/* Dot grid — identical to real playground */}
+        {/* Dot grid */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
@@ -268,29 +301,31 @@ function MiniPlayground({
 
         {/* Merge flash */}
         {flash && (
-          <div className="absolute inset-0 pointer-events-none" style={{ background: 'oklch(0.72 0.17 145 / 0.12)', animation: 'mergeFlash 0.35s ease-out forwards' }} />
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'oklch(0.72 0.17 145 / 0.12)', animation: 'mergeFlash 0.35s ease-out forwards' }}
+          />
         )}
 
-        {/* Items */}
+        {/* Items — pointer events disabled so all events bubble up to arena */}
         {items.map(item => (
           <div
             key={item.id}
-            className="absolute cursor-grab active:cursor-grabbing select-none touch-none"
+            className="absolute pointer-events-none select-none"
             style={{
               left: `${item.x}%`,
               top:  `${item.y}%`,
               transform: 'translate(-50%, -50%)',
               zIndex: drag.current?.id === item.id ? 20 : 5,
-              transition: drag.current?.id === item.id ? 'none' : 'left 0.15s, top 0.15s',
+              transition: drag.current?.id === item.id ? 'none' : 'left 0.12s, top 0.12s',
             }}
-            onPointerDown={e => onPointerDown(e, item.id)}
           >
-            <ElementBadge element={item.el} size="sm" />
+            <ElementBadge element={item.el} size="md" />
           </div>
         ))}
       </div>
 
-      {/* Mini discovered list */}
+      {/* Discovered list */}
       {doneList.length > 0 && (
         <div className="flex items-center gap-2 justify-center flex-wrap">
           <span className="text-[10px] text-muted-foreground/50 font-medium">{t('Découverts :', 'Discovered:')}</span>
