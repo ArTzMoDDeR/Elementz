@@ -73,14 +73,34 @@ export async function PATCH(req: Request) {
   const { username, show_in_leaderboard, avatar, haptic_feedback, push_notifications, push_prompt_shown, theme, onboarding_done } = body
 
   if (username !== undefined) {
-    if (typeof username !== 'string') return NextResponse.json({ error: 'Invalid username' }, { status: 400 })
-    const trimmed = username.trim()
+    // null means "clear username", string means "set username"
+    if (username !== null && typeof username !== 'string') {
+      return NextResponse.json({ error: 'Invalid username' }, { status: 400 })
+    }
+    const trimmed = username === null ? '' : username.trim()
     if (trimmed.length > 20) return NextResponse.json({ error: 'Username too long (max 20 chars)' }, { status: 400 })
     if (trimmed.length > 0 && !/^[a-zA-Z0-9_\- ]+$/.test(trimmed)) {
       return NextResponse.json({ error: 'Username can only contain letters, numbers, spaces, _ and -' }, { status: 400 })
     }
-    // Enforce unique username (case-insensitive), ignoring the user's own current username
+
+    // Enforce 1-week cooldown between username changes
     if (trimmed.length > 0) {
+      const cooldownRow = await sql`
+        SELECT username_updated_at FROM user_progress WHERE user_id = ${session.user.id}
+      `
+      if (cooldownRow.length > 0 && cooldownRow[0].username_updated_at) {
+        const lastChange = new Date(cooldownRow[0].username_updated_at).getTime()
+        const oneWeek = 7 * 24 * 60 * 60 * 1000
+        if (Date.now() - lastChange < oneWeek) {
+          const nextAllowed = new Date(lastChange + oneWeek)
+          return NextResponse.json({
+            error: `Prochain changement possible le ${nextAllowed.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`,
+            cooldown_until: nextAllowed.toISOString(),
+          }, { status: 429 })
+        }
+      }
+
+      // Enforce unique username (case-insensitive), ignoring own current username
       const conflict = await sql`
         SELECT 1 FROM user_progress
         WHERE LOWER(username) = LOWER(${trimmed}) AND user_id != ${session.user.id}
@@ -90,11 +110,27 @@ export async function PATCH(req: Request) {
     }
   }
 
+  const usernameValue = username !== undefined ? (typeof username === 'string' ? username.trim() || null : null) : undefined
+  const setUsernameNow = usernameValue !== undefined && usernameValue !== null
+  const now = new Date().toISOString()
+
   await sql`
-    INSERT INTO user_progress (user_id, username, show_in_leaderboard, avatar, haptic_feedback, push_notifications, push_prompt_shown, theme, onboarding_done)
-    VALUES (${session.user.id}, ${username?.trim() ?? null}, ${show_in_leaderboard ?? true}, ${avatar ?? null}, ${haptic_feedback ?? true}, ${push_notifications ?? true}, ${push_prompt_shown ?? false}, ${theme ?? 'dark'}, ${onboarding_done ?? false})
+    INSERT INTO user_progress (user_id, username, show_in_leaderboard, avatar, haptic_feedback, push_notifications, push_prompt_shown, theme, onboarding_done, username_updated_at)
+    VALUES (
+      ${session.user.id},
+      ${usernameValue ?? null},
+      ${show_in_leaderboard ?? true},
+      ${avatar ?? null},
+      ${haptic_feedback ?? true},
+      ${push_notifications ?? true},
+      ${push_prompt_shown ?? false},
+      ${theme ?? 'dark'},
+      ${onboarding_done ?? false},
+      ${setUsernameNow ? now : null}
+    )
     ON CONFLICT (user_id) DO UPDATE SET
       username = CASE WHEN ${username !== undefined} THEN EXCLUDED.username ELSE user_progress.username END,
+      username_updated_at = CASE WHEN ${setUsernameNow} THEN ${now}::timestamptz ELSE user_progress.username_updated_at END,
       show_in_leaderboard = CASE WHEN ${show_in_leaderboard !== undefined} THEN EXCLUDED.show_in_leaderboard ELSE user_progress.show_in_leaderboard END,
       avatar = CASE WHEN ${avatar !== undefined} THEN EXCLUDED.avatar ELSE user_progress.avatar END,
       haptic_feedback = CASE WHEN ${haptic_feedback !== undefined} THEN EXCLUDED.haptic_feedback ELSE user_progress.haptic_feedback END,

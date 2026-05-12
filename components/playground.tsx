@@ -1365,7 +1365,7 @@ function LeaderboardRow({ entry, rank, lang, total, isMe }: {
     rank === 3 ? <Medal className="w-3.5 h-3.5 text-amber-600" /> :
     <span className="text-[11px] font-bold text-muted-foreground/50 tabular-nums w-full text-center">{rank}</span>
 
-  const lastEls = entry.last_elements.filter(e => !!e.img)
+  const lastEls = (entry.last_elements ?? []).filter(e => !!e.img)
 
   return (
     <div className="border-b border-border/30 last:border-b-0">
