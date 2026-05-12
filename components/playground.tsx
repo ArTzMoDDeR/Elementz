@@ -57,6 +57,8 @@ interface PlaygroundProps {
   onTapModeChange?: (enabled: boolean) => void
   recipeMap?: Map<string, number[]>
   playgroundItemsCount?: number
+  /** Increment to force the nav avatar to re-fetch from /api/profile */
+  avatarRefreshKey?: number
 }
 
 type SortType = 'name' | 'recent'
@@ -222,12 +224,13 @@ function hashStr(s: string) {
 }
 
 function AvatarButton({
-  sessionUser, elementsByName, onClick, lang,
+  sessionUser, elementsByName, onClick, lang, refreshKey,
 }: {
   sessionUser: { name?: string | null; email?: string | null; image?: string | null }
   elementsByName: Map<string, ElementDef>
   onClick: () => void
   lang: 'fr' | 'en'
+  refreshKey?: number
 }) {
   const [avatarKey, setAvatarKey] = useState<string | null>(null)
 
@@ -244,7 +247,8 @@ function AvatarButton({
         const starting = lang === 'fr' ? STARTING_FR : STARTING_EN
         setAvatarKey(starting[0])
       })
-  }, [lang, sessionUser.email])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang, sessionUser.email, refreshKey])
 
   // Avatar key is stored as FR name ('eau', 'feu', 'champignon', etc.) — look up with fallback
   const el = avatarKey
@@ -277,7 +281,7 @@ export function Playground({
   onDrop, onMove, onMerge, onDropAndMerge, onRemove, onClear, onReset,
   onUnlockAll, sessionUser, hintsEnabled, onToggleHints, onRequestHint, hintShouldPulse = false, hintAdLocked = true,
   hapticEnabled = true, onToggleHaptic, pushNotificationsEnabled = true, onTogglePushNotifications, onTapModeChange, recipeMap,
-  playgroundItemsCount = 0,
+  playgroundItemsCount = 0, avatarRefreshKey = 0,
 }: PlaygroundProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const inventoryRef = useRef<HTMLDivElement>(null)
@@ -323,7 +327,8 @@ export function Playground({
         setTabAvatarKey(starting[Math.abs(hashStr(sessionUser.email ?? 'x')) % 4])
       })
       .catch(() => {})
-  }, [sessionUser?.email, lang])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionUser?.email, lang, avatarRefreshKey])
 
   // Reset tap grid slot counter when canvas is emptied
   useEffect(() => {
@@ -335,7 +340,7 @@ export function Playground({
   const [shakeId, setShakeId] = useState<string | null>(null)
   const [playgroundFlash, setPlaygroundFlash] = useState<'success' | 'fail' | null>(null)
   const isMobile = useIsMobile()
-  const playgroundBadgeSize = isMobile ? 'sm' : 'xl'
+  const playgroundBadgeSize = isMobile ? 'sm' : 'lg'
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<SortType>('name')
   const [sortReverse, setSortReverse] = useState(false)

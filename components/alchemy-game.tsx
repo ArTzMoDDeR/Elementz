@@ -285,6 +285,7 @@ export function AlchemyGame() {
   const { setTheme } = useTheme()
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showPushPrompt, setShowPushPrompt] = useState(false)
+  const [avatarRefreshKey, setAvatarRefreshKey] = useState(0)
   const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(true)
   const {
     lang,
@@ -400,6 +401,8 @@ export function AlchemyGame() {
         avatar: prefs.avatar,
       }),
     })
+    // Force the nav avatar to re-fetch now that the new avatar is saved
+    setAvatarRefreshKey(k => k + 1)
     if (prefs.enablePush) {
       const ok = await subscribeToPush(prefs.lang)
       setPushNotificationsEnabled(ok)
@@ -593,6 +596,7 @@ export function AlchemyGame() {
 
         playgroundItemsCount={playground.length}
         recipeMap={recipeMap}
+        avatarRefreshKey={avatarRefreshKey}
       />
 
       {/* Notification stack — desktop only (mobile shows in inventory header) */}

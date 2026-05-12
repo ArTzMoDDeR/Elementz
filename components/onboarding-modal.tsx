@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { useTheme } from 'next-themes'
 import { Sun, Moon, ArrowLeft, Ticket, Scroll, Check } from 'lucide-react'
 import type { ElementDef } from '@/lib/game-data'
@@ -37,6 +37,10 @@ type MiniDrag = { id: string; offsetX: number; offsetY: number; pointerId: numbe
 const MERGE_DIST_PCT = 22
 
 // ── Tap-to-add step ───────────────────────────────────────────────────────────
+// A mini fake-game: inventory bar at bottom, playground canvas above.
+// Tapping an inventory item "adds" it to the playground with a drop animation.
+type TapItem = { key: string; label: string; el: ElementDef | null; x: number; y: number }
+
 function TapArena({
   lang,
   elements,
@@ -47,97 +51,139 @@ function TapArena({
   onAllAdded: () => void
 }) {
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
-  const byName = useRef(new Map<string, ElementDef>())
-  useEffect(() => {
-    const m = new Map<string, ElementDef>()
-    elements.forEach(el => m.set(el.name.toLowerCase(), el))
-    byName.current = m
-  }, [elements])
-  const getEl = (name: string) =>
-    byName.current.get(name.toLowerCase())
-    ?? [...elements.values()].find(el => el.name.toLowerCase() === name.toLowerCase())
-    ?? null
 
-  const airEl   = getEl('air')
-  const waterEl = getEl(lang === 'fr' ? 'eau' : 'water') ?? getEl('eau')
-  const targets = [
-    { key: 'air',   el: airEl,   label: lang === 'fr' ? 'Air'  : 'Air'   },
-    { key: 'water', el: waterEl, label: lang === 'fr' ? 'Eau'  : 'Water' },
+  // Resolve elements by name
+  const getEl = useCallback((names: string[]): ElementDef | null => {
+    for (const n of names) {
+      const found = [...elements.values()].find(el => el.name.toLowerCase() === n.toLowerCase())
+      if (found) return found
+    }
+    return null
+  }, [elements])
+
+  const targets = useMemo(() => [
+    { key: 'air',   label: t('Air', 'Air'),   el: getEl(['air']) },
+    { key: 'eau',   label: t('Eau', 'Water'), el: getEl(['eau', 'water']) },
+  ], [getEl, lang]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // playground items placed so far
+  const [placed, setPlaced]       = useState<TapItem[]>([])
+  const [celebrate, setCelebrate] = useState(false)
+  // keys in inventory that are greyed out (added to playground)
+  const addedKeys = new Set(placed.map(p => p.key))
+
+  const POSITIONS = [
+    { x: 30, y: 45 },
+    { x: 68, y: 38 },
   ]
 
-  const [added, setAdded]         = useState<Set<string>>(new Set())
-  const [celebrate, setCelebrate] = useState(false)
-
-  const handleTap = (key: string) => {
-    if (added.has(key)) return
-    const next = new Set(added).add(key)
-    setAdded(next)
-    if (next.size === targets.length) {
+  const handleTap = (key: string, el: ElementDef | null, label: string) => {
+    if (addedKeys.has(key)) return
+    const idx = placed.length
+    const pos = POSITIONS[idx] ?? { x: 50, y: 50 }
+    const next = [...placed, { key, label, el, ...pos }]
+    setPlaced(next)
+    if (next.length >= targets.length) {
       setCelebrate(true)
-      setTimeout(() => onAllAdded(), 2000)
+      setTimeout(() => onAllAdded(), 2200)
     }
   }
 
   return (
-    <div className="relative w-full h-full flex flex-col">
-      {/* Instruction */}
-      <div className="flex flex-col items-center gap-2 mb-6 text-center">
-        {celebrate ? (
-          <p key="done" className="text-base font-semibold text-emerald-400 onboard-fade-up">
-            {t('Parfait ! Maintenant créons un élément', 'Perfect! Now let\'s create an element')}
-          </p>
-        ) : (
-          <p key="inst" className="text-sm text-muted-foreground/70 onboard-fade-up">
-            {t('Appuie sur les éléments pour les ajouter au terrain', 'Tap the elements to add them to the arena')}
-          </p>
+    <div className="relative w-full flex flex-col flex-1 min-h-0">
+
+      {/* ── Playground canvas ── */}
+      <div className="relative flex-1 min-h-0 rounded-3xl overflow-hidden border border-border/30">
+
+        {/* Items placed on playground */}
+        {placed.map(item => (
+          <div
+            key={item.key}
+            className="absolute flex flex-col items-center gap-1.5 -translate-x-1/2 -translate-y-1/2 onboard-pop"
+            style={{ left: `${item.x}%`, top: `${item.y}%` }}
+          >
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center"
+              style={{
+                background: `${item.el?.color ?? 'oklch(0.72 0.17 200)'}18`,
+                border: `2px solid ${item.el?.color ?? 'oklch(0.72 0.17 200)'}45`,
+                boxShadow: `0 0 16px ${item.el?.color ?? 'oklch(0.72 0.17 200)'}20`,
+              }}
+            >
+              {item.el?.imageUrl
+                ? <img src={item.el.imageUrl} alt={item.label} className="w-10 h-10 object-contain" draggable={false} />
+                : <span className="text-2xl font-bold text-foreground/60">{item.label[0]}</span>
+              }
+            </div>
+            <span className="text-[11px] font-semibold text-foreground/70 select-none">{item.label}</span>
+          </div>
+        ))}
+
+        {/* Instruction overlay in the center when playground is empty */}
+        {placed.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <p className="text-sm text-muted-foreground/30 text-center px-8 select-none">
+              {t('Appuie sur un élément ci-dessous', 'Tap an element below')}
+            </p>
+          </div>
+        )}
+
+        {/* Celebrate message */}
+        {celebrate && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <p className="text-base font-bold text-emerald-400 text-center px-6 onboard-fade-up drop-shadow-lg">
+              {t('Parfait ! Maintenant créons un élément', "Perfect! Now let's create an element")}
+            </p>
+          </div>
         )}
       </div>
 
-      {/* Inventory-style cards */}
-      <div className="flex gap-5 justify-center">
-        {targets.map(({ key, el, label }) => {
-          const isAdded = added.has(key)
-          return (
-            <button
-              key={key}
-              onClick={() => handleTap(key)}
-              disabled={isAdded}
-              className="flex flex-col items-center gap-2 transition-all active:scale-95"
-              style={{ opacity: isAdded ? 0.4 : 1 }}
-            >
-              <div
-                className="relative w-24 h-24 rounded-2xl flex items-center justify-center transition-all"
-                style={{
-                  background: isAdded ? 'var(--muted)' : `${el?.color ?? 'oklch(0.72 0.17 145)'}18`,
-                  border: isAdded ? '2px solid var(--border)' : `2px solid ${el?.color ?? 'oklch(0.72 0.17 145)'}50`,
-                  boxShadow: isAdded ? 'none' : `0 0 20px ${el?.color ?? 'oklch(0.72 0.17 145)'}25`,
-                }}
+      {/* ── Inventory bar ── */}
+      <div
+        className="flex-shrink-0 rounded-2xl border border-border/40 mt-3 px-4 py-3"
+        style={{ background: 'color-mix(in oklch, var(--card) 85%, transparent)' }}
+      >
+        {/* Label */}
+        <p className="text-[10px] font-semibold text-muted-foreground/40 uppercase tracking-widest mb-2.5 text-center select-none">
+          {t('Inventaire', 'Inventory')}
+        </p>
+        <div className="flex gap-3 justify-center">
+          {targets.map(({ key, label, el }) => {
+            const isAdded = addedKeys.has(key)
+            const color = el?.color ?? 'oklch(0.72 0.17 200)'
+            return (
+              <button
+                key={key}
+                onClick={() => handleTap(key, el, label)}
+                disabled={isAdded || celebrate}
+                className="flex flex-col items-center gap-1.5 transition-all active:scale-90 disabled:pointer-events-none"
+                style={{ opacity: isAdded ? 0.35 : 1 }}
               >
-                {el?.imageUrl ? (
-                  <img src={el.imageUrl} alt={label} className="w-14 h-14 object-contain" draggable={false} />
-                ) : (
-                  <ElementBadge element={el ?? { name: label, number: 0, color: 'oklch(0.72 0.17 145)' } as ElementDef} size="md" />
-                )}
-                {isAdded && (
-                  <div className="absolute inset-0 rounded-2xl flex items-center justify-center bg-background/40">
-                    <Check className="w-8 h-8 text-emerald-400 onboard-pop" />
-                  </div>
-                )}
-              </div>
-              <span className="text-sm font-semibold text-foreground">{label}</span>
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Progress dots */}
-      <div className="flex justify-center gap-2 mt-8">
-        {targets.map(({ key }) => (
-          <div
-            key={key}
-            className={`w-2 h-2 rounded-full transition-all duration-300 ${added.has(key) ? 'bg-emerald-400 scale-125' : 'bg-muted-foreground/25'}`}
-          />
-        ))}
+                <div
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center relative transition-all"
+                  style={{
+                    background: isAdded ? 'var(--muted)' : `${color}18`,
+                    border: isAdded ? '2px solid var(--border)' : `2px solid ${color}50`,
+                    boxShadow: isAdded ? 'none' : `0 0 14px ${color}22`,
+                  }}
+                >
+                  {el?.imageUrl
+                    ? <img src={el.imageUrl} alt={label} className="w-9 h-9 object-contain" draggable={false} />
+                    : <span className="text-xl font-bold text-foreground/60">{label[0]}</span>
+                  }
+                  {/* Pulse ring on un-tapped items */}
+                  {!isAdded && !celebrate && (
+                    <span
+                      className="absolute inset-0 rounded-2xl animate-ping"
+                      style={{ border: `2px solid ${color}35`, animationDuration: '2s' }}
+                    />
+                  )}
+                </div>
+                <span className="text-[11px] font-semibold text-foreground/60 select-none">{label}</span>
+              </button>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
@@ -351,11 +397,11 @@ function CombineArena({
         className="relative flex-1 rounded-3xl border border-border/30 overflow-hidden select-none"
         style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none', minHeight: 220 }}
       >
-        {/* Subtle dot grid */}
+        {/* Subtle dot grid — slight opacity since the modal-level grid already covers the background */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            backgroundImage: 'radial-gradient(circle, oklch(0.6 0.01 250 / 0.12) 1.5px, transparent 1.5px)',
+            backgroundImage: 'radial-gradient(circle, oklch(0.6 0.01 250 / 0.06) 1.5px, transparent 1.5px)',
             backgroundSize: '32px 32px',
           }}
         />
@@ -543,7 +589,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
   const handleThemeSelect = (th: 'dark' | 'light') => {
     setTheme(th as 'dark' | 'light')
     applyTheme(th)
-    setTimeout(() => goToStep('combine'), 350)
+    setTimeout(() => goToStep('tap'), 350)
   }
 
   const handlePushSelect = (choice: boolean) => {
@@ -558,6 +604,17 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
 
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col bg-background">
+
+      {/* Dot grid — fullscreen, visible only during tap/combine steps */}
+      {isCombineStep && (
+        <div
+          className="fixed inset-0 pointer-events-none z-0"
+          style={{
+            backgroundImage: 'radial-gradient(circle, oklch(0.6 0.01 250 / 0.13) 1.5px, transparent 1.5px)',
+            backgroundSize: '32px 32px',
+          }}
+        />
+      )}
 
       {/* ── Top bar ── */}
       <div className="flex items-center gap-1.5 px-4 pb-3 sm:px-8 flex-shrink-0" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}>
@@ -655,22 +712,20 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
 
           {/* ── TAP step: learn to add elements to playground ── */}
           {step === 'tap' && (
-            <div className="flex flex-col flex-1 min-h-0 gap-6">
-              <div className="flex flex-col items-center gap-2 text-center flex-shrink-0">
+            <div className="flex flex-col flex-1 min-h-0 gap-4">
+              <div className="flex flex-col items-center gap-1.5 text-center flex-shrink-0">
                 <h1 className="text-3xl sm:text-4xl font-bold text-foreground text-balance leading-tight">
-                  {t('Ajoute des éléments', 'Add elements')}
+                  {t('Le terrain de jeu', 'The playground')}
                 </h1>
                 <p className="text-sm text-muted-foreground/60 leading-relaxed">
-                  {t('Dans le jeu, appuie sur un élément pour l\'ajouter au terrain', 'In the game, tap an element to add it to the arena')}
+                  {t('Appuie sur un élément pour le poser sur le terrain', 'Tap an element to place it on the field')}
                 </p>
               </div>
-              <div className="flex-1 flex items-center justify-center">
-                <TapArena
-                  lang={lang}
-                  elements={elements}
-                  onAllAdded={() => goToStep('combine')}
-                />
-              </div>
+              <TapArena
+                lang={lang}
+                elements={elements}
+                onAllAdded={() => goToStep('combine')}
+              />
             </div>
           )}
 
