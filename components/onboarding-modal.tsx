@@ -322,7 +322,7 @@ function CombineArena({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        className="relative flex-1 rounded-3xl border border-border/30 overflow-hidden select-none"
+        className="relative flex-1 rounded-3xl overflow-hidden select-none"
         style={{
           touchAction: 'none',
           userSelect: 'none',

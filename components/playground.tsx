@@ -1348,7 +1348,7 @@ function ChevronScrollBar({ scrollRef }: { scrollRef: React.RefObject<HTMLDivEle
 // ============================================================
 
 function LeaderboardRow({ entry, rank, lang, total, isMe }: {
-  entry: { user_id: string; username: string | null; avatar_img: string | null; count: number; joined_at: string | null; last_elements: Array<{ img: string | null; name: string }> }
+  entry: { user_id: string; username: string | null; avatar_img: string | null; count: number; first_unlock?: string | null; last_unlock?: string | null }
   rank: number
   lang: 'fr' | 'en'
   total: number
@@ -1365,12 +1365,23 @@ function LeaderboardRow({ entry, rank, lang, total, isMe }: {
     rank === 3 ? <Medal className="w-3.5 h-3.5 text-amber-600" /> :
     <span className="text-[11px] font-bold text-muted-foreground/50 tabular-nums w-full text-center">{rank}</span>
 
-  const lastEls = entry.last_elements.filter(e => !!e.img)
+  // Duration between first and last unlock
+  const duration = (() => {
+    if (!entry.first_unlock || !entry.last_unlock) return null
+    const ms = new Date(entry.last_unlock).getTime() - new Date(entry.first_unlock).getTime()
+    if (ms < 0) return null
+    const days = Math.floor(ms / 86400000)
+    const hours = Math.floor((ms % 86400000) / 3600000)
+    if (days > 0) return t(`${days}j ${hours}h`, `${days}d ${hours}h`)
+    const mins = Math.floor((ms % 3600000) / 60000)
+    if (hours > 0) return t(`${hours}h ${mins}min`, `${hours}h ${mins}m`)
+    return t(`${mins} min`, `${mins} min`)
+  })()
 
   return (
     <div className="border-b border-border/30 last:border-b-0">
       <button
-        className="w-full flex items-center gap-3 px-1 py-2.5 text-left"
+        className="w-full flex items-center gap-3 px-1 py-2.5 text-left cursor-pointer"
         onClick={() => setOpen(o => !o)}
         aria-expanded={open}
       >
@@ -1385,32 +1396,23 @@ function LeaderboardRow({ entry, rank, lang, total, isMe }: {
           }
         </div>
 
-        {/* Name — primary color only when it's the current user */}
-        <span className={`flex-1 min-w-0 text-sm font-semibold truncate ${isMe ? 'text-primary' : 'text-foreground'}`}>
-          {name}
-          {isMe && <span className="ml-1.5 text-[9px] font-bold text-primary/50 uppercase tracking-wide">{t('Vous', 'You')}</span>}
-        </span>
-
-        {/* Score only, no chevron */}
-        <span className="text-sm font-bold tabular-nums text-foreground flex-shrink-0">{entry.count}</span>
-      </button>
-
-      {/* Accordion details */}
-      {open && (
-        <div className="pb-3 pl-14 pr-2 flex flex-col gap-2">
-          <span className="text-[11px] text-muted-foreground/60 tabular-nums">{pct}% {t('complété', 'complete')}</span>
-          {lastEls.length > 0 && (
-            <div>
-              <p className="text-[10px] text-muted-foreground/40 mb-1.5">{t('5 dernières découvertes', 'Last 5 discoveries')}</p>
-              <div className="flex items-center gap-2">
-                {lastEls.map((el, j) => (
-                  <img key={j} src={el.img!} alt={el.name} title={el.name} className="w-7 h-7 object-contain opacity-80" draggable={false} />
-                ))}
-              </div>
-            </div>
+        {/* Name + duration row */}
+        <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+          <span className={`text-sm font-semibold truncate ${isMe ? 'text-primary' : 'text-foreground'}`}>
+            {name}
+            {isMe && <span className="ml-1.5 text-[9px] font-bold text-primary/50 uppercase tracking-wide">{t('Vous', 'You')}</span>}
+          </span>
+          {duration && (
+            <span className="text-[10px] text-muted-foreground/40 tabular-nums">{duration}</span>
           )}
         </div>
-      )}
+
+        {/* Score + pct */}
+        <div className="flex flex-col items-end flex-shrink-0">
+          <span className="text-sm font-bold tabular-nums text-foreground">{entry.count}</span>
+          <span className="text-[10px] text-muted-foreground/40 tabular-nums">{pct}%</span>
+        </div>
+      </button>
     </div>
   )
 }
@@ -1422,14 +1424,21 @@ function LeaderboardInlinePanel({ lang, totalElements, sessionUser, onBack }: { 
     username: string | null
     avatar_img: string | null
     count: number
-    joined_at: string | null
-    last_elements: Array<{ img: string | null; name: string }>
+    first_unlock: string | null
+    last_unlock: string | null
+    is_current_user: boolean
+    rank: number
   }>>([])
+  const [currentUser, setCurrentUser] = useState<{ rank: number; count: number; username: string | null; avatar_img: string | null } | null>(null)
   const [loading, setLoading] = useState(true)
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
   useEffect(() => {
-    fetch('/api/leaderboard').then(r => r.json()).then(d => { setEntries(d.leaderboard ?? []); setLoading(false) }).catch(() => setLoading(false))
+    fetch('/api/leaderboard').then(r => r.json()).then(d => {
+      setEntries(d.leaderboard ?? [])
+      setCurrentUser(d.currentUser ?? null)
+      setLoading(false)
+    }).catch(() => setLoading(false))
   }, [])
 
   return (
@@ -1439,7 +1448,7 @@ function LeaderboardInlinePanel({ lang, totalElements, sessionUser, onBack }: { 
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
-          className="w-9 h-9 rounded-2xl bg-muted border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 active:scale-95"
+          className="w-9 h-9 rounded-2xl bg-muted border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 active:scale-95 cursor-pointer"
         >
           <ChevronRight className="w-4 h-4 rotate-180" />
         </button>
@@ -1459,18 +1468,47 @@ function LeaderboardInlinePanel({ lang, totalElements, sessionUser, onBack }: { 
       ) : entries.length === 0 ? (
         <p className="text-sm text-muted-foreground py-4 text-center">{t("Aucun joueur pour l'instant.", 'No players yet.')}</p>
       ) : (
-        <div className="rounded-2xl border border-border bg-card px-3 overflow-hidden">
-          {entries.map((entry, i) => (
-            <LeaderboardRow
-              key={entry.user_id}
-              entry={entry}
-              rank={i + 1}
-              lang={lang}
-              total={TOTAL}
-              isMe={!!sessionUser?.id && entry.user_id === sessionUser.id}
-            />
-          ))}
-        </div>
+        <>
+          <div className="rounded-2xl border border-border bg-card px-3 overflow-hidden">
+            {entries.map((entry) => (
+              <LeaderboardRow
+                key={entry.user_id}
+                entry={entry}
+                rank={entry.rank}
+                lang={lang}
+                total={TOTAL}
+                isMe={entry.is_current_user || (!!sessionUser?.id && entry.user_id === sessionUser.id)}
+              />
+            ))}
+          </div>
+
+          {/* Current user rank — only shown if outside top 50 */}
+          {currentUser && (
+            <div className="rounded-2xl border border-primary/20 bg-primary/5 px-3 overflow-hidden">
+              <div className="flex items-center gap-3 px-1 py-2.5">
+                <div className="w-5 flex items-center justify-center flex-shrink-0">
+                  <span className="text-[11px] font-bold text-primary/70 tabular-nums">#{currentUser.rank}</span>
+                </div>
+                <div className="w-8 h-8 rounded-xl bg-muted border border-border flex items-center justify-center overflow-hidden p-1 flex-shrink-0">
+                  {currentUser.avatar_img
+                    ? <img src={currentUser.avatar_img} alt="" className="w-full h-full object-contain" draggable={false} />
+                    : <span className="text-[10px] font-bold text-muted-foreground">{(currentUser.username ?? 'ME').slice(0, 2).toUpperCase()}</span>
+                  }
+                </div>
+                <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                  <span className="text-sm font-semibold text-primary truncate">
+                    {currentUser.username ?? t('Vous', 'You')}
+                    <span className="ml-1.5 text-[9px] font-bold text-primary/50 uppercase tracking-wide">{t('Vous', 'You')}</span>
+                  </span>
+                </div>
+                <div className="flex flex-col items-end flex-shrink-0">
+                  <span className="text-sm font-bold tabular-nums text-foreground">{currentUser.count}</span>
+                  <span className="text-[10px] text-muted-foreground/40 tabular-nums">{Math.round((currentUser.count / TOTAL) * 100)}%</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
@@ -1919,7 +1957,7 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
     if (trimmed.length > 0 && !/^[a-zA-Z0-9_\- ]+$/.test(trimmed)) { setNameError(t('Lettres, chiffres, _ et -', 'Letters, numbers, _ and -')); return }
     setSaving(true)
     const res = await fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: trimmed || null }) })
-    if (!res.ok) { const d = await res.json(); setNameError(d?.error ?? t('Erreur', 'Error')); setSaving(false); return }
+    if (!res.ok) { const d = await res.json().catch(() => ({})); setNameError(d?.error ?? t('Erreur', 'Error')); setSaving(false); return }
     setProfile(p => p ? { ...p, username: trimmed || null } : p)
     setEditingName(false); setNameError(''); setSaving(false)
   }
