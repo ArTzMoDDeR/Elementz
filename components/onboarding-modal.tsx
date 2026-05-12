@@ -160,7 +160,7 @@ function TapArena({
                     : <span className="text-xl font-bold text-foreground/60">{label[0]}</span>
                   }
                   {/* Pulse ring on un-tapped items */}
-                  {!isAdded && !celebrate && (
+                  {!isAdded && (
                     <span
                       className="absolute inset-0 rounded-2xl animate-ping"
                       style={{ border: `2px solid ${color}35`, animationDuration: '2s' }}
@@ -1025,7 +1025,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                   className="w-full py-5 rounded-3xl border-2 transition-all font-bold flex items-center justify-center gap-3 active:scale-[0.97] text-white"
                   style={{ background: '#6366f1', borderColor: '#6366f1', boxShadow: '0 4px 20px rgba(99,102,241,0.35)' }}
                 >
-                  <span className="text-2xl">🔔</span>
+                  <span className="text-2xl">����</span>
                   <span className="text-base">{t('Activer les notifications', 'Enable notifications')}</span>
                 </button>
                 {/* Dismiss — subtle */}
