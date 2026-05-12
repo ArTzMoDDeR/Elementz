@@ -5,6 +5,7 @@ import { useTheme } from 'next-themes'
 import { Sun, Moon, ArrowLeft, Ticket, Scroll, Check } from 'lucide-react'
 import type { ElementDef } from '@/lib/game-data'
 import { ElementBadge } from '@/components/element-badge'
+import { containsBanword } from '@/lib/banwords'
 
 type Props = {
   elementsByName: Map<string, ElementDef>
@@ -397,8 +398,12 @@ function CombineArena({
       {/* Reveal: "Tu viens de créer X" */}
       {phase === 'reveal' && lastResult && (
         <div
-          className="fixed inset-0 z-[10001] flex flex-col bg-background px-8 cursor-pointer"
-          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4rem)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 3rem)' }}
+          className="fixed inset-0 z-[10010] flex flex-col cursor-pointer"
+          style={{
+            background: 'var(--background)',
+            paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4rem)',
+            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 3rem)',
+          }}
           onClick={handleOverlayTap}
         >
           <div className="flex flex-col items-center justify-center gap-8 onboard-fade-up w-full max-w-sm mx-auto flex-1">
@@ -424,8 +429,12 @@ function CombineArena({
       {/* Next combo: "Créons X" */}
       {phase === 'next' && nextResultName && (
         <div
-          className="fixed inset-0 z-[10001] flex flex-col bg-background px-8 cursor-pointer"
-          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4rem)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 3rem)' }}
+          className="fixed inset-0 z-[10010] flex flex-col cursor-pointer"
+          style={{
+            background: 'var(--background)',
+            paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4rem)',
+            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 3rem)',
+          }}
           onClick={handleOverlayTap}
         >
           <div className="flex flex-col items-center justify-center gap-8 text-center onboard-slide-in w-full max-w-sm mx-auto flex-1">
@@ -454,7 +463,7 @@ function CombineArena({
 
       {/* All done */}
       {phase === 'done' && (
-        <div className="fixed inset-0 z-[10001] flex flex-col items-center justify-center bg-background px-8 pointer-events-none">
+        <div className="fixed inset-0 z-[10010] flex flex-col items-center justify-center px-8 pointer-events-none" style={{ background: 'var(--background)' }}>
           <div className="flex flex-col items-center gap-8 text-center onboard-fade-up w-full max-w-sm">
             <div className="w-20 h-20 rounded-full bg-foreground/8 border border-border flex items-center justify-center onboard-pop">
               <Check className="w-10 h-10 text-foreground" />
@@ -503,14 +512,12 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
     }, 200)
   }
 
-  const BANWORDS = ['fuck', 'shit', 'ass', 'bitch', 'cunt', 'dick', 'pussy', 'nigger', 'nigga', 'fag', 'faggot', 'retard', 'bastard', 'whore', 'slut', 'puta', 'merde', 'connard', 'connasse', 'salope', 'putain', 'fdp', 'enculé', 'encule', 'Nazi', 'hitler', 'pédophile', 'pedophile', 'rape']
-
   const validateUsername = (val: string) => {
     const trimmed = val.trim()
     if (trimmed.length > 20) return t('Max 20 caractères', 'Max 20 characters')
     if (trimmed.length > 0 && !/^[a-zA-Z0-9_\- ]+$/.test(trimmed))
       return t('Lettres, chiffres, _ et - uniquement', 'Letters, numbers, _ and - only')
-    if (trimmed.length > 0 && BANWORDS.some(w => trimmed.toLowerCase().includes(w.toLowerCase())))
+    if (trimmed.length > 0 && containsBanword(trimmed))
       return t('Ce pseudo n\'est pas autorisé', 'This username is not allowed')
     return ''
   }

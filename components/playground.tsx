@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { ElementBadge } from './element-badge'
 import { Search, X, ArrowLeft, ChevronUp, ChevronDown, ChevronRight, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Medal, Atom as AtomIcon, Star, Shield, Trophy, Sun, Moon, Play } from 'lucide-react'
-import { HouseSimple, Bell, Gear, Lifebuoy, Question, User, UserCircle, Scroll, Books } from '@phosphor-icons/react'
+import { HouseSimple, Bell, Gear, Lifebuoy, Question, User, UserCircle, Scroll, Books, Hand, Lightning } from '@phosphor-icons/react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import { HelpModal } from './help-modal'
 import { LeaderboardModal } from './leaderboard-modal'
@@ -1150,7 +1150,7 @@ export function Playground({
           )}
         </div>
 
-        {/* ── TAB BAR — iOS Liquid Glass ────────────────────────���──���─ */}
+        {/* ── TAB BAR — iOS Liquid Glass ────────────────────────���──�����─ */}
         <div
           className="flex-shrink-0 border-t border-white/[0.06] glass"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 12px) + 2px)' }}
@@ -1644,160 +1644,181 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
     setTheme(next)
     fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ theme: next }) }).catch(() => {})
   }
+  // iOS-style toggle component
+  const Toggle = ({ on, onToggle, color = 'var(--primary)' }: { on: boolean; onToggle: () => void; color?: string }) => (
+    <button
+      onClick={onToggle}
+      className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0 cursor-pointer"
+      style={{ backgroundColor: on ? color : 'var(--muted-foreground)' , opacity: on ? 1 : 0.3 }}
+    >
+      <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${on ? 'translate-x-5' : 'translate-x-0'}`} />
+    </button>
+  )
+
   return (
-    <div className="space-y-5 py-1">
-      {/* Language */}
-      <div className="flex items-center justify-between gap-4">
-        <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Langue' : 'Language'}</span>
-        <div className="flex items-center bg-muted/50 border border-border rounded-xl p-1 h-9 gap-0.5">
-          <button className={`px-3 h-full text-base rounded-lg transition-colors ${lang === 'fr' ? 'bg-background shadow' : 'opacity-40 hover:opacity-70'}`} onClick={() => onSetLang('fr')}>🇫🇷</button>
-          <button className={`px-3 h-full text-base rounded-lg transition-colors ${lang === 'en' ? 'bg-background shadow' : 'opacity-40 hover:opacity-70'}`} onClick={() => onSetLang('en')}>🇺🇸</button>
-        </div>
-      </div>
-      {/* Theme */}
-      <div className="flex items-center justify-between gap-4">
-        <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Thème' : 'Theme'}</span>
-        <button
-          onClick={toggleTheme}
-          className="flex items-center gap-2 h-9 px-3 rounded-xl bg-muted/50 border border-border text-sm font-medium text-foreground hover:bg-muted transition-colors"
-        >
-          {isDark ? <Moon className="w-4 h-4 text-primary" /> : <Sun className="w-4 h-4 text-amber-400" />}
-          <span className="text-sm font-semibold">{isDark ? (lang === 'fr' ? 'Sombre' : 'Dark') : (lang === 'fr' ? 'Clair' : 'Light')}</span>
-        </button>
-      </div>
-      {/* Grid columns */}
-      <div className="flex items-center justify-between gap-4">
-        <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Colonnes inventaire' : 'Inventory columns'}</span>
-        <div className="flex items-center bg-muted/50 border border-border rounded-xl p-1 h-9 gap-0.5">
-          {([3, 4, 5] as const).map(n => (
-            <button
-              key={n}
-              onClick={() => onSetGridCols(n)}
-              className={`w-8 h-full text-sm font-semibold rounded-lg transition-colors ${gridCols === n ? 'bg-background shadow text-foreground' : 'text-muted-foreground'}`}
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-      </div>
-      {/* Tap mode */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Mode tap inventaire' : 'Tap inventory mode'}</span>
-          <p className="text-xs text-muted-foreground mt-0.5">{lang === 'fr' ? 'Tap pour poser sur le terrain' : 'Tap to place on canvas'}</p>
-        </div>
-        <button
-          onClick={onToggleTapMode}
-          className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${!tapMode ? 'bg-muted-foreground/30' : ''}`}
-          style={{ backgroundColor: tapMode ? '#10d9ae' : undefined }}
-        >
-          <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${tapMode ? 'left-[22px]' : 'left-0.5'}`} />
-        </button>
-      </div>
-      {/* Push notifications — only for logged-in users */}
-      {sessionUser && (
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Notifications' : 'Notifications'}</span>
-            <p className="text-xs text-muted-foreground mt-0.5">{lang === 'fr' ? 'Alertes push sur l\'écran d\'accueil' : 'Push alerts on home screen'}</p>
-          </div>
-          <button
-            onClick={onTogglePushNotifications}
-            className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${pushNotificationsEnabled ? '' : 'bg-muted-foreground/30'}`}
-            style={{ backgroundColor: pushNotificationsEnabled ? '#818cf8' : undefined }}
-          >
-            <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${pushNotificationsEnabled ? 'left-[22px]' : 'left-0.5'}`} />
-          </button>
-        </div>
-      )}
-      {/* Merge flash */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <span className="text-sm font-medium text-foreground">{lang === 'fr' ? 'Flash fusion' : 'Merge flash'}</span>
-          <p className="text-xs text-muted-foreground mt-0.5">{lang === 'fr' ? 'Vert/rouge sur le terrain' : 'Green/red on the canvas'}</p>
-        </div>
-        <button
-          onClick={onToggleMergeFlash}
-          className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${mergeFlashEnabled ? '' : 'bg-muted-foreground/30'}`}
-          style={{ backgroundColor: mergeFlashEnabled ? '#fe8f27' : undefined }}
-        >
-          <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-background shadow transition-all ${mergeFlashEnabled ? 'left-[22px]' : 'left-0.5'}`} />
-        </button>
-      </div>
+    <div className="flex flex-col gap-5 py-1">
 
+      {/* ── Apparence ── */}
+      <div className="flex flex-col gap-1">
+        <p className="text-[11px] font-semibold text-muted-foreground/40 uppercase tracking-widest px-1 mb-1">{t('Apparence', 'Appearance')}</p>
+        <div className="rounded-2xl overflow-hidden bg-card divide-y divide-border/60">
 
-
-      {/* How to play + Legal links */}
-      <div className="rounded-2xl border border-border overflow-hidden divide-y divide-border">
-        <button
-          onClick={onOpenHelp}
-          className="w-full flex items-center gap-3 px-4 py-3.5 bg-card hover:bg-muted/40 active:bg-muted/60 transition-colors cursor-pointer"
-        >
-          <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
-            <Question size={16} weight="regular" className="text-foreground/70" />
-          </div>
-          <span className="text-sm font-medium text-foreground">{t('Comment jouer', 'How to play')}</span>
-          <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0 ml-auto" />
-        </button>
-        <a
-          href="/privacy"
-          className="w-full flex items-center gap-3 px-4 py-3.5 bg-card hover:bg-muted/40 active:bg-muted/60 transition-colors cursor-pointer"
-        >
-          <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
-            <Shield className="w-4 h-4 text-foreground/70" />
-          </div>
-          <span className="text-sm font-medium text-foreground">{t('Politique de confidentialité', 'Privacy Policy')}</span>
-          <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0 ml-auto" />
-        </a>
-        <a
-          href="/legal"
-          className="w-full flex items-center gap-3 px-4 py-3.5 bg-card hover:bg-muted/40 active:bg-muted/60 transition-colors cursor-pointer"
-        >
-          <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
-            <Scroll size={16} weight="regular" className="text-foreground/70" />
-          </div>
-          <span className="text-sm font-medium text-foreground">{t('Mentions légales', 'Legal Notice')}</span>
-          <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0 ml-auto" />
-        </a>
-        <a
-          href="/terms"
-          className="w-full flex items-center gap-3 px-4 py-3.5 bg-card hover:bg-muted/40 active:bg-muted/60 transition-colors cursor-pointer"
-        >
-          <div className="w-8 h-8 rounded-xl bg-muted/60 border border-border flex items-center justify-center flex-shrink-0">
-            <Star className="w-4 h-4 text-foreground/70" />
-          </div>
-          <span className="text-sm font-medium text-foreground">{t("Conditions d'utilisation", 'Terms of Service')}</span>
-          <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0 ml-auto" />
-        </a>
-      </div>
-
-      {/* Sign out (logged in only) — above delete */}
-      {sessionUser && (
-        <div className="rounded-2xl border border-border overflow-hidden">
-          <button
-            onClick={() => { try { localStorage.removeItem('alchemy-discovered-v4') } catch {} onSignOut?.() }}
-            className="w-full flex items-center gap-3 px-4 py-3.5 bg-card hover:bg-muted/50 active:bg-muted transition-colors cursor-pointer"
-          >
-            <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
-              <LogOut className="w-4 h-4 text-foreground/70" />
+          {/* Language */}
+          <div className="flex items-center gap-3 px-4 py-3.5">
+            <div className="w-8 h-8 rounded-xl bg-muted/60 flex items-center justify-center flex-shrink-0 text-base leading-none">
+              {lang === 'fr' ? '🇫🇷' : '🇺🇸'}
             </div>
-            <span className="text-sm font-medium text-foreground">{t('Se déconnecter', 'Sign out')}</span>
+            <span className="text-sm font-medium text-foreground flex-1">{t('Langue', 'Language')}</span>
+            <div className="flex items-center bg-muted/50 rounded-xl p-1 h-8 gap-0.5">
+              <button onClick={() => onSetLang('fr')} className={`px-2.5 h-full text-sm rounded-lg transition-colors cursor-pointer ${lang === 'fr' ? 'bg-background shadow text-foreground' : 'text-muted-foreground/50'}`}>FR</button>
+              <button onClick={() => onSetLang('en')} className={`px-2.5 h-full text-sm rounded-lg transition-colors cursor-pointer ${lang === 'en' ? 'bg-background shadow text-foreground' : 'text-muted-foreground/50'}`}>EN</button>
+            </div>
+          </div>
+
+          {/* Theme */}
+          <div className="flex items-center gap-3 px-4 py-3.5">
+            <div className="w-8 h-8 rounded-xl bg-muted/60 flex items-center justify-center flex-shrink-0">
+              {isDark ? <Moon className="w-4 h-4 text-primary" /> : <Sun className="w-4 h-4 text-amber-400" />}
+            </div>
+            <span className="text-sm font-medium text-foreground flex-1">{t('Thème', 'Theme')}</span>
+            <button
+              onClick={toggleTheme}
+              className="flex items-center gap-1.5 h-8 px-3 rounded-xl bg-muted/50 text-sm font-medium text-foreground transition-colors cursor-pointer"
+            >
+              <span>{isDark ? (lang === 'fr' ? 'Sombre' : 'Dark') : (lang === 'fr' ? 'Clair' : 'Light')}</span>
+            </button>
+          </div>
+
+          {/* Grid columns */}
+          <div className="flex items-center gap-3 px-4 py-3.5">
+            <div className="w-8 h-8 rounded-xl bg-muted/60 flex items-center justify-center flex-shrink-0">
+              <span className="text-[11px] font-bold text-muted-foreground/60 tabular-nums">{gridCols}×</span>
+            </div>
+            <span className="text-sm font-medium text-foreground flex-1">{t('Colonnes inventaire', 'Inventory columns')}</span>
+            <div className="flex items-center bg-muted/50 rounded-xl p-1 h-8 gap-0.5">
+              {([3, 4, 5] as const).map(n => (
+                <button key={n} onClick={() => onSetGridCols(n)}
+                  className={`w-7 h-full text-sm font-semibold rounded-lg transition-colors cursor-pointer ${gridCols === n ? 'bg-background shadow text-foreground' : 'text-muted-foreground/50'}`}>
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Gameplay ── */}
+      <div className="flex flex-col gap-1">
+        <p className="text-[11px] font-semibold text-muted-foreground/40 uppercase tracking-widest px-1 mb-1">{t('Gameplay', 'Gameplay')}</p>
+        <div className="rounded-2xl overflow-hidden bg-card divide-y divide-border/60">
+
+          {/* Tap mode */}
+          <div className="flex items-center gap-3 px-4 py-3.5">
+            <div className="w-8 h-8 rounded-xl bg-muted/60 flex items-center justify-center flex-shrink-0">
+              <Hand size={16} weight="regular" className="text-muted-foreground/70" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground">{t('Mode tap inventaire', 'Tap inventory mode')}</p>
+              <p className="text-xs text-muted-foreground/50 mt-0.5">{t('Tap pour poser sur le terrain', 'Tap to place on canvas')}</p>
+            </div>
+            <Toggle on={tapMode} onToggle={onToggleTapMode} />
+          </div>
+
+          {/* Merge flash */}
+          <div className="flex items-center gap-3 px-4 py-3.5">
+            <div className="w-8 h-8 rounded-xl bg-muted/60 flex items-center justify-center flex-shrink-0">
+              <Lightning size={16} weight="regular" className="text-muted-foreground/70" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground">{t('Flash fusion', 'Merge flash')}</p>
+              <p className="text-xs text-muted-foreground/50 mt-0.5">{t('Vert/rouge sur le terrain', 'Green/red on canvas')}</p>
+            </div>
+            <Toggle on={mergeFlashEnabled} onToggle={onToggleMergeFlash} color="#fe8f27" />
+          </div>
+
+          {/* Push notifications */}
+          {sessionUser && (
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className="w-8 h-8 rounded-xl bg-muted/60 flex items-center justify-center flex-shrink-0">
+                <Bell size={16} weight="regular" className="text-muted-foreground/70" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground">{t('Notifications push', 'Push notifications')}</p>
+                <p className="text-xs text-muted-foreground/50 mt-0.5">{t("Alertes sur l'écran d'accueil", 'Alerts on home screen')}</p>
+              </div>
+              <Toggle on={!!pushNotificationsEnabled} onToggle={() => onTogglePushNotifications?.()} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Aide & Infos ── */}
+      <div className="flex flex-col gap-1">
+        <p className="text-[11px] font-semibold text-muted-foreground/40 uppercase tracking-widest px-1 mb-1">{t('Aide & Infos', 'Help & Info')}</p>
+        <div className="rounded-2xl overflow-hidden bg-card divide-y divide-border/60">
+          <button onClick={onOpenHelp} className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-muted/50 transition-colors cursor-pointer text-left">
+            <div className="w-8 h-8 rounded-xl bg-muted/60 flex items-center justify-center flex-shrink-0">
+              <Question size={16} weight="regular" className="text-muted-foreground/70" />
+            </div>
+            <span className="text-sm font-medium text-foreground flex-1">{t('Comment jouer', 'How to play')}</span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground/30 flex-shrink-0" />
           </button>
+          <a href="/privacy" className="flex items-center gap-3 px-4 py-3.5 active:bg-muted/50 transition-colors cursor-pointer">
+            <div className="w-8 h-8 rounded-xl bg-muted/60 flex items-center justify-center flex-shrink-0">
+              <Shield className="w-4 h-4 text-muted-foreground/70" />
+            </div>
+            <span className="text-sm font-medium text-foreground flex-1">{t('Confidentialité', 'Privacy Policy')}</span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground/30 flex-shrink-0" />
+          </a>
+          <a href="/legal" className="flex items-center gap-3 px-4 py-3.5 active:bg-muted/50 transition-colors cursor-pointer">
+            <div className="w-8 h-8 rounded-xl bg-muted/60 flex items-center justify-center flex-shrink-0">
+              <Scroll size={16} weight="regular" className="text-muted-foreground/70" />
+            </div>
+            <span className="text-sm font-medium text-foreground flex-1">{t('Mentions légales', 'Legal Notice')}</span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground/30 flex-shrink-0" />
+          </a>
+          <a href="/terms" className="flex items-center gap-3 px-4 py-3.5 active:bg-muted/50 transition-colors cursor-pointer">
+            <div className="w-8 h-8 rounded-xl bg-muted/60 flex items-center justify-center flex-shrink-0">
+              <Star className="w-4 h-4 text-muted-foreground/70" />
+            </div>
+            <span className="text-sm font-medium text-foreground flex-1">{t("Conditions d'utilisation", 'Terms of Service')}</span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground/30 flex-shrink-0" />
+          </a>
+        </div>
+      </div>
+
+      {/* ── Compte ── */}
+      {sessionUser && (
+        <div className="flex flex-col gap-1">
+          <p className="text-[11px] font-semibold text-muted-foreground/40 uppercase tracking-widest px-1 mb-1">{t('Compte', 'Account')}</p>
+          <div className="rounded-2xl overflow-hidden bg-card divide-y divide-border/60">
+            <button
+              onClick={() => { try { localStorage.removeItem('alchemy-discovered-v4') } catch {} onSignOut?.() }}
+              className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-muted/50 transition-colors cursor-pointer text-left"
+            >
+              <div className="w-8 h-8 rounded-xl bg-muted/60 flex items-center justify-center flex-shrink-0">
+                <LogOut className="w-4 h-4 text-muted-foreground/70" />
+              </div>
+              <span className="text-sm font-medium text-foreground flex-1">{t('Se déconnecter', 'Sign out')}</span>
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Delete account (logged in only) */}
+      {/* ── Zone danger ── */}
       {sessionUser && (
-        <div className="rounded-2xl border border-border overflow-hidden">
+        <div className="flex flex-col gap-1">
+          <p className="text-[11px] font-semibold text-red-400/50 uppercase tracking-widest px-1 mb-1">{t('Zone de danger', 'Danger zone')}</p>
+          <div className="rounded-2xl overflow-hidden bg-card divide-y divide-border/60">
           {deleteStep === 0 && (
             <button
               onClick={() => setDeleteStep(1)}
-              className="w-full flex items-center gap-3 px-4 py-3.5 bg-card hover:bg-red-500/5 active:bg-red-500/10 transition-colors cursor-pointer"
+              className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-red-500/5 transition-colors cursor-pointer text-left"
             >
               <div className="w-8 h-8 rounded-xl bg-red-500/10 flex items-center justify-center flex-shrink-0">
                 <Trash2 className="w-4 h-4 text-red-400" />
               </div>
-              <span className="text-sm font-medium text-red-400">{t('Supprimer mon compte', 'Delete my account')}</span>
+              <span className="text-sm font-medium text-red-400 flex-1">{t('Supprimer mon compte', 'Delete my account')}</span>
             </button>
           )}
           {deleteStep === 1 && (
@@ -1805,18 +1826,8 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
               <p className="text-sm font-semibold text-red-400">{t('Supprimer définitivement ?', 'Delete permanently?')}</p>
               <p className="text-xs text-muted-foreground leading-relaxed">{t('Toutes tes données (progression, découvertes, profil) seront effacées. Cette action est irréversible.', 'All your data (progress, discoveries, profile) will be erased. This action is irreversible.')}</p>
               <div className="flex gap-2">
-                <button
-                  onClick={() => setDeleteStep(0)}
-                  className="flex-1 h-9 rounded-xl bg-muted border border-border text-sm font-medium text-foreground hover:bg-muted/80 transition-colors"
-                >
-                  {t('Annuler', 'Cancel')}
-                </button>
-                <button
-                  onClick={() => setDeleteStep(2)}
-                  className="flex-1 h-9 rounded-xl bg-red-500/20 border border-red-500/30 text-sm font-semibold text-red-400 hover:bg-red-500/30 transition-colors"
-                >
-                  {t('Continuer', 'Continue')}
-                </button>
+                <button onClick={() => setDeleteStep(0)} className="flex-1 h-9 rounded-xl bg-muted text-sm font-medium text-foreground cursor-pointer">{t('Annuler', 'Cancel')}</button>
+                <button onClick={() => setDeleteStep(2)} className="flex-1 h-9 rounded-xl bg-red-500/15 text-sm font-semibold text-red-400 cursor-pointer">{t('Continuer', 'Continue')}</button>
               </div>
             </div>
           )}
@@ -1825,12 +1836,7 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
               <p className="text-sm font-bold text-red-400">{t('Derniere confirmation', 'Final confirmation')}</p>
               <p className="text-xs text-muted-foreground leading-relaxed">{t('Clique sur "Supprimer" pour confirmer. Il n\'y a pas de retour en arrière possible.', 'Click "Delete" to confirm. There is no going back.')}</p>
               <div className="flex gap-2">
-                <button
-                  onClick={() => setDeleteStep(0)}
-                  className="flex-1 h-9 rounded-xl bg-muted border border-border text-sm font-medium text-foreground hover:bg-muted/80 transition-colors"
-                >
-                  {t('Annuler', 'Cancel')}
-                </button>
+                <button onClick={() => setDeleteStep(0)} className="flex-1 h-9 rounded-xl bg-muted text-sm font-medium text-foreground cursor-pointer">{t('Annuler', 'Cancel')}</button>
                 <button
                   disabled={deleting}
                   onClick={async () => {
@@ -1845,17 +1851,16 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
                       setDeleteStep(0)
                     }
                   }}
-                  className="flex-1 h-9 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 active:scale-95 transition-all disabled:opacity-50"
+                  className="flex-1 h-9 rounded-xl bg-red-500 text-white text-sm font-bold disabled:opacity-50 cursor-pointer"
                 >
-                  {deleting ? (t('Suppression...', 'Deleting...')) : (t('Supprimer', 'Delete'))}
+                  {deleting ? t('Suppression...', 'Deleting...') : t('Supprimer', 'Delete')}
                 </button>
               </div>
             </div>
           )}
+          </div>{/* end danger zone card */}
         </div>
       )}
-
-
 
       {/* Footer */}
       <div className="pt-2 pb-1 flex flex-col items-center gap-1">
