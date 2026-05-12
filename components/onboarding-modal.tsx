@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import { Sun, Moon, ArrowLeft, Ticket, Scroll, Check } from 'lucide-react'
 import type { ElementDef } from '@/lib/game-data'
@@ -23,7 +23,7 @@ const STARTER_LABELS: Record<string, { fr: string; en: string; emoji: string }> 
   air:   { fr: 'Air',   en: 'Air',   emoji: '💨' },
 }
 
-const STEPS = ['lang', 'theme', 'tap', 'combine', 'hint', 'quests', 'username', 'avatar', 'notifications'] as const
+const STEPS = ['lang', 'theme', 'combine', 'hint', 'quests', 'username', 'avatar', 'notifications'] as const
 type Step = typeof STEPS[number]
 
 const TUTORIAL_COMBOS = [
@@ -34,148 +34,6 @@ const TUTORIAL_COMBOS = [
 type MiniItem = { id: string; num: number; el: ElementDef; x: number; y: number }
 type MiniDrag = { id: string; offsetX: number; offsetY: number; pointerId: number }
 const MERGE_DIST_PCT = 22
-
-// ── Tap-to-add step ───────────────────────────────────────────────────────────
-// A mini fake-game: inventory bar at bottom, playground canvas above.
-// Tapping an inventory item "adds" it to the playground with a drop animation.
-type TapItem = { key: string; label: string; el: ElementDef | null; x: number; y: number }
-
-function TapArena({
-  lang,
-  elements,
-  onAllAdded,
-}: {
-  lang: 'fr' | 'en'
-  elements: Map<number, ElementDef>
-  onAllAdded: () => void
-}) {
-  const t = (fr: string, en: string) => lang === 'fr' ? fr : en
-
-  // Resolve elements by name
-  const getEl = useCallback((names: string[]): ElementDef | null => {
-    for (const n of names) {
-      const found = [...elements.values()].find(el => el.name.toLowerCase() === n.toLowerCase())
-      if (found) return found
-    }
-    return null
-  }, [elements])
-
-  const targets = useMemo(() => [
-    { key: 'air',   label: t('Air', 'Air'),   el: getEl(['air']) },
-    { key: 'eau',   label: t('Eau', 'Water'), el: getEl(['eau', 'water']) },
-  ], [getEl, lang]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // playground items placed so far
-  const [placed, setPlaced] = useState<TapItem[]>([])
-  // keys in inventory that are greyed out (added to playground)
-  const addedKeys = new Set(placed.map(p => p.key))
-
-  const POSITIONS = [
-    { x: 30, y: 45 },
-    { x: 68, y: 38 },
-  ]
-
-  const handleTap = (key: string, el: ElementDef | null, label: string) => {
-    if (addedKeys.has(key)) return
-    const idx = placed.length
-    const pos = POSITIONS[idx] ?? { x: 50, y: 50 }
-    const next = [...placed, { key, label, el, ...pos }]
-    setPlaced(next)
-    if (next.length >= targets.length) {
-      setTimeout(() => onAllAdded(), 600)
-    }
-  }
-
-  return (
-    <div className="relative w-full flex flex-col flex-1 min-h-0">
-
-      {/* ── Playground canvas ── */}
-      <div className="relative flex-1 min-h-0 rounded-3xl overflow-hidden border border-border/30">
-
-        {/* Items placed on playground */}
-        {placed.map(item => (
-          <div
-            key={item.key}
-            className="absolute flex flex-col items-center gap-1.5 -translate-x-1/2 -translate-y-1/2 onboard-pop"
-            style={{ left: `${item.x}%`, top: `${item.y}%` }}
-          >
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center"
-              style={{
-                background: `${item.el?.color ?? 'oklch(0.72 0.17 200)'}18`,
-                border: `2px solid ${item.el?.color ?? 'oklch(0.72 0.17 200)'}45`,
-                boxShadow: `0 0 16px ${item.el?.color ?? 'oklch(0.72 0.17 200)'}20`,
-              }}
-            >
-              {item.el?.imageUrl
-                ? <img src={item.el.imageUrl} alt={item.label} className="w-10 h-10 object-contain" draggable={false} />
-                : <span className="text-2xl font-bold text-foreground/60">{item.label[0]}</span>
-              }
-            </div>
-            <span className="text-[11px] font-semibold text-foreground/70 select-none">{item.label}</span>
-          </div>
-        ))}
-
-        {/* Instruction overlay in the center when playground is empty */}
-        {placed.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <p className="text-sm text-muted-foreground/30 text-center px-8 select-none">
-              {t('Appuie sur un élément ci-dessous', 'Tap an element below')}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* ── Inventory bar ── */}
-      <div
-        className="flex-shrink-0 rounded-2xl border border-border/40 mt-3 px-4 py-3"
-        style={{ background: 'color-mix(in oklch, var(--card) 85%, transparent)' }}
-      >
-        {/* Label */}
-        <p className="text-[10px] font-semibold text-muted-foreground/40 uppercase tracking-widest mb-2.5 text-center select-none">
-          {t('Inventaire', 'Inventory')}
-        </p>
-        <div className="flex gap-3 justify-center">
-          {targets.map(({ key, label, el }) => {
-            const isAdded = addedKeys.has(key)
-            const color = el?.color ?? 'oklch(0.72 0.17 200)'
-            return (
-              <button
-                key={key}
-                onClick={() => handleTap(key, el, label)}
-                disabled={isAdded}
-                className="flex flex-col items-center gap-1.5 transition-all active:scale-90 disabled:pointer-events-none"
-                style={{ opacity: isAdded ? 0.35 : 1 }}
-              >
-                <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center relative transition-all"
-                  style={{
-                    background: isAdded ? 'var(--muted)' : `${color}18`,
-                    border: isAdded ? '2px solid var(--border)' : `2px solid ${color}50`,
-                    boxShadow: isAdded ? 'none' : `0 0 14px ${color}22`,
-                  }}
-                >
-                  {el?.imageUrl
-                    ? <img src={el.imageUrl} alt={label} className="w-9 h-9 object-contain" draggable={false} />
-                    : <span className="text-xl font-bold text-foreground/60">{label[0]}</span>
-                  }
-                  {/* Pulse ring on un-tapped items */}
-                  {!isAdded && (
-                    <span
-                      className="absolute inset-0 rounded-2xl animate-ping"
-                      style={{ border: `2px solid ${color}35`, animationDuration: '2s' }}
-                    />
-                  )}
-                </div>
-                <span className="text-[11px] font-semibold text-foreground/60 select-none">{label}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // ── Cinematic combine arena ────────────────────────────────────────────────────
 function CombineArena({
@@ -379,36 +237,42 @@ function CombineArena({
   return (
     <div className="relative w-full h-full flex flex-col">
 
-      {/* Combo progress dots */}
-      <div className="flex items-center justify-center gap-3 mb-4 mt-1">
-        {TUTORIAL_COMBOS.map((_, i) => {
-          const done   = i < comboIndex || phase === 'done' || (i === comboIndex && (phase === 'reveal' || phase === 'next'))
-          const active = i === comboIndex && !isOverlay
-          return (
-            <div key={i} className="flex items-center gap-2">
-              <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-all duration-500 text-xs font-bold ${
-                done   ? 'bg-emerald-500/25 border border-emerald-500/50 text-emerald-400' :
-                active ? 'bg-primary/20 border border-primary/50 text-primary' :
-                         'bg-muted/30 border border-border/40 text-muted-foreground/30'
-              }`}>
-                {done ? <Check className="w-3.5 h-3.5" /> : i + 1}
-              </div>
-              {i < TUTORIAL_COMBOS.length - 1 && (
-                <div className={`w-8 h-0.5 rounded-full transition-all duration-500 ${done ? 'bg-emerald-500/40' : 'bg-border/30'}`} />
-              )}
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Instruction label */}
-      <div className="flex items-center justify-center mb-3 min-h-[28px]">
-        {!isOverlay && (
-          <p key={`inst-${comboIndex}`} className="text-sm text-muted-foreground/70 onboard-fade-up">
-            {t('Glisse un élément sur l\'autre', 'Drag one onto the other')}
-          </p>
-        )}
-      </div>
+      {/* Dynamic title + subtitle based on phase */}
+      {!isOverlay && (
+        <div className="flex flex-col items-center gap-1.5 text-center mb-4 flex-shrink-0">
+          {comboIndex === 0 && placed.size < 2 ? (
+            <>
+              <h1 key="title-add" className="text-3xl sm:text-4xl font-bold text-foreground text-balance leading-tight onboard-fade-up">
+                {t('Ajoute des éléments', 'Add elements')}
+              </h1>
+              <p className="text-sm text-muted-foreground/60 leading-relaxed">
+                {t('Appuie sur les éléments de l\'inventaire', 'Tap elements in the inventory below')}
+              </p>
+            </>
+          ) : comboIndex === 0 ? (
+            <>
+              <h1 key="title-combine" className="text-3xl sm:text-4xl font-bold text-foreground text-balance leading-tight onboard-fade-up">
+                {t('Combine les deux éléments', 'Combine the two elements')}
+              </h1>
+              <p className="text-sm text-muted-foreground/60 leading-relaxed">
+                {t('Glisse l\'un vers l\'autre pour les fusionner', 'Drag one onto the other to merge')}
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 key="title-yours" className="text-3xl sm:text-4xl font-bold text-foreground text-balance leading-tight onboard-fade-up">
+                {t('À ton tour', 'Your turn')}
+              </h1>
+              <p className="text-sm text-muted-foreground/60 leading-relaxed">
+                {placed.size < 2
+                  ? t('Ajoute les éléments puis combine-les', 'Add the elements then combine them')
+                  : t('Glisse l\'un vers l\'autre pour les fusionner', 'Drag one onto the other to merge')
+                }
+              </p>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Arena */}
       <div
@@ -420,24 +284,6 @@ function CombineArena({
         className="relative flex-1 rounded-3xl border border-border/30 overflow-hidden select-none"
         style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none', minHeight: 200 }}
       >
-        {/* Empty state hint */}
-        {items.length === 0 && !isOverlay && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <p className="text-sm text-muted-foreground/30 text-center px-8 select-none">
-              {t('Appuie sur les éléments ci-dessous', 'Tap the elements below')}
-            </p>
-          </div>
-        )}
-
-        {/* Drag hint once both are placed */}
-        {items.length === 2 && !isOverlay && (
-          <div className="absolute bottom-3 inset-x-0 flex justify-center pointer-events-none">
-            <p className="text-xs text-muted-foreground/40 text-center select-none">
-              {t('Glisse-les l\'un vers l\'autre', 'Drag them together')}
-            </p>
-          </div>
-        )}
-
         {/* Items */}
         {items.map(item => {
           const isDragging = drag.current?.id === item.id
@@ -661,7 +507,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
   const handleThemeSelect = (th: 'dark' | 'light') => {
     setTheme(th as 'dark' | 'light')
     applyTheme(th)
-    setTimeout(() => goToStep('tap'), 350)
+    setTimeout(() => goToStep('combine'), 350)
   }
 
   const handlePushSelect = (choice: boolean) => {
@@ -672,7 +518,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
     }, 350)
   }
 
-  const isCombineStep = step === 'combine' || step === 'tap'
+  const isCombineStep = step === 'combine'
   const animClass = stepAnim === 'in' ? 'onboard-fade-up' : 'onboard-fade-down'
 
   return (
@@ -783,36 +629,9 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
             </div>
           )}
 
-          {/* ── TAP step: learn to add elements to playground ── */}
-          {step === 'tap' && (
-            <div className="flex flex-col flex-1 min-h-0 gap-4">
-              <div className="flex flex-col items-center gap-1.5 text-center flex-shrink-0">
-                <h1 className="text-3xl sm:text-4xl font-bold text-foreground text-balance leading-tight">
-                  {t('Le terrain de jeu', 'The playground')}
-                </h1>
-                <p className="text-sm text-muted-foreground/60 leading-relaxed">
-                  {t('Appuie sur un élément pour le poser sur le terrain', 'Tap an element to place it on the field')}
-                </p>
-              </div>
-              <TapArena
-                lang={lang}
-                elements={elements}
-                onAllAdded={() => goToStep('combine')}
-              />
-            </div>
-          )}
-
           {/* ── COMBINE (fullscreen cinematic arena) ── */}
           {step === 'combine' && (
-            <div className="flex flex-col flex-1 min-h-0 gap-4">
-              <div className="flex flex-col items-center gap-2 text-center flex-shrink-0">
-                <h1 className="text-3xl sm:text-4xl font-bold text-foreground text-balance leading-tight">
-                  {t('Combine des éléments', 'Combine elements')}
-                </h1>
-                <p className="text-sm text-muted-foreground/60 leading-relaxed">
-                  {t('Glisse un élément sur un autre pour les fusionner', 'Drag one element onto another to combine them')}
-                </p>
-              </div>
+            <div className="flex flex-col flex-1 min-h-0">
               <CombineArena
                 lang={lang}
                 elements={elements}
@@ -948,9 +767,8 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
               </div>
               {(() => {
                 const TUTORIAL_KEYS = [
-                  { key: 'pluie',      fr: 'Pluie',      en: 'Rain' },
-                  { key: 'plante',     fr: 'Plante',      en: 'Plant' },
-                  { key: 'champignon', fr: 'Champignon',  en: 'Mushroom' },
+                  { key: 'pluie',  fr: 'Pluie',  en: 'Rain'  },
+                  { key: 'plante', fr: 'Plante',  en: 'Plant' },
                 ]
                 const allOptions = [
                   ...STARTERS.map(key => {
@@ -975,7 +793,11 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                       return (
                         <button
                           key={key}
-                          onClick={() => el && setAvatar(String(el.number))}
+                          onClick={() => {
+                            if (!el) return
+                            setAvatar(String(el.number))
+                            setTimeout(() => handleNext(), 300)
+                          }}
                           className="flex flex-col items-center gap-2 py-4 rounded-2xl transition-all relative overflow-hidden active:scale-[0.96]"
                           style={{
                             background: selected ? `${elColor}18` : 'rgba(255,255,255,0.03)',
@@ -1025,7 +847,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                   className="w-full py-5 rounded-3xl border-2 transition-all font-bold flex items-center justify-center gap-3 active:scale-[0.97] text-white"
                   style={{ background: '#6366f1', borderColor: '#6366f1', boxShadow: '0 4px 20px rgba(99,102,241,0.35)' }}
                 >
-                  <span className="text-2xl">����</span>
+                  <span className="text-2xl" role="img" aria-label="bell">{'🔔'}</span>
                   <span className="text-base">{t('Activer les notifications', 'Enable notifications')}</span>
                 </button>
                 {/* Dismiss — subtle */}
@@ -1043,7 +865,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
       </div>
 
       {/* ── Bottom CTA — hidden for auto-advance steps and combine ── */}
-      {step !== 'lang' && step !== 'theme' && step !== 'combine' && step !== 'notifications' && (
+      {step !== 'lang' && step !== 'theme' && step !== 'combine' && step !== 'notifications' && step !== 'avatar' && (
         <div className="px-6 pt-4 sm:px-8 flex-shrink-0" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 2rem)' }}>
           <div className="w-full max-w-lg mx-auto">
             <button
