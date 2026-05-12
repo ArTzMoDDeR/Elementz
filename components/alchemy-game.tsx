@@ -250,11 +250,10 @@ function DiscoveryPill({
         <div
           className={`w-full rounded-2xl px-4 py-3 flex flex-row items-center gap-3 ${exiting ? 'ios-notif-exit' : 'ios-notif-enter'}`}
           style={{
-            background: 'light-dark(rgba(255,255,255,0.55), rgba(20,20,28,0.52))',
+            background: 'light-dark(rgba(255,255,255,0.38), rgba(18,18,24,0.42))',
             backdropFilter: 'blur(28px) saturate(1.6)',
             WebkitBackdropFilter: 'blur(28px) saturate(1.6)',
-            border: '1px solid light-dark(rgba(255,255,255,0.75), rgba(255,255,255,0.09))',
-            boxShadow: 'light-dark(0 4px 24px rgba(0,0,0,0.10), 0 4px 24px rgba(0,0,0,0.45)), inset 0 1px 0 light-dark(rgba(255,255,255,0.8), rgba(255,255,255,0.06))',
+            boxShadow: 'light-dark(0 4px 24px rgba(0,0,0,0.08), 0 4px 24px rgba(0,0,0,0.38))',
             transform: `translateY(${translateY}px)`,
             transition: dragStart.current ? 'none' : 'transform 0.2s cubic-bezier(0.32,0.72,0,1)',
           }}
@@ -599,18 +598,26 @@ export function AlchemyGame() {
         avatarRefreshKey={avatarRefreshKey}
       />
 
-      {/* Notification stack — desktop only (mobile shows in inventory header) */}
+      {/* Notification stack — top-left on desktop, centered on mobile */}
       <div
-        className="hidden md:flex fixed left-3 z-50 flex-col gap-2 pointer-events-none"
-        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
+        className="fixed z-50 flex flex-col gap-2 pointer-events-none
+          inset-x-0 flex items-center
+          md:inset-x-auto md:left-3 md:items-start"
+        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)', paddingLeft: 0 }}
       >
-
         {/* Hints toggled */}
         {hintsToast !== null && (
-          <div className="animate-in slide-in-from-left-4 fade-in duration-200 pointer-events-auto">
-            <div className="flex items-center gap-2.5 pl-3 pr-3 py-2.5 bg-card border border-border rounded-xl shadow-lg backdrop-blur-sm">
+          <div className="animate-in slide-in-from-top-2 fade-in duration-200 pointer-events-auto flex justify-center md:justify-start w-full md:w-auto px-4 md:px-0">
+            <div
+              className="flex items-center gap-2.5 pl-3 pr-3 py-2 rounded-xl"
+              style={{
+                background: 'light-dark(rgba(255,255,255,0.35), rgba(18,18,24,0.38))',
+                backdropFilter: 'blur(16px) saturate(1.4)',
+                WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
+              }}
+            >
               <Lightbulb className={`w-3.5 h-3.5 flex-shrink-0 ${hintsToast ? 'text-amber-400' : 'text-muted-foreground'}`} />
-              <span className="text-xs text-muted-foreground leading-snug">
+              <span className="text-xs text-foreground/70 leading-snug">
                 {lang === 'fr'
                   ? hintsToast ? 'Indices activés' : 'Indices désactivés'
                   : hintsToast ? 'Hints enabled' : 'Hints disabled'}
@@ -621,13 +628,20 @@ export function AlchemyGame() {
 
         {/* Tap / Grab mode */}
         {tapModeToast !== null && (
-          <div className="animate-in slide-in-from-left-4 fade-in duration-200 pointer-events-auto">
-            <div className="flex items-center gap-2.5 pl-3 pr-3 py-2.5 bg-card border border-border rounded-xl shadow-lg backdrop-blur-sm">
+          <div className="animate-in slide-in-from-top-2 fade-in duration-200 pointer-events-auto flex justify-center md:justify-start w-full md:w-auto px-4 md:px-0">
+            <div
+              className="flex items-center gap-2.5 pl-3 pr-3 py-2 rounded-xl"
+              style={{
+                background: 'light-dark(rgba(255,255,255,0.35), rgba(18,18,24,0.38))',
+                backdropFilter: 'blur(16px) saturate(1.4)',
+                WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
+              }}
+            >
               {tapModeToast
                 ? <MousePointer className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#10d9ae' }} />
                 : <Hand className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#fe8f27' }} />
               }
-              <span className="text-xs text-muted-foreground leading-snug">
+              <span className="text-xs text-foreground/70 leading-snug">
                 {lang === 'fr'
                   ? tapModeToast ? 'Mode tap activé' : 'Mode drag activé'
                   : tapModeToast ? 'Tap mode on' : 'Drag mode on'}
@@ -638,10 +652,17 @@ export function AlchemyGame() {
 
         {/* Progress milestone */}
         {progressToast !== null && (
-          <div className="animate-in slide-in-from-left-4 fade-in duration-200 pointer-events-auto">
-            <div className="flex items-center gap-2.5 pl-3 pr-3 py-2.5 bg-card border border-border rounded-xl shadow-lg backdrop-blur-sm">
+          <div className="animate-in slide-in-from-top-2 fade-in duration-200 pointer-events-auto flex justify-center md:justify-start w-full md:w-auto px-4 md:px-0">
+            <div
+              className="flex items-center gap-2.5 pl-3 pr-3 py-2 rounded-xl"
+              style={{
+                background: 'light-dark(rgba(255,255,255,0.35), rgba(18,18,24,0.38))',
+                backdropFilter: 'blur(16px) saturate(1.4)',
+                WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
+              }}
+            >
               <BarChart2 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#15e9ff' }} />
-              <span className="text-xs text-muted-foreground leading-snug">
+              <span className="text-xs text-foreground/70 leading-snug">
                 {lang === 'fr'
                   ? <><span className="font-semibold text-foreground">{progressToast.count}</span> éléments — <span className="font-semibold text-foreground">{progressToast.pct}%</span> découverts</>
                   : <><span className="font-semibold text-foreground">{progressToast.count}</span> elements — <span className="font-semibold text-foreground">{progressToast.pct}%</span> discovered</>
@@ -650,8 +671,6 @@ export function AlchemyGame() {
             </div>
           </div>
         )}
-
-
       </div>
 
       {/* ── iOS-style top discovery pill (mobile only) ───────────────── */}

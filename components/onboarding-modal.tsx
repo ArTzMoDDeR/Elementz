@@ -229,7 +229,9 @@ function CombineArena({
   // Tap anywhere during overlay to skip to next state
   const skipRef = useRef<(() => void) | null>(null)
   const handleOverlayTap = useCallback(() => {
-    if (skipRef.current) { skipRef.current(); skipRef.current = null }
+    const fn = skipRef.current
+    skipRef.current = null
+    if (fn) fn()
   }, [])
 
   // Current combo's inventory elements (for the pulse highlight)
