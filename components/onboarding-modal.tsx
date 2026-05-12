@@ -584,8 +584,8 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col bg-background">
 
-      {/* Dot grid — fullscreen, visible only during combine step */}
-      {isCombineStep && (
+      {/* Dot grid — only during combine step, hidden completely when any overlay is showing */}
+      {isCombineStep && phase === 'idle' && (
         <div
           className="fixed inset-0 pointer-events-none z-0"
           style={{
