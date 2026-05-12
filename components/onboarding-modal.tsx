@@ -15,16 +15,10 @@ type Props = {
   onLangChange?: (lang: 'fr' | 'en') => void
 }
 
-const STARTERS = ['eau', 'feu', 'terre', 'air'] as const
-const STARTER_LABELS: Record<string, { fr: string; en: string; emoji: string }> = {
-  eau:   { fr: 'Eau',   en: 'Water', emoji: '💧' },
-  feu:   { fr: 'Feu',   en: 'Fire',  emoji: '🔥' },
-  terre: { fr: 'Terre', en: 'Earth', emoji: '🌍' },
-  air:   { fr: 'Air',   en: 'Air',   emoji: '💨' },
-}
-
-const STEPS = ['lang', 'theme', 'combine', 'hint', 'quests', 'username', 'avatar', 'notifications'] as const
+const STEPS = ['lang', 'theme', 'combine', 'hints-quests', 'username', 'notifications'] as const
 type Step = typeof STEPS[number]
+// Steps that count toward the progress bar (lang is excluded)
+const PROGRESS_STEPS = STEPS.filter(s => s !== 'lang')
 
 const TUTORIAL_COMBOS = [
   { fr_a: 'eau',   en_a: 'water', fr_b: 'air',   en_b: 'air',   fr_result: 'pluie',  en_result: 'rain'  },
@@ -346,10 +340,11 @@ function CombineArena({
       {/* Reveal: "Tu viens de créer X" */}
       {phase === 'reveal' && lastResult && (
         <div
-          className="fixed inset-0 z-[10001] flex flex-col items-center justify-center bg-background px-8 cursor-pointer"
+          className="fixed inset-0 z-[10001] flex flex-col bg-background px-8 cursor-pointer"
+          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4rem)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 3rem)' }}
           onClick={handleOverlayTap}
         >
-          <div className="flex flex-col items-center gap-8 onboard-fade-up w-full max-w-sm">
+          <div className="flex flex-col items-center justify-center gap-8 onboard-fade-up w-full max-w-sm mx-auto flex-1">
             <div className="onboard-pop" style={{ animationDelay: '0.1s' }}>
               {lastResult.imageUrl
                 ? <img src={lastResult.imageUrl} alt={lastResult.name} className="w-28 h-28 object-contain" draggable={false} />
@@ -364,18 +359,19 @@ function CombineArena({
                 {lastResult.name}
               </h2>
             </div>
-            <p className="text-xs text-muted-foreground/35">{t('Appuie pour continuer', 'Tap to continue')}</p>
           </div>
+          <p className="text-xs text-muted-foreground/35 text-center w-full">{t('Appuie pour continuer', 'Tap to continue')}</p>
         </div>
       )}
 
       {/* Next combo: "Créons X" */}
       {phase === 'next' && nextResultName && (
         <div
-          className="fixed inset-0 z-[10001] flex flex-col items-center justify-center bg-background px-8 cursor-pointer"
+          className="fixed inset-0 z-[10001] flex flex-col bg-background px-8 cursor-pointer"
+          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4rem)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 3rem)' }}
           onClick={handleOverlayTap}
         >
-          <div className="flex flex-col items-center gap-8 text-center onboard-slide-in w-full max-w-sm">
+          <div className="flex flex-col items-center justify-center gap-8 text-center onboard-slide-in w-full max-w-sm mx-auto flex-1">
             <p className="text-sm text-muted-foreground/50 uppercase tracking-widest font-medium">
               {t('Maintenant, créons', "Now, let's create")}
             </p>
@@ -394,8 +390,8 @@ function CombineArena({
             <h2 className="text-5xl font-bold text-foreground text-balance leading-tight capitalize">
               {nextResultName}
             </h2>
-            <p className="text-xs text-muted-foreground/35">{t('Appuie pour continuer', 'Tap to continue')}</p>
           </div>
+          <p className="text-xs text-muted-foreground/35 text-center w-full">{t('Appuie pour continuer', 'Tap to continue')}</p>
         </div>
       )}
 
@@ -430,7 +426,6 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
   const [username, setUsername]       = useState('')
   const [usernameError, setUsernameError] = useState('')
   const [usernameChecking, setUsernameChecking] = useState(false)
-  const [avatar, setAvatar]           = useState<string | null>(null)
   const [enablePush, setEnablePush]   = useState(false)
   const { setTheme: applyTheme }      = useTheme()
   const [tutorialDone, setTutorialDone] = useState(false)
@@ -439,6 +434,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
   const [stepAnim, setStepAnim] = useState<'in' | 'out'>('in')
 
   const stepIndex = STEPS.indexOf(step)
+  const progressIndex = PROGRESS_STEPS.indexOf(step as typeof PROGRESS_STEPS[number])
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
   const goToStep = (s: Step) => {
@@ -447,7 +443,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
       setStep(s)
       if (s === 'combine') setTutorialDone(false)
       setStepAnim('in')
-    }, 220)
+    }, 200)
   }
 
   const BANWORDS = ['fuck', 'shit', 'ass', 'bitch', 'cunt', 'dick', 'pussy', 'nigger', 'nigga', 'fag', 'faggot', 'retard', 'bastard', 'whore', 'slut', 'puta', 'merde', 'connard', 'connasse', 'salope', 'putain', 'fdp', 'enculé', 'encule', 'Nazi', 'hitler', 'pédophile', 'pedophile', 'rape']
@@ -488,7 +484,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
     if (nextIndex < STEPS.length) goToStep(STEPS[nextIndex])
     else {
       const fallbackEl = elementsByName.get('feu') ?? elementsByName.get('fire') ?? [...elements.values()][0]
-      onComplete({ lang, theme: selectedTheme ?? 'dark', haptic: false, username: username.trim(), avatar: avatar ?? (fallbackEl?.name ?? 'feu'), enablePush })
+      onComplete({ lang, theme: selectedTheme ?? 'dark', haptic: false, username: username.trim(), avatar: fallbackEl?.name ?? 'feu', enablePush })
     }
   }
 
@@ -514,7 +510,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
     setEnablePush(choice)
     setTimeout(() => {
       const fallbackEl = elementsByName.get('feu') ?? elementsByName.get('fire') ?? [...elements.values()][0]
-      onComplete({ lang, theme: selectedTheme ?? 'dark', haptic: false, username: username.trim(), avatar: avatar ?? (fallbackEl?.name ?? 'feu'), enablePush: choice })
+      onComplete({ lang, theme: selectedTheme ?? 'dark', haptic: false, username: username.trim(), avatar: fallbackEl?.name ?? 'feu', enablePush: choice })
     }, 350)
   }
 
@@ -524,7 +520,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col bg-background">
 
-      {/* Dot grid — fullscreen, visible only during tap/combine steps */}
+      {/* Dot grid — fullscreen, visible only during combine step */}
       {isCombineStep && (
         <div
           className="fixed inset-0 pointer-events-none z-0"
@@ -536,33 +532,40 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
       )}
 
       {/* ── Top bar ── */}
-      <div className="flex items-center gap-1.5 px-4 pb-3 sm:px-8 flex-shrink-0" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}>
-        {stepIndex > 0 && !isCombineStep ? (
+      <div
+        className="flex items-center gap-3 px-4 sm:px-8 flex-shrink-0"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)', paddingBottom: '0.75rem' }}
+      >
+        {/* Back button — shown on all steps except lang */}
+        {step !== 'lang' ? (
           <button
             onClick={handleBack}
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors flex-shrink-0"
-            aria-label="Back"
+            className="flex items-center gap-1.5 h-9 pl-2.5 pr-3.5 rounded-full border border-border/50 bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all flex-shrink-0 text-sm font-medium"
+            aria-label={t('Retour', 'Back')}
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span className="text-xs">{t('Retour', 'Back')}</span>
           </button>
         ) : (
-          <div className="w-9 flex-shrink-0" />
+          <div className="w-16 flex-shrink-0" />
         )}
+
+        {/* Progress bar — only for steps after lang */}
         <div className="flex flex-1 items-center gap-1.5">
-          {STEPS.map((s, i) => (
+          {PROGRESS_STEPS.map((s, i) => (
             <div
               key={s}
               className={`h-1 rounded-full flex-1 transition-all duration-500 ${
-                i < stepIndex  ? 'bg-primary/50' :
-                i === stepIndex ? 'bg-primary' :
+                i < progressIndex  ? 'bg-primary/50' :
+                i === progressIndex ? 'bg-primary' :
                 'bg-muted/40'
               }`}
             />
           ))}
         </div>
-        <span className="ml-1.5 w-9 text-right text-xs text-muted-foreground/50 font-medium flex-shrink-0 tabular-nums">
-          {stepIndex + 1}/{STEPS.length}
-        </span>
+
+        {/* Spacer to balance back button */}
+        <div className="w-16 flex-shrink-0" />
       </div>
 
       {/* ── Main content ── */}
@@ -638,78 +641,44 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                 recipeMap={recipeMap}
                 onAllDone={() => {
                   setTutorialDone(true)
-                  setTimeout(() => goToStep('hint'), 800)
+                  setTimeout(() => goToStep('hints-quests'), 800)
                 }}
                 onTutorialDiscover={onTutorialDiscover}
               />
             </div>
           )}
 
-          {/* ── HINT ── */}
-          {step === 'hint' && (
-            <div className="flex flex-col gap-10 justify-center flex-1">
-              <div className="flex flex-col items-center gap-3 text-center">
+          {/* ── HINTS + QUESTS (merged) ── */}
+          {step === 'hints-quests' && (
+            <div className="flex flex-col gap-8 justify-center flex-1">
+              <div className="flex flex-col items-center gap-2 text-center">
                 <h1 className="text-4xl sm:text-5xl font-bold text-foreground text-balance leading-tight">
-                  {t('Les indices', 'Hints')}
+                  {t('Indices & Quêtes', 'Hints & Quests')}
                 </h1>
                 <p className="text-base text-muted-foreground/70 leading-relaxed max-w-sm">
                   {t(
-                    "Bloqué ? Demande un indice pour révéler une combinaison inconnue.",
-                    "Stuck? Get a hint to reveal a combination you haven't found yet."
+                    "Explore, accomplis des quêtes et utilise des indices quand tu bloques.",
+                    "Explore, complete quests and use hints when you're stuck."
                   )}
                 </p>
               </div>
               <div className="flex flex-col gap-3">
                 {[
-                  { icon: <Ticket className="w-6 h-6 text-amber-400" />, bg: 'bg-amber-500/8', border: 'border-amber-500/20',
-                    title: t('Regarder une pub', 'Watch an ad'),
-                    desc:  t("Regarde une courte publicité pour obtenir un indice gratuit.", "Watch a short ad to get a free hint anytime.") },
-                  { icon: <Scroll className="w-6 h-6 text-amber-400" />, bg: 'bg-amber-500/8', border: 'border-amber-500/20',
-                    title: t('Accomplir des quêtes', 'Complete quests'),
-                    desc:  t("Certaines quêtes récompensent avec des indices.", "Some quests reward you with hints.") },
+                  { icon: <Ticket className="w-5 h-5 text-amber-400" />, bg: 'bg-amber-500/8', border: 'border-amber-500/20', accent: 'bg-amber-500/15',
+                    title: t('Indices', 'Hints'),
+                    desc: t("Bloqué ? Regarde une pub ou accomplis une quête pour débloquer un indice.", "Stuck? Watch an ad or complete a quest to unlock a hint.") },
+                  { icon: <Scroll className="w-5 h-5 text-emerald-400" />, bg: 'bg-emerald-500/8', border: 'border-emerald-500/20', accent: 'bg-emerald-500/15',
+                    title: t('Quêtes quotidiennes', 'Daily quests'),
+                    desc: t('Nouvelles quêtes chaque jour pour gagner des récompenses.', 'New quests every day to earn rewards.') },
+                  { icon: <Scroll className="w-5 h-5 text-emerald-400" />, bg: 'bg-emerald-500/8', border: 'border-emerald-500/20', accent: 'bg-emerald-500/15',
+                    title: t('Défis permanents', 'Permanent challenges'),
+                    desc: t('Objectifs à long terme pour les plus curieux.', 'Long-term goals for the most curious.') },
                 ].map(item => (
-                  <div key={item.title} className={`flex items-start gap-4 p-5 rounded-2xl ${item.bg} border ${item.border}`}>
-                    <div className="w-12 h-12 rounded-2xl bg-amber-500/15 flex items-center justify-center flex-shrink-0">
+                  <div key={item.title} className={`flex items-start gap-4 p-4 rounded-2xl ${item.bg} border ${item.border}`}>
+                    <div className={`w-10 h-10 rounded-xl ${item.accent} flex items-center justify-center flex-shrink-0`}>
                       {item.icon}
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-semibold text-foreground">{item.title}</p>
-                      <p className="text-sm text-muted-foreground leading-snug">{item.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ── QUESTS ── */}
-          {step === 'quests' && (
-            <div className="flex flex-col gap-10 justify-center flex-1">
-              <div className="flex flex-col items-center gap-3 text-center">
-                <h1 className="text-4xl sm:text-5xl font-bold text-foreground text-balance leading-tight">
-                  {t('Les quêtes', 'Quests')}
-                </h1>
-                <p className="text-base text-muted-foreground/70 leading-relaxed max-w-sm">
-                  {t(
-                    "Accomplis des quêtes pour gagner des récompenses et des indices.",
-                    "Complete quests to earn rewards and hints."
-                  )}
-                </p>
-              </div>
-              <div className="flex flex-col gap-3">
-                {[
-                  { emoji: '🌅', bg: 'bg-emerald-500/8', border: 'border-emerald-500/20',
-                    title: t('Quêtes quotidiennes', 'Daily quests'),
-                    desc: t('Nouvelles quêtes chaque jour. Progressez à chaque session.', 'New quests every day — make progress every session.') },
-                  { emoji: '🏆', bg: 'bg-emerald-500/8', border: 'border-emerald-500/20',
-                    title: t('Défis permanents', 'Permanent challenges'),
-                    desc: t('Objectifs à long terme pour les explorateurs les plus curieux.', 'Long-term goals for the most curious explorers.') },
-                ].map(item => (
-                  <div key={item.title} className={`flex items-start gap-4 p-5 rounded-2xl ${item.bg} border ${item.border}`}>
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 flex items-center justify-center flex-shrink-0 text-2xl">
-                      {item.emoji}
-                    </div>
-                    <div className="space-y-1">
+                    <div className="space-y-0.5">
                       <p className="text-sm font-semibold text-foreground">{item.title}</p>
                       <p className="text-sm text-muted-foreground leading-snug">{item.desc}</p>
                     </div>
@@ -748,81 +717,6 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                   {t('Lettres, chiffres, _ et -. Max 20 caractères. Optionnel.', 'Letters, numbers, _ and -. Max 20 characters. Optional.')}
                 </p>
               </div>
-            </div>
-          )}
-
-          {/* ── AVATAR ── */}
-          {step === 'avatar' && (
-            <div className="flex flex-col gap-10 justify-center flex-1">
-              <div className="flex flex-col items-center gap-3 text-center">
-                <h1 className="text-4xl sm:text-5xl font-bold text-foreground text-balance leading-tight">
-                  {t('Ton avatar', 'Your avatar')}
-                </h1>
-                <p className="text-base text-muted-foreground/70 leading-relaxed">
-                  {t(
-                    "Choisis un élément de base. Tu pourras le changer depuis ton profil.",
-                    "Pick a base element. You can change it from your profile anytime."
-                  )}
-                </p>
-              </div>
-              {(() => {
-                const TUTORIAL_KEYS = [
-                  { key: 'pluie',  fr: 'Pluie',  en: 'Rain'  },
-                  { key: 'plante', fr: 'Plante',  en: 'Plant' },
-                ]
-                const allOptions = [
-                  ...STARTERS.map(key => {
-                    const info = STARTER_LABELS[key]
-                    const el = elementsByName.get(lang === 'fr' ? info.fr.toLowerCase() : info.en.toLowerCase())
-                      ?? elementsByName.get(info.fr.toLowerCase())
-                      ?? elementsByName.get(info.en.toLowerCase())
-                    return { key, label: lang === 'fr' ? info.fr : info.en, el }
-                  }),
-                  ...TUTORIAL_KEYS.map(({ key, fr, en }) => {
-                    const el = elementsByName.get(lang === 'fr' ? fr.toLowerCase() : en.toLowerCase())
-                      ?? elementsByName.get(fr.toLowerCase())
-                      ?? elementsByName.get(en.toLowerCase())
-                    return { key, label: lang === 'fr' ? fr : en, el }
-                  }).filter(o => o.el !== undefined),
-                ]
-                return (
-                  <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-                    {allOptions.map(({ key, label, el }) => {
-                      const selected = el ? avatar === el.name : false
-                      const elColor = el?.color ?? '#818cf8'
-                      return (
-                        <button
-                          key={key}
-                          onClick={() => {
-                            if (!el) return
-                            setAvatar(el.name)
-                            setTimeout(() => handleNext(), 300)
-                          }}
-                          className="flex flex-col items-center gap-2 py-4 rounded-2xl transition-all relative overflow-hidden active:scale-[0.96]"
-                          style={{
-                            background: selected ? `${elColor}18` : 'rgba(255,255,255,0.03)',
-                            border: selected ? `2px solid ${elColor}70` : '2px solid rgba(255,255,255,0.07)',
-                          }}
-                        >
-                          <div
-                            className="w-11 h-11 rounded-xl flex items-center justify-center p-2 transition-all"
-                            style={{ background: selected ? `${elColor}25` : `${elColor}12` }}
-                          >
-                            {el?.imageUrl ? (
-                              <img src={el.imageUrl} alt={label} className="w-full h-full object-contain" draggable={false} />
-                            ) : (
-                              <span className="text-2xl leading-none">{STARTER_LABELS[key]?.emoji ?? '?'}</span>
-                            )}
-                          </div>
-                          <span className={`text-xs font-semibold transition-colors ${selected ? 'text-foreground' : 'text-muted-foreground'}`}>
-                            {label}
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                )
-              })()}
             </div>
           )}
 
@@ -865,7 +759,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
       </div>
 
       {/* ── Bottom CTA — hidden for auto-advance steps and combine ── */}
-      {step !== 'lang' && step !== 'theme' && step !== 'combine' && step !== 'notifications' && step !== 'avatar' && (
+      {step !== 'lang' && step !== 'theme' && step !== 'combine' && step !== 'notifications' && (
         <div className="px-6 pt-4 sm:px-8 flex-shrink-0" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 2rem)' }}>
           <div className="w-full max-w-lg mx-auto">
             <button
@@ -875,17 +769,13 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
             >
               {usernameChecking
                 ? t('Vérification…', 'Checking…')
-                : step === 'hint'
+                : step === 'hints-quests'
                   ? t('C\'est compris !', 'Got it!')
-                  : step === 'quests'
-                    ? t('Allons-y !', 'Let\'s go!')
-                      : step === 'username'
-                        ? username.trim()
-                          ? t('Continuer', 'Continue')
-                          : t('J\'en veux un random', 'Give me a random one')
-                      : step === 'avatar'
-                        ? t('Parfait !', 'Perfect!')
-                        : t('Continuer', 'Continue')
+                  : step === 'username'
+                    ? username.trim()
+                      ? t('Continuer', 'Continue')
+                      : t('J\'en veux un random', 'Give me a random one')
+                    : t('Continuer', 'Continue')
               }
             </button>
           </div>
