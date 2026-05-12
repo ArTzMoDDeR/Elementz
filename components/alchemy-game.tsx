@@ -234,7 +234,7 @@ function DiscoveryPill({
 
   return (
     <div
-      className="fixed inset-x-0 top-0 z-[200] flex justify-center pointer-events-none"
+      className="fixed inset-x-0 top-0 z-[200] flex justify-center pointer-events-none md:mt-[5px]"
       style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
       <div
@@ -250,11 +250,11 @@ function DiscoveryPill({
         <div
           className={`w-full rounded-2xl px-4 py-3 flex flex-row items-center gap-3 ${exiting ? 'ios-notif-exit' : 'ios-notif-enter'}`}
           style={{
-            background: 'color-mix(in oklch, var(--card) 96%, transparent)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid color-mix(in oklch, var(--foreground) 8%, transparent)',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.22), 0 1px 0 rgba(255,255,255,0.05) inset',
+            background: 'light-dark(rgba(255,255,255,0.55), rgba(20,20,28,0.52))',
+            backdropFilter: 'blur(28px) saturate(1.6)',
+            WebkitBackdropFilter: 'blur(28px) saturate(1.6)',
+            border: '1px solid light-dark(rgba(255,255,255,0.75), rgba(255,255,255,0.09))',
+            boxShadow: 'light-dark(0 4px 24px rgba(0,0,0,0.10), 0 4px 24px rgba(0,0,0,0.45)), inset 0 1px 0 light-dark(rgba(255,255,255,0.8), rgba(255,255,255,0.06))',
             transform: `translateY(${translateY}px)`,
             transition: dragStart.current ? 'none' : 'transform 0.2s cubic-bezier(0.32,0.72,0,1)',
           }}
