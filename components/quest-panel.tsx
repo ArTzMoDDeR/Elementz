@@ -204,7 +204,7 @@ function ScratchModal({ quest, lang, onScratch, onClose }: {
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors flex-shrink-0"
+            className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors flex-shrink-0 cursor-pointer"
           >
             <X className="w-4 h-4 text-foreground/50" />
           </button>
@@ -239,7 +239,7 @@ function ScratchModal({ quest, lang, onScratch, onClose }: {
               </p>
               <button
                 onClick={onClose}
-                className="px-6 py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-sm font-semibold text-primary hover:bg-primary/20 transition-colors active:scale-95"
+                className="px-6 py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-sm font-semibold text-primary hover:bg-primary/20 transition-colors active:scale-95 cursor-pointer"
               >
                 {lang === 'fr' ? "J'ai noté !" : 'Got it!'}
               </button>
@@ -274,7 +274,7 @@ function ScratchBanner({ count, lang, onClick }: {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3.5 px-5 py-4 rounded-2xl active:scale-[0.98] transition-all"
+      className="w-full flex items-center gap-3.5 px-5 py-4 rounded-2xl active:scale-[0.98] transition-all cursor-pointer"
       style={{
         background: 'rgba(99,102,241,0.18)',
         border: '3px solid #6366f1',
@@ -336,7 +336,7 @@ function QuestRow({ quest, lang, onClaim, onScratch }: {
   return (
     <div className={`border-b border-border/20 last:border-b-0 ${isDone ? 'opacity-35' : ''}`}>
       <button
-        className="w-full flex items-center gap-3 py-3.5 text-left"
+        className="w-full flex items-center gap-3 py-3.5 text-left cursor-pointer"
         onClick={() => setOpen(o => !o)}
         aria-expanded={open}
       >
@@ -534,7 +534,7 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
           </div>
           <button
             onClick={closeScratch}
-            className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center hover:bg-muted/80 active:scale-95 transition-all flex-shrink-0"
+            className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center hover:bg-muted/80 active:scale-95 transition-all flex-shrink-0 cursor-pointer"
             aria-label={lang === 'fr' ? 'Retour' : 'Back'}
           >
             <ArrowLeft className="w-4 h-4 text-foreground/70" />
@@ -571,7 +571,7 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
               </p>
               <button
                 onClick={closeScratch}
-                className="px-6 py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-sm font-semibold text-primary hover:bg-primary/20 transition-colors active:scale-95"
+                className="px-6 py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-sm font-semibold text-primary hover:bg-primary/20 transition-colors active:scale-95 cursor-pointer"
               >
                 {t("J'ai noté !", 'Got it!')}
               </button>
@@ -591,7 +591,7 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
         <div className="flex items-center gap-3">
           <button
             onClick={onGoToPlay}
-            className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center hover:bg-muted/80 active:scale-95 transition-all flex-shrink-0"
+            className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center hover:bg-muted/80 active:scale-95 transition-all flex-shrink-0 cursor-pointer"
             aria-label={lang === 'fr' ? 'Retour' : 'Back'}
           >
             <ArrowLeft className="w-4 h-4 text-foreground/70" />
