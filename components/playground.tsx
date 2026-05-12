@@ -246,8 +246,12 @@ function AvatarButton({
       })
   }, [lang, sessionUser.email])
 
-  // Avatar key is a name string (stored as 'eau', 'feu', etc.) — use name index for lookup
-  const el = avatarKey ? elementsByName.get(avatarKey) : null
+  // Avatar key is stored as FR name ('eau', 'feu', 'champignon', etc.) — look up with fallback
+  const el = avatarKey
+    ? (elementsByName.get(avatarKey)
+      ?? elementsByName.get(avatarKey.toLowerCase())
+      ?? [...elementsByName.values()].find(e => e.name.toLowerCase() === avatarKey.toLowerCase()))
+    : null
 
   return (
     <button
@@ -1221,7 +1225,11 @@ export function Playground({
                   aria-label={label}
                 >
                   {isProfileWithUser ? (() => {
-                    const tabEl = tabAvatarKey ? elementsByName.get(tabAvatarKey) : null
+                    const tabEl = tabAvatarKey
+    ? (elementsByName.get(tabAvatarKey)
+      ?? elementsByName.get(tabAvatarKey.toLowerCase())
+      ?? [...elementsByName.values()].find(e => e.name.toLowerCase() === tabAvatarKey.toLowerCase()))
+    : null
                     return (
                       <div
                         className={`w-7 h-7 rounded-full overflow-hidden flex-shrink-0 bg-muted flex items-center justify-center transition-all ${isActive ? 'border-[2px] border-foreground' : 'border border-muted-foreground/25'}`}
@@ -1876,7 +1884,11 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
   function hashStr(s: string) { let h = 0; for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0; return h }
   const STARTERS = ['eau', 'feu', 'terre', 'air']
   const avatarKey = profile?.avatar ?? STARTERS[Math.abs(hashStr(sessionUser.email ?? 'x')) % 4]
-  const avatarEl = elementsByName.get(avatarKey)
+  const avatarEl = avatarKey
+    ? (elementsByName.get(avatarKey)
+      ?? elementsByName.get(avatarKey.toLowerCase())
+      ?? [...elementsByName.values()].find(e => e.name.toLowerCase() === avatarKey.toLowerCase()))
+    : undefined
   const displayName = profile?.username || sessionUser.name?.split(' ')[0] || t('Joueur', 'Player')
   const pct = profile ? Math.round((profile.discovered_count / TOTAL_ELEMENTS) * 100) : 0
   const allDiscovered = Array.from(elementsByName.values()).filter(e => e.imageUrl && discovered.has(e.number))

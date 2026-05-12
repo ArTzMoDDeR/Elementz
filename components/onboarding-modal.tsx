@@ -182,25 +182,26 @@ function CombineArena({
           if (next >= TUTORIAL_COMBOS.length) {
             // Step 3a: all done
             setPhase('done')
-            setTimeout(() => onAllDone(), 1400)
+            setTimeout(() => onAllDone(), 1800)
           } else {
             // Step 3b: "Maintenant créons Y"
             setPhase('next')
             setTimeout(() => {
               setComboIndex(next)
               setPhase('idle')
-            }, 1600)
+            }, 3200)
           }
-        }, 1600)
+        }, 2200)
       }, 280)
     }
   }, [getResult, onTutorialDiscover, onAllDone])
 
-  // Next combo names for the "next" phase
+  // Next combo names + element for the "next" phase
   const nextCombo = TUTORIAL_COMBOS[comboIndex + 1]
   const nextResultName = nextCombo
     ? (lang === 'fr' ? nextCombo.fr_result : nextCombo.en_result)
     : null
+  const nextResultEl = nextResultName ? (getEl(nextResultName) ?? getEl(lang === 'fr' ? nextCombo!.fr_result : nextCombo!.en_result)) : null
 
   const isOverlay = phase === 'flash' || phase === 'reveal' || phase === 'next' || phase === 'done'
 
@@ -283,11 +284,11 @@ function CombineArena({
 
       {/* ── Full-screen cinematic overlays ── */}
 
-      {/* Flash */}
+      {/* Flash — soft frosted overlay, not harsh white */}
       {phase === 'flash' && (
         <div
           className="fixed inset-0 z-[10000] pointer-events-none"
-          style={{ background: 'white', animation: 'onboardFlashIn 0.15s ease-out forwards, onboardFlashOut 0.28s 0.15s ease-in forwards' }}
+          style={{ background: 'oklch(0.96 0.01 250 / 0.55)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', animation: 'onboardFlashIn 0.18s ease-out forwards, onboardFlashOut 0.32s 0.18s ease-in forwards' }}
         />
       )}
 
@@ -319,17 +320,28 @@ function CombineArena({
       {/* Next combo: "Maintenant, créons X" */}
       {phase === 'next' && nextResultName && (
         <div className="fixed inset-0 z-[10001] flex flex-col items-center justify-center bg-background pointer-events-none px-8">
-          <div className="flex flex-col items-center gap-4 text-center onboard-slide-in">
-            <p className="text-base text-muted-foreground/60 font-medium">
-              {t('Maintenant,', 'Now,')}
+          <div className="flex flex-col items-center gap-6 text-center onboard-slide-in">
+            <p className="text-base text-muted-foreground/60 font-medium tracking-wide uppercase text-xs">
+              {t('Prochain objectif', 'Next up')}
             </p>
-            <h2 className="text-4xl font-bold text-foreground text-balance leading-tight">
-              {t('créons', "let's create")}
-            </h2>
-            <h2 className="text-4xl font-bold text-balance leading-tight capitalize" style={{ color: 'oklch(0.72 0.22 200)' }}>
-              {nextResultName}
-            </h2>
-            <div className="mt-2 w-8 h-1 rounded-full bg-primary/40" />
+            {/* Element icon */}
+            {nextResultEl?.imageUrl ? (
+              <div className="w-24 h-24 rounded-3xl flex items-center justify-center onboard-pop" style={{ background: `${nextResultEl.color ?? 'oklch(0.72 0.22 200)'}18`, animationDelay: '0.1s' }}>
+                <img src={nextResultEl.imageUrl} alt={nextResultName} className="w-16 h-16 object-contain" draggable={false} />
+              </div>
+            ) : (
+              <div className="w-20 h-20 rounded-3xl bg-muted/30 flex items-center justify-center onboard-pop" style={{ animationDelay: '0.1s' }}>
+                <ElementBadge element={nextResultEl ?? { name: nextResultName, number: 0, color: 'oklch(0.72 0.22 200)' } as ElementDef} size="lg" />
+              </div>
+            )}
+            <div className="flex flex-col items-center gap-1">
+              <h2 className="text-4xl font-bold text-foreground text-balance leading-tight">
+                {t('Créons', "Let's create")}
+              </h2>
+              <h2 className="text-4xl font-bold text-balance leading-tight capitalize" style={{ color: nextResultEl?.color ?? 'oklch(0.72 0.22 200)' }}>
+                {nextResultName}
+              </h2>
+            </div>
           </div>
         </div>
       )}
@@ -358,14 +370,16 @@ function CombineArena({
 
 export function OnboardingModal({ elementsByName, elements, recipeMap, onComplete, onTutorialDiscover, onLangChange }: Props) {
   const [step, setStep]               = useState<Step>('lang')
-  const [lang, setLang]               = useState<'fr' | 'en'>('en')
-  const [selectedTheme, setTheme]     = useState<'dark' | 'light'>('dark')
+  const [lang, setLang]               = useState<'fr' | 'en'>('fr')
+  const [selectedTheme, setTheme]     = useState<'dark' | 'light' | null>(null)
   const [username, setUsername]       = useState('')
   const [usernameError, setUsernameError] = useState('')
-  const [avatar, setAvatar]           = useState<string>('feu')
+  const [usernameChecking, setUsernameChecking] = useState(false)
+  const [avatar, setAvatar]           = useState<string | null>(null)
   const [enablePush, setEnablePush]   = useState(false)
   const { setTheme: applyTheme }      = useTheme()
   const [tutorialDone, setTutorialDone] = useState(false)
+  const [langSelected, setLangSelected] = useState(false)
   // Animate step transitions
   const [stepAnim, setStepAnim] = useState<'in' | 'out'>('in')
 
@@ -381,22 +395,43 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
     }, 220)
   }
 
+  const BANWORDS = ['fuck', 'shit', 'ass', 'bitch', 'cunt', 'dick', 'pussy', 'nigger', 'nigga', 'fag', 'faggot', 'retard', 'bastard', 'whore', 'slut', 'puta', 'merde', 'connard', 'connasse', 'salope', 'putain', 'fdp', 'enculé', 'encule', 'Nazi', 'hitler', 'pédophile', 'pedophile', 'rape']
+
   const validateUsername = (val: string) => {
     const trimmed = val.trim()
     if (trimmed.length > 20) return t('Max 20 caractères', 'Max 20 characters')
     if (trimmed.length > 0 && !/^[a-zA-Z0-9_\- ]+$/.test(trimmed))
       return t('Lettres, chiffres, _ et - uniquement', 'Letters, numbers, _ and - only')
+    if (trimmed.length > 0 && BANWORDS.some(w => trimmed.toLowerCase().includes(w.toLowerCase())))
+      return t('Ce pseudo n\'est pas autorisé', 'This username is not allowed')
     return ''
   }
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step === 'username') {
       const err = validateUsername(username)
       if (err) { setUsernameError(err); return }
+      const trimmed = username.trim()
+      if (trimmed) {
+        setUsernameChecking(true)
+        try {
+          const res = await fetch('/api/profile', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: trimmed }),
+          })
+          if (res.status === 409) {
+            setUsernameError(t('Ce pseudo est déjà pris', 'This username is already taken'))
+            setUsernameChecking(false)
+            return
+          }
+        } catch {}
+        setUsernameChecking(false)
+      }
     }
     const nextIndex = stepIndex + 1
     if (nextIndex < STEPS.length) goToStep(STEPS[nextIndex])
-    else onComplete({ lang, theme: selectedTheme, haptic: false, username: username.trim(), avatar, enablePush })
+    else onComplete({ lang, theme: selectedTheme ?? 'dark', haptic: false, username: username.trim(), avatar: avatar ?? 'feu', enablePush })
   }
 
   const handleBack = () => {
@@ -406,12 +441,13 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
   // Auto-advance for lang and theme on selection
   const handleLangSelect = (l: 'fr' | 'en') => {
     setLang(l)
+    setLangSelected(true)
     onLangChange?.(l)
     setTimeout(() => goToStep('theme'), 350)
   }
 
   const handleThemeSelect = (th: 'dark' | 'light') => {
-    setTheme(th)
+    setTheme(th as 'dark' | 'light')
     applyTheme(th)
     setTimeout(() => goToStep('combine'), 350)
   }
@@ -480,7 +516,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                     key={l}
                     onClick={() => handleLangSelect(l)}
                     className={`flex-1 py-8 rounded-3xl border-2 transition-all font-semibold text-lg flex flex-col items-center gap-4 active:scale-[0.97] ${
-                      lang === l
+                      langSelected && lang === l
                         ? 'border-primary bg-primary/8 text-primary'
                         : 'border-border/50 bg-muted/20 text-muted-foreground hover:border-border'
                     }`}
@@ -510,7 +546,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                     key={th}
                     onClick={() => handleThemeSelect(th)}
                     className={`flex-1 py-8 rounded-3xl border-2 transition-all font-semibold flex flex-col items-center gap-4 active:scale-[0.97] ${
-                      selectedTheme === th
+                      selectedTheme !== null && selectedTheme === th
                         ? 'border-primary bg-primary/8 text-primary'
                         : 'border-border/50 bg-muted/20 text-muted-foreground hover:border-border'
                     }`}
@@ -641,7 +677,6 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                   onChange={e => { setUsername(e.target.value); setUsernameError('') }}
                   onKeyDown={e => e.key === 'Enter' && handleNext()}
                   className="w-full h-14 px-5 rounded-2xl bg-muted/50 border border-border text-foreground placeholder:text-muted-foreground/50 text-base font-medium focus:outline-none focus:border-primary transition-colors"
-                  autoFocus
                   autoCapitalize="none"
                   autoCorrect="off"
                   spellCheck={false}
@@ -768,9 +803,23 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
           <div className="w-full max-w-lg mx-auto">
             <button
               onClick={handleNext}
-              className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-semibold text-base flex items-center justify-center gap-2 active:scale-[0.98] transition-transform shadow-lg"
+              disabled={usernameChecking}
+              className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-semibold text-base flex items-center justify-center gap-2 active:scale-[0.98] transition-transform shadow-lg disabled:opacity-60"
             >
-              {t('Continuer', 'Continue')}
+              {usernameChecking
+                ? t('Vérification…', 'Checking…')
+                : step === 'hint'
+                  ? t('C\'est compris !', 'Got it!')
+                  : step === 'quests'
+                    ? t('Allons-y !', 'Let\'s go!')
+                    : step === 'username'
+                      ? username.trim()
+                        ? t('Continuer', 'Continue')
+                        : t('On m\'en trouve un', 'Pick one for me')
+                      : step === 'avatar'
+                        ? t('Parfait !', 'Perfect!')
+                        : t('Continuer', 'Continue')
+              }
             </button>
           </div>
         </div>
