@@ -179,30 +179,39 @@ function CombineArena({
 
       // Show reveal; timing/skip is managed by the overlay's skipRef + auto-timer
       setPhase('reveal')
-      // Auto-advance after 3600ms unless user taps first
-      const autoTimer = setTimeout(() => {
+
+      const advanceFromNext = (next: number) => {
+        setComboIndex(next)
+        setPhase('idle')
+      }
+
+      const goToNext = (next: number) => {
+        setPhase('next')
+        const nextTimer = setTimeout(() => advanceFromNext(next), 3600)
+        // Register skip that cancels the auto-timer
+        skipRef.current = () => { clearTimeout(nextTimer); advanceFromNext(next) }
+      }
+
+      // Auto-advance reveal after 3600ms unless user taps first
+      const revealTimer = setTimeout(() => {
         const next = comboRef.current + 1
         if (next >= TUTORIAL_COMBOS.length) {
           setPhase('done')
           setTimeout(() => onAllDone(), 1800)
         } else {
-          setPhase('next')
-          // Register skip for the "next" phase
-          skipRef.current = () => { setComboIndex(next); setPhase('idle') }
-          setTimeout(() => { setComboIndex(next); setPhase('idle') }, 3600)
+          goToNext(next)
         }
       }, 3600)
-      // Register skip for the "reveal" phase (clears autoTimer)
+
+      // Register skip for the "reveal" phase (cancels revealTimer)
       skipRef.current = () => {
-        clearTimeout(autoTimer)
+        clearTimeout(revealTimer)
         const next = comboRef.current + 1
         if (next >= TUTORIAL_COMBOS.length) {
           setPhase('done')
           setTimeout(() => onAllDone(), 1800)
         } else {
-          setPhase('next')
-          skipRef.current = () => { setComboIndex(next); setPhase('idle') }
-          setTimeout(() => { setComboIndex(next); setPhase('idle') }, 3600)
+          goToNext(next)
         }
       }
     }
