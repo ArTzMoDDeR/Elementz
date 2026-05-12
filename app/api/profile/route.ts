@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { neon } from '@neondatabase/serverless'
+import { containsBanword } from '@/lib/banwords'
 
 export async function GET() {
   const session = await auth()
@@ -81,6 +82,9 @@ export async function PATCH(req: Request) {
     if (trimmed.length > 20) return NextResponse.json({ error: 'Username too long (max 20 chars)' }, { status: 400 })
     if (trimmed.length > 0 && !/^[a-zA-Z0-9_\- ]+$/.test(trimmed)) {
       return NextResponse.json({ error: 'Username can only contain letters, numbers, spaces, _ and -' }, { status: 400 })
+    }
+    if (trimmed.length > 0 && containsBanword(trimmed)) {
+      return NextResponse.json({ error: 'Ce pseudo n\'est pas autorisé' }, { status: 400 })
     }
 
     // Enforce 1-week cooldown between username changes

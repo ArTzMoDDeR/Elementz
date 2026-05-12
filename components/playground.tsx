@@ -2103,6 +2103,7 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
   }
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [editingName, setEditingName] = useState(false)
+  const [nameInputFocused, setNameInputFocused] = useState(false)
   const [nameInput, setNameInput] = useState('')
   const [nameError, setNameError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -2141,7 +2142,7 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
     const res = await fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: trimmed || null }) })
     if (!res.ok) { const d = await res.json().catch(() => ({})); setNameError(d?.error ?? t('Erreur', 'Error')); setSaving(false); return }
     setProfile(p => p ? { ...p, username: trimmed || null } : p)
-    setEditingName(false); setNameError(''); setSaving(false)
+    setEditingName(false); setNameInputFocused(false); setNameError(''); setSaving(false)
   }
 
   const patch = async (fields: Record<string, unknown>) => {
@@ -2238,7 +2239,8 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
         <div className="fixed inset-0 z-[9998] flex flex-col bg-background animate-in slide-in-from-bottom-4 duration-250"
           style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
-          <div className="flex items-center justify-between px-5 pt-4 pb-3 flex-shrink-0">
+          {/* Top bar — hidden when keyboard is open on mobile */}
+          <div className={`flex items-center justify-between px-5 pt-4 pb-3 flex-shrink-0 transition-all duration-150 ${nameInputFocused ? 'opacity-0 pointer-events-none h-0 pt-0 pb-0 overflow-hidden' : 'opacity-100'}`}>
             <button
               onClick={() => { setEditingName(false); setNameError(''); setNameInput(profile?.username ?? '') }}
               className="text-sm font-medium text-primary cursor-pointer"
@@ -2255,19 +2257,24 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
             </button>
           </div>
 
-          <div className="flex-1 flex flex-col items-center justify-start pt-16 px-6 gap-5">
-            <div className="flex flex-col items-center gap-2 text-center">
-              <span className="text-4xl font-bold text-foreground text-balance leading-tight">
-                {nameInput || <span className="text-muted-foreground/30">{t('Ton pseudo', 'Your username')}</span>}
-              </span>
-              <span className="text-xs text-muted-foreground/40">{nameInput.length}/20</span>
-            </div>
+          <div className="flex-1 flex flex-col items-center justify-start pt-10 px-6 gap-5">
+            {/* Live preview — hidden when keyboard open to save space */}
+            {!nameInputFocused && (
+              <div className="flex flex-col items-center gap-2 text-center">
+                <span className="text-4xl font-bold text-foreground text-balance leading-tight">
+                  {nameInput || <span className="text-muted-foreground/30">{t('Ton pseudo', 'Your username')}</span>}
+                </span>
+                <span className="text-xs text-muted-foreground/40">{nameInput.length}/20</span>
+              </div>
+            )}
 
             <input
               ref={inputRef}
               value={nameInput}
               onChange={e => { setNameInput(e.target.value); setNameError('') }}
-              onKeyDown={e => e.key === 'Enter' && saveName()}
+              onKeyDown={e => e.key === 'Enter' && !saving && saveName()}
+              onFocus={() => setNameInputFocused(true)}
+              onBlur={() => setNameInputFocused(false)}
               maxLength={20}
               placeholder={t('Ton pseudo…', 'Your username…')}
               className="w-full max-w-xs h-12 px-4 rounded-2xl bg-muted text-base text-center text-foreground outline-none focus:ring-2 focus:ring-primary/30 transition-all"
@@ -2282,6 +2289,25 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
                   {t('Lettres, chiffres, _ et - uniquement. Max 20 caractères.', 'Letters, numbers, _ and - only. Max 20 chars.')}
                 </p>
             }
+
+            {/* When keyboard is open: show inline Cancel / Save below the input */}
+            {nameInputFocused && (
+              <div className="flex items-center gap-3 w-full max-w-xs">
+                <button
+                  onMouseDown={e => { e.preventDefault(); setEditingName(false); setNameError(''); setNameInput(profile?.username ?? '') }}
+                  className="flex-1 h-11 rounded-2xl border border-border text-sm font-medium text-muted-foreground cursor-pointer"
+                >
+                  {t('Annuler', 'Cancel')}
+                </button>
+                <button
+                  onMouseDown={e => { e.preventDefault(); saveName() }}
+                  disabled={saving}
+                  className="flex-1 h-11 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-40 cursor-pointer"
+                >
+                  {saving ? '…' : t('Enregistrer', 'Save')}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
