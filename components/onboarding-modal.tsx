@@ -324,23 +324,34 @@ function CombineArena({
       setItems([{ id: 'r', num: resultEl.number, el: resultEl, x: cx, y: cy }])
       setLastResult(resultEl)
 
-      // Go directly to reveal — no flash
+      // Show reveal; timing/skip is managed by the overlay's skipRef + auto-timer
       setPhase('reveal')
-      setTimeout(() => {
+      // Auto-advance after 3600ms unless user taps first
+      const autoTimer = setTimeout(() => {
         const next = comboRef.current + 1
         if (next >= TUTORIAL_COMBOS.length) {
-          // All done
           setPhase('done')
           setTimeout(() => onAllDone(), 1800)
         } else {
-          // "Maintenant créons Y"
           setPhase('next')
-          setTimeout(() => {
-            setComboIndex(next)
-            setPhase('idle')
-          }, 3200)
+          // Register skip for the "next" phase
+          skipRef.current = () => { setComboIndex(next); setPhase('idle') }
+          setTimeout(() => { setComboIndex(next); setPhase('idle') }, 3600)
         }
-      }, 2200)
+      }, 3600)
+      // Register skip for the "reveal" phase (clears autoTimer)
+      skipRef.current = () => {
+        clearTimeout(autoTimer)
+        const next = comboRef.current + 1
+        if (next >= TUTORIAL_COMBOS.length) {
+          setPhase('done')
+          setTimeout(() => onAllDone(), 1800)
+        } else {
+          setPhase('next')
+          skipRef.current = () => { setComboIndex(next); setPhase('idle') }
+          setTimeout(() => { setComboIndex(next); setPhase('idle') }, 3600)
+        }
+      }
     }
   }, [getResult, onTutorialDiscover, onAllDone])
 
@@ -353,11 +364,22 @@ function CombineArena({
 
   const isOverlay = phase === 'reveal' || phase === 'next' || phase === 'done'
 
+  // Tap anywhere during overlay to skip to next state
+  const skipRef = useRef<(() => void) | null>(null)
+  const handleOverlayTap = useCallback(() => {
+    if (skipRef.current) { skipRef.current(); skipRef.current = null }
+  }, [])
+
+  // Current combo's inventory elements (for the pulse highlight)
+  const currentCombo = TUTORIAL_COMBOS[comboIndex]
+  const invElA = getEl(currentCombo.fr_a) ?? getEl(currentCombo.en_a)
+  const invElB = getEl(currentCombo.fr_b) ?? getEl(currentCombo.en_b)
+
   return (
     <div className="relative w-full h-full flex flex-col">
 
       {/* Combo progress dots */}
-      <div className="flex items-center justify-center gap-3 mb-6 mt-2">
+      <div className="flex items-center justify-center gap-3 mb-4 mt-1">
         {TUTORIAL_COMBOS.map((_, i) => {
           const done   = i < comboIndex || phase === 'done' || (i === comboIndex && (phase === 'reveal' || phase === 'next'))
           const active = i === comboIndex && !isOverlay
@@ -379,7 +401,7 @@ function CombineArena({
       </div>
 
       {/* Instruction label */}
-      <div className="flex items-center justify-center mb-4 min-h-[32px]">
+      <div className="flex items-center justify-center mb-3 min-h-[28px]">
         {!isOverlay && (
           <p key={`inst-${comboIndex}`} className="text-sm text-muted-foreground/70 onboard-fade-up">
             {t('Glisse un élément sur l\'autre', 'Drag one onto the other')}
@@ -395,17 +417,8 @@ function CombineArena({
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
         className="relative flex-1 rounded-3xl border border-border/30 overflow-hidden select-none"
-        style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none', minHeight: 220 }}
+        style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none', minHeight: 200 }}
       >
-        {/* Subtle dot grid — slight opacity since the modal-level grid already covers the background */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage: 'radial-gradient(circle, oklch(0.6 0.01 250 / 0.06) 1.5px, transparent 1.5px)',
-            backgroundSize: '32px 32px',
-          }}
-        />
-
         {/* Items */}
         {items.map(item => {
           const isDragging = drag.current?.id === item.id
@@ -426,26 +439,46 @@ function CombineArena({
             </div>
           )
         })}
-
-        {/* Cinematic overlays — sit inside arena but cover the whole screen via fixed */}
       </div>
 
-      {/* ── Full-screen cinematic overlays ── */}
+      {/* ── Inventory bar (stays visible throughout) ── */}
+      <div className="flex-shrink-0 mt-3 rounded-2xl border border-border/30 px-4 py-2.5 flex items-center justify-center gap-4"
+        style={{ background: 'color-mix(in oklch, var(--card) 60%, transparent)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
+      >
+        {[invElA, invElB].filter(Boolean).map((el, i) => {
+          const isTarget = !isOverlay
+          return (
+            <div key={i} className="relative flex flex-col items-center gap-1 pointer-events-none">
+              <ElementBadge element={el!} size="sm" />
+              {/* Pulse ring on target elements */}
+              {isTarget && (
+                <span
+                  className="absolute inset-0 rounded-2xl animate-ping pointer-events-none"
+                  style={{ border: `2px solid ${el!.color ?? 'oklch(0.7 0.2 200)'}50`, animationDuration: '1.8s' }}
+                />
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* ── Full-screen cinematic overlays (no bg — playground shows through) ── */}
 
       {/* Reveal: "Super ! Tu viens de créer X" */}
-      {(phase === 'reveal') && lastResult && (
-        <div className="fixed inset-0 z-[10001] flex flex-col items-center justify-center bg-background pointer-events-none px-8">
+      {phase === 'reveal' && lastResult && (
+        <div
+          className="fixed inset-0 z-[10001] flex flex-col items-center justify-center px-8 cursor-pointer"
+          onClick={handleOverlayTap}
+        >
           <div className="flex flex-col items-center gap-6 onboard-fade-up">
             <div className="onboard-pop" style={{ animationDelay: '0.1s' }}>
               {lastResult.imageUrl
-                ? <img src={lastResult.imageUrl} alt={lastResult.name} className="w-24 h-24 object-contain" draggable={false} />
+                ? <img src={lastResult.imageUrl} alt={lastResult.name} className="w-24 h-24 object-contain drop-shadow-xl" draggable={false} />
                 : <div className="w-24 h-24 rounded-3xl bg-muted flex items-center justify-center"><ElementBadge element={lastResult} size="lg" /></div>
               }
             </div>
             <div className="flex flex-col items-center gap-2 text-center">
-              <p className="text-lg font-semibold text-emerald-400">
-                {t('Super !', 'Amazing!')}
-              </p>
+              <p className="text-lg font-semibold text-emerald-400">{t('Super !', 'Amazing!')}</p>
               <h2 className="text-4xl font-bold text-foreground text-balance leading-tight">
                 {t('Tu viens de créer', 'You just created')}
               </h2>
@@ -453,20 +486,23 @@ function CombineArena({
                 {lastResult.name}
               </h2>
             </div>
+            <p className="text-xs text-muted-foreground/35 mt-2">{t('Appuie pour continuer', 'Tap to continue')}</p>
           </div>
         </div>
       )}
 
       {/* Next combo: "Maintenant, créons X" */}
       {phase === 'next' && nextResultName && (
-        <div className="fixed inset-0 z-[10001] flex flex-col items-center justify-center bg-background pointer-events-none px-8">
+        <div
+          className="fixed inset-0 z-[10001] flex flex-col items-center justify-center px-8 cursor-pointer"
+          onClick={handleOverlayTap}
+        >
           <div className="flex flex-col items-center gap-6 text-center onboard-slide-in">
-            <p className="text-base text-muted-foreground/60 font-medium tracking-wide uppercase text-xs">
+            <p className="text-xs text-muted-foreground/50 font-medium tracking-widest uppercase">
               {t('Prochain objectif', 'Next up')}
             </p>
-            {/* Element icon */}
             {nextResultEl?.imageUrl ? (
-              <div className="w-24 h-24 rounded-3xl flex items-center justify-center onboard-pop" style={{ background: `${nextResultEl.color ?? 'oklch(0.72 0.22 200)'}18`, animationDelay: '0.1s' }}>
+              <div className="w-24 h-24 rounded-3xl flex items-center justify-center onboard-pop drop-shadow-xl" style={{ background: `${nextResultEl.color ?? 'oklch(0.72 0.22 200)'}20`, animationDelay: '0.1s' }}>
                 <img src={nextResultEl.imageUrl} alt={nextResultName} className="w-16 h-16 object-contain" draggable={false} />
               </div>
             ) : (
@@ -482,13 +518,14 @@ function CombineArena({
                 {nextResultName}
               </h2>
             </div>
+            <p className="text-xs text-muted-foreground/35 mt-1">{t('Appuie pour continuer', 'Tap to continue')}</p>
           </div>
         </div>
       )}
 
       {/* All done */}
       {phase === 'done' && (
-        <div className="fixed inset-0 z-[10001] flex flex-col items-center justify-center bg-background pointer-events-none px-8">
+        <div className="fixed inset-0 z-[10001] flex flex-col items-center justify-center px-8 pointer-events-none">
           <div className="flex flex-col items-center gap-5 text-center onboard-fade-up">
             <div className="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center onboard-pop">
               <Check className="w-8 h-8 text-emerald-400" />
@@ -496,9 +533,6 @@ function CombineArena({
             <h2 className="text-4xl font-bold text-foreground text-balance">
               {t('Tu es prêt !', "You're ready!")}
             </h2>
-            <p className="text-base text-muted-foreground leading-relaxed">
-              {t('Il y a plus de 700 éléments �� découvrir.', 'There are over 700 elements to discover.')}
-            </p>
           </div>
         </div>
       )}
@@ -571,7 +605,10 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
     }
     const nextIndex = stepIndex + 1
     if (nextIndex < STEPS.length) goToStep(STEPS[nextIndex])
-    else onComplete({ lang, theme: selectedTheme ?? 'dark', haptic: false, username: username.trim(), avatar: avatar ?? 'feu', enablePush })
+    else {
+      const fallbackEl = elementsByName.get('feu') ?? elementsByName.get('fire') ?? [...elements.values()][0]
+      onComplete({ lang, theme: selectedTheme ?? 'dark', haptic: false, username: username.trim(), avatar: avatar ?? String(fallbackEl?.number ?? 1), enablePush })
+    }
   }
 
   const handleBack = () => {
@@ -595,7 +632,8 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
   const handlePushSelect = (choice: boolean) => {
     setEnablePush(choice)
     setTimeout(() => {
-      onComplete({ lang, theme: selectedTheme ?? 'dark', haptic: false, username: username.trim(), avatar: avatar ?? 'feu', enablePush: choice })
+      const fallbackEl = elementsByName.get('feu') ?? elementsByName.get('fire') ?? [...elements.values()][0]
+      onComplete({ lang, theme: selectedTheme ?? 'dark', haptic: false, username: username.trim(), avatar: avatar ?? String(fallbackEl?.number ?? 1), enablePush: choice })
     }, 350)
   }
 
@@ -897,12 +935,12 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                 return (
                   <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
                     {allOptions.map(({ key, label, el }) => {
-                      const selected = avatar === key
+                      const selected = el ? avatar === String(el.number) : false
                       const elColor = el?.color ?? '#818cf8'
                       return (
                         <button
                           key={key}
-                          onClick={() => setAvatar(key)}
+                          onClick={() => el && setAvatar(String(el.number))}
                           className="flex flex-col items-center gap-2 py-4 rounded-2xl transition-all relative overflow-hidden active:scale-[0.96]"
                           style={{
                             background: selected ? `${elColor}18` : 'rgba(255,255,255,0.03)',
