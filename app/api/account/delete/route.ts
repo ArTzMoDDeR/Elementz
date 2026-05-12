@@ -18,6 +18,9 @@ export async function DELETE() {
   try {
     // Delete in dependency order
     await sql`DELETE FROM unlocks WHERE user_id = ${userId}`
+    await sql`DELETE FROM quest_rewards WHERE user_id = ${userId}`
+    await sql`DELETE FROM user_quests WHERE user_id = ${userId}`
+    await sql`DELETE FROM user_progress WHERE user_id = ${userId}`
     await sql`DELETE FROM email_otps WHERE email = (SELECT email FROM users WHERE id = ${userId})`
     await sql`DELETE FROM accounts WHERE user_id = ${userId}`
     await sql`DELETE FROM sessions WHERE user_id = ${userId}`

@@ -488,7 +488,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
     if (nextIndex < STEPS.length) goToStep(STEPS[nextIndex])
     else {
       const fallbackEl = elementsByName.get('feu') ?? elementsByName.get('fire') ?? [...elements.values()][0]
-      onComplete({ lang, theme: selectedTheme ?? 'dark', haptic: false, username: username.trim(), avatar: avatar ?? String(fallbackEl?.number ?? 1), enablePush })
+      onComplete({ lang, theme: selectedTheme ?? 'dark', haptic: false, username: username.trim(), avatar: avatar ?? (fallbackEl?.name ?? 'feu'), enablePush })
     }
   }
 
@@ -514,7 +514,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
     setEnablePush(choice)
     setTimeout(() => {
       const fallbackEl = elementsByName.get('feu') ?? elementsByName.get('fire') ?? [...elements.values()][0]
-      onComplete({ lang, theme: selectedTheme ?? 'dark', haptic: false, username: username.trim(), avatar: avatar ?? String(fallbackEl?.number ?? 1), enablePush: choice })
+      onComplete({ lang, theme: selectedTheme ?? 'dark', haptic: false, username: username.trim(), avatar: avatar ?? (fallbackEl?.name ?? 'feu'), enablePush: choice })
     }, 350)
   }
 
@@ -788,14 +788,14 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                 return (
                   <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
                     {allOptions.map(({ key, label, el }) => {
-                      const selected = el ? avatar === String(el.number) : false
+                      const selected = el ? avatar === el.name : false
                       const elColor = el?.color ?? '#818cf8'
                       return (
                         <button
                           key={key}
                           onClick={() => {
                             if (!el) return
-                            setAvatar(String(el.number))
+                            setAvatar(el.name)
                             setTimeout(() => handleNext(), 300)
                           }}
                           className="flex flex-col items-center gap-2 py-4 rounded-2xl transition-all relative overflow-hidden active:scale-[0.96]"
