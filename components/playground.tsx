@@ -1150,7 +1150,7 @@ export function Playground({
           )}
         </div>
 
-        {/* ── TAB BAR — iOS Liquid Glass ────────────────────────���──── */}
+        {/* ── TAB BAR — iOS Liquid Glass ────────────────────────���──���─ */}
         <div
           className="flex-shrink-0 border-t border-white/[0.06] glass"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 12px) + 2px)' }}
@@ -2002,6 +2002,81 @@ function HelpPanel({ lang, onBack }: { lang: 'fr' | 'en'; onBack?: () => void })
   )
 }
 
+function ProfileDiscoveryChart({ userId, lang }: { userId: string; lang: 'fr' | 'en' }) {
+  const [stats, setStats] = useState<LeaderboardStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const t = (fr: string, en: string) => lang === 'fr' ? fr : en
+
+  useEffect(() => {
+    fetch(`/api/leaderboard/stats?user_id=${userId}`)
+      .then(r => r.json())
+      .then(d => { setStats(d); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [userId])
+
+  const fmtBucket = (b: string, gran: string) => {
+    const d = new Date(b)
+    if (gran === 'hour') return d.toLocaleTimeString(lang === 'fr' ? 'fr-FR' : 'en-US', { hour: '2-digit', minute: '2-digit' })
+    return d.toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })
+  }
+
+  const chartData = stats?.series.map(s => ({
+    label: fmtBucket(s.bucket, stats.granularity),
+    value: s.cumulative,
+  })) ?? []
+
+  if (loading) return (
+    <div className="flex justify-center py-6">
+      <div className="w-5 h-5 border-2 border-border border-t-foreground/40 rounded-full animate-spin" />
+    </div>
+  )
+
+  if (!stats || chartData.length < 2) return null
+
+  return (
+    <div className="rounded-2xl bg-muted/30 px-4 pt-4 pb-3 flex flex-col gap-2">
+      <span className="text-[10px] text-muted-foreground/40 uppercase tracking-widest font-semibold">
+        {t('Découvertes au fil du temps', 'Discoveries over time')}
+      </span>
+      <ResponsiveContainer width="100%" height={130}>
+        <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+          <defs>
+            <linearGradient id="grad-profile" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.40} />
+              <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.03} />
+            </linearGradient>
+          </defs>
+          <RechartsTooltip
+            content={({ active, payload }) => {
+              if (!active || !payload?.length) return null
+              return (
+                <div className="px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-foreground"
+                  style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+                  {payload[0].value} {t('éléments', 'elements')}
+                </div>
+              )
+            }}
+          />
+          <Area
+            type="monotone"
+            dataKey="value"
+            stroke="var(--primary)"
+            strokeWidth={2}
+            fill="url(#grad-profile)"
+            dot={false}
+            activeDot={{ r: 4, fill: 'var(--primary)', strokeWidth: 0 }}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+      {/* First / last date labels */}
+      <div className="flex justify-between px-0.5">
+        <span className="text-[9px] text-muted-foreground/30 tabular-nums">{chartData[0]?.label}</span>
+        <span className="text-[9px] text-muted-foreground/30 tabular-nums">{chartData[chartData.length - 1]?.label}</span>
+      </div>
+    </div>
+  )
+}
+
 function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, totalElements, onAvatarChange, onOpenLeaderboard, onOpenCodex, onSignOut }: {
   lang: 'fr' | 'en'
   sessionUser: { name?: string | null; email?: string | null; image?: string | null }
@@ -2289,6 +2364,9 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
             <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: 'var(--primary)' }} />
           </div>
         </div>
+
+        {/* ── Discovery chart ── */}
+        <ProfileDiscoveryChart userId={sessionUser.id!} lang={lang} />
 
         {/* ── iOS-style grouped rows ── */}
         <div className="rounded-2xl overflow-hidden bg-card divide-y divide-border/60">

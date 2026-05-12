@@ -23,7 +23,10 @@ export async function GET() {
       AND (e.name_french = up.avatar OR e.name_english = up.avatar)
     WHERE (up.show_in_leaderboard IS NULL OR up.show_in_leaderboard = TRUE)
     GROUP BY up.user_id, up.username, up.avatar, e.img
-    ORDER BY count DESC
+    ORDER BY
+      count DESC,
+      -- Tiebreak: shortest playtime (last - first unlock) wins
+      (MAX(u.discovered_at) - MIN(u.discovered_at)) ASC NULLS LAST
     LIMIT 50
   `
 
@@ -40,7 +43,7 @@ export async function GET() {
             up.username,
             e.img AS avatar_img,
             COUNT(u.element_number)::int AS count,
-            RANK() OVER (ORDER BY COUNT(u.element_number) DESC)::int AS rank
+            RANK() OVER (ORDER BY COUNT(u.element_number) DESC, (MAX(u.discovered_at) - MIN(u.discovered_at)) ASC NULLS LAST)::int AS rank
           FROM user_progress up
           JOIN unlocks u ON u.user_id = up.user_id
           LEFT JOIN elements e
