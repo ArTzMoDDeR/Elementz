@@ -5,7 +5,7 @@ import { type ElementDef } from '@/lib/game-data'
 
 interface ElementBadgeProps {
   element: ElementDef
-  size?: 'xs' | 'sm' | 'md' | 'lg'
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
   fluid?: boolean
   className?: string
   style?: React.CSSProperties
@@ -41,6 +41,7 @@ const FIXED_SIZE = {
   sm: 'w-[68px] h-[68px]',
   md: 'w-20 h-20',
   lg: 'w-28 h-28',
+  xl: 'w-36 h-36',
 }
 
 const ICON_RATIO = {
@@ -48,6 +49,7 @@ const ICON_RATIO = {
   sm: 'w-[65%] h-[65%]',
   md: 'w-[70%] h-[70%]',
   lg: 'w-[72%] h-[72%]',
+  xl: 'w-[72%] h-[72%]',
 }
 
 const LABEL_SIZE = {
@@ -55,11 +57,12 @@ const LABEL_SIZE = {
   sm: 'text-[9px]',
   md: 'text-[11px]',
   lg: 'text-xs',
+  xl: 'text-sm',
 }
 
 // Returns a font-size in px that shrinks for longer names so text always fits
-function labelFontSize(size: 'xs' | 'sm' | 'md' | 'lg', nameLength: number): string {
-  const base: Record<string, number> = { xs: 8, sm: 9, md: 11, lg: 12 }
+function labelFontSize(size: 'xs' | 'sm' | 'md' | 'lg' | 'xl', nameLength: number): string {
+  const base: Record<string, number> = { xs: 8, sm: 9, md: 11, lg: 12, xl: 14 }
   const b = base[size]
   if (nameLength <= 10) return `${b}px`
   if (nameLength <= 14) return `${b - 1}px`
@@ -73,7 +76,7 @@ const BADGE_BORDER = 'var(--element-badge-border)'
 const LABEL_BG = 'var(--element-badge-label)'
 const LABEL_TEXT = 'var(--element-badge-label-text)'
 
-function ElementBadgeInner({ element, size = 'md', fluid = false, className = '', style }: ElementBadgeProps) {
+function ElementBadgeInner({ element, size = 'md', fluid = false, className = '', style }: ElementBadgeProps & { size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' }) {
   const hasIcon = ELEMENT_ICONS[element.name]
   const sizeClass = fluid ? 'w-full aspect-square' : FIXED_SIZE[size]
   // Use imageUrl directly — optimizeImageUrl was returning the same value anyway

@@ -335,7 +335,7 @@ export function Playground({
   const [shakeId, setShakeId] = useState<string | null>(null)
   const [playgroundFlash, setPlaygroundFlash] = useState<'success' | 'fail' | null>(null)
   const isMobile = useIsMobile()
-  const playgroundBadgeSize = isMobile ? 'sm' : 'lg'
+  const playgroundBadgeSize = isMobile ? 'sm' : 'xl'
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<SortType>('name')
   const [sortReverse, setSortReverse] = useState(false)
@@ -575,9 +575,9 @@ export function Playground({
     >
       {/* Preload help video so it's buffered before the tab opens */}
       <video src="/tutohelp.webm" preload="auto" muted playsInline className="hidden" aria-hidden="true" />
-      {/* Canvas area — dot grid + flash overlay, clipped to the actual play area (excludes inventory) */}
+      {/* Canvas area — dot grid + flash overlay, fullscreen on desktop, clipped on mobile */}
       <div
-        className="absolute inset-0 md:right-[300px] lg:right-[400px] pointer-events-none overflow-hidden"
+        className="absolute inset-0 pointer-events-none overflow-hidden"
         style={{ bottom: isMobile ? (inventoryHeight != null ? `${inventoryHeight}px` : '55vh') : 0 }}
       >
         {/* Dot grid */}
