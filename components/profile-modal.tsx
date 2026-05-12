@@ -97,8 +97,9 @@ export function ProfileModal({ lang, sessionUser, elementsByName, discovered, to
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: trimmed || null }),
     })
-    if (res.status === 409) {
-      setNameError(t('Ce pseudo est déjà pris', 'Username already taken'))
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setNameError(data?.error ?? t('Erreur', 'Error'))
       setSaving(false)
       return
     }
