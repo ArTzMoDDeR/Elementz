@@ -37,12 +37,14 @@ function CombineArena({
   recipeMap,
   onAllDone,
   onTutorialDiscover,
+  onPhaseChange,
 }: {
   lang: 'fr' | 'en'
   elements: Map<number, ElementDef>
   recipeMap: Map<string, number[]>
   onAllDone: () => void
   onTutorialDiscover: (nums: number[]) => void
+  onPhaseChange?: (phase: 'idle' | 'reveal' | 'next' | 'done') => void
 }) {
   const areaRef    = useRef<HTMLDivElement>(null)
   const drag       = useRef<MiniDrag | null>(null)
@@ -222,6 +224,8 @@ function CombineArena({
 
   const isOverlay = phase === 'reveal' || phase === 'next' || phase === 'done'
   const [isDraggingAny, setIsDraggingAny] = useState(false)
+
+  useEffect(() => { onPhaseChange?.(phase) }, [phase, onPhaseChange])
 
   // Tap anywhere during overlay to skip to next state
   const skipRef = useRef<(() => void) | null>(null)
@@ -580,12 +584,14 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
 
   const isCombineStep = step === 'combine'
   const animClass = stepAnim === 'in' ? 'onboard-fade-up' : 'onboard-fade-down'
+  const [combinePhase, setCombinePhase] = useState<'idle' | 'reveal' | 'next' | 'done'>('idle')
+  const isCinematic = isCombineStep && combinePhase !== 'idle'
 
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col bg-background">
 
       {/* Dot grid — only during combine step, hidden completely when any overlay is showing */}
-      {isCombineStep && phase === 'idle' && (
+      {isCombineStep && combinePhase === 'idle' && (
         <div
           className="fixed inset-0 pointer-events-none z-0"
           style={{
@@ -595,9 +601,9 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
         />
       )}
 
-      {/* ── Top bar ── */}
+      {/* ── Top bar — hidden during cinematic overlays so nothing peeks through ── */}
       <div
-        className="flex items-center gap-3 px-4 sm:px-8 flex-shrink-0"
+        className={`flex items-center gap-3 px-4 sm:px-8 flex-shrink-0 transition-opacity duration-150 ${isCinematic ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)', paddingBottom: '0.75rem' }}
       >
         {/* Back button — shown on all steps except lang */}
@@ -708,6 +714,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                   setTimeout(() => goToStep('hints-quests'), 800)
                 }}
                 onTutorialDiscover={onTutorialDiscover}
+              onPhaseChange={setCombinePhase}
               />
             </div>
           )}
