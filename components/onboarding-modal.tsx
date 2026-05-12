@@ -27,9 +27,8 @@ const STEPS = ['lang', 'theme', 'tap', 'combine', 'hint', 'quests', 'username', 
 type Step = typeof STEPS[number]
 
 const TUTORIAL_COMBOS = [
-  { fr_a: 'eau',    en_a: 'water', fr_b: 'air',    en_b: 'air',   fr_result: 'pluie',      en_result: 'rain' },
-  { fr_a: 'pluie',  en_a: 'rain',  fr_b: 'terre',  en_b: 'earth', fr_result: 'plante',     en_result: 'plant' },
-  { fr_a: 'plante', en_a: 'plant', fr_b: 'pluie',  en_b: 'rain',  fr_result: 'champignon', en_result: 'mushroom' },
+  { fr_a: 'eau',   en_a: 'water', fr_b: 'air',   en_b: 'air',   fr_result: 'pluie',  en_result: 'rain'  },
+  { fr_a: 'pluie', en_a: 'rain',  fr_b: 'terre', en_b: 'earth', fr_result: 'plante', en_result: 'plant' },
 ] as const
 
 type MiniItem = { id: string; num: number; el: ElementDef; x: number; y: number }
@@ -67,8 +66,7 @@ function TapArena({
   ], [getEl, lang]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // playground items placed so far
-  const [placed, setPlaced]       = useState<TapItem[]>([])
-  const [celebrate, setCelebrate] = useState(false)
+  const [placed, setPlaced] = useState<TapItem[]>([])
   // keys in inventory that are greyed out (added to playground)
   const addedKeys = new Set(placed.map(p => p.key))
 
@@ -84,8 +82,7 @@ function TapArena({
     const next = [...placed, { key, label, el, ...pos }]
     setPlaced(next)
     if (next.length >= targets.length) {
-      setCelebrate(true)
-      setTimeout(() => onAllAdded(), 2200)
+      setTimeout(() => onAllAdded(), 600)
     }
   }
 
@@ -127,15 +124,6 @@ function TapArena({
             </p>
           </div>
         )}
-
-        {/* Celebrate message */}
-        {celebrate && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <p className="text-base font-bold text-emerald-400 text-center px-6 onboard-fade-up drop-shadow-lg">
-              {t('Parfait ! Maintenant créons un élément', "Perfect! Now let's create an element")}
-            </p>
-          </div>
-        )}
       </div>
 
       {/* ── Inventory bar ── */}
@@ -155,7 +143,7 @@ function TapArena({
               <button
                 key={key}
                 onClick={() => handleTap(key, el, label)}
-                disabled={isAdded || celebrate}
+                disabled={isAdded}
                 className="flex flex-col items-center gap-1.5 transition-all active:scale-90 disabled:pointer-events-none"
                 style={{ opacity: isAdded ? 0.35 : 1 }}
               >
@@ -231,6 +219,8 @@ function CombineArena({
   const [items, setItems]           = useState<MiniItem[]>([])
   const [merging, setMerging]       = useState(false)
   const [nearId, setNearId]         = useState<string | null>(null)
+  // Track which inventory items have been placed onto the playground
+  const [placed, setPlaced]         = useState<Set<'a' | 'b'>>(new Set())
 
   // Cinematic states
   // 'idle'   — waiting for drag
@@ -248,23 +238,34 @@ function CombineArena({
   useEffect(() => { mergingRef.current = merging }, [merging])
   useEffect(() => { comboRef.current   = comboIndex }, [comboIndex])
 
-  const buildItems = useCallback((idx: number): MiniItem[] => {
+  const buildItems = useCallback((idx: number, which: Set<'a' | 'b'>): MiniItem[] => {
     const combo = TUTORIAL_COMBOS[idx]
     const aEl = getEl(combo.fr_a) ?? getEl(combo.en_a)
     const bEl = getEl(combo.fr_b) ?? getEl(combo.en_b)
     if (!aEl || !bEl) return []
-    return [
-      { id: 'a', num: aEl.number, el: aEl, x: 30, y: 50 },
-      { id: 'b', num: bEl.number, el: bEl, x: 70, y: 50 },
-    ]
+    const result: MiniItem[] = []
+    if (which.has('a')) result.push({ id: 'a', num: aEl.number, el: aEl, x: 30, y: 50 })
+    if (which.has('b')) result.push({ id: 'b', num: bEl.number, el: bEl, x: 70, y: 50 })
+    return result
   }, [getEl])
 
   useEffect(() => {
-    setItems(buildItems(comboIndex))
+    setItems([])
+    setPlaced(new Set())
     setMerging(false)
     setNearId(null)
     setAnimKey(k => k + 1)
-  }, [comboIndex, buildItems])
+  }, [comboIndex])
+
+  const handleInventoryTap = useCallback((slot: 'a' | 'b') => {
+    if (merging) return
+    setPlaced(prev => {
+      if (prev.has(slot)) return prev
+      const next = new Set(prev).add(slot)
+      setItems(buildItems(comboRef.current, next))
+      return next
+    })
+  }, [merging, buildItems])
 
   const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (mergingRef.current) return
@@ -419,6 +420,24 @@ function CombineArena({
         className="relative flex-1 rounded-3xl border border-border/30 overflow-hidden select-none"
         style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none', minHeight: 200 }}
       >
+        {/* Empty state hint */}
+        {items.length === 0 && !isOverlay && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <p className="text-sm text-muted-foreground/30 text-center px-8 select-none">
+              {t('Appuie sur les éléments ci-dessous', 'Tap the elements below')}
+            </p>
+          </div>
+        )}
+
+        {/* Drag hint once both are placed */}
+        {items.length === 2 && !isOverlay && (
+          <div className="absolute bottom-3 inset-x-0 flex justify-center pointer-events-none">
+            <p className="text-xs text-muted-foreground/40 text-center select-none">
+              {t('Glisse-les l\'un vers l\'autre', 'Drag them together')}
+            </p>
+          </div>
+        )}
+
         {/* Items */}
         {items.map(item => {
           const isDragging = drag.current?.id === item.id
@@ -441,98 +460,114 @@ function CombineArena({
         })}
       </div>
 
-      {/* ── Inventory bar (stays visible throughout) ── */}
-      <div className="flex-shrink-0 mt-3 rounded-2xl border border-border/30 px-4 py-2.5 flex items-center justify-center gap-4"
+      {/* ── Inventory bar — tappable to place items on playground ── */}
+      <div className="flex-shrink-0 mt-3 rounded-2xl border border-border/30 px-4 py-2.5"
         style={{ background: 'color-mix(in oklch, var(--card) 60%, transparent)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
       >
-        {[invElA, invElB].filter(Boolean).map((el, i) => {
-          const isTarget = !isOverlay
-          return (
-            <div key={i} className="relative flex flex-col items-center gap-1 pointer-events-none">
-              <ElementBadge element={el!} size="sm" />
-              {/* Pulse ring on target elements */}
-              {isTarget && (
-                <span
-                  className="absolute inset-0 rounded-2xl animate-ping pointer-events-none"
-                  style={{ border: `2px solid ${el!.color ?? 'oklch(0.7 0.2 200)'}50`, animationDuration: '1.8s' }}
-                />
-              )}
-            </div>
-          )
-        })}
+        <p className="text-[10px] font-semibold text-muted-foreground/40 uppercase tracking-widest mb-2 text-center select-none">
+          {t('Inventaire', 'Inventory')}
+        </p>
+        <div className="flex items-center justify-center gap-4">
+          {([['a', invElA], ['b', invElB]] as const).map(([slot, el]) => {
+            if (!el) return null
+            const isPlaced  = placed.has(slot)
+            const canPlace  = !isPlaced && !isOverlay && !merging
+            const color     = el.color ?? 'oklch(0.7 0.2 200)'
+            return (
+              <button
+                key={slot}
+                onClick={() => canPlace && handleInventoryTap(slot)}
+                disabled={!canPlace}
+                className="relative flex flex-col items-center gap-1 transition-all active:scale-90 disabled:pointer-events-none"
+                style={{ opacity: isPlaced ? 0.35 : 1 }}
+              >
+                <ElementBadge element={el} size="sm" />
+                {/* Pulse ring while waiting to be placed */}
+                {canPlace && (
+                  <span
+                    className="absolute inset-0 rounded-2xl animate-ping pointer-events-none"
+                    style={{ border: `2px solid ${color}45`, animationDuration: '1.8s' }}
+                  />
+                )}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
-      {/* ── Full-screen cinematic overlays (no bg — playground shows through) ── */}
+      {/* ── Full-screen cinematic overlays ── */}
 
-      {/* Reveal: "Super ! Tu viens de créer X" */}
+      {/* Reveal: "Tu viens de créer X" */}
       {phase === 'reveal' && lastResult && (
         <div
-          className="fixed inset-0 z-[10001] flex flex-col items-center justify-center px-8 cursor-pointer"
+          className="fixed inset-0 z-[10001] flex flex-col items-center justify-center bg-background px-8 cursor-pointer"
           onClick={handleOverlayTap}
         >
-          <div className="flex flex-col items-center gap-6 onboard-fade-up">
+          <div className="flex flex-col items-center gap-8 onboard-fade-up w-full max-w-sm">
             <div className="onboard-pop" style={{ animationDelay: '0.1s' }}>
               {lastResult.imageUrl
-                ? <img src={lastResult.imageUrl} alt={lastResult.name} className="w-24 h-24 object-contain drop-shadow-xl" draggable={false} />
-                : <div className="w-24 h-24 rounded-3xl bg-muted flex items-center justify-center"><ElementBadge element={lastResult} size="lg" /></div>
+                ? <img src={lastResult.imageUrl} alt={lastResult.name} className="w-28 h-28 object-contain" draggable={false} />
+                : <div className="w-28 h-28 rounded-3xl bg-muted flex items-center justify-center"><ElementBadge element={lastResult} size="lg" /></div>
               }
             </div>
-            <div className="flex flex-col items-center gap-2 text-center">
-              <p className="text-lg font-semibold text-emerald-400">{t('Super !', 'Amazing!')}</p>
-              <h2 className="text-4xl font-bold text-foreground text-balance leading-tight">
+            <div className="flex flex-col items-center gap-3 text-center">
+              <p className="text-sm text-muted-foreground/50 uppercase tracking-widest font-medium">
                 {t('Tu viens de créer', 'You just created')}
-              </h2>
-              <h2 className="text-4xl font-bold text-balance leading-tight" style={{ color: lastResult.color ?? 'oklch(0.72 0.17 145)' }}>
+              </p>
+              <h2 className="text-5xl font-bold text-foreground text-balance leading-tight">
                 {lastResult.name}
               </h2>
             </div>
-            <p className="text-xs text-muted-foreground/35 mt-2">{t('Appuie pour continuer', 'Tap to continue')}</p>
+            <p className="text-xs text-muted-foreground/35">{t('Appuie pour continuer', 'Tap to continue')}</p>
           </div>
         </div>
       )}
 
-      {/* Next combo: "Maintenant, créons X" */}
+      {/* Next combo: "Créons X" */}
       {phase === 'next' && nextResultName && (
         <div
-          className="fixed inset-0 z-[10001] flex flex-col items-center justify-center px-8 cursor-pointer"
+          className="fixed inset-0 z-[10001] flex flex-col items-center justify-center bg-background px-8 cursor-pointer"
           onClick={handleOverlayTap}
         >
-          <div className="flex flex-col items-center gap-6 text-center onboard-slide-in">
-            <p className="text-xs text-muted-foreground/50 font-medium tracking-widest uppercase">
-              {t('Prochain objectif', 'Next up')}
+          <div className="flex flex-col items-center gap-8 text-center onboard-slide-in w-full max-w-sm">
+            <p className="text-sm text-muted-foreground/50 uppercase tracking-widest font-medium">
+              {t('Maintenant, créons', "Now, let's create")}
             </p>
             {nextResultEl?.imageUrl ? (
-              <div className="w-24 h-24 rounded-3xl flex items-center justify-center onboard-pop drop-shadow-xl" style={{ background: `${nextResultEl.color ?? 'oklch(0.72 0.22 200)'}20`, animationDelay: '0.1s' }}>
-                <img src={nextResultEl.imageUrl} alt={nextResultName} className="w-16 h-16 object-contain" draggable={false} />
+              <div
+                className="w-28 h-28 rounded-3xl flex items-center justify-center onboard-pop"
+                style={{ background: `${nextResultEl.color ?? 'oklch(0.72 0.22 200)'}15`, border: `1.5px solid ${nextResultEl.color ?? 'oklch(0.72 0.22 200)'}30`, animationDelay: '0.1s' }}
+              >
+                <img src={nextResultEl.imageUrl} alt={nextResultName} className="w-18 h-18 object-contain" draggable={false} />
               </div>
             ) : (
-              <div className="w-20 h-20 rounded-3xl bg-muted/30 flex items-center justify-center onboard-pop" style={{ animationDelay: '0.1s' }}>
+              <div className="w-28 h-28 rounded-3xl bg-muted/30 flex items-center justify-center onboard-pop" style={{ animationDelay: '0.1s' }}>
                 <ElementBadge element={nextResultEl ?? { name: nextResultName, number: 0, color: 'oklch(0.72 0.22 200)' } as ElementDef} size="lg" />
               </div>
             )}
-            <div className="flex flex-col items-center gap-1">
-              <h2 className="text-4xl font-bold text-foreground text-balance leading-tight">
-                {t('Créons', "Let's create")}
-              </h2>
-              <h2 className="text-4xl font-bold text-balance leading-tight capitalize" style={{ color: nextResultEl?.color ?? 'oklch(0.72 0.22 200)' }}>
-                {nextResultName}
-              </h2>
-            </div>
-            <p className="text-xs text-muted-foreground/35 mt-1">{t('Appuie pour continuer', 'Tap to continue')}</p>
+            <h2 className="text-5xl font-bold text-foreground text-balance leading-tight capitalize">
+              {nextResultName}
+            </h2>
+            <p className="text-xs text-muted-foreground/35">{t('Appuie pour continuer', 'Tap to continue')}</p>
           </div>
         </div>
       )}
 
       {/* All done */}
       {phase === 'done' && (
-        <div className="fixed inset-0 z-[10001] flex flex-col items-center justify-center px-8 pointer-events-none">
-          <div className="flex flex-col items-center gap-5 text-center onboard-fade-up">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center onboard-pop">
-              <Check className="w-8 h-8 text-emerald-400" />
+        <div className="fixed inset-0 z-[10001] flex flex-col items-center justify-center bg-background px-8 pointer-events-none">
+          <div className="flex flex-col items-center gap-8 text-center onboard-fade-up w-full max-w-sm">
+            <div className="w-20 h-20 rounded-full bg-foreground/8 border border-border flex items-center justify-center onboard-pop">
+              <Check className="w-10 h-10 text-foreground" />
             </div>
-            <h2 className="text-4xl font-bold text-foreground text-balance">
-              {t('Tu es prêt !', "You're ready!")}
-            </h2>
+            <div className="flex flex-col items-center gap-3">
+              <p className="text-sm text-muted-foreground/50 uppercase tracking-widest font-medium">
+                {t('Voila !', 'Well done!')}
+              </p>
+              <h2 className="text-5xl font-bold text-foreground text-balance">
+                {t('Tu es prêt.', "You're ready.")}
+              </h2>
+            </div>
           </div>
         </div>
       )}
