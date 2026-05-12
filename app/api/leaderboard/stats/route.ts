@@ -48,16 +48,36 @@ export async function GET(req: Request) {
     ORDER BY bucket ASC
   `
 
-  // Build cumulative series
+  // Build cumulative series, ensuring first point = 0 at first_unlock bucket
+  // and last point = total at last_unlock bucket
   let running = 0
-  const series = curve.map((row: any) => {
+  const series: Array<{ bucket: string; cumulative: number; new: number }> = []
+
+  for (const row of curve) {
     running += row.new_discoveries
-    return {
-      bucket: row.bucket,
+    series.push({
+      bucket: new Date(row.bucket).toISOString(),
       cumulative: running,
       new: row.new_discoveries,
+    })
+  }
+
+  // Ensure the series starts with a 0-point at first_unlock if first bucket
+  // doesn't already represent it (prepend a ghost point just before)
+  if (series.length > 0) {
+    const firstBucket = new Date(series[0].bucket).getTime()
+    const firstUnlockMs = first.getTime()
+    // If first bucket is the same as first_unlock, prepend a 0-point 1ms before
+    if (Math.abs(firstBucket - firstUnlockMs) < 86400000) {
+      series.unshift({ bucket: new Date(firstUnlockMs - 1).toISOString(), cumulative: 0, new: 0 })
     }
-  })
+    // Ensure last point is exactly at last_unlock
+    const lastBucket = new Date(series[series.length - 1].bucket).getTime()
+    const lastUnlockMs = last.getTime()
+    if (Math.abs(lastBucket - lastUnlockMs) > 60000 && series[series.length - 1].cumulative < profile.count) {
+      series.push({ bucket: last.toISOString(), cumulative: profile.count, new: 0 })
+    }
+  }
 
   return NextResponse.json({
     username: profile.username ?? null,
