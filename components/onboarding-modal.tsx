@@ -23,7 +23,7 @@ const STARTER_LABELS: Record<string, { fr: string; en: string; emoji: string }> 
   air:   { fr: 'Air',   en: 'Air',   emoji: '💨' },
 }
 
-const STEPS = ['lang', 'theme', 'combine', 'hint', 'quests', 'username', 'avatar', 'notifications'] as const
+const STEPS = ['lang', 'theme', 'tap', 'combine', 'hint', 'quests', 'username', 'avatar', 'notifications'] as const
 type Step = typeof STEPS[number]
 
 const TUTORIAL_COMBOS = [
@@ -35,6 +35,113 @@ const TUTORIAL_COMBOS = [
 type MiniItem = { id: string; num: number; el: ElementDef; x: number; y: number }
 type MiniDrag = { id: string; offsetX: number; offsetY: number; pointerId: number }
 const MERGE_DIST_PCT = 22
+
+// ── Tap-to-add step ───────────────────────────────────────────────────────────
+function TapArena({
+  lang,
+  elements,
+  onAllAdded,
+}: {
+  lang: 'fr' | 'en'
+  elements: Map<number, ElementDef>
+  onAllAdded: () => void
+}) {
+  const t = (fr: string, en: string) => lang === 'fr' ? fr : en
+  const byName = useRef(new Map<string, ElementDef>())
+  useEffect(() => {
+    const m = new Map<string, ElementDef>()
+    elements.forEach(el => m.set(el.name.toLowerCase(), el))
+    byName.current = m
+  }, [elements])
+  const getEl = (name: string) =>
+    byName.current.get(name.toLowerCase())
+    ?? [...elements.values()].find(el => el.name.toLowerCase() === name.toLowerCase())
+    ?? null
+
+  const airEl   = getEl('air')
+  const waterEl = getEl(lang === 'fr' ? 'eau' : 'water') ?? getEl('eau')
+  const targets = [
+    { key: 'air',   el: airEl,   label: lang === 'fr' ? 'Air'  : 'Air'   },
+    { key: 'water', el: waterEl, label: lang === 'fr' ? 'Eau'  : 'Water' },
+  ]
+
+  const [added, setAdded]         = useState<Set<string>>(new Set())
+  const [celebrate, setCelebrate] = useState(false)
+
+  const handleTap = (key: string) => {
+    if (added.has(key)) return
+    const next = new Set(added).add(key)
+    setAdded(next)
+    if (next.size === targets.length) {
+      setCelebrate(true)
+      setTimeout(() => onAllAdded(), 2000)
+    }
+  }
+
+  return (
+    <div className="relative w-full h-full flex flex-col">
+      {/* Instruction */}
+      <div className="flex flex-col items-center gap-2 mb-6 text-center">
+        {celebrate ? (
+          <p key="done" className="text-base font-semibold text-emerald-400 onboard-fade-up">
+            {t('Parfait ! Maintenant créons un élément', 'Perfect! Now let\'s create an element')}
+          </p>
+        ) : (
+          <p key="inst" className="text-sm text-muted-foreground/70 onboard-fade-up">
+            {t('Appuie sur les éléments pour les ajouter au terrain', 'Tap the elements to add them to the arena')}
+          </p>
+        )}
+      </div>
+
+      {/* Inventory-style cards */}
+      <div className="flex gap-5 justify-center">
+        {targets.map(({ key, el, label }) => {
+          const isAdded = added.has(key)
+          return (
+            <button
+              key={key}
+              onClick={() => handleTap(key)}
+              disabled={isAdded}
+              className="flex flex-col items-center gap-2 transition-all active:scale-95"
+              style={{ opacity: isAdded ? 0.4 : 1 }}
+            >
+              <div
+                className="relative w-24 h-24 rounded-2xl flex items-center justify-center transition-all"
+                style={{
+                  background: isAdded ? 'var(--muted)' : `${el?.color ?? 'oklch(0.72 0.17 145)'}18`,
+                  border: isAdded ? '2px solid var(--border)' : `2px solid ${el?.color ?? 'oklch(0.72 0.17 145)'}50`,
+                  boxShadow: isAdded ? 'none' : `0 0 20px ${el?.color ?? 'oklch(0.72 0.17 145)'}25`,
+                }}
+              >
+                {el?.imageUrl ? (
+                  <img src={el.imageUrl} alt={label} className="w-14 h-14 object-contain" draggable={false} />
+                ) : (
+                  <ElementBadge element={el ?? { name: label, number: 0, color: 'oklch(0.72 0.17 145)' } as ElementDef} size="md" />
+                )}
+                {isAdded && (
+                  <div className="absolute inset-0 rounded-2xl flex items-center justify-center bg-background/40">
+                    <Check className="w-8 h-8 text-emerald-400 onboard-pop" />
+                  </div>
+                )}
+              </div>
+              <span className="text-sm font-semibold text-foreground">{label}</span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Progress dots */}
+      <div className="flex justify-center gap-2 mt-8">
+        {targets.map(({ key }) => (
+          <div
+            key={key}
+            className={`w-2 h-2 rounded-full transition-all duration-300 ${added.has(key) ? 'bg-emerald-400 scale-125' : 'bg-muted-foreground/25'}`}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
 
 // ── Cinematic combine arena ────────────────────────────────────────────────────
 function CombineArena({
@@ -80,12 +187,11 @@ function CombineArena({
   const [nearId, setNearId]         = useState<string | null>(null)
 
   // Cinematic states
-  // 'idle'     — waiting for drag
-  // 'flash'    — white flash overlay covering screen
-  // 'reveal'   — "Super! Tu viens de créer X" full-screen
-  // 'next'     — "Maintenant créons Y" message before new arena
-  // 'done'     — all 3 done
-  const [phase, setPhase] = useState<'idle' | 'flash' | 'reveal' | 'next' | 'done'>('idle')
+  // 'idle'   — waiting for drag
+  // 'reveal' — "Super! Tu viens de créer X" full-screen
+  // 'next'   — "Maintenant créons Y" message before new arena
+  // 'done'   — all 3 done
+  const [phase, setPhase] = useState<'idle' | 'reveal' | 'next' | 'done'>('idle')
   const [lastResult, setLastResult] = useState<ElementDef | null>(null)
   const [animKey, setAnimKey] = useState(0) // key to re-trigger animations
 
@@ -172,27 +278,23 @@ function CombineArena({
       setItems([{ id: 'r', num: resultEl.number, el: resultEl, x: cx, y: cy }])
       setLastResult(resultEl)
 
-      // Step 1: flash
-      setPhase('flash')
+      // Go directly to reveal — no flash
+      setPhase('reveal')
       setTimeout(() => {
-        // Step 2: reveal "Super! Tu viens de créer X"
-        setPhase('reveal')
-        setTimeout(() => {
-          const next = comboRef.current + 1
-          if (next >= TUTORIAL_COMBOS.length) {
-            // Step 3a: all done
-            setPhase('done')
-            setTimeout(() => onAllDone(), 1800)
-          } else {
-            // Step 3b: "Maintenant créons Y"
-            setPhase('next')
-            setTimeout(() => {
-              setComboIndex(next)
-              setPhase('idle')
-            }, 3200)
-          }
-        }, 2200)
-      }, 280)
+        const next = comboRef.current + 1
+        if (next >= TUTORIAL_COMBOS.length) {
+          // All done
+          setPhase('done')
+          setTimeout(() => onAllDone(), 1800)
+        } else {
+          // "Maintenant créons Y"
+          setPhase('next')
+          setTimeout(() => {
+            setComboIndex(next)
+            setPhase('idle')
+          }, 3200)
+        }
+      }, 2200)
     }
   }, [getResult, onTutorialDiscover, onAllDone])
 
@@ -203,7 +305,7 @@ function CombineArena({
     : null
   const nextResultEl = nextResultName ? (getEl(nextResultName) ?? getEl(lang === 'fr' ? nextCombo!.fr_result : nextCombo!.en_result)) : null
 
-  const isOverlay = phase === 'flash' || phase === 'reveal' || phase === 'next' || phase === 'done'
+  const isOverlay = phase === 'reveal' || phase === 'next' || phase === 'done'
 
   return (
     <div className="relative w-full h-full flex flex-col">
@@ -284,14 +386,6 @@ function CombineArena({
 
       {/* ── Full-screen cinematic overlays ── */}
 
-      {/* Flash — soft frosted overlay, not harsh white */}
-      {phase === 'flash' && (
-        <div
-          className="fixed inset-0 z-[10000] pointer-events-none"
-          style={{ background: 'oklch(0.96 0.01 250 / 0.55)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', animation: 'onboardFlashIn 0.18s ease-out forwards, onboardFlashOut 0.32s 0.18s ease-in forwards' }}
-        />
-      )}
-
       {/* Reveal: "Super ! Tu viens de créer X" */}
       {(phase === 'reveal') && lastResult && (
         <div className="fixed inset-0 z-[10001] flex flex-col items-center justify-center bg-background pointer-events-none px-8">
@@ -357,7 +451,7 @@ function CombineArena({
               {t('Tu es prêt !', "You're ready!")}
             </h2>
             <p className="text-base text-muted-foreground leading-relaxed">
-              {t('Il y a plus de 700 éléments à découvrir.', 'There are over 700 elements to discover.')}
+              {t('Il y a plus de 700 éléments �� découvrir.', 'There are over 700 elements to discover.')}
             </p>
           </div>
         </div>
@@ -455,11 +549,11 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
   const handlePushSelect = (choice: boolean) => {
     setEnablePush(choice)
     setTimeout(() => {
-      onComplete({ lang, theme: selectedTheme, haptic: false, username: username.trim(), avatar, enablePush: choice })
+      onComplete({ lang, theme: selectedTheme ?? 'dark', haptic: false, username: username.trim(), avatar: avatar ?? 'feu', enablePush: choice })
     }, 350)
   }
 
-  const isCombineStep = step === 'combine'
+  const isCombineStep = step === 'combine' || step === 'tap'
   const animClass = stepAnim === 'in' ? 'onboard-fade-up' : 'onboard-fade-down'
 
   return (
@@ -555,6 +649,27 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                     <span className="text-base">{th === 'dark' ? t('Sombre', 'Dark') : t('Clair', 'Light')}</span>
                   </button>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── TAP step: learn to add elements to playground ── */}
+          {step === 'tap' && (
+            <div className="flex flex-col flex-1 min-h-0 gap-6">
+              <div className="flex flex-col items-center gap-2 text-center flex-shrink-0">
+                <h1 className="text-3xl sm:text-4xl font-bold text-foreground text-balance leading-tight">
+                  {t('Ajoute des éléments', 'Add elements')}
+                </h1>
+                <p className="text-sm text-muted-foreground/60 leading-relaxed">
+                  {t('Dans le jeu, appuie sur un élément pour l\'ajouter au terrain', 'In the game, tap an element to add it to the arena')}
+                </p>
+              </div>
+              <div className="flex-1 flex items-center justify-center">
+                <TapArena
+                  lang={lang}
+                  elements={elements}
+                  onAllAdded={() => goToStep('combine')}
+                />
               </div>
             </div>
           )}
@@ -775,21 +890,23 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                   )}
                 </p>
               </div>
-              <div className="flex gap-4">
-                {([true, false] as const).map(choice => (
-                  <button
-                    key={String(choice)}
-                    onClick={() => handlePushSelect(choice)}
-                    className={`flex-1 py-8 rounded-3xl border-2 transition-all font-semibold flex flex-col items-center gap-4 active:scale-[0.97] ${
-                      enablePush === choice
-                        ? 'border-indigo-500 bg-indigo-500/8 text-indigo-400'
-                        : 'border-border/50 bg-muted/20 text-muted-foreground hover:border-border'
-                    }`}
-                  >
-                    <span className="text-5xl">{choice ? '🔔' : '🔕'}</span>
-                    <span className="text-base">{choice ? t('Activer', 'Enable') : t('Non merci', 'No thanks')}</span>
-                  </button>
-                ))}
+              <div className="flex flex-col gap-3">
+                {/* Enable — primary, prominent */}
+                <button
+                  onClick={() => handlePushSelect(true)}
+                  className="w-full py-5 rounded-3xl border-2 transition-all font-bold flex items-center justify-center gap-3 active:scale-[0.97] text-white"
+                  style={{ background: '#6366f1', borderColor: '#6366f1', boxShadow: '0 4px 20px rgba(99,102,241,0.35)' }}
+                >
+                  <span className="text-2xl">🔔</span>
+                  <span className="text-base">{t('Activer les notifications', 'Enable notifications')}</span>
+                </button>
+                {/* Dismiss — subtle */}
+                <button
+                  onClick={() => handlePushSelect(false)}
+                  className="w-full py-3.5 rounded-2xl border border-border/40 transition-all font-medium flex items-center justify-center gap-2 text-muted-foreground/60 hover:text-muted-foreground active:scale-[0.98] text-sm bg-transparent"
+                >
+                  {t('Non merci', 'No thanks')}
+                </button>
               </div>
             </div>
           )}
@@ -812,10 +929,10 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                   ? t('C\'est compris !', 'Got it!')
                   : step === 'quests'
                     ? t('Allons-y !', 'Let\'s go!')
-                    : step === 'username'
-                      ? username.trim()
-                        ? t('Continuer', 'Continue')
-                        : t('On m\'en trouve un', 'Pick one for me')
+                      : step === 'username'
+                        ? username.trim()
+                          ? t('Continuer', 'Continue')
+                          : t('J\'en veux un random', 'Give me a random one')
                       : step === 'avatar'
                         ? t('Parfait !', 'Perfect!')
                         : t('Continuer', 'Continue')
