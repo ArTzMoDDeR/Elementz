@@ -1693,6 +1693,7 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
                     try {
                       await fetch('/api/account/delete', { method: 'DELETE' })
                       try { localStorage.removeItem('alchemy-discovered-v4') } catch {}
+                      try { localStorage.removeItem('onboarding-done') } catch {}
                       signOut({ callbackUrl: '/' })
                     } catch {
                       setDeleting(false)
