@@ -250,11 +250,14 @@ function AvatarButton({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lang, sessionUser.email, refreshKey])
 
-  // Avatar key is stored as FR name ('eau', 'feu', 'champignon', etc.) — look up with fallback
+  // Avatar key can be a number string "42" (new) or legacy FR/EN name "feu"
   const el = avatarKey
-    ? (elementsByName.get(avatarKey)
-      ?? elementsByName.get(avatarKey.toLowerCase())
-      ?? [...elementsByName.values()].find(e => e.name.toLowerCase() === avatarKey.toLowerCase()))
+    ? (/^\d+$/.test(avatarKey)
+        ? elementsByName.get(avatarKey) ?? [...elementsByName.values()].find(e => e.number === Number(avatarKey)) ?? null
+        : (elementsByName.get(avatarKey)
+          ?? elementsByName.get(avatarKey.toLowerCase())
+          ?? [...elementsByName.values()].find(e => e.name.toLowerCase() === avatarKey.toLowerCase())
+          ?? null))
     : null
 
   return (
@@ -1231,10 +1234,17 @@ export function Playground({
                 >
                   {isProfileWithUser ? (() => {
                     const tabEl = tabAvatarKey
-    ? (elementsByName.get(tabAvatarKey)
-      ?? elementsByName.get(tabAvatarKey.toLowerCase())
-      ?? [...elementsByName.values()].find(e => e.name.toLowerCase() === tabAvatarKey.toLowerCase()))
-    : null
+      ? (
+          // New format: stored as element number string e.g. "42"
+          /^\d+$/.test(tabAvatarKey)
+            ? elements.get(Number(tabAvatarKey)) ?? null
+            // Legacy format: stored as FR/EN name e.g. "feu"
+            : (elementsByName.get(tabAvatarKey)
+              ?? elementsByName.get(tabAvatarKey.toLowerCase())
+              ?? [...elementsByName.values()].find(e => e.name.toLowerCase() === tabAvatarKey.toLowerCase())
+              ?? null)
+        )
+      : null
                     return (
                       <div
                         className={`w-7 h-7 rounded-full overflow-hidden flex-shrink-0 bg-muted flex items-center justify-center transition-all ${isActive ? 'border-[2px] border-foreground' : 'border border-muted-foreground/25'}`}
@@ -1890,9 +1900,12 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
   const STARTERS = ['eau', 'feu', 'terre', 'air']
   const avatarKey = profile?.avatar ?? STARTERS[Math.abs(hashStr(sessionUser.email ?? 'x')) % 4]
   const avatarEl = avatarKey
-    ? (elementsByName.get(avatarKey)
-      ?? elementsByName.get(avatarKey.toLowerCase())
-      ?? [...elementsByName.values()].find(e => e.name.toLowerCase() === avatarKey.toLowerCase()))
+    ? (/^\d+$/.test(avatarKey)
+        ? elementsByName.get(avatarKey) ?? [...elementsByName.values()].find(e => e.number === Number(avatarKey)) ?? undefined
+        : (elementsByName.get(avatarKey)
+          ?? elementsByName.get(avatarKey.toLowerCase())
+          ?? [...elementsByName.values()].find(e => e.name.toLowerCase() === avatarKey.toLowerCase())
+          ?? undefined))
     : undefined
   const displayName = profile?.username || sessionUser.name?.split(' ')[0] || t('Joueur', 'Player')
   const pct = profile ? Math.round((profile.discovered_count / TOTAL_ELEMENTS) * 100) : 0
