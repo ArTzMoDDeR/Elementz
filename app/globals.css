@@ -272,6 +272,39 @@ html, body {
   100% { opacity: 0; }
 }
 
+/* Onboarding cinematic */
+@keyframes onboardFlashIn {
+  0%   { opacity: 0; }
+  30%  { opacity: 1; }
+  100% { opacity: 1; }
+}
+@keyframes onboardFlashOut {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes onboardFadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes onboardFadeDown {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-16px); }
+}
+@keyframes onboardSlideIn {
+  from { opacity: 0; transform: translateX(32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes onboardPop {
+  0%   { opacity: 0; transform: scale(0.7); }
+  60%  { transform: scale(1.08); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.onboard-fade-up   { animation: onboardFadeUp  0.45s cubic-bezier(0.22,1,0.36,1) forwards; }
+.onboard-fade-down { animation: onboardFadeDown 0.3s ease-in forwards; }
+.onboard-slide-in  { animation: onboardSlideIn 0.4s cubic-bezier(0.22,1,0.36,1) forwards; }
+.onboard-pop       { animation: onboardPop 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+.onboard-flash     { animation: onboardFlashIn 0.2s ease-out forwards, onboardFlashOut 0.35s 0.2s ease-in forwards; }
+
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   20% { transform: translateX(-4px); }
