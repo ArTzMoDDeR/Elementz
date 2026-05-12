@@ -141,7 +141,7 @@ export function ProfileModal({ lang, sessionUser, elementsByName, discovered, to
           <h2 className="text-base font-semibold text-foreground">{t('Profil', 'Profile')}</h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -192,7 +192,7 @@ export function ProfileModal({ lang, sessionUser, elementsByName, discovered, to
                   <button
                     onClick={saveName}
                     disabled={saving}
-                    className="w-10 h-10 rounded-xl bg-foreground text-background flex items-center justify-center disabled:opacity-50 flex-shrink-0"
+                    className="w-10 h-10 rounded-xl bg-foreground text-background flex items-center justify-center disabled:opacity-50 flex-shrink-0 cursor-pointer"
                   >
                     <Check className="w-4 h-4" />
                   </button>

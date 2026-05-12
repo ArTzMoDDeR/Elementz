@@ -176,7 +176,7 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
 
           <button
             onClick={onComplete}
-            className="w-full py-3.5 rounded-2xl bg-foreground text-background text-sm font-bold active:scale-[0.97] transition-all"
+            className="w-full py-3.5 rounded-2xl bg-foreground text-background text-sm font-bold active:scale-[0.97] transition-all cursor-pointer"
           >
             {t(lang, "J'ai compris !", 'Got it!')}
           </button>

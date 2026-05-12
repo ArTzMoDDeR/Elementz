@@ -94,7 +94,7 @@ export function LeaderboardModal({ lang, onClose }: LeaderboardModalProps) {
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-muted/40 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            className="w-8 h-8 rounded-full bg-muted/40 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
             <X className="w-3.5 h-3.5" />
           </button>

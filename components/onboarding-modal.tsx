@@ -121,20 +121,14 @@ function CombineArena({
 
   const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (mergingRef.current) return
-    const area = areaRef.current
-    if (!area) return
-    const rect = area.getBoundingClientRect()
-    const px = ((e.clientX - rect.left) / rect.width) * 100
+    const rect = areaRef.current!.getBoundingClientRect()
+    const px = ((e.clientX - rect.left) / rect.width)  * 100
     const py = ((e.clientY - rect.top)  / rect.height) * 100
-    let closest: MiniItem | null = null
-    let closestDist = Infinity
-    for (const item of itemsRef.current) {
-      const d = Math.hypot(item.x - px, item.y - py)
-      if (d < closestDist) { closestDist = d; closest = item }
-    }
-    if (!closest || closestDist > 18) return
-    try { area.setPointerCapture(e.pointerId) } catch {}
-    drag.current = { id: closest.id, pointerId: e.pointerId, offsetX: px - closest.x, offsetY: py - closest.y }
+    const hit = itemsRef.current.find(i => Math.hypot(px - i.x, py - i.y) < 10)
+    if (!hit) return
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+    drag.current = { id: hit.id, pointerId: e.pointerId, offsetX: px - hit.x, offsetY: py - hit.y }
+    setIsDraggingAny(true)
     e.preventDefault()
   }, [])
 
@@ -160,6 +154,7 @@ function CombineArena({
     if (!drag.current || mergingRef.current) return
     if (drag.current.pointerId !== e.pointerId) return
     drag.current = null
+    setIsDraggingAny(false)
     setNearId(null)
     const [itemA, itemB] = itemsRef.current
     if (!itemA || !itemB) return
@@ -225,6 +220,7 @@ function CombineArena({
   const nextResultEl = nextResultName ? (getEl(nextResultName) ?? getEl(lang === 'fr' ? nextCombo!.fr_result : nextCombo!.en_result)) : null
 
   const isOverlay = phase === 'reveal' || phase === 'next' || phase === 'done'
+  const [isDraggingAny, setIsDraggingAny] = useState(false)
 
   // Tap anywhere during overlay to skip to next state
   const skipRef = useRef<(() => void) | null>(null)
@@ -240,11 +236,51 @@ function CombineArena({
   const invElB = getEl(currentCombo.fr_b) ?? getEl(currentCombo.en_b)
 
   return (
-    <div className="relative w-full h-full flex flex-col">
+    <div className="relative w-full h-full flex flex-col lg:flex-row lg:gap-8 lg:items-stretch">
 
-      {/* Dynamic title + subtitle based on phase */}
+      {/* ── Desktop left panel: title + instructions ── */}
       {!isOverlay && (
-        <div className="flex flex-col items-center gap-1.5 text-center mb-4 flex-shrink-0">
+        <div className="hidden lg:flex flex-col justify-center gap-4 w-72 flex-shrink-0">
+          {comboIndex === 0 && placed.size < 2 ? (
+            <>
+              <h1 className="text-4xl font-bold text-foreground text-balance leading-tight">
+                {t('Ajoute des éléments', 'Add elements')}
+              </h1>
+              <p className="text-base text-muted-foreground/60 leading-relaxed">
+                {t('Clique sur les éléments de l\'inventaire pour les poser sur le terrain.', 'Click the inventory elements to place them on the field.')}
+              </p>
+            </>
+          ) : comboIndex === 0 ? (
+            <>
+              <h1 className="text-4xl font-bold text-foreground text-balance leading-tight">
+                {t('Combine les deux éléments', 'Combine the two elements')}
+              </h1>
+              <p className="text-base text-muted-foreground/60 leading-relaxed">
+                {t('Glisse un élément sur l\'autre pour les fusionner.', 'Drag one element onto the other to merge them.')}
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-4xl font-bold text-foreground text-balance leading-tight">
+                {t('À ton tour', 'Your turn')}
+              </h1>
+              <p className="text-base text-muted-foreground/60 leading-relaxed">
+                {placed.size < 2
+                  ? t('Ajoute les éléments puis glisse-les ensemble.', 'Add the elements then drag them together.')
+                  : t('Glisse un élément sur l\'autre pour les fusionner.', 'Drag one element onto the other to merge them.')
+                }
+              </p>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── Right side (or full width on mobile): arena + mobile title + inventory ── */}
+      <div className="flex flex-col flex-1 min-h-0 h-full">
+
+      {/* Dynamic title + subtitle — mobile only */}
+      {!isOverlay && (
+        <div className="flex lg:hidden flex-col items-center gap-1.5 text-center mb-4 flex-shrink-0">
           {comboIndex === 0 && placed.size < 2 ? (
             <>
               <h1 key="title-add" className="text-3xl sm:text-4xl font-bold text-foreground text-balance leading-tight onboard-fade-up">
@@ -287,7 +323,15 @@ function CombineArena({
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
         className="relative flex-1 rounded-3xl border border-border/30 overflow-hidden select-none"
-        style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none', minHeight: 200 }}
+        style={{
+          touchAction: 'none',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          minHeight: 200,
+          cursor: items.length > 0
+            ? (isDraggingAny ? 'grabbing' : 'grab')
+            : 'default',
+        }}
       >
         {/* Items */}
         {items.map(item => {
@@ -329,7 +373,7 @@ function CombineArena({
                 key={slot}
                 onClick={() => canPlace && handleInventoryTap(slot)}
                 disabled={!canPlace}
-                className="relative flex flex-col items-center gap-1 transition-all active:scale-90 disabled:pointer-events-none"
+                className="relative flex flex-col items-center gap-1 transition-all active:scale-90 disabled:pointer-events-none cursor-pointer"
                 style={{ opacity: isPlaced ? 0.35 : 1 }}
               >
                 <ElementBadge element={el} size="sm" />
@@ -345,6 +389,8 @@ function CombineArena({
           })}
         </div>
       </div>
+
+      </div>{/* end right-side wrapper */}
 
       {/* ── Full-screen cinematic overlays ── */}
 
@@ -551,7 +597,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
         {step !== 'lang' ? (
           <button
             onClick={handleBack}
-            className="flex items-center gap-1.5 h-9 pl-2.5 pr-3.5 rounded-full border border-border/50 bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all flex-shrink-0 text-sm font-medium"
+            className="flex items-center gap-1.5 h-9 pl-2.5 pr-3.5 rounded-full border border-border/50 bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all flex-shrink-0 text-sm font-medium cursor-pointer"
             aria-label={t('Retour', 'Back')}
           >
             <ArrowLeft className="w-3.5 h-3.5" />
@@ -581,7 +627,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
 
       {/* ── Main content ── */}
       <div className={`flex-1 flex flex-col min-h-0 px-6 sm:px-8 ${isCombineStep ? 'pb-4' : 'py-8 overflow-y-auto'}`}>
-        <div className={`w-full max-w-lg mx-auto flex flex-col h-full ${animClass}`} key={step}>
+        <div className={`w-full max-w-lg mx-auto flex flex-col h-full ${isCombineStep ? 'lg:max-w-4xl lg:flex-row lg:items-stretch lg:gap-10' : ''} ${animClass}`} key={step}>
 
           {/* ── LANG ── */}
           {step === 'lang' && (
@@ -599,7 +645,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                   <button
                     key={l}
                     onClick={() => handleLangSelect(l)}
-                    className={`flex-1 py-8 rounded-3xl border-2 transition-all font-semibold text-lg flex flex-col items-center gap-4 active:scale-[0.97] ${
+                    className={`flex-1 py-8 rounded-3xl border-2 transition-all font-semibold text-lg flex flex-col items-center gap-4 active:scale-[0.97] cursor-pointer ${
                       langSelected && lang === l
                         ? 'border-primary bg-primary/8 text-primary'
                         : 'border-border/50 bg-muted/20 text-muted-foreground hover:border-border'
@@ -629,7 +675,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                   <button
                     key={th}
                     onClick={() => handleThemeSelect(th)}
-                    className={`flex-1 py-8 rounded-3xl border-2 transition-all font-semibold flex flex-col items-center gap-4 active:scale-[0.97] ${
+                    className={`flex-1 py-8 rounded-3xl border-2 transition-all font-semibold flex flex-col items-center gap-4 active:scale-[0.97] cursor-pointer ${
                       selectedTheme !== null && selectedTheme === th
                         ? 'border-primary bg-primary/8 text-primary'
                         : 'border-border/50 bg-muted/20 text-muted-foreground hover:border-border'
@@ -645,7 +691,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
 
           {/* ── COMBINE (fullscreen cinematic arena) ── */}
           {step === 'combine' && (
-            <div className="flex flex-col flex-1 min-h-0">
+            <div className="flex flex-col flex-1 min-h-0 lg:flex-row lg:gap-10 lg:items-stretch">
               <CombineArena
                 lang={lang}
                 elements={elements}
@@ -749,7 +795,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                 {/* Enable — primary, prominent */}
                 <button
                   onClick={() => handlePushSelect(true)}
-                  className="w-full py-5 rounded-3xl border-2 transition-all font-bold flex items-center justify-center gap-3 active:scale-[0.97] text-white"
+                  className="w-full py-5 rounded-3xl border-2 transition-all font-bold flex items-center justify-center gap-3 active:scale-[0.97] text-white cursor-pointer"
                   style={{ background: '#6366f1', borderColor: '#6366f1', boxShadow: '0 4px 20px rgba(99,102,241,0.35)' }}
                 >
                   <span className="text-2xl" role="img" aria-label="bell">{'🔔'}</span>
@@ -758,7 +804,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
                 {/* Dismiss — subtle */}
                 <button
                   onClick={() => handlePushSelect(false)}
-                  className="w-full py-3.5 rounded-2xl border border-border/40 transition-all font-medium flex items-center justify-center gap-2 text-muted-foreground/60 hover:text-muted-foreground active:scale-[0.98] text-sm bg-transparent"
+                  className="w-full py-3.5 rounded-2xl border border-border/40 transition-all font-medium flex items-center justify-center gap-2 text-muted-foreground/60 hover:text-muted-foreground active:scale-[0.98] text-sm bg-transparent cursor-pointer"
                 >
                   {t('Non merci', 'No thanks')}
                 </button>
@@ -776,7 +822,7 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
             <button
               onClick={handleNext}
               disabled={usernameChecking}
-              className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-semibold text-base flex items-center justify-center gap-2 active:scale-[0.98] transition-transform shadow-lg disabled:opacity-60"
+              className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-semibold text-base flex items-center justify-center gap-2 active:scale-[0.98] transition-transform shadow-lg disabled:opacity-60 cursor-pointer"
             >
               {usernameChecking
                 ? t('Vérification…', 'Checking…')

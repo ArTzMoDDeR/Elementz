@@ -83,7 +83,7 @@ function RecipeCard({
         </div>
         <button
           onClick={onClose}
-          className="w-7 h-7 rounded-xl bg-muted/60 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+          className="w-7 h-7 rounded-xl bg-muted/60 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 cursor-pointer"
         >
           <X className="w-3.5 h-3.5" />
         </button>
@@ -155,7 +155,7 @@ function ElementCard({
   return (
     <button
       onClick={onClick}
-      className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-1 transition-all active:scale-95 overflow-hidden p-1.5 border ${isSelected ? 'border-2 border-foreground/40 bg-foreground/8' : 'border-border bg-muted/30 hover:bg-muted/60'}`}
+      className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-1 transition-all active:scale-95 overflow-hidden p-1.5 border ${isSelected ? 'border-2 border-foreground/40 bg-foreground/8' : 'border-border bg-muted/30 hover:bg-muted/60'} cursor-pointer`}
     >
       <div className="w-[58%] aspect-square flex items-center justify-center flex-shrink-0">
         {element.imageUrl
@@ -240,7 +240,7 @@ export function CodexInlinePanel({
         <div className="flex items-center gap-3">
           <button
             onClick={onGoToPlay}
-            className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center hover:bg-muted/80 active:scale-95 transition-all flex-shrink-0"
+            className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center hover:bg-muted/80 active:scale-95 transition-all flex-shrink-0 cursor-pointer"
             aria-label={t('Retour', 'Back')}
           >
             <ArrowLeft className="w-4 h-4 text-foreground/70" />
