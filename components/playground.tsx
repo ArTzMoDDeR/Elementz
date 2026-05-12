@@ -14,6 +14,7 @@ import EmailSignIn from '@/components/email-sign-in'
 import { signInWithGoogle, signInWithDiscord } from '@/app/actions/auth'
 import { signOut } from 'next-auth/react'
 import { useTheme } from 'next-themes'
+import { AreaChart, Area, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts'
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false)
@@ -1347,6 +1348,14 @@ function ChevronScrollBar({ scrollRef }: { scrollRef: React.RefObject<HTMLDivEle
 // Inline tab panels
 // ============================================================
 
+type LeaderboardStats = {
+  count: number
+  first_unlock: string | null
+  last_unlock: string | null
+  granularity: 'hour' | 'day' | 'week'
+  series: Array<{ bucket: string; cumulative: number; new: number }>
+}
+
 function LeaderboardRow({ entry, rank, lang, total, isMe }: {
   entry: { user_id: string; username: string | null; avatar_img: string | null; count: number; first_unlock?: string | null; last_unlock?: string | null }
   rank: number
@@ -1355,6 +1364,8 @@ function LeaderboardRow({ entry, rank, lang, total, isMe }: {
   isMe: boolean
 }) {
   const [open, setOpen] = useState(false)
+  const [stats, setStats] = useState<LeaderboardStats | null>(null)
+  const [loadingStats, setLoadingStats] = useState(false)
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
   const name = entry.username ?? t(`Joueur #${rank}`, `Player #${rank}`)
   const pct = Math.round((entry.count / total) * 100)
@@ -1365,54 +1376,150 @@ function LeaderboardRow({ entry, rank, lang, total, isMe }: {
     rank === 3 ? <Medal className="w-3.5 h-3.5 text-amber-600" /> :
     <span className="text-[11px] font-bold text-muted-foreground/50 tabular-nums w-full text-center">{rank}</span>
 
-  // Duration between first and last unlock
+  const handleToggle = () => {
+    const next = !open
+    setOpen(next)
+    if (next && !stats && !loadingStats) {
+      setLoadingStats(true)
+      fetch(`/api/leaderboard/stats?user_id=${entry.user_id}`)
+        .then(r => r.json())
+        .then(d => { setStats(d); setLoadingStats(false) })
+        .catch(() => setLoadingStats(false))
+    }
+  }
+
+  // Format duration between first and last unlock
   const duration = (() => {
-    if (!entry.first_unlock || !entry.last_unlock) return null
-    const ms = new Date(entry.last_unlock).getTime() - new Date(entry.first_unlock).getTime()
-    if (ms < 0) return null
+    const f = stats?.first_unlock ?? entry.first_unlock
+    const l = stats?.last_unlock ?? entry.last_unlock
+    if (!f || !l) return null
+    const ms = new Date(l).getTime() - new Date(f).getTime()
+    if (ms < 60000) return t('< 1 min', '< 1 min')
     const days = Math.floor(ms / 86400000)
     const hours = Math.floor((ms % 86400000) / 3600000)
-    if (days > 0) return t(`${days}j ${hours}h`, `${days}d ${hours}h`)
     const mins = Math.floor((ms % 3600000) / 60000)
+    if (days > 0) return t(`${days}j ${hours}h`, `${days}d ${hours}h`)
     if (hours > 0) return t(`${hours}h ${mins}min`, `${hours}h ${mins}m`)
     return t(`${mins} min`, `${mins} min`)
   })()
 
+  // Format a bucket label based on granularity
+  const fmtBucket = (b: string, gran: string) => {
+    const d = new Date(b)
+    if (gran === 'hour') return d.toLocaleTimeString(lang === 'fr' ? 'fr-FR' : 'en-US', { hour: '2-digit', minute: '2-digit' })
+    if (gran === 'week') return d.toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })
+    return d.toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })
+  }
+
+  const chartData = stats?.series.map(s => ({
+    label: fmtBucket(s.bucket, stats.granularity),
+    value: s.cumulative,
+  })) ?? []
+
   return (
     <div className="border-b border-border/30 last:border-b-0">
+      {/* Row */}
       <button
-        className="w-full flex items-center gap-3 px-1 py-2.5 text-left cursor-pointer"
-        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-3 px-1 py-2.5 text-left cursor-pointer active:bg-muted/30 transition-colors rounded-xl"
+        onClick={handleToggle}
         aria-expanded={open}
       >
-        {/* Rank */}
         <div className="w-5 flex items-center justify-center flex-shrink-0">{rankLabel}</div>
-
-        {/* Avatar */}
         <div className="w-8 h-8 rounded-xl bg-muted border border-border flex items-center justify-center overflow-hidden p-1 flex-shrink-0">
           {entry.avatar_img
             ? <img src={entry.avatar_img} alt={name} className="w-full h-full object-contain pointer-events-none" draggable={false} />
             : <span className="text-[10px] font-bold text-muted-foreground">{name.slice(0, 2).toUpperCase()}</span>
           }
         </div>
-
-        {/* Name + duration row */}
-        <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-          <span className={`text-sm font-semibold truncate ${isMe ? 'text-primary' : 'text-foreground'}`}>
+        <div className="flex-1 min-w-0">
+          <span className={`text-sm font-semibold truncate block ${isMe ? 'text-primary' : 'text-foreground'}`}>
             {name}
             {isMe && <span className="ml-1.5 text-[9px] font-bold text-primary/50 uppercase tracking-wide">{t('Vous', 'You')}</span>}
           </span>
-          {duration && (
-            <span className="text-[10px] text-muted-foreground/40 tabular-nums">{duration}</span>
-          )}
         </div>
-
-        {/* Score + pct */}
-        <div className="flex flex-col items-end flex-shrink-0">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           <span className="text-sm font-bold tabular-nums text-foreground">{entry.count}</span>
-          <span className="text-[10px] text-muted-foreground/40 tabular-nums">{pct}%</span>
+          <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground/30 transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
         </div>
       </button>
+
+      {/* Stats dropdown */}
+      {open && (
+        <div className="pb-4 px-1">
+          {loadingStats ? (
+            <div className="flex justify-center py-6">
+              <div className="w-5 h-5 border-2 border-border border-t-foreground/40 rounded-full animate-spin" />
+            </div>
+          ) : stats ? (
+            <div className="flex flex-col gap-3">
+
+              {/* Stat pills */}
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { value: `${pct}%`, label: t('complété', 'complete') },
+                  { value: stats.count.toString(), label: t('éléments', 'elements') },
+                  { value: duration ?? '—', label: t('durée', 'duration') },
+                ].map(({ value, label }) => (
+                  <div key={label} className="flex flex-col items-center justify-center gap-0.5 py-3 rounded-2xl bg-muted/40">
+                    <span className="text-base font-bold text-foreground tabular-nums leading-none">{value}</span>
+                    <span className="text-[9px] text-muted-foreground/40 uppercase tracking-wide">{label}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Discovery curve */}
+              {chartData.length > 1 && (
+                <div className="rounded-2xl bg-muted/30 px-3 pt-3 pb-1 flex flex-col gap-1">
+                  <span className="text-[10px] text-muted-foreground/40 uppercase tracking-widest font-semibold px-1">
+                    {t('Découvertes au fil du temps', 'Discoveries over time')}
+                  </span>
+                  <ResponsiveContainer width="100%" height={90}>
+                    <AreaChart
+                      data={chartData}
+                      margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id={`grad-${entry.user_id}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.35} />
+                          <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.03} />
+                        </linearGradient>
+                      </defs>
+                      <RechartsTooltip
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.length) return null
+                          return (
+                            <div className="px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-foreground"
+                              style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+                              {payload[0].value} {t('éléments', 'elements')}
+                            </div>
+                          )
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke="var(--primary)"
+                        strokeWidth={1.5}
+                        fill={`url(#grad-${entry.user_id})`}
+                        dot={false}
+                        activeDot={{ r: 3, fill: 'var(--primary)', strokeWidth: 0 }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                  {/* X-axis labels — first and last only */}
+                  <div className="flex justify-between px-1 -mt-1">
+                    <span className="text-[9px] text-muted-foreground/30 tabular-nums">{chartData[0]?.label}</span>
+                    <span className="text-[9px] text-muted-foreground/30 tabular-nums">{chartData[chartData.length - 1]?.label}</span>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground/40 text-center py-4">{t('Données indisponibles', 'Data unavailable')}</p>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -2194,7 +2301,6 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground">{t('Classement', 'Leaderboard')}</p>
-              {profile.rank && <p className="text-xs text-muted-foreground/50">{t(`Rang #${profile.rank}`, `Rank #${profile.rank}`)}</p>}
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground/30 flex-shrink-0" />
           </button>
