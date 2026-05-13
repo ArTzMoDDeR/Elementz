@@ -557,87 +557,125 @@ function QuestsTab() {
 
       {/* Edit sheet */}
       {editing && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setEditing(null)}>
-          <div className="bg-card border border-border rounded-2xl w-full max-w-lg shadow-2xl p-5 space-y-4" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold">Modifier la quête #{editing.id}</h3>
-              <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => setEditing(null)}><X className="w-3.5 h-3.5" /></Button>
+        <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center sm:p-4 bg-black/70 backdrop-blur-sm" onClick={() => setEditing(null)}>
+          <div
+            className="bg-card w-full sm:max-w-lg sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            style={{ maxHeight: '100dvh' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* iOS drag pill */}
+            <div className="flex-shrink-0 flex justify-center pt-3 pb-1 sm:hidden">
+              <div className="w-10 h-1 rounded-full bg-muted-foreground/20" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className="text-xs text-muted-foreground mb-1 block">Titre FR</label><Input value={editing.title_fr} onChange={e => setEditing({ ...editing, title_fr: e.target.value })} className="h-8 text-sm" /></div>
-              <div><label className="text-xs text-muted-foreground mb-1 block">Titre EN</label><Input value={editing.title_en} onChange={e => setEditing({ ...editing, title_en: e.target.value })} className="h-8 text-sm" /></div>
-              <div><label className="text-xs text-muted-foreground mb-1 block">Desc FR</label><Input value={editing.desc_fr} onChange={e => setEditing({ ...editing, desc_fr: e.target.value })} className="h-8 text-sm" /></div>
-              <div><label className="text-xs text-muted-foreground mb-1 block">Desc EN</label><Input value={editing.desc_en} onChange={e => setEditing({ ...editing, desc_en: e.target.value })} className="h-8 text-sm" /></div>
-              <div><label className="text-xs text-muted-foreground mb-1 block">Objectif</label><Input type="number" value={editing.target_value} onChange={e => setEditing({ ...editing, target_value: parseInt(e.target.value) || 1 })} className="h-8 text-sm" /></div>
-              <div><label className="text-xs text-muted-foreground mb-1 block">Ordre</label><Input type="number" value={editing.sort_order} onChange={e => setEditing({ ...editing, sort_order: parseInt(e.target.value) || 0 })} className="h-8 text-sm" /></div>
-              <div><label className="text-xs text-muted-foreground mb-1 block">Icône</label><Input value={editing.icon} onChange={e => setEditing({ ...editing, icon: e.target.value })} className="h-8 text-sm" /></div>
-              <div className="flex items-end gap-2 pb-0.5">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={editing.is_daily} onChange={e => setEditing({ ...editing, is_daily: e.target.checked })} className="rounded" />
-                  <span className="text-sm">Quête daily</span>
-                </label>
+            {/* Header */}
+            <div className="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b border-border"
+              style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)' }}
+            >
+              <h3 className="font-semibold">Modifier la quête #{editing.id}</h3>
+              <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => setEditing(null)}><X className="w-4 h-4" /></Button>
+            </div>
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-xs text-muted-foreground mb-1.5 block">Titre FR</label><Input value={editing.title_fr} onChange={e => setEditing({ ...editing, title_fr: e.target.value })} className="h-9 text-sm" /></div>
+                <div><label className="text-xs text-muted-foreground mb-1.5 block">Titre EN</label><Input value={editing.title_en} onChange={e => setEditing({ ...editing, title_en: e.target.value })} className="h-9 text-sm" /></div>
+                <div><label className="text-xs text-muted-foreground mb-1.5 block">Desc FR</label><Input value={editing.desc_fr} onChange={e => setEditing({ ...editing, desc_fr: e.target.value })} className="h-9 text-sm" /></div>
+                <div><label className="text-xs text-muted-foreground mb-1.5 block">Desc EN</label><Input value={editing.desc_en} onChange={e => setEditing({ ...editing, desc_en: e.target.value })} className="h-9 text-sm" /></div>
+                <div><label className="text-xs text-muted-foreground mb-1.5 block">Objectif</label><Input type="number" value={editing.target_value} onChange={e => setEditing({ ...editing, target_value: parseInt(e.target.value) || 1 })} className="h-9 text-sm" /></div>
+                <div><label className="text-xs text-muted-foreground mb-1.5 block">Ordre</label><Input type="number" value={editing.sort_order} onChange={e => setEditing({ ...editing, sort_order: parseInt(e.target.value) || 0 })} className="h-9 text-sm" /></div>
+                <div><label className="text-xs text-muted-foreground mb-1.5 block">Icône</label><Input value={editing.icon} onChange={e => setEditing({ ...editing, icon: e.target.value })} className="h-9 text-sm" /></div>
+                <div className="flex items-end pb-1">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={editing.is_daily} onChange={e => setEditing({ ...editing, is_daily: e.target.checked })} className="rounded" />
+                    <span className="text-sm">Quête daily</span>
+                  </label>
+                </div>
               </div>
             </div>
-            <Button className="w-full" disabled={saving} onClick={saveQuest}>
-              {saving ? <><Spinner /><span className="ml-2">Sauvegarde...</span></> : <><Save className="w-3.5 h-3.5 mr-1.5" />Sauvegarder</>}
-            </Button>
+            {/* Footer CTA */}
+            <div className="flex-shrink-0 p-4 border-t border-border" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)' }}>
+              <Button className="w-full h-11 rounded-xl" disabled={saving} onClick={saveQuest}>
+                {saving ? <><Spinner /><span className="ml-2">Sauvegarde...</span></> : <><Save className="w-3.5 h-3.5 mr-1.5" />Sauvegarder</>}
+              </Button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Table */}
+      {/* Quests list */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-16"><Spinner size="md" /></div>
+        ) : quests.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-12">Aucune quête</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[700px]">
-              <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground w-8">ID</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Quête</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Type</th>
-                  <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">Objectif</th>
-                  <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">En cours</th>
-                  <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">Complétées</th>
-                  <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">Réclamées</th>
-                  <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">Daily</th>
-                  <th className="px-4 py-2.5 w-16"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {quests.map(q => (
-                  <tr key={q.id} className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors">
-                    <td className="px-4 py-3 text-xs font-mono text-muted-foreground">{q.id}</td>
-                    <td className="px-4 py-3 max-w-[200px]">
-                      <p className="font-medium truncate">{q.title_fr}</p>
-                      <p className="text-xs text-muted-foreground truncate">{q.desc_fr}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{q.type}</span>
-                    </td>
-                    <td className="px-4 py-3 text-center tabular-nums font-bold">{q.target_value}</td>
-                    <td className="px-4 py-3 text-center tabular-nums text-muted-foreground">{q.in_progress_count}</td>
-                    <td className="px-4 py-3 text-center tabular-nums">{q.completed_count}</td>
-                    <td className="px-4 py-3 text-center tabular-nums text-emerald-600 dark:text-emerald-400 font-semibold">{q.claimed_count}</td>
-                    <td className="px-4 py-3 text-center">
-                      {q.is_daily ? <Badge color="amber" label="Daily" /> : <span className="text-muted-foreground/30">—</span>}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1 justify-end">
-                        <button onClick={() => setEditing(q)} className="w-7 h-7 flex items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button onClick={() => deleteQuest(q.id)} disabled={deleting === q.id} className="w-7 h-7 flex items-center justify-center rounded-lg border border-transparent hover:border-red-500/30 hover:bg-red-500/10 transition-colors text-muted-foreground hover:text-red-400">
-                          {deleting === q.id ? <Spinner /> : <Trash2 className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-                    </td>
+          <>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30">
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground w-8">ID</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Quête</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Type</th>
+                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">Obj.</th>
+                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">En cours</th>
+                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">Complétées</th>
+                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">Réclamées</th>
+                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">Daily</th>
+                    <th className="px-4 py-2.5 w-16"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {quests.map(q => (
+                    <tr key={q.id} className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors">
+                      <td className="px-4 py-3 text-xs font-mono text-muted-foreground">{q.id}</td>
+                      <td className="px-4 py-3 max-w-[200px]">
+                        <p className="font-medium truncate">{q.title_fr}</p>
+                        <p className="text-xs text-muted-foreground truncate">{q.desc_fr}</p>
+                      </td>
+                      <td className="px-4 py-3"><span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{q.type}</span></td>
+                      <td className="px-4 py-3 text-center tabular-nums font-bold">{q.target_value}</td>
+                      <td className="px-4 py-3 text-center tabular-nums text-muted-foreground">{q.in_progress_count}</td>
+                      <td className="px-4 py-3 text-center tabular-nums">{q.completed_count}</td>
+                      <td className="px-4 py-3 text-center tabular-nums text-emerald-400 font-semibold">{q.claimed_count}</td>
+                      <td className="px-4 py-3 text-center">{q.is_daily ? <Badge color="amber" label="Daily" /> : <span className="text-muted-foreground/30">—</span>}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1 justify-end">
+                          <button onClick={() => setEditing(q)} className="w-7 h-7 flex items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"><Pencil className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => deleteQuest(q.id)} disabled={deleting === q.id} className="w-7 h-7 flex items-center justify-center rounded-lg border border-transparent hover:border-red-500/30 hover:bg-red-500/10 transition-colors text-muted-foreground hover:text-red-400">{deleting === q.id ? <Spinner /> : <Trash2 className="w-3.5 h-3.5" />}</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile card list */}
+            <div className="md:hidden divide-y divide-border/50">
+              {quests.map(q => (
+                <div key={q.id} className="flex items-start gap-3 px-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="font-medium text-sm truncate">{q.title_fr}</p>
+                      {q.is_daily && <Badge color="amber" label="Daily" />}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate mb-1.5">{q.desc_fr}</p>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{q.type}</span>
+                      <span>Obj. <strong className="text-foreground">{q.target_value}</strong></span>
+                      <span className="text-emerald-400 font-semibold">{q.claimed_count} réclamées</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0 mt-0.5">
+                    <button onClick={() => setEditing(q)} className="w-8 h-8 flex items-center justify-center rounded-xl border border-transparent hover:border-border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"><Pencil className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => deleteQuest(q.id)} disabled={deleting === q.id} className="w-8 h-8 flex items-center justify-center rounded-xl border border-transparent hover:border-red-500/30 hover:bg-red-500/10 transition-colors text-muted-foreground hover:text-red-400">{deleting === q.id ? <Spinner /> : <Trash2 className="w-3.5 h-3.5" />}</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>
@@ -790,10 +828,20 @@ function EditModal({ element, elements, onClose, onSaved }: {
     : elements.slice(0, 30)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-card border-t sm:border border-border sm:rounded-2xl w-full sm:max-w-2xl h-[96dvh] sm:max-h-[92vh] overflow-y-auto shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center sm:p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="bg-card w-full sm:max-w-2xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+        style={{ height: '100dvh', maxHeight: '100dvh' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* iOS drag pill */}
+        <div className="flex-shrink-0 flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-10 h-1 rounded-full bg-muted-foreground/20" />
+        </div>
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-border sticky top-0 bg-card z-10">
+        <div className="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b border-border"
+          style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)' }}
+        >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-muted border border-border overflow-hidden flex-shrink-0 flex items-center justify-center">
               {img ? <img src={img} alt="" className="w-full h-full object-contain" /> : <span className="text-[10px] font-mono text-muted-foreground">#{element.number}</span>}
@@ -806,7 +854,7 @@ function EditModal({ element, elements, onClose, onSaved }: {
           <Button variant="ghost" size="icon" onClick={onClose}><X className="w-4 h-4" /></Button>
         </div>
 
-        <div className="p-5 space-y-6">
+        <div className="flex-1 overflow-y-auto p-5 space-y-6">
           {/* Image + Names */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
@@ -2188,6 +2236,7 @@ async function downloadCsv(type: 'elements' | 'recipes') {
 
 export default function AdminPanel() {
   const [tab, setTab] = useState<Tab>('overview')
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
     <div className="h-[100dvh] bg-background flex overflow-hidden">
@@ -2267,46 +2316,79 @@ export default function AdminPanel() {
 
       {/* ── Top bar (mobile) ─────────────────────────────────────────────── */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-30 border-b border-white/[0.06] flex items-end justify-between px-4 pb-3"
-        style={{ background: 'rgba(10,10,10,0.92)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingTop: 'calc(env(safe-area-inset-top) + 12px)', minHeight: 'calc(env(safe-area-inset-top) + 52px)' }}
+        style={{ background: 'rgba(10,10,10,0.92)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingTop: 'calc(env(safe-area-inset-top) + 12px)', minHeight: 'calc(env(safe-area-inset-top) + 56px)' }}
       >
         <a href="/" className="flex items-center gap-2">
           <img src="/logo.png" alt="Elementz" className="w-7 h-7 rounded-xl" />
-          <span className="text-sm font-semibold text-foreground">Admin</span>
+          <span className="text-sm font-semibold text-foreground">Elementz</span>
+          <span className="text-[9px] font-bold text-primary bg-primary/10 border border-primary/20 rounded-md px-1.5 py-0.5">ADMIN</span>
         </a>
-        <span className="text-sm font-semibold text-foreground/80">
-          {TABS.find(t => t.id === tab)?.label ?? ''}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <button onClick={() => setMobileOpen(true)}
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted/50 transition-colors">
+            <div className="flex flex-col gap-[4px] items-center justify-center">
+              <span className="w-4 h-[1.5px] rounded-full bg-current block" />
+              <span className="w-4 h-[1.5px] rounded-full bg-current block" />
+              <span className="w-4 h-[1.5px] rounded-full bg-current block" />
+            </div>
+          </button>
+        </div>
       </header>
 
-      {/* ── Bottom tab bar (mobile iOS-style) ────────────────────────────── */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/[0.06] flex items-stretch"
-        style={{ background: 'rgba(10,10,10,0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingBottom: 'env(safe-area-inset-bottom)' }}
-      >
-        {TABS.map(t => {
-          const Icon = t.icon
-          const isActive = tab === t.id
-          return (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`flex-1 flex flex-col items-center justify-center gap-1 py-2.5 min-w-0 transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground/40'}`}
-            >
-              <div className={`w-8 h-8 flex items-center justify-center rounded-xl transition-colors ${isActive ? 'bg-foreground/10' : ''}`}>
-                <Icon className="w-4 h-4" />
+      {/* ── Mobile menu overlay ───────────────────────────────────────────── */}
+      {mobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+          <div className="relative ml-auto w-72 h-full flex flex-col border-l border-white/[0.06]"
+            style={{ background: 'rgba(12,12,12,0.97)', paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+          >
+            <div className="flex items-center justify-between px-4 h-14 border-b border-white/[0.06]">
+              <div className="flex items-center gap-2.5">
+                <img src="/logo.png" alt="Elementz" className="w-7 h-7 rounded-xl" />
+                <span className="text-sm font-semibold text-foreground">Admin Panel</span>
               </div>
-              <span className="text-[9px] font-semibold tracking-tight truncate w-full text-center px-0.5 leading-none">
-                {t.label.length > 8 ? t.label.slice(0, 7) + '…' : t.label}
-              </span>
-            </button>
-          )
-        })}
-      </nav>
+              <button onClick={() => setMobileOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted/50 transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <nav className="flex-1 flex flex-col gap-0.5 p-3 overflow-y-auto no-scrollbar">
+              {TABS.map(t => {
+                const Icon = t.icon
+                const isActive = tab === t.id
+                return (
+                  <button key={t.id} onClick={() => { setTab(t.id); setMobileOpen(false) }}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
+                      isActive ? 'bg-foreground/10 text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    {t.label}
+                  </button>
+                )
+              })}
+            </nav>
+            <div className="p-3 border-t border-white/[0.06] flex flex-col gap-1">
+              <button onClick={() => downloadCsv('elements')}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                <Download className="w-4 h-4" /> Éléments CSV
+              </button>
+              <button onClick={() => downloadCsv('recipes')}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                <Download className="w-4 h-4" /> Recettes CSV
+              </button>
+              <a href="/" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                <X className="w-4 h-4" /> Retour au jeu
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Content ──────────────────────────────────────────────────────── */}
       <main className="flex-1 lg:mr-[300px] min-w-0 h-full overflow-y-auto no-scrollbar px-4 lg:px-10 xl:px-16 2xl:px-24 lg:py-10"
         style={{
-          paddingTop: 'calc(env(safe-area-inset-top) + 64px)',
-          paddingBottom: 'calc(env(safe-area-inset-bottom) + 96px)',
+          paddingTop: 'calc(env(safe-area-inset-top) + 72px)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)',
         }}
       >
         {tab === 'overview'  && <OverviewTab />}
