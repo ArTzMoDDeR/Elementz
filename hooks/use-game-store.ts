@@ -158,8 +158,18 @@ export function useGameStore() {
         .catch(() => {})
     } else {
       try {
+        // 1. Explicit user choice stored in localStorage takes priority
         const saved = localStorage.getItem(LANG_KEY) as Lang | null
-        if (saved === 'fr' || saved === 'en') setLangState(saved)
+        if (saved === 'fr' || saved === 'en') {
+          setLangState(saved)
+        } else {
+          // 2. Fall back to geo cookie set by middleware
+          const cookieLang = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('lang='))
+            ?.split('=')[1] as Lang | undefined
+          if (cookieLang === 'fr' || cookieLang === 'en') setLangState(cookieLang)
+        }
         const hap = localStorage.getItem('hapticFeedback')
         if (hap !== null) {
           const val = hap !== '0'
@@ -327,6 +337,8 @@ export function useGameStore() {
     if (dbRows.length === 0) return
     setLangState(newLang)
     try { localStorage.setItem(LANG_KEY, newLang) } catch {}
+    // Keep cookie in sync so geo detection stays consistent across pages
+    try { document.cookie = `lang=${newLang}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax` } catch {}
     if (session?.user?.id) {
       fetch('/api/lang', {
         method: 'POST',
