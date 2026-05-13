@@ -88,6 +88,7 @@ type QuestDef = {
   in_progress_count: number
   element_img: string | null
   element_name: string | null
+  required_element: number | null
 }
 
 // ─── Shared components ─────────────────────────────────────────────────────────
@@ -587,6 +588,245 @@ const QUEST_ICONS: Record<string, string> = {
   droplets: '💧', flame: '🔥', wind: '〜', mountain: '△', sun: '☀', star: '★',
 }
 
+// ─── Quest types config ───────────────────────────────────────────────────────
+
+const QUEST_TYPES = [
+  { value: 'discover_n',       label: 'Découvrir N éléments',        hasElement: false, targetLabel: 'Nombre d\'éléments' },
+  { value: 'discover_n_daily', label: 'Découvrir N éléments (daily)', hasElement: false, targetLabel: 'Nombre d\'éléments' },
+  { value: 'combinations_n',   label: 'Faire N combinaisons',         hasElement: true,  targetLabel: 'Nombre de combos'   },
+  { value: 'discover_element', label: 'Découvrir un élément précis',  hasElement: true,  targetLabel: 'Objectif (1)'       },
+  { value: 'specific_element', label: 'Créer un élément précis',      hasElement: true,  targetLabel: 'Objectif (1)'       },
+  { value: 'session_n',        label: 'Jouer N sessions',             hasElement: false, targetLabel: 'Nombre de sessions' },
+]
+
+const ICON_OPTIONS = ['star', 'flame', 'droplets', 'wind', 'mountain', 'sparkles', 'compass', 'gem', 'sun', 'crown', 'flask', 'microscope']
+
+// Shared fullscreen form sheet used by both create and edit
+function QuestFormSheet({
+  title, initial, saving, onClose, onSave, onChange, stats, footer, saveLabel = 'Sauvegarder',
+}: {
+  title: string
+  initial: QuestDef
+  saving: boolean
+  onClose: () => void
+  onSave: () => void
+  onChange: (q: QuestDef) => void
+  stats?: { in_progress: number; completed: number; claimed: number }
+  footer?: React.ReactNode
+  saveLabel?: string
+}) {
+  const [elementSearch, setElementSearch] = useState('')
+  const [elementResults, setElementResults] = useState<{ number: number; name_french: string; img: string | null }[]>([])
+  const [searchLoading, setSearchLoading] = useState(false)
+  const typeConfig = QUEST_TYPES.find(t => t.value === initial.type) ?? QUEST_TYPES[0]
+
+  useEffect(() => {
+    if (!elementSearch.trim()) { setElementResults([]); return }
+    const t = setTimeout(async () => {
+      setSearchLoading(true)
+      try {
+        const res = await fetch(`/api/elements?q=${encodeURIComponent(elementSearch)}&limit=6`)
+        const data = await res.json()
+        setElementResults(data.elements ?? [])
+      } catch {}
+      setSearchLoading(false)
+    }, 300)
+    return () => clearTimeout(t)
+  }, [elementSearch])
+
+  const selectElement = (el: { number: number; name_french: string; img: string | null }) => {
+    onChange({ ...initial, required_element: el.number, element_name: el.name_french, element_img: el.img })
+    setElementSearch('')
+    setElementResults([])
+  }
+
+  const clearElement = () => {
+    onChange({ ...initial, required_element: null, element_name: null, element_img: null })
+  }
+
+  return (
+    <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex flex-col" onClick={onClose}>
+      <div
+        className="relative bg-card flex flex-col w-full h-full sm:m-auto sm:rounded-2xl sm:max-w-lg sm:h-auto sm:max-h-[90dvh]"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div
+          className="flex-shrink-0 flex items-center justify-between px-5 border-b border-border"
+          style={{ paddingTop: 'calc(env(safe-area-inset-top) + 14px)', paddingBottom: '14px' }}
+        >
+          <h3 className="text-base font-bold leading-tight">{title}</h3>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Stats bar (edit mode only) */}
+        {stats && (
+          <div className="flex-shrink-0 grid grid-cols-3 divide-x divide-border border-b border-border">
+            {[
+              { label: 'En cours',  value: stats.in_progress },
+              { label: 'Complétées', value: stats.completed },
+              { label: 'Réclamées', value: stats.claimed, highlight: true },
+            ].map(({ label, value, highlight }) => (
+              <div key={label} className="flex flex-col items-center justify-center py-3 gap-0.5">
+                <span className={`text-xl font-bold tabular-nums ${highlight ? 'text-emerald-400' : ''}`}>{value}</span>
+                <span className="text-[10px] text-muted-foreground">{label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Scrollable form */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+
+          {/* Type selector */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 block">Type de quête</label>
+            <div className="grid grid-cols-1 gap-1.5">
+              {QUEST_TYPES.map(t => (
+                <button
+                  key={t.value}
+                  onClick={() => onChange({ ...initial, type: t.value })}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all ${
+                    initial.type === t.value
+                      ? 'border-primary/50 bg-primary/10 text-foreground'
+                      : 'border-border bg-muted/20 text-muted-foreground hover:bg-muted/40 hover:text-foreground'
+                  }`}
+                >
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${initial.type === t.value ? 'bg-primary' : 'bg-muted-foreground/30'}`} />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium leading-tight">{t.label}</p>
+                    <p className="text-[10px] font-mono opacity-50 mt-0.5">{t.value}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Element picker (shown when type needs it) */}
+          {typeConfig.hasElement && (
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 block">Élément associé</label>
+              {initial.required_element ? (
+                <div className="flex items-center gap-3 p-3 rounded-xl border border-primary/30 bg-primary/5">
+                  <div className="w-9 h-9 rounded-xl bg-muted border border-border flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {initial.element_img
+                      ? <img src={initial.element_img} alt="" className="w-7 h-7 object-contain" />
+                      : <span className="text-[10px] font-mono text-muted-foreground">#{initial.required_element}</span>
+                    }
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold">{initial.element_name}</p>
+                    <p className="text-[10px] font-mono text-muted-foreground">#{initial.required_element}</p>
+                  </div>
+                  <button onClick={clearElement} className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                  <Input
+                    placeholder="Rechercher un élément..."
+                    value={elementSearch}
+                    onChange={e => setElementSearch(e.target.value)}
+                    className="pl-9 h-10 text-sm"
+                  />
+                  {(elementResults.length > 0 || searchLoading) && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-xl overflow-hidden z-10">
+                      {searchLoading
+                        ? <div className="flex justify-center py-4"><Spinner /></div>
+                        : elementResults.map(el => (
+                          <button key={el.number} onClick={() => selectElement(el)}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted/40 transition-colors text-left">
+                            <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 overflow-hidden">
+                              {el.img ? <img src={el.img} alt="" className="w-5 h-5 object-contain" /> : <span className="text-[9px] font-mono text-muted-foreground">#{el.number}</span>}
+                            </div>
+                            <span className="text-sm font-medium">{el.name_french}</span>
+                            <span className="text-xs font-mono text-muted-foreground ml-auto">#{el.number}</span>
+                          </button>
+                        ))
+                      }
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Icon picker */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 block">Icône</label>
+            <div className="flex flex-wrap gap-1.5">
+              {ICON_OPTIONS.map(icon => (
+                <button
+                  key={icon}
+                  onClick={() => onChange({ ...initial, icon })}
+                  className={`px-2.5 py-1.5 rounded-lg border text-xs font-mono transition-all ${
+                    initial.icon === icon
+                      ? 'border-primary/50 bg-primary/10 text-primary'
+                      : 'border-border bg-muted/20 text-muted-foreground hover:bg-muted/40'
+                  }`}
+                >
+                  {icon}
+                </button>
+              ))}
+              <Input
+                value={initial.icon}
+                onChange={e => onChange({ ...initial, icon: e.target.value })}
+                className="h-8 w-28 text-xs font-mono"
+                placeholder="autre..."
+              />
+            </div>
+          </div>
+
+          {/* Titles */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2 sm:col-span-1">
+              <label className="text-xs text-muted-foreground mb-1.5 block">Titre FR</label>
+              <Input value={initial.title_fr} onChange={e => onChange({ ...initial, title_fr: e.target.value })} className="h-10 text-sm" />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <label className="text-xs text-muted-foreground mb-1.5 block">Titre EN</label>
+              <Input value={initial.title_en} onChange={e => onChange({ ...initial, title_en: e.target.value })} className="h-10 text-sm" />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <label className="text-xs text-muted-foreground mb-1.5 block">Description FR</label>
+              <Input value={initial.desc_fr} onChange={e => onChange({ ...initial, desc_fr: e.target.value })} className="h-10 text-sm" />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <label className="text-xs text-muted-foreground mb-1.5 block">Description EN</label>
+              <Input value={initial.desc_en} onChange={e => onChange({ ...initial, desc_en: e.target.value })} className="h-10 text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">{typeConfig.targetLabel}</label>
+              <Input type="number" value={initial.target_value} onChange={e => onChange({ ...initial, target_value: parseInt(e.target.value) || 1 })} className="h-10 text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Ordre</label>
+              <Input type="number" value={initial.sort_order} onChange={e => onChange({ ...initial, sort_order: parseInt(e.target.value) || 0 })} className="h-10 text-sm" />
+            </div>
+            <div className="col-span-2 flex items-center gap-2.5">
+              <input type="checkbox" id="is_daily_form" checked={!!initial.is_daily} onChange={e => onChange({ ...initial, is_daily: e.target.checked })} className="w-4 h-4 rounded accent-primary" />
+              <label htmlFor="is_daily_form" className="text-sm font-medium cursor-pointer select-none">Quête daily (réinitialisée chaque jour)</label>
+            </div>
+          </div>
+
+          {footer}
+        </div>
+
+        {/* Pinned footer */}
+        <div className="flex-shrink-0 p-4 border-t border-border" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)' }}>
+          <Button className="w-full h-11 rounded-xl" disabled={saving} onClick={onSave}>
+            {saving ? <><Spinner /><span className="ml-2">Sauvegarde...</span></> : <><Save className="w-3.5 h-3.5 mr-1.5" />{saveLabel}</>}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 type QuestFilter = 'all' | 'daily' | 'discover_n' | number
 
 const QUEST_FILTERS: { label: string; value: QuestFilter }[] = [
@@ -627,7 +867,10 @@ function QuestsTab() {
     await fetch('/api/admin/quests', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editing),
+      body: JSON.stringify({
+        ...editing,
+        required_element: editing.required_element ?? null,
+      }),
     })
     await fetchQuests()
     setSaving(false)
@@ -695,114 +938,28 @@ function QuestsTab() {
 
       {/* Quest detail / edit — fullscreen sheet, portaled to body to escape stacking context */}
       {editing && createPortal(
-        <div
-          className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex flex-col"
-          onClick={() => setEditing(null)}
-        >
-          <div
-            className="relative bg-card flex flex-col w-full h-full sm:m-auto sm:rounded-2xl sm:max-w-lg sm:h-auto sm:max-h-[90dvh]"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div
-              className="flex-shrink-0 flex items-center justify-between px-5 border-b border-border"
-              style={{ paddingTop: 'calc(env(safe-area-inset-top) + 14px)', paddingBottom: '14px' }}
-            >
-              <div>
-                <p className="text-[10px] font-mono text-muted-foreground mb-0.5">#{editing.id} · {editing.type}</p>
-                <h3 className="text-base font-bold leading-tight">{editing.title_fr}</h3>
-              </div>
+        <QuestFormSheet
+          title={`#${editing.id} · Modifier`}
+          stats={{ in_progress: editing.in_progress_count, completed: editing.completed_count, claimed: editing.claimed_count }}
+          initial={editing}
+          saving={saving}
+          onClose={() => setEditing(null)}
+          onSave={saveQuest}
+          footer={
+            <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+              <p className="text-xs font-semibold text-red-400 uppercase tracking-wide mb-3">Zone dangereuse</p>
               <button
-                onClick={() => setEditing(null)}
-                className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => deleteQuest(editing.id)}
+                disabled={!!deleting}
+                className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
               >
-                <X className="w-4 h-4" />
+                {deleting === editing.id ? <Spinner /> : <Trash2 className="w-4 h-4" />}
+                Supprimer cette quête
               </button>
             </div>
-
-            {/* Stats bar */}
-            <div className="flex-shrink-0 grid grid-cols-3 divide-x divide-border border-b border-border">
-              {[
-                { label: 'En cours', value: editing.in_progress_count },
-                { label: 'Complétées', value: editing.completed_count },
-                { label: 'Réclamées', value: editing.claimed_count, highlight: true },
-              ].map(({ label, value, highlight }) => (
-                <div key={label} className="flex flex-col items-center justify-center py-3 gap-0.5">
-                  <span className={`text-xl font-bold tabular-nums ${highlight ? 'text-emerald-400' : 'text-foreground'}`}>{value}</span>
-                  <span className="text-[10px] text-muted-foreground">{label}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Scrollable form */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-5">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="text-xs text-muted-foreground mb-1.5 block">Titre FR</label>
-                  <Input value={editing.title_fr} onChange={e => setEditing({ ...editing, title_fr: e.target.value })} className="h-10 text-sm" />
-                </div>
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="text-xs text-muted-foreground mb-1.5 block">Titre EN</label>
-                  <Input value={editing.title_en} onChange={e => setEditing({ ...editing, title_en: e.target.value })} className="h-10 text-sm" />
-                </div>
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="text-xs text-muted-foreground mb-1.5 block">Description FR</label>
-                  <Input value={editing.desc_fr} onChange={e => setEditing({ ...editing, desc_fr: e.target.value })} className="h-10 text-sm" />
-                </div>
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="text-xs text-muted-foreground mb-1.5 block">Description EN</label>
-                  <Input value={editing.desc_en} onChange={e => setEditing({ ...editing, desc_en: e.target.value })} className="h-10 text-sm" />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block">Objectif</label>
-                  <Input type="number" value={editing.target_value} onChange={e => setEditing({ ...editing, target_value: parseInt(e.target.value) || 1 })} className="h-10 text-sm" />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block">Ordre</label>
-                  <Input type="number" value={editing.sort_order} onChange={e => setEditing({ ...editing, sort_order: parseInt(e.target.value) || 0 })} className="h-10 text-sm" />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block">Icône</label>
-                  <Input value={editing.icon} onChange={e => setEditing({ ...editing, icon: e.target.value })} className="h-10 text-sm" />
-                </div>
-                <div className="flex items-end pb-1">
-                  <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={editing.is_daily}
-                      onChange={e => setEditing({ ...editing, is_daily: e.target.checked })}
-                      className="w-4 h-4 rounded accent-primary"
-                    />
-                    <span className="text-sm font-medium">Quête daily</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Danger zone */}
-              <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
-                <p className="text-xs font-semibold text-red-400 uppercase tracking-wide mb-3">Zone dangereuse</p>
-                <button
-                  onClick={() => deleteQuest(editing.id)}
-                  disabled={!!deleting}
-                  className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
-                >
-                  {deleting === editing.id ? <Spinner /> : <Trash2 className="w-4 h-4" />}
-                  Supprimer cette quête
-                </button>
-              </div>
-            </div>
-
-            {/* Pinned footer */}
-            <div
-              className="flex-shrink-0 p-4 border-t border-border"
-              style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)' }}
-            >
-              <Button className="w-full h-11 rounded-xl" disabled={saving} onClick={saveQuest}>
-                {saving ? <><Spinner /><span className="ml-2">Sauvegarde...</span></> : <><Save className="w-3.5 h-3.5 mr-1.5" />Sauvegarder</>}
-              </Button>
-            </div>
-          </div>
-        </div>
+          }
+          onChange={setEditing}
+        />
       , document.body)}
 
       {/* Quest card list — unified for all screen sizes */}
@@ -860,7 +1017,11 @@ function QuestsTab() {
 }
 
 function AddQuestModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
-  const [form, setForm] = useState({ type: 'discover_n', title_fr: '', title_en: '', desc_fr: '', desc_en: '', target_value: 10, icon: 'star', sort_order: 100, is_daily: false })
+  const [form, setForm] = useState<Partial<QuestDef>>({
+    type: 'discover_n', title_fr: '', title_en: '', desc_fr: '', desc_en: '',
+    target_value: 10, icon: 'star', sort_order: 100, is_daily: false,
+    required_element: null, element_img: null, element_name: null,
+  })
   const [saving, setSaving] = useState(false)
 
   const save = async () => {
@@ -870,37 +1031,17 @@ function AddQuestModal({ onClose, onAdded }: { onClose: () => void; onAdded: () 
     onAdded()
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-card border border-border rounded-2xl w-full max-w-lg shadow-2xl p-5 space-y-4" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Nouvelle quête</h3>
-          <Button variant="ghost" size="icon" className="w-7 h-7" onClick={onClose}><X className="w-3.5 h-3.5" /></Button>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div><label className="text-xs text-muted-foreground mb-1 block">Type</label>
-            <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="w-full h-8 rounded-md border border-border bg-background text-sm px-2">
-              {['discover_n','use_water_n','use_fire_n','use_air_n','use_earth_n','daily_login','daily_combo'].map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
-          <div><label className="text-xs text-muted-foreground mb-1 block">Objectif</label><Input type="number" value={form.target_value} onChange={e => setForm({ ...form, target_value: parseInt(e.target.value) || 1 })} className="h-8 text-sm" /></div>
-          <div><label className="text-xs text-muted-foreground mb-1 block">Titre FR</label><Input value={form.title_fr} onChange={e => setForm({ ...form, title_fr: e.target.value })} className="h-8 text-sm" /></div>
-          <div><label className="text-xs text-muted-foreground mb-1 block">Titre EN</label><Input value={form.title_en} onChange={e => setForm({ ...form, title_en: e.target.value })} className="h-8 text-sm" /></div>
-          <div><label className="text-xs text-muted-foreground mb-1 block">Desc FR</label><Input value={form.desc_fr} onChange={e => setForm({ ...form, desc_fr: e.target.value })} className="h-8 text-sm" /></div>
-          <div><label className="text-xs text-muted-foreground mb-1 block">Desc EN</label><Input value={form.desc_en} onChange={e => setForm({ ...form, desc_en: e.target.value })} className="h-8 text-sm" /></div>
-          <div><label className="text-xs text-muted-foreground mb-1 block">Icône</label><Input value={form.icon} onChange={e => setForm({ ...form, icon: e.target.value })} className="h-8 text-sm" /></div>
-          <div><label className="text-xs text-muted-foreground mb-1 block">Ordre</label><Input type="number" value={form.sort_order} onChange={e => setForm({ ...form, sort_order: parseInt(e.target.value) || 0 })} className="h-8 text-sm" /></div>
-          <div className="flex items-center gap-2 col-span-2">
-            <input type="checkbox" id="is_daily_new" checked={form.is_daily} onChange={e => setForm({ ...form, is_daily: e.target.checked })} className="rounded" />
-            <label htmlFor="is_daily_new" className="text-sm cursor-pointer">Quête daily (réinitialisée chaque jour)</label>
-          </div>
-        </div>
-        <Button className="w-full" disabled={saving || !form.title_fr} onClick={save}>
-          {saving ? <><Spinner /><span className="ml-2">Création...</span></> : <><Plus className="w-3.5 h-3.5 mr-1.5" />Créer</>}
-        </Button>
-      </div>
-    </div>
-  )
+  return createPortal(
+    <QuestFormSheet
+      title="Nouvelle quête"
+      initial={form as QuestDef}
+      saving={saving}
+      onClose={onClose}
+      onSave={save}
+      onChange={setForm as (q: QuestDef) => void}
+      saveLabel="Créer"
+    />
+  , document.body)
 }
 
 // ─── Tab: Elements (refactored, same logic, new look) ─────────────────────────
@@ -1837,7 +1978,7 @@ function ElementsImpact() {
   )
 }
 
-// ─── Tab: Stats ─────────────────────────────────────────────────────────────
+// ─── Tab: Stats ───────────────────────────────��─────────────────────────────
 
 type DayCount = { day: string; count: number }
 type Granularity = 'hour' | 'day' | 'week'

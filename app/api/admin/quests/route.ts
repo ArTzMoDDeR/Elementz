@@ -25,16 +25,18 @@ export async function GET() {
       COUNT(DISTINCT uq.user_id) FILTER (WHERE uq.progress > 0)::int AS in_progress_count,
       (
         SELECT e.img FROM elements e
-        WHERE qd.title_fr ILIKE ('%' || e.name_french || '%')
+        WHERE e.number = qd.required_element::int
+           OR qd.title_fr ILIKE ('%' || e.name_french || '%')
            OR qd.desc_fr  ILIKE ('%' || e.name_french || '%')
-        ORDER BY length(e.name_french) DESC
+        ORDER BY (e.number = qd.required_element::int) DESC, length(e.name_french) DESC
         LIMIT 1
       ) AS element_img,
       (
         SELECT e.name_french FROM elements e
-        WHERE qd.title_fr ILIKE ('%' || e.name_french || '%')
+        WHERE e.number = qd.required_element::int
+           OR qd.title_fr ILIKE ('%' || e.name_french || '%')
            OR qd.desc_fr  ILIKE ('%' || e.name_french || '%')
-        ORDER BY length(e.name_french) DESC
+        ORDER BY (e.number = qd.required_element::int) DESC, length(e.name_french) DESC
         LIMIT 1
       ) AS element_name
     FROM quest_definitions qd
@@ -50,11 +52,18 @@ export async function PATCH(req: NextRequest) {
   const sql = neon(process.env.DATABASE_URL!)
   if (!(await checkAdmin(session, sql))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { id, title_fr, title_en, desc_fr, desc_en, target_value, icon, sort_order, is_daily } = await req.json()
+  const { id, type, title_fr, title_en, desc_fr, desc_en, target_value, icon, sort_order, is_daily, required_element } = await req.json()
+  const reqEl = required_element !== undefined && required_element !== '' && required_element !== null
+    ? Number(required_element)
+    : null
   await sql`
     UPDATE quest_definitions
-    SET title_fr = ${title_fr}, title_en = ${title_en}, desc_fr = ${desc_fr}, desc_en = ${desc_en},
-        target_value = ${target_value}, icon = ${icon}, sort_order = ${sort_order}, is_daily = ${is_daily}
+    SET type = ${type},
+        title_fr = ${title_fr}, title_en = ${title_en},
+        desc_fr = ${desc_fr}, desc_en = ${desc_en},
+        target_value = ${target_value}, icon = ${icon},
+        sort_order = ${sort_order}, is_daily = ${is_daily},
+        required_element = ${reqEl}
     WHERE id = ${id}
   `
   return NextResponse.json({ ok: true })
@@ -65,10 +74,13 @@ export async function POST(req: NextRequest) {
   const sql = neon(process.env.DATABASE_URL!)
   if (!(await checkAdmin(session, sql))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { type, title_fr, title_en, desc_fr, desc_en, target_value, icon, sort_order, is_daily } = await req.json()
+  const { type, title_fr, title_en, desc_fr, desc_en, target_value, icon, sort_order, is_daily, required_element } = await req.json()
+  const reqEl = required_element !== undefined && required_element !== '' && required_element !== null
+    ? Number(required_element)
+    : null
   const [row] = await sql`
-    INSERT INTO quest_definitions (type, title_fr, title_en, desc_fr, desc_en, target_value, icon, sort_order, is_daily)
-    VALUES (${type}, ${title_fr}, ${title_en}, ${desc_fr}, ${desc_en}, ${target_value}, ${icon}, ${sort_order}, ${is_daily})
+    INSERT INTO quest_definitions (type, title_fr, title_en, desc_fr, desc_en, target_value, icon, sort_order, is_daily, required_element)
+    VALUES (${type}, ${title_fr}, ${title_en}, ${desc_fr}, ${desc_en}, ${target_value}, ${icon}, ${sort_order}, ${is_daily}, ${reqEl})
     RETURNING *
   `
   return NextResponse.json(row)
