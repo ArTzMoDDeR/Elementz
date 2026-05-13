@@ -10,6 +10,7 @@ import { useGameStore } from '@/hooks/use-game-store'
 import { useHint } from '@/hooks/use-hint'
 import { subscribeToPush, unsubscribeFromPush } from '@/hooks/use-push-subscription'
 import { Lightbulb, Trash2, BarChart2, Hand, MousePointer, Lock } from 'lucide-react'
+import { type ElementDef } from '@/lib/game-data'
 import EmailSignIn from '@/components/email-sign-in'
 
 const PROGRESS_MILESTONES = [10, 20, 50, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900]
@@ -235,7 +236,6 @@ function QuestElementReveal({
 }
 
 // ─── iOS-style top discovery pill ────────────────────────────────────────────
-type ElementDef = { number: number; name: string; imageUrl?: string; color?: string }
 
 const DISCOVERY_MESSAGES_FR = [
   (name: string) => `Bravo ! Tu viens de découvrir ${name}`,
@@ -378,42 +378,6 @@ export function AlchemyGame() {
   const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(true)
   const [suppressUnlockNotif, setSuppressUnlockNotif] = useState(false)
 
-  // Quest element reveal — fullscreen, shown once per element per device
-  const [questReveal, setQuestReveal] = useState<{ element: ElementDef; questTitle: string } | null>(null)
-  const discoverQuestsRef = useRef<{ required_element: number; title_fr: string; title_en: string }[]>([])
-  const shownQuestRevealRef = useRef<Set<number>>(new Set())
-
-  // Load discover_element quests once
-  useEffect(() => {
-    fetch('/api/quests')
-      .then(r => r.json())
-      .then((data: any[]) => {
-        if (!Array.isArray(data)) return
-        discoverQuestsRef.current = data
-          .filter((q: any) => q.type === 'discover_element' && q.required_element)
-          .map((q: any) => ({ required_element: Number(q.required_element), title_fr: q.title_fr, title_en: q.title_en }))
-        // Load already-shown set from localStorage
-        try {
-          const raw = localStorage.getItem('quest-reveals-shown')
-          if (raw) JSON.parse(raw).forEach((n: number) => shownQuestRevealRef.current.add(n))
-        } catch {}
-      })
-      .catch(() => {})
-  }, [])
-
-  // Trigger reveal when a relevant element is newly discovered
-  useEffect(() => {
-    if (newlyDiscovered == null) return
-    const match = discoverQuestsRef.current.find(q => q.required_element === newlyDiscovered)
-    if (!match) return
-    if (shownQuestRevealRef.current.has(newlyDiscovered)) return
-    const el = elements.get(newlyDiscovered)
-    if (!el) return
-    // Mark as shown
-    shownQuestRevealRef.current.add(newlyDiscovered)
-    try { localStorage.setItem('quest-reveals-shown', JSON.stringify([...shownQuestRevealRef.current])) } catch {}
-    setQuestReveal({ element: el, questTitle: lang === 'fr' ? match.title_fr : match.title_en })
-  }, [newlyDiscovered, elements, lang])
   const {
     lang,
     setLang,
@@ -439,6 +403,41 @@ export function AlchemyGame() {
     unlockAll,
     discoverElements,
   } = useGameStore()
+
+  // Quest element reveal — fullscreen, shown once per element per device
+  const [questReveal, setQuestReveal] = useState<{ element: ElementDef; questTitle: string } | null>(null)
+  const discoverQuestsRef = useRef<{ required_element: number; title_fr: string; title_en: string }[]>([])
+  const shownQuestRevealRef = useRef<Set<number>>(new Set())
+
+  // Load discover_element quests once
+  useEffect(() => {
+    fetch('/api/quests')
+      .then(r => r.json())
+      .then((data: any[]) => {
+        if (!Array.isArray(data)) return
+        discoverQuestsRef.current = data
+          .filter((q: any) => q.type === 'discover_element' && q.required_element)
+          .map((q: any) => ({ required_element: Number(q.required_element), title_fr: q.title_fr, title_en: q.title_en }))
+        try {
+          const raw = localStorage.getItem('quest-reveals-shown')
+          if (raw) JSON.parse(raw).forEach((n: number) => shownQuestRevealRef.current.add(n))
+        } catch {}
+      })
+      .catch(() => {})
+  }, [])
+
+  // Trigger reveal when a relevant element is newly discovered
+  useEffect(() => {
+    if (newlyDiscovered == null) return
+    const match = discoverQuestsRef.current.find(q => q.required_element === newlyDiscovered)
+    if (!match) return
+    if (shownQuestRevealRef.current.has(newlyDiscovered)) return
+    const el = elements.get(newlyDiscovered)
+    if (!el) return
+    shownQuestRevealRef.current.add(newlyDiscovered)
+    try { localStorage.setItem('quest-reveals-shown', JSON.stringify([...shownQuestRevealRef.current])) } catch {}
+    setQuestReveal({ element: el, questTitle: lang === 'fr' ? match.title_fr : match.title_en })
+  }, [newlyDiscovered, elements, lang])
 
   const {
     hintsEnabled, setHintsEnabled,
