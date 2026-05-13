@@ -29,10 +29,12 @@ export default function TermsPage() {
       lastUpdatedFr="6 mars 2025"
       lastUpdatedEn="6 March 2025"
       footerFr={<>
+        <Link href="/about" className="hover:text-foreground transition-colors">À propos</Link>
         <Link href="/privacy" className="hover:text-foreground transition-colors">Politique de confidentialité</Link>
         <Link href="/legal" className="hover:text-foreground transition-colors">Mentions légales</Link>
       </>}
       footerEn={<>
+        <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
         <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
         <Link href="/legal" className="hover:text-foreground transition-colors">Legal Notice</Link>
       </>}

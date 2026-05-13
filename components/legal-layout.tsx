@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import Link from 'next/link'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft } from 'lucide-react'
 
 interface LegalLayoutProps {
   defaultLang?: 'fr' | 'en'
@@ -22,51 +23,79 @@ export default function LegalLayout({
   footerFr, footerEn,
   contentFr, contentEn,
 }: LegalLayoutProps) {
+  const router = useRouter()
   const [lang, setLang] = useState<'fr' | 'en'>(defaultLang)
   const isFr = lang === 'fr'
 
+  // Auto-detect browser language on mount
+  useEffect(() => {
+    const browserLang = navigator.language || ''
+    setLang(browserLang.toLowerCase().startsWith('fr') ? 'fr' : 'en')
+  }, [])
+
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <div className="max-w-2xl mx-auto px-6 py-12">
+    <main
+      className="min-h-screen bg-background text-foreground"
+      style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+    >
+      {/* Sticky top bar */}
+      <div
+        className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border/40"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+      >
+        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
+          {/* Back button */}
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-1.5 text-primary text-sm font-medium cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={2.5} />
+            <span>Elementz</span>
+          </button>
 
-        {/* Top bar: back + lang switcher */}
-        <div className="flex items-center justify-between mb-10">
-          <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-            Elementz
-          </Link>
-
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-muted border border-border">
+          {/* Language switcher */}
+          <div className="flex items-center gap-0.5 p-1 rounded-xl bg-muted/60">
             <button
               onClick={() => setLang('fr')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                isFr ? 'bg-background text-foreground shadow-sm border border-border' : 'text-muted-foreground hover:text-foreground'
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                isFr ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
               }`}
             >
               FR
             </button>
             <button
               onClick={() => setLang('en')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                !isFr ? 'bg-background text-foreground shadow-sm border border-border' : 'text-muted-foreground hover:text-foreground'
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                !isFr ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
               }`}
             >
               EN
             </button>
           </div>
         </div>
+      </div>
 
-        <h1 className="text-3xl font-bold text-foreground mb-2">{isFr ? titleFr : titleEn}</h1>
-        <p className="text-sm text-muted-foreground mb-10">
-          {isFr ? `Dernière mise à jour : ${lastUpdatedFr}` : `Last updated: ${lastUpdatedEn}`}
-        </p>
+      {/* Content */}
+      <div className="max-w-2xl mx-auto px-5 py-10">
 
-        <div className="flex flex-col gap-8 text-sm leading-relaxed text-foreground/80">
+        {/* Title block */}
+        <div className="mb-10">
+          <h1 className="text-3xl font-bold text-foreground tracking-tight text-balance">
+            {isFr ? titleFr : titleEn}
+          </h1>
+          <p className="text-xs text-muted-foreground/50 mt-2 tabular-nums">
+            {isFr ? `Dernière mise à jour : ${lastUpdatedFr}` : `Last updated: ${lastUpdatedEn}`}
+          </p>
+        </div>
+
+        {/* Sections */}
+        <div className="text-sm leading-relaxed text-foreground/80">
           <div className={isFr ? 'flex flex-col gap-8' : 'hidden'}>{contentFr}</div>
           <div className={!isFr ? 'flex flex-col gap-8' : 'hidden'}>{contentEn}</div>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-border flex gap-4 text-xs text-muted-foreground">
+        {/* Footer links */}
+        <div className="mt-14 pt-6 border-t border-border/40 flex flex-wrap gap-x-6 gap-y-2 text-xs text-muted-foreground/50">
           {isFr ? footerFr : footerEn}
         </div>
       </div>
