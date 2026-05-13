@@ -1691,7 +1691,123 @@ function EmailTab() {
   )
 }
 
-// ─── Tab: Stats ─────────────────��────────────────────────────────────────────
+// ─── Elements Impact ────────────────────────────────────────────────────────
+
+type ImpactRow = {
+  number: number
+  name_fr: string
+  name_en: string
+  img: string | null
+  tier: number | null
+  recipes_as_ingredient: number
+  unique_results: number
+  discovered_by: number
+}
+
+function ElementsImpact() {
+  const [data, setData] = useState<{ impact: ImpactRow[]; totalRecipes: number } | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/admin/elements-impact')
+      .then(r => r.json())
+      .then(d => { setData(d); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [])
+
+  if (loading) return <div className="flex justify-center py-12"><Spinner size="md" /></div>
+  if (!data) return <p className="text-sm text-muted-foreground text-center py-12">Erreur de chargement</p>
+
+  const max = data.impact[0]?.recipes_as_ingredient ?? 1
+
+  const tierColor = (tier: number | null) => {
+    if (tier == null) return 'text-muted-foreground/40'
+    if (tier <= 1) return 'text-sky-400'
+    if (tier <= 3) return 'text-emerald-400'
+    if (tier <= 6) return 'text-amber-400'
+    return 'text-orange-400'
+  }
+
+  return (
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+        <div>
+          <p className="text-sm font-semibold">Elements les plus importants</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Top 30 par nombre de recettes ou ils apparaissent comme ingredient
+          </p>
+        </div>
+        <span className="text-xs text-muted-foreground tabular-nums">{data.totalRecipes} recettes total</span>
+      </div>
+
+      {/* List */}
+      <div className="divide-y divide-border/40">
+        {data.impact.map((el, i) => {
+          const pct = max > 0 ? (el.recipes_as_ingredient / max) * 100 : 0
+          const coverage = data.totalRecipes > 0
+            ? ((el.recipes_as_ingredient / data.totalRecipes) * 100).toFixed(1)
+            : '0'
+          return (
+            <div key={el.number} className="flex items-center gap-3 px-5 py-3 group hover:bg-muted/20 transition-colors">
+              {/* Rank */}
+              <span className={`w-6 text-center text-xs font-bold tabular-nums flex-shrink-0 ${i < 3 ? 'text-amber-400' : 'text-muted-foreground/40'}`}>
+                {i + 1}
+              </span>
+
+              {/* Element image or placeholder */}
+              <div className="w-9 h-9 rounded-xl bg-muted border border-border flex items-center justify-center flex-shrink-0 overflow-hidden">
+                {el.img
+                  ? <img src={el.img} alt={el.name_fr} className="w-7 h-7 object-contain" />
+                  : <span className="text-[9px] font-mono text-muted-foreground">#{el.number}</span>
+                }
+              </div>
+
+              {/* Name + bar */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-sm font-semibold truncate">{el.name_fr}</span>
+                  {el.tier != null && (
+                    <span className={`text-[10px] font-mono ${tierColor(el.tier)}`}>T{el.tier}</span>
+                  )}
+                </div>
+                {/* Progress bar */}
+                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: pct + '%',
+                      background: i < 3 ? '#f59e0b' : i < 10 ? '#3b82f6' : '#6b7280',
+                      opacity: 0.8,
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="flex items-center gap-4 flex-shrink-0 text-right">
+                <div className="hidden sm:flex flex-col items-end">
+                  <span className="text-xs font-bold tabular-nums">{el.unique_results}</span>
+                  <span className="text-[10px] text-muted-foreground leading-none">resultats</span>
+                </div>
+                <div className="hidden sm:flex flex-col items-end">
+                  <span className="text-xs font-semibold tabular-nums text-muted-foreground">{coverage}%</span>
+                  <span className="text-[10px] text-muted-foreground leading-none">couverture</span>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="text-sm font-bold tabular-nums">{el.recipes_as_ingredient}</span>
+                  <span className="text-[10px] text-muted-foreground leading-none">recettes</span>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ─── Tab: Stats ─────────────────────────────────────────────────────────────
 
 type DayCount = { day: string; count: number }
 type Granularity = 'hour' | 'day' | 'week'
@@ -2029,6 +2145,9 @@ function StatsTab() {
           </div>
         </div>
       </div>
+
+      {/* Elements importance ranking */}
+      <ElementsImpact />
 
     </div>
   )
