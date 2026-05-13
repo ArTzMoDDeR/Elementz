@@ -144,6 +144,96 @@ function PushPromptModal({ lang, onAccept, onDecline }: { lang: string; onAccept
   )
 }
 
+// ─── Quest element fullscreen reveal ─────────────────────────────────────────
+// Shown once (ever) when the player discovers an element tied to a discover_element quest.
+function QuestElementReveal({
+  element,
+  questTitle,
+  lang,
+  onDismiss,
+}: {
+  element: ElementDef
+  questTitle: string
+  lang: 'fr' | 'en'
+  onDismiss: () => void
+}) {
+  const skipRef = useRef<(() => void) | null>(null)
+  const [exiting, setExiting] = useState(false)
+
+  useEffect(() => {
+    const dismiss = () => {
+      setExiting(true)
+      setTimeout(onDismiss, 380)
+    }
+    const t = setTimeout(dismiss, 4000)
+    skipRef.current = () => { clearTimeout(t); dismiss() }
+    return () => clearTimeout(t)
+  }, [onDismiss])
+
+  const handleTap = () => {
+    const fn = skipRef.current
+    skipRef.current = null
+    if (fn) fn()
+  }
+
+  const t = (fr: string, en: string) => lang === 'fr' ? fr : en
+
+  return (
+    <div
+      className="fixed inset-0 z-[10010] flex flex-col cursor-pointer select-none"
+      style={{
+        background: 'var(--background)',
+        paddingTop:    'calc(env(safe-area-inset-top, 0px) + 4rem)',
+        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 3rem)',
+        animation: exiting
+          ? 'questRevealOut 0.38s cubic-bezier(0.4,0,1,1) forwards'
+          : 'questRevealIn 0.42s cubic-bezier(0.22,1,0.36,1) forwards',
+      }}
+      onClick={handleTap}
+    >
+      <div className="flex flex-col items-center justify-center gap-8 w-full max-w-sm mx-auto flex-1">
+        {/* Glowing ring behind the element image */}
+        <div className="relative flex items-center justify-center onboard-pop" style={{ animationDelay: '0.05s' }}>
+          <div
+            className="absolute w-44 h-44 rounded-full"
+            style={{
+              background: `radial-gradient(circle, ${element.color ?? 'oklch(0.72 0.22 200)'}22 0%, transparent 70%)`,
+              animation: 'questRingPulse 2.2s ease-in-out infinite',
+            }}
+          />
+          <div
+            className="w-32 h-32 rounded-3xl flex items-center justify-center"
+            style={{
+              background: `${element.color ?? 'oklch(0.72 0.22 200)'}18`,
+              border: `1.5px solid ${element.color ?? 'oklch(0.72 0.22 200)'}40`,
+              boxShadow: `0 0 40px ${element.color ?? 'oklch(0.72 0.22 200)'}25`,
+            }}
+          >
+            {element.imageUrl
+              ? <img src={element.imageUrl} alt={element.name} className="w-20 h-20 object-contain" draggable={false} />
+              : <span className="text-5xl">{element.name[0]}</span>
+            }
+          </div>
+        </div>
+
+        {/* Text */}
+        <div className="flex flex-col items-center gap-3 text-center onboard-fade-up" style={{ animationDelay: '0.12s' }}>
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/50">
+            {t('Quête débloquée', 'Quest unlocked')}
+          </p>
+          <h2 className="text-5xl font-bold text-foreground text-balance leading-tight">
+            {element.name}
+          </h2>
+          <p className="text-sm text-muted-foreground/60 leading-relaxed text-pretty">
+            {questTitle}
+          </p>
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground/30 text-center w-full">{t('Appuie pour continuer', 'Tap to continue')}</p>
+    </div>
+  )
+}
+
 // ─── iOS-style top discovery pill ────────────────────────────────────────────
 type ElementDef = { number: number; name: string; imageUrl?: string; color?: string }
 
@@ -286,6 +376,44 @@ export function AlchemyGame() {
   const [showPushPrompt, setShowPushPrompt] = useState(false)
   const [avatarRefreshKey, setAvatarRefreshKey] = useState(0)
   const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(true)
+  const [suppressUnlockNotif, setSuppressUnlockNotif] = useState(false)
+
+  // Quest element reveal — fullscreen, shown once per element per device
+  const [questReveal, setQuestReveal] = useState<{ element: ElementDef; questTitle: string } | null>(null)
+  const discoverQuestsRef = useRef<{ required_element: number; title_fr: string; title_en: string }[]>([])
+  const shownQuestRevealRef = useRef<Set<number>>(new Set())
+
+  // Load discover_element quests once
+  useEffect(() => {
+    fetch('/api/quests')
+      .then(r => r.json())
+      .then((data: any[]) => {
+        if (!Array.isArray(data)) return
+        discoverQuestsRef.current = data
+          .filter((q: any) => q.type === 'discover_element' && q.required_element)
+          .map((q: any) => ({ required_element: Number(q.required_element), title_fr: q.title_fr, title_en: q.title_en }))
+        // Load already-shown set from localStorage
+        try {
+          const raw = localStorage.getItem('quest-reveals-shown')
+          if (raw) JSON.parse(raw).forEach((n: number) => shownQuestRevealRef.current.add(n))
+        } catch {}
+      })
+      .catch(() => {})
+  }, [])
+
+  // Trigger reveal when a relevant element is newly discovered
+  useEffect(() => {
+    if (newlyDiscovered == null) return
+    const match = discoverQuestsRef.current.find(q => q.required_element === newlyDiscovered)
+    if (!match) return
+    if (shownQuestRevealRef.current.has(newlyDiscovered)) return
+    const el = elements.get(newlyDiscovered)
+    if (!el) return
+    // Mark as shown
+    shownQuestRevealRef.current.add(newlyDiscovered)
+    try { localStorage.setItem('quest-reveals-shown', JSON.stringify([...shownQuestRevealRef.current])) } catch {}
+    setQuestReveal({ element: el, questTitle: lang === 'fr' ? match.title_fr : match.title_en })
+  }, [newlyDiscovered, elements, lang])
   const {
     lang,
     setLang,
@@ -431,6 +559,7 @@ export function AlchemyGame() {
         if (d.theme === 'light' || d.theme === 'dark') setTheme(d.theme)
         // Apply saved push notifications preference
         if (typeof d.push_notifications === 'boolean') setPushNotificationsEnabled(d.push_notifications)
+        if (typeof d.suppress_unlock_notif === 'boolean') setSuppressUnlockNotif(d.suppress_unlock_notif)
         // Show one-time push prompt for users who haven't been asked yet
         // Skip if onboarding is pending — onboarding already has its own notifications step
         if (!d.push_prompt_shown && d.onboarding_done && typeof window !== 'undefined' && 'Notification' in window) {
@@ -591,6 +720,14 @@ export function AlchemyGame() {
             fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push_notifications: next }) })
           }
         }}
+        suppressUnlockNotif={suppressUnlockNotif}
+        onToggleSuppressUnlockNotif={() => {
+          const next = !suppressUnlockNotif
+          setSuppressUnlockNotif(next)
+          if (session?.user?.id) {
+            fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ suppress_unlock_notif: next }) })
+          }
+        }}
         onTapModeChange={handleTapModeChange}
 
         playgroundItemsCount={playground.length}
@@ -673,14 +810,26 @@ export function AlchemyGame() {
         )}
       </div>
 
-      {/* ── iOS-style top discovery pill (mobile only) ───────────────── */}
-      <DiscoveryPill
-        newlyDiscovered={newlyDiscovered}
-        lastComboIngredients={lastComboIngredients}
-        elements={elements}
-        lang={lang}
-        onDismiss={handleDismissNotification}
-      />
+      {/* ── Quest element fullscreen reveal ─────────────────────────── */}
+      {questReveal && (
+        <QuestElementReveal
+          element={questReveal.element}
+          questTitle={questReveal.questTitle}
+          lang={lang as 'fr' | 'en'}
+          onDismiss={() => setQuestReveal(null)}
+        />
+      )}
+
+      {/* ── iOS-style top discovery pill ───────────────────────────── */}
+      {!suppressUnlockNotif && !questReveal && (
+        <DiscoveryPill
+          newlyDiscovered={newlyDiscovered}
+          lastComboIngredients={lastComboIngredients}
+          elements={elements}
+          lang={lang}
+          onDismiss={handleDismissNotification}
+        />
+      )}
     </div>
   )
 }

@@ -319,6 +319,7 @@ function QuestRow({ quest, lang, onClaim, onScratch }: {
   const isDone = isClaimed && allScratched
 
   const Icon = ICON_MAP[quest.icon] ?? Star
+  const isIconUrl = quest.icon && (quest.icon.startsWith('http') || quest.icon.startsWith('/'))
 
   const handleClaim = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -328,35 +329,39 @@ function QuestRow({ quest, lang, onClaim, onScratch }: {
     setClaiming(false)
   }
 
-  const iconBg = isDone ? 'bg-muted/50' : isClaimed ? 'bg-muted/50' : isReady ? 'bg-foreground/8' : quest.is_daily ? 'bg-muted/50' : 'bg-muted/50'
-  const iconColor = isDone ? 'text-muted-foreground/25' : isClaimed ? 'text-muted-foreground/40' : isReady ? 'text-foreground/80' : quest.is_daily ? 'text-foreground/60' : 'text-muted-foreground/60'
-  const trackColor = isReady ? '' : 'bg-muted-foreground/30'
   const trackStyle = isReady ? { background: '#818cf8' } : {}
 
   return (
-    <div className={`border-b border-border/20 last:border-b-0 ${isDone ? 'opacity-35' : ''}`}>
+    <div className={`border-b border-border/20 last:border-b-0 transition-opacity ${isDone ? 'opacity-30' : ''}`}>
       <button
         className="w-full flex items-center gap-3 py-3.5 text-left cursor-pointer"
         onClick={() => setOpen(o => !o)}
         aria-expanded={open}
       >
-        <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>
-          {isDone
-            ? <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground/25" />
-            : <Icon className={`w-3.5 h-3.5 ${iconColor}`} />
-          }
+        {/* Icon */}
+        <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden ${isDone ? 'bg-muted/30' : isReady ? 'bg-muted/60' : 'bg-muted/40'}`}>
+          {isDone ? (
+            <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground/25" />
+          ) : isIconUrl ? (
+            <img src={quest.icon} alt="" className="w-5 h-5 object-contain" draggable={false} />
+          ) : (
+            <Icon className={`w-3.5 h-3.5 ${isReady ? 'text-foreground/70' : 'text-muted-foreground/50'}`} />
+          )}
         </div>
 
+        {/* Content */}
         <div className="flex-1 min-w-0">
-          <span className={`text-sm font-medium leading-tight block truncate ${isDone ? 'line-through text-muted-foreground/40' : 'text-foreground'}`}>
+          <span className={`text-sm font-medium leading-tight block truncate ${isDone ? 'line-through text-muted-foreground/35' : 'text-foreground'}`}>
             {title}
           </span>
-          {!isClaimed && (
+
+          {/* Progress bar — only when not yet claimed */}
+          {!isClaimed && !isDone && (
             <div className="flex items-center gap-2 mt-1.5">
-              <div className="flex-1 h-[3px] rounded-full bg-muted overflow-hidden">
+              <div className="flex-1 h-[3px] rounded-full bg-muted/60 overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-700 ${trackColor}`}
-                  style={{ width: `${pct}%`, ...trackStyle }}
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{ width: `${pct}%`, background: isReady ? '#818cf8' : 'hsl(var(--muted-foreground) / 0.35)', ...trackStyle }}
                 />
               </div>
               <span className="text-[10px] tabular-nums text-muted-foreground/35 flex-shrink-0">
@@ -364,18 +369,25 @@ function QuestRow({ quest, lang, onClaim, onScratch }: {
               </span>
             </div>
           )}
-          {isClaimed && !allScratched && (
-            <span className="text-[10px] text-muted-foreground/50 font-medium mt-0.5 block">
+
+          {/* "Ready to scratch" subtitle */}
+          {isClaimed && !allScratched && !isDone && (
+            <span className="text-[10px] font-medium mt-0.5 block" style={{ color: '#818cf8aa' }}>
               {lang === 'fr' ? 'Prête à gratter' : 'Ready to scratch'}
             </span>
           )}
         </div>
 
-        {/* Dot or chevron — self-center aligns with the row midpoint */}
+        {/* Right badge */}
         {isReady && !isClaimed ? (
-          <div className="flex-shrink-0 self-center w-1.5 h-1.5 rounded-full" style={{ background: '#818cf8' }} />
+          <span
+            className="flex-shrink-0 self-center text-[10px] font-bold px-2 py-0.5 rounded-full"
+            style={{ background: 'rgba(99,102,241,0.18)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.3)' }}
+          >
+            {lang === 'fr' ? 'Prête' : 'Ready'}
+          </span>
         ) : (
-          <ChevronRight className={`w-3.5 h-3.5 flex-shrink-0 self-center transition-transform duration-200 ${open ? 'rotate-90' : ''} text-muted-foreground/25`} />
+          <ChevronRight className={`w-3.5 h-3.5 flex-shrink-0 self-center transition-transform duration-200 ${open ? 'rotate-90' : ''} text-muted-foreground/20`} />
         )}
       </button>
 
