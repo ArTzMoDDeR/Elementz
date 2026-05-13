@@ -34,7 +34,7 @@ export async function GET() {
       SELECT
         qd.id, qd.type, qd.title_fr, qd.title_en, qd.desc_fr, qd.desc_en,
         qd.target_value, qd.icon, qd.sort_order, qd.is_daily, qd.reset_hours,
-        qd.required_element,
+        qd.required_element, qd.difficulty,
         COALESCE(uq.progress, 0) AS progress,
         uq.completed_at, uq.claimed_at, uq.reset_at
       FROM quest_definitions qd
