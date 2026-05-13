@@ -550,12 +550,23 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
   const daily = quests.filter(q => q.is_daily)
   const permanent = quests.filter(q => !q.is_daily)
 
+  const DIFF_ORDER: Difficulty[] = ['easy', 'medium', 'hard', 'impossible']
+
+  // Sort: ready (progress >= target, not yet claimed) first → claimed (pending scratch) → then by progress % desc
+  const questSort = (a: Quest, b: Quest) => {
+    const isReady = (q: Quest) => q.progress >= q.target_value && !q.claimed_at
+    const isClaimed = (q: Quest) => !!q.claimed_at
+    const rank = (q: Quest) => isReady(q) ? 0 : isClaimed(q) ? 1 : 2
+    const ra = rank(a), rb = rank(b)
+    if (ra !== rb) return ra - rb
+    // Within same rank: sort by progress % desc
+    return (b.progress / b.target_value) - (a.progress / a.target_value)
+  }
+
   const pendingDaily = daily
     .filter(q => !isDone(q))
     .filter(q => diffFilter === 'all' || q.difficulty === diffFilter)
-    .sort((a, b) => (b.progress / b.target_value) - (a.progress / a.target_value))
-
-  const DIFF_ORDER: Difficulty[] = ['easy', 'medium', 'hard', 'impossible']
+    .sort(questSort)
 
   const pendingPermanent = permanent
     .filter(q => !isDone(q))
@@ -566,7 +577,7 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
         const db = DIFF_ORDER.indexOf(b.difficulty)
         if (da !== db) return da - db
       }
-      return a.sort_order - b.sort_order
+      return questSort(a, b)
     })
 
   // When showing "All", group permanent quests by difficulty section
@@ -574,6 +585,7 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
     easy: [], medium: [], hard: [], impossible: [],
   }
   pendingPermanent.forEach(q => permanentByDiff[q.difficulty].push(q))
+  DIFF_ORDER.forEach(d => permanentByDiff[d].sort(questSort))
 
   const hasPermanent = pendingPermanent.length > 0
   const hasDaily = pendingDaily.length > 0
@@ -655,33 +667,35 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
     <>
       <div className="flex flex-col gap-4 py-1">
 
-        {/* Header — iOS style */}
-        <div className="flex flex-col gap-0.5">
-          <h2 className="text-2xl font-bold text-foreground tracking-tight">{t('Quêtes', 'Quests')}</h2>
-          <p className="text-xs text-muted-foreground/40">{t('Objectifs & récompenses', 'Goals & rewards')}</p>
-        </div>
+        {/* Header — iOS style with inline difficulty picker */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-0.5">
+            <h2 className="text-2xl font-bold text-foreground tracking-tight">{t('Quêtes', 'Quests')}</h2>
+            <p className="text-xs text-muted-foreground/40">{t('Objectifs & récompenses', 'Goals & rewards')}</p>
+          </div>
 
-        {/* Difficulty filter */}
-        <div className="flex gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
-          {DIFF_CONFIG.map(d => {
-            const active = diffFilter === d.value
-            return (
-              <button
-                key={d.value}
-                onClick={() => setDiffFilter(d.value)}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-                  active
-                    ? 'bg-foreground/10 text-foreground'
-                    : 'text-muted-foreground/50 hover:text-muted-foreground'
-                }`}
-              >
-                {d.value !== 'all' && (
-                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${DIFF_DOT[d.value as Difficulty]}`} />
-                )}
-                {lang === 'fr' ? d.labelFr : d.labelEn}
-              </button>
-            )
-          })}
+          {/* Compact difficulty selector */}
+          <div className="relative flex-shrink-0 mt-1">
+            <select
+              value={diffFilter}
+              onChange={e => setDiffFilter(e.target.value as typeof diffFilter)}
+              className="appearance-none cursor-pointer pl-6 pr-5 py-1.5 rounded-xl bg-muted/60 border border-border/40 text-xs font-semibold text-foreground focus:outline-none"
+            >
+              {DIFF_CONFIG.map(d => (
+                <option key={d.value} value={d.value}>
+                  {lang === 'fr' ? d.labelFr : d.labelEn}
+                </option>
+              ))}
+            </select>
+            {/* Colored dot for active filter */}
+            {diffFilter !== 'all' && (
+              <span className={`pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full ${DIFF_DOT[diffFilter as Difficulty]}`} />
+            )}
+            {diffFilter === 'all' && (
+              <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-foreground/30" />
+            )}
+            <ChevronRight className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground/50 rotate-90" />
+          </div>
         </div>
 
         {loading ? (
