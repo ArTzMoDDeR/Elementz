@@ -964,10 +964,13 @@ function QuestsTab() {
   }
 
   const filteredQuests = quests.filter(q => {
-    if (activeFilter === 'all')       return !q.is_daily && q.type !== 'discover_n'
-    if (activeFilter === 'daily')     return q.is_daily
+    if (activeFilter === 'all')        return !q.is_daily && q.type !== 'discover_n'
+    if (activeFilter === 'daily')      return q.is_daily
     if (activeFilter === 'discover_n') return q.type === 'discover_n'
     return !q.is_daily && q.type !== 'discover_n' && q.target_value === activeFilter
+  }).sort((a, b) => {
+    if (activeFilter === 'discover_n') return a.target_value - b.target_value
+    return a.sort_order - b.sort_order
   })
 
   return (
