@@ -21,6 +21,7 @@ export async function GET() {
         up.avatar,
         up.theme,
         up.onboarding_done,
+        up.suppress_unlock_notif,
         COUNT(u.element_number)::int AS discovered_count,
         RANK() OVER (ORDER BY COUNT(u.element_number) DESC)::int AS rank
       FROM user_progress up
@@ -42,7 +43,7 @@ export async function GET() {
 
   const totalPlayers = await sql`SELECT COUNT(*)::int AS n FROM user_progress`
 
-  if (!rows.length) return NextResponse.json({ username: null, show_in_leaderboard: true, haptic_feedback: true, push_notifications: true, discovered_count: 0, avatar: null, rank: null, total_players: 1, last_discovered: [], is_admin: false, theme: 'dark', onboarding_done: false })
+  if (!rows.length) return NextResponse.json({ username: null, show_in_leaderboard: true, haptic_feedback: true, push_notifications: true, suppress_unlock_notif: false, discovered_count: 0, avatar: null, rank: null, total_players: 1, last_discovered: [], is_admin: false, theme: 'dark', onboarding_done: false })
   const row = rows[0]
 
   const adminRow = await sql`SELECT is_admin FROM users WHERE id = ${session.user.id}`
@@ -61,6 +62,7 @@ export async function GET() {
     is_admin: adminRow[0]?.is_admin === 1,
     theme: row.theme ?? 'dark',
     onboarding_done: row.onboarding_done ?? false,
+    suppress_unlock_notif: row.suppress_unlock_notif ?? false,
   })
 }
 
@@ -71,7 +73,7 @@ export async function PATCH(req: Request) {
   const sql = neon(process.env.DATABASE_URL!)
 
   const body = await req.json()
-  const { username, show_in_leaderboard, avatar, haptic_feedback, push_notifications, push_prompt_shown, theme, onboarding_done } = body
+  const { username, show_in_leaderboard, avatar, haptic_feedback, push_notifications, push_prompt_shown, theme, onboarding_done, suppress_unlock_notif } = body
 
   if (username !== undefined) {
     // null means "clear username", string means "set username"
@@ -119,7 +121,7 @@ export async function PATCH(req: Request) {
   const now = new Date().toISOString()
 
   await sql`
-    INSERT INTO user_progress (user_id, username, show_in_leaderboard, avatar, haptic_feedback, push_notifications, push_prompt_shown, theme, onboarding_done, username_updated_at)
+    INSERT INTO user_progress (user_id, username, show_in_leaderboard, avatar, haptic_feedback, push_notifications, push_prompt_shown, theme, onboarding_done, suppress_unlock_notif, username_updated_at)
     VALUES (
       ${session.user.id},
       ${usernameValue ?? null},
@@ -130,6 +132,7 @@ export async function PATCH(req: Request) {
       ${push_prompt_shown ?? false},
       ${theme ?? 'dark'},
       ${onboarding_done ?? false},
+      ${suppress_unlock_notif ?? false},
       ${setUsernameNow ? now : null}
     )
     ON CONFLICT (user_id) DO UPDATE SET
@@ -141,7 +144,8 @@ export async function PATCH(req: Request) {
       push_notifications = CASE WHEN ${push_notifications !== undefined} THEN EXCLUDED.push_notifications ELSE user_progress.push_notifications END,
       push_prompt_shown = CASE WHEN ${push_prompt_shown !== undefined} THEN EXCLUDED.push_prompt_shown ELSE user_progress.push_prompt_shown END,
       theme = CASE WHEN ${theme !== undefined} THEN EXCLUDED.theme ELSE user_progress.theme END,
-      onboarding_done = CASE WHEN ${onboarding_done !== undefined} THEN EXCLUDED.onboarding_done ELSE user_progress.onboarding_done END
+      onboarding_done = CASE WHEN ${onboarding_done !== undefined} THEN EXCLUDED.onboarding_done ELSE user_progress.onboarding_done END,
+      suppress_unlock_notif = CASE WHEN ${suppress_unlock_notif !== undefined} THEN EXCLUDED.suppress_unlock_notif ELSE user_progress.suppress_unlock_notif END
   `
   return NextResponse.json({ ok: true })
 }
