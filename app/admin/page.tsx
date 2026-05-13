@@ -328,6 +328,21 @@ function MissingElementsModal({ user, onClose }: { user: AdminUser; onClose: () 
 type SortKey = 'discovered' | 'rank' | 'last_active' | 'created_at'
 type SortDir = 'asc' | 'desc'
 
+function timeAgo(dateStr: string | null): string {
+  if (!dateStr) return '—'
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return "à l'instant"
+  if (mins < 60) return `il y a ${mins}m`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `il y a ${hrs}h`
+  const days = Math.floor(hrs / 24)
+  if (days < 30) return `il y a ${days}j`
+  const months = Math.floor(days / 30)
+  if (months < 12) return `il y a ${months} mois`
+  return `il y a ${Math.floor(months / 12)} an${Math.floor(months / 12) > 1 ? 's' : ''}`
+}
+
 function UsersTab() {
   const [users, setUsers] = useState<AdminUser[]>([])
   const [total, setTotal] = useState(0)
@@ -339,6 +354,7 @@ function UsersTab() {
   const [missingUser, setMissingUser] = useState<AdminUser | null>(null)
   const [sortKey, setSortKey] = useState<SortKey>('discovered')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300)
@@ -346,8 +362,6 @@ function UsersTab() {
   }, [search])
 
   useEffect(() => { setPage(1) }, [debouncedSearch])
-
-  // Reset to page 1 when sort changes
   useEffect(() => { setPage(1) }, [sortKey, sortDir])
 
   const fetchUsers = useCallback(async () => {
@@ -381,15 +395,26 @@ function UsersTab() {
     else { setSortKey(key); setSortDir('desc') }
   }
 
-  // No client-side sort needed — API handles it server-side across all pages
-  const sortedUsers = users
-
   const SortIcon = ({ k }: { k: SortKey }) => {
     if (sortKey !== k) return <ChevronsUpDown className="w-3 h-3 ml-1 opacity-30 inline-block" />
     return sortDir === 'asc'
       ? <ChevronUp className="w-3 h-3 ml-1 opacity-80 inline-block" />
       : <ChevronDown className="w-3 h-3 ml-1 opacity-80 inline-block" />
   }
+
+  const Pagination = () => totalPages > 1 ? (
+    <div className="px-4 py-3 border-t border-border flex items-center justify-between">
+      <span className="text-xs text-muted-foreground">Page {page} / {totalPages}</span>
+      <div className="flex items-center gap-1">
+        <Button variant="outline" size="sm" className="h-7 w-7 p-0" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+          <ChevronLeft className="w-3.5 h-3.5" />
+        </Button>
+        <Button variant="outline" size="sm" className="h-7 w-7 p-0" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
+          <ChevronRight className="w-3.5 h-3.5" />
+        </Button>
+      </div>
+    </div>
+  ) : null
 
   return (
     <div className="space-y-4">
@@ -399,65 +424,50 @@ function UsersTab() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
           <Input placeholder="Rechercher email, nom, pseudo..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 text-sm" />
         </div>
-        <span className="text-xs text-muted-foreground">{total} utilisateur{total !== 1 ? 's' : ''}</span>
+        <span className="text-xs text-muted-foreground whitespace-nowrap">{total} utilisateur{total !== 1 ? 's' : ''}</span>
       </div>
 
-      {/* Table */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
+      {/* ── Desktop table (md+) ───────────────────────────────────────── */}
+      <div className="hidden md:block bg-card border border-border rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
-                <th className="px-3 sm:px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Utilisateur</th>
-                <th className="hidden sm:table-cell px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Pseudo</th>
-                <th className="px-3 sm:px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort('discovered')}>
-                  <span className="hidden sm:inline">Découvertes</span><span className="sm:hidden">Disc.</span><SortIcon k="discovered" />
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Utilisateur</th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Pseudo</th>
+                <th className="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort('discovered')}>
+                  Découvertes<SortIcon k="discovered" />
                 </th>
-                <th className="hidden md:table-cell px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort('last_active')}>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort('last_active')}>
                   Dernière activité<SortIcon k="last_active" />
                 </th>
-                <th className="px-3 sm:px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground">Actions</th>
+                <th className="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center">
-                    <div className="flex justify-center"><Spinner size="md" /></div>
-                  </td>
-                </tr>
+                <tr><td colSpan={5} className="px-4 py-10 text-center"><div className="flex justify-center"><Spinner size="md" /></div></td></tr>
               ) : users.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">Aucun utilisateur trouvé</td>
-                </tr>
-              ) : sortedUsers.map(u => (
-                <tr key={u.id} className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors group">
-                  <td className="px-3 sm:px-4 py-3 min-w-0 max-w-[160px] sm:max-w-[220px]">
+                <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">Aucun utilisateur trouvé</td></tr>
+              ) : users.map(u => (
+                <tr key={u.id} className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-3 max-w-[220px]">
                     <p className="font-medium truncate text-sm">{u.name ?? u.username ?? '—'}</p>
                     <p className="text-[11px] text-muted-foreground truncate">{u.email}</p>
                   </td>
-                  <td className="hidden sm:table-cell px-4 py-3 text-sm text-muted-foreground font-mono truncate max-w-[120px]">
+                  <td className="px-4 py-3 text-sm text-muted-foreground font-mono truncate max-w-[120px]">
                     {u.username ?? <span className="text-muted-foreground/40">—</span>}
                   </td>
-                  <td className="px-3 sm:px-4 py-3 text-right tabular-nums font-bold text-sm">{u.discovered}</td>
-                  <td className="hidden md:table-cell px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                    {u.last_active ? new Date(u.last_active).toLocaleDateString('fr', { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
-                  </td>
-                  <td className="px-3 sm:px-4 py-3">
+                  <td className="px-4 py-3 text-right tabular-nums font-bold text-sm">{u.discovered}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{timeAgo(u.last_active)}</td>
+                  <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1.5">
-                      <button
-                        onClick={() => setMissingUser(u)}
-                        title="Voir les éléments manquants"
-                        className="inline-flex items-center justify-center w-8 h-8 rounded-xl border border-border text-muted-foreground hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-colors"
-                      >
+                      <button onClick={() => setMissingUser(u)} title="Voir les éléments manquants"
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-xl border border-border text-muted-foreground hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-colors">
                         <Layers className="w-3.5 h-3.5" />
                       </button>
-                      <button
-                        onClick={() => toggleAdmin(u)}
-                        disabled={!!toggling}
-                        title={u.is_admin ? 'Révoquer admin' : 'Donner admin'}
-                        className={`inline-flex items-center justify-center w-8 h-8 rounded-xl border transition-colors ${u.is_admin ? 'bg-primary/10 border-primary/30 text-primary hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive' : 'border-border text-muted-foreground hover:bg-primary/10 hover:border-primary/30 hover:text-primary'}`}
-                      >
+                      <button onClick={() => toggleAdmin(u)} disabled={!!toggling} title={u.is_admin ? 'Révoquer admin' : 'Donner admin'}
+                        className={`inline-flex items-center justify-center w-8 h-8 rounded-xl border transition-colors ${u.is_admin ? 'bg-primary/10 border-primary/30 text-primary hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive' : 'border-border text-muted-foreground hover:bg-primary/10 hover:border-primary/30 hover:text-primary'}`}>
                         {toggling === u.id ? <Spinner /> : u.is_admin ? <Shield className="w-3.5 h-3.5" /> : <ShieldOff className="w-3.5 h-3.5" />}
                       </button>
                     </div>
@@ -467,21 +477,97 @@ function UsersTab() {
             </tbody>
           </table>
         </div>
+        <Pagination />
+      </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="px-4 py-3 border-t border-border flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">Page {page} / {totalPages}</span>
-            <div className="flex items-center gap-1">
-              <Button variant="outline" size="sm" className="h-7 w-7 p-0" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </Button>
-              <Button variant="outline" size="sm" className="h-7 w-7 p-0" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </Button>
-            </div>
+      {/* ── Mobile card list (< md) ───────────────────────────────────── */}
+      <div className="md:hidden bg-card border border-border rounded-xl overflow-hidden">
+        {loading ? (
+          <div className="flex justify-center py-16"><Spinner size="md" /></div>
+        ) : users.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-12">Aucun utilisateur trouvé</p>
+        ) : (
+          <div className="divide-y divide-border/40">
+            {users.map(u => {
+              const isOpen = expandedId === u.id
+              return (
+                <div key={u.id}>
+                  {/* Collapsed row — tap to expand */}
+                  <button
+                    onClick={() => setExpandedId(isOpen ? null : u.id)}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/20 active:bg-muted/40 transition-colors text-left"
+                  >
+                    {/* Avatar initial */}
+                    <div className="w-9 h-9 rounded-xl bg-muted border border-border flex items-center justify-center flex-shrink-0 text-sm font-semibold text-muted-foreground select-none">
+                      {(u.username ?? u.name ?? u.email ?? '?')[0].toUpperCase()}
+                    </div>
+
+                    {/* Name + last active */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate leading-tight">
+                        {u.username ?? u.name ?? '—'}
+                        {u.is_admin && <span className="ml-1.5 text-[9px] font-bold text-primary bg-primary/10 border border-primary/20 rounded px-1 py-0.5 align-middle">ADMIN</span>}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{timeAgo(u.last_active)}</p>
+                    </div>
+
+                    {/* Discovered count */}
+                    <div className="flex-shrink-0 flex flex-col items-end gap-0.5 mr-1">
+                      <span className="text-sm font-bold tabular-nums">{u.discovered}</span>
+                      <span className="text-[10px] text-muted-foreground leading-none">disc.</span>
+                    </div>
+
+                    <ChevronDown className={`w-4 h-4 text-muted-foreground/40 flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Expanded panel */}
+                  {isOpen && (
+                    <div className="px-4 pb-4 pt-1 bg-muted/10 border-t border-border/40 space-y-3">
+                      {/* Detail rows */}
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        {[
+                          { label: 'Email', value: u.email },
+                          { label: 'Nom', value: u.name ?? '—' },
+                          { label: 'Pseudo', value: u.username ?? '—' },
+                          { label: 'Inscription', value: new Date(u.created_at).toLocaleDateString('fr', { day: 'numeric', month: 'short', year: '2-digit' }) },
+                          { label: 'Classement', value: u.show_in_leaderboard ? 'Visible' : 'Caché' },
+                          { label: 'Dernière activité', value: timeAgo(u.last_active) },
+                        ].map(({ label, value }) => (
+                          <div key={label} className="flex flex-col gap-0.5">
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">{label}</span>
+                            <span className="text-xs font-medium truncate">{value}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          onClick={() => setMissingUser(u)}
+                          className="flex-1 flex items-center justify-center gap-2 h-9 rounded-xl border border-border text-xs font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+                        >
+                          <Layers className="w-3.5 h-3.5" />
+                          Éléments manquants
+                        </button>
+                        <button
+                          onClick={() => toggleAdmin(u)}
+                          disabled={!!toggling}
+                          className={`flex-1 flex items-center justify-center gap-2 h-9 rounded-xl border text-xs font-medium transition-colors ${u.is_admin
+                            ? 'bg-primary/10 border-primary/30 text-primary hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive'
+                            : 'border-border text-muted-foreground hover:bg-primary/10 hover:border-primary/30 hover:text-primary'}`}
+                        >
+                          {toggling === u.id ? <Spinner /> : u.is_admin ? <Shield className="w-3.5 h-3.5" /> : <ShieldOff className="w-3.5 h-3.5" />}
+                          {u.is_admin ? 'Révoquer admin' : 'Donner admin'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
+        <Pagination />
       </div>
 
       {missingUser && (
@@ -541,6 +627,7 @@ function QuestsTab() {
     })
     await fetchQuests()
     setDeleting(null)
+    setEditing(null)
   }
 
   return (
@@ -555,45 +642,110 @@ function QuestsTab() {
       {/* Add modal */}
       {showAdd && <AddQuestModal onClose={() => setShowAdd(false)} onAdded={() => { setShowAdd(false); fetchQuests() }} />}
 
-      {/* Edit sheet */}
+      {/* Quest detail / edit — fullscreen sheet */}
       {editing && (
-        <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center sm:p-4 bg-black/70 backdrop-blur-sm" onClick={() => setEditing(null)}>
+        <div
+          className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex flex-col"
+          onClick={() => setEditing(null)}
+        >
           <div
-            className="bg-card w-full sm:max-w-lg sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
-            style={{ maxHeight: '100dvh' }}
+            className="relative bg-card flex flex-col w-full h-full sm:m-auto sm:rounded-2xl sm:max-w-lg sm:h-auto sm:max-h-[90dvh]"
             onClick={e => e.stopPropagation()}
           >
-            {/* iOS drag pill */}
-            <div className="flex-shrink-0 flex justify-center pt-3 pb-1 sm:hidden">
-              <div className="w-10 h-1 rounded-full bg-muted-foreground/20" />
-            </div>
             {/* Header */}
-            <div className="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b border-border"
-              style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)' }}
+            <div
+              className="flex-shrink-0 flex items-center justify-between px-5 border-b border-border"
+              style={{ paddingTop: 'calc(env(safe-area-inset-top) + 14px)', paddingBottom: '14px' }}
             >
-              <h3 className="font-semibold">Modifier la quête #{editing.id}</h3>
-              <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => setEditing(null)}><X className="w-4 h-4" /></Button>
+              <div>
+                <p className="text-[10px] font-mono text-muted-foreground mb-0.5">#{editing.id} · {editing.type}</p>
+                <h3 className="text-base font-bold leading-tight">{editing.title_fr}</h3>
+              </div>
+              <button
+                onClick={() => setEditing(null)}
+                className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+
+            {/* Stats bar */}
+            <div className="flex-shrink-0 grid grid-cols-3 divide-x divide-border border-b border-border">
+              {[
+                { label: 'En cours', value: editing.in_progress_count },
+                { label: 'Complétées', value: editing.completed_count },
+                { label: 'Réclamées', value: editing.claimed_count, highlight: true },
+              ].map(({ label, value, highlight }) => (
+                <div key={label} className="flex flex-col items-center justify-center py-3 gap-0.5">
+                  <span className={`text-xl font-bold tabular-nums ${highlight ? 'text-emerald-400' : 'text-foreground'}`}>{value}</span>
+                  <span className="text-[10px] text-muted-foreground">{label}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Scrollable form */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-5">
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-xs text-muted-foreground mb-1.5 block">Titre FR</label><Input value={editing.title_fr} onChange={e => setEditing({ ...editing, title_fr: e.target.value })} className="h-9 text-sm" /></div>
-                <div><label className="text-xs text-muted-foreground mb-1.5 block">Titre EN</label><Input value={editing.title_en} onChange={e => setEditing({ ...editing, title_en: e.target.value })} className="h-9 text-sm" /></div>
-                <div><label className="text-xs text-muted-foreground mb-1.5 block">Desc FR</label><Input value={editing.desc_fr} onChange={e => setEditing({ ...editing, desc_fr: e.target.value })} className="h-9 text-sm" /></div>
-                <div><label className="text-xs text-muted-foreground mb-1.5 block">Desc EN</label><Input value={editing.desc_en} onChange={e => setEditing({ ...editing, desc_en: e.target.value })} className="h-9 text-sm" /></div>
-                <div><label className="text-xs text-muted-foreground mb-1.5 block">Objectif</label><Input type="number" value={editing.target_value} onChange={e => setEditing({ ...editing, target_value: parseInt(e.target.value) || 1 })} className="h-9 text-sm" /></div>
-                <div><label className="text-xs text-muted-foreground mb-1.5 block">Ordre</label><Input type="number" value={editing.sort_order} onChange={e => setEditing({ ...editing, sort_order: parseInt(e.target.value) || 0 })} className="h-9 text-sm" /></div>
-                <div><label className="text-xs text-muted-foreground mb-1.5 block">Icône</label><Input value={editing.icon} onChange={e => setEditing({ ...editing, icon: e.target.value })} className="h-9 text-sm" /></div>
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="text-xs text-muted-foreground mb-1.5 block">Titre FR</label>
+                  <Input value={editing.title_fr} onChange={e => setEditing({ ...editing, title_fr: e.target.value })} className="h-10 text-sm" />
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="text-xs text-muted-foreground mb-1.5 block">Titre EN</label>
+                  <Input value={editing.title_en} onChange={e => setEditing({ ...editing, title_en: e.target.value })} className="h-10 text-sm" />
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="text-xs text-muted-foreground mb-1.5 block">Description FR</label>
+                  <Input value={editing.desc_fr} onChange={e => setEditing({ ...editing, desc_fr: e.target.value })} className="h-10 text-sm" />
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="text-xs text-muted-foreground mb-1.5 block">Description EN</label>
+                  <Input value={editing.desc_en} onChange={e => setEditing({ ...editing, desc_en: e.target.value })} className="h-10 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1.5 block">Objectif</label>
+                  <Input type="number" value={editing.target_value} onChange={e => setEditing({ ...editing, target_value: parseInt(e.target.value) || 1 })} className="h-10 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1.5 block">Ordre</label>
+                  <Input type="number" value={editing.sort_order} onChange={e => setEditing({ ...editing, sort_order: parseInt(e.target.value) || 0 })} className="h-10 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1.5 block">Icône</label>
+                  <Input value={editing.icon} onChange={e => setEditing({ ...editing, icon: e.target.value })} className="h-10 text-sm" />
+                </div>
                 <div className="flex items-end pb-1">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={editing.is_daily} onChange={e => setEditing({ ...editing, is_daily: e.target.checked })} className="rounded" />
-                    <span className="text-sm">Quête daily</span>
+                  <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={editing.is_daily}
+                      onChange={e => setEditing({ ...editing, is_daily: e.target.checked })}
+                      className="w-4 h-4 rounded accent-primary"
+                    />
+                    <span className="text-sm font-medium">Quête daily</span>
                   </label>
                 </div>
               </div>
+
+              {/* Danger zone */}
+              <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+                <p className="text-xs font-semibold text-red-400 uppercase tracking-wide mb-3">Zone dangereuse</p>
+                <button
+                  onClick={() => deleteQuest(editing.id)}
+                  disabled={!!deleting}
+                  className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
+                >
+                  {deleting === editing.id ? <Spinner /> : <Trash2 className="w-4 h-4" />}
+                  Supprimer cette quête
+                </button>
+              </div>
             </div>
-            {/* Footer CTA */}
-            <div className="flex-shrink-0 p-4 border-t border-border" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)' }}>
+
+            {/* Pinned footer */}
+            <div
+              className="flex-shrink-0 p-4 border-t border-border"
+              style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)' }}
+            >
               <Button className="w-full h-11 rounded-xl" disabled={saving} onClick={saveQuest}>
                 {saving ? <><Spinner /><span className="ml-2">Sauvegarde...</span></> : <><Save className="w-3.5 h-3.5 mr-1.5" />Sauvegarder</>}
               </Button>
@@ -602,80 +754,49 @@ function QuestsTab() {
         </div>
       )}
 
-      {/* Quests list */}
+      {/* Quest card list — unified for all screen sizes */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-16"><Spinner size="md" /></div>
         ) : quests.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-12">Aucune quête</p>
         ) : (
-          <>
-            {/* Desktop table */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/30">
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground w-8">ID</th>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Quête</th>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Type</th>
-                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">Obj.</th>
-                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">En cours</th>
-                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">Complétées</th>
-                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">Réclamées</th>
-                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">Daily</th>
-                    <th className="px-4 py-2.5 w-16"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {quests.map(q => (
-                    <tr key={q.id} className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors">
-                      <td className="px-4 py-3 text-xs font-mono text-muted-foreground">{q.id}</td>
-                      <td className="px-4 py-3 max-w-[200px]">
-                        <p className="font-medium truncate">{q.title_fr}</p>
-                        <p className="text-xs text-muted-foreground truncate">{q.desc_fr}</p>
-                      </td>
-                      <td className="px-4 py-3"><span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{q.type}</span></td>
-                      <td className="px-4 py-3 text-center tabular-nums font-bold">{q.target_value}</td>
-                      <td className="px-4 py-3 text-center tabular-nums text-muted-foreground">{q.in_progress_count}</td>
-                      <td className="px-4 py-3 text-center tabular-nums">{q.completed_count}</td>
-                      <td className="px-4 py-3 text-center tabular-nums text-emerald-400 font-semibold">{q.claimed_count}</td>
-                      <td className="px-4 py-3 text-center">{q.is_daily ? <Badge color="amber" label="Daily" /> : <span className="text-muted-foreground/30">—</span>}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1 justify-end">
-                          <button onClick={() => setEditing(q)} className="w-7 h-7 flex items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"><Pencil className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => deleteQuest(q.id)} disabled={deleting === q.id} className="w-7 h-7 flex items-center justify-center rounded-lg border border-transparent hover:border-red-500/30 hover:bg-red-500/10 transition-colors text-muted-foreground hover:text-red-400">{deleting === q.id ? <Spinner /> : <Trash2 className="w-3.5 h-3.5" />}</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div className="divide-y divide-border/40">
+            {quests.map(q => (
+              <button
+                key={q.id}
+                onClick={() => setEditing(q)}
+                className="w-full flex items-center gap-4 px-5 py-4 hover:bg-muted/30 active:bg-muted/50 transition-colors text-left group"
+              >
+                {/* Icon / ID pill */}
+                <div className="w-10 h-10 rounded-xl bg-muted border border-border flex items-center justify-center flex-shrink-0 text-lg select-none">
+                  {q.icon && q.icon.length <= 2 ? q.icon : <span className="text-[10px] font-mono text-muted-foreground">#{q.id}</span>}
+                </div>
 
-            {/* Mobile card list */}
-            <div className="md:hidden divide-y divide-border/50">
-              {quests.map(q => (
-                <div key={q.id} className="flex items-start gap-3 px-4 py-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <p className="font-medium text-sm truncate">{q.title_fr}</p>
-                      {q.is_daily && <Badge color="amber" label="Daily" />}
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate mb-1.5">{q.desc_fr}</p>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{q.type}</span>
-                      <span>Obj. <strong className="text-foreground">{q.target_value}</strong></span>
-                      <span className="text-emerald-400 font-semibold">{q.claimed_count} réclamées</span>
-                    </div>
+                {/* Main info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <p className="font-semibold text-sm truncate">{q.title_fr}</p>
+                    {q.is_daily && <Badge color="amber" label="Daily" />}
                   </div>
-                  <div className="flex items-center gap-1 flex-shrink-0 mt-0.5">
-                    <button onClick={() => setEditing(q)} className="w-8 h-8 flex items-center justify-center rounded-xl border border-transparent hover:border-border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"><Pencil className="w-3.5 h-3.5" /></button>
-                    <button onClick={() => deleteQuest(q.id)} disabled={deleting === q.id} className="w-8 h-8 flex items-center justify-center rounded-xl border border-transparent hover:border-red-500/30 hover:bg-red-500/10 transition-colors text-muted-foreground hover:text-red-400">{deleting === q.id ? <Spinner /> : <Trash2 className="w-3.5 h-3.5" />}</button>
+                  <p className="text-xs text-muted-foreground truncate leading-relaxed">{q.desc_fr}</p>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <span className="text-[10px] font-mono bg-muted/60 text-muted-foreground px-1.5 py-0.5 rounded-md">{q.type}</span>
+                    <span className="text-[10px] text-muted-foreground">objectif <strong className="text-foreground">{q.target_value}</strong></span>
                   </div>
                 </div>
-              ))}
-            </div>
-          </>
+
+                {/* Stats */}
+                <div className="flex-shrink-0 flex flex-col items-end gap-1 text-right">
+                  <span className="text-sm font-bold tabular-nums text-emerald-400">{q.claimed_count}</span>
+                  <span className="text-[10px] text-muted-foreground leading-none">réclamées</span>
+                  <span className="text-[10px] text-muted-foreground/50 tabular-nums">{q.in_progress_count} en cours</span>
+                </div>
+
+                <ChevronRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors flex-shrink-0" />
+              </button>
+            ))}
+          </div>
         )}
       </div>
     </div>
@@ -828,30 +949,35 @@ function EditModal({ element, elements, onClose, onSaved }: {
     : elements.slice(0, 30)
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center sm:p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex flex-col" onClick={onClose}>
+      {/* Full-height sheet — covers everything including topbar */}
       <div
-        className="bg-card w-full sm:max-w-2xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
-        style={{ height: '100dvh', maxHeight: '100dvh' }}
+        className="relative bg-card flex flex-col w-full h-full sm:m-auto sm:rounded-2xl sm:max-w-2xl sm:h-auto sm:max-h-[90dvh]"
         onClick={e => e.stopPropagation()}
       >
-        {/* iOS drag pill */}
-        <div className="flex-shrink-0 flex justify-center pt-3 pb-1 sm:hidden">
-          <div className="w-10 h-1 rounded-full bg-muted-foreground/20" />
-        </div>
-        {/* Header */}
-        <div className="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b border-border"
-          style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)' }}
+        {/* Header — padding absorbs status bar on mobile */}
+        <div
+          className="flex-shrink-0 flex items-center justify-between px-5 border-b border-border"
+          style={{
+            paddingTop: 'calc(env(safe-area-inset-top) + 14px)',
+            paddingBottom: '14px',
+          }}
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-muted border border-border overflow-hidden flex-shrink-0 flex items-center justify-center">
               {img ? <img src={img} alt="" className="w-full h-full object-contain" /> : <span className="text-[10px] font-mono text-muted-foreground">#{element.number}</span>}
             </div>
             <div>
-              <p className="text-xs text-muted-foreground font-mono">#{element.number}</p>
-              <h2 className="text-lg font-bold leading-tight">{element.name_french}</h2>
+              <p className="text-[11px] text-muted-foreground font-mono">#{element.number}</p>
+              <h2 className="text-base font-bold leading-tight">{element.name_french}</h2>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}><X className="w-4 h-4" /></Button>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-6">
@@ -882,9 +1008,6 @@ function EditModal({ element, elements, onClose, onSaved }: {
                 <label className="text-xs text-muted-foreground mb-1 block">Anglais</label>
                 <Input value={nameEn} onChange={e => setNameEn(e.target.value)} className="h-8 text-sm" placeholder="(optionnel)" />
               </div>
-              <Button onClick={save} disabled={saving} size="sm" className="w-full">
-                {saving ? <Spinner /> : <Save className="w-3 h-3 mr-1.5" />}Sauvegarder
-              </Button>
             </div>
           </div>
 
@@ -960,6 +1083,13 @@ function EditModal({ element, elements, onClose, onSaved }: {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Names */}
+          <div className="p-1 -mt-3">
+            <Button onClick={save} disabled={saving} size="sm" className="w-full h-10 rounded-xl">
+              {saving ? <Spinner /> : <Save className="w-3 h-3 mr-1.5" />}Sauvegarder les noms
+            </Button>
           </div>
 
           {/* Produces */}
