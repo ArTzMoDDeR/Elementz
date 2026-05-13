@@ -1150,7 +1150,7 @@ export function Playground({
           )}
         </div>
 
-        {/* ── TAB BAR — iOS Liquid Glass ───────────────────────�����──�����─ */}
+        {/* ── TAB BAR — iOS Liquid Glass ───────────────────────������──�����─ */}
         <div
           className="flex-shrink-0 border-t border-white/[0.06] glass"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 12px) + 2px)' }}
@@ -1678,8 +1678,14 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
             </div>
             <span className="text-sm font-medium text-foreground flex-1">{t('Langue', 'Language')}</span>
             <div className="flex items-center bg-muted/50 rounded-xl p-1 h-8 gap-0.5">
-              <button onClick={() => onSetLang('fr')} className={`px-2.5 h-full text-sm rounded-lg transition-colors cursor-pointer ${lang === 'fr' ? 'bg-background shadow text-foreground' : 'text-muted-foreground/50'}`}>FR</button>
-              <button onClick={() => onSetLang('en')} className={`px-2.5 h-full text-sm rounded-lg transition-colors cursor-pointer ${lang === 'en' ? 'bg-background shadow text-foreground' : 'text-muted-foreground/50'}`}>EN</button>
+              <button onClick={() => onSetLang('fr')} className={`px-2.5 h-full rounded-lg transition-colors cursor-pointer flex items-center justify-center ${lang === 'fr' ? 'bg-background shadow' : 'opacity-40'}`}>
+                <span className="text-sm font-semibold md:hidden">FR</span>
+                <img src="/images/flag-fr.png" alt="Français" className="hidden md:block w-5 h-5 object-contain" />
+              </button>
+              <button onClick={() => onSetLang('en')} className={`px-2.5 h-full rounded-lg transition-colors cursor-pointer flex items-center justify-center ${lang === 'en' ? 'bg-background shadow' : 'opacity-40'}`}>
+                <span className="text-sm font-semibold md:hidden">EN</span>
+                <img src="/images/flag-en.png" alt="English" className="hidden md:block w-5 h-5 object-contain" />
+              </button>
             </div>
           </div>
 

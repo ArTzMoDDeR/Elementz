@@ -75,19 +75,21 @@ export default function LegalLayout({
           <div className="flex items-center gap-0.5 p-1 rounded-xl bg-muted/60">
             <button
               onClick={() => switchLang('fr')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                isFr ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                isFr ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground opacity-50'
               }`}
             >
-              FR
+              <span className="md:hidden">FR</span>
+              <img src="/images/flag-fr.png" alt="Français" className="hidden md:block w-5 h-5 object-contain" />
             </button>
             <button
               onClick={() => switchLang('en')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                !isFr ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                !isFr ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground opacity-50'
               }`}
             >
-              EN
+              <span className="md:hidden">EN</span>
+              <img src="/images/flag-en.png" alt="English" className="hidden md:block w-5 h-5 object-contain" />
             </button>
           </div>
         </div>
