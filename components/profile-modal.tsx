@@ -149,7 +149,9 @@ export function ProfileModal({ lang, sessionUser, elementsByName, discovered, to
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto overscroll-contain">
+        <div className="flex-1 overflow-y-auto overscroll-contain"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 2rem)' }}
+        >
 
           {/* Hero */}
           <div className="flex flex-col items-center gap-4 px-5 pb-6">
@@ -230,7 +232,7 @@ export function ProfileModal({ lang, sessionUser, elementsByName, discovered, to
               <p className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest mb-3">
                 {t('Choisir un avatar', 'Choose an avatar')}
               </p>
-              <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto pr-1">
+              <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto pr-1 pb-2">
                 {allDiscovered.map(el => {
                   const isSelected = avatarKey === el.name
                   return (

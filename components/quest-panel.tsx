@@ -82,23 +82,32 @@ function ScratchCard({ reward, lang, onScratched }: {
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [revealed, setRevealed] = useState(!!reward.scratched_at)
+  // Track whether the canvas has been painted so we hide the bg until ready
+  const [canvasPainted, setCanvasPainted] = useState(false)
   const lastPos = useRef<{ x: number; y: number } | null>(null)
   const notifiedRef = useRef(false)
   const SIZE = 100
 
-  useEffect(() => {
-    if (revealed) return
+  const paintCanvas = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')!
-    ctx.fillStyle = '#1c1c28'
+    ctx.clearRect(0, 0, SIZE, SIZE)
+    ctx.fillStyle = 'var(--color-card, #1c1c28)'
     ctx.fillRect(0, 0, SIZE, SIZE)
-    ctx.fillStyle = 'rgba(255,255,255,0.06)'
+    // subtle grid of ? marks
+    ctx.fillStyle = 'rgba(255,255,255,0.07)'
     ctx.font = 'bold 11px sans-serif'
     for (let x = 12; x < SIZE; x += 22)
       for (let y = 18; y < SIZE; y += 22)
         ctx.fillText('?', x, y)
-  }, [revealed])
+    setCanvasPainted(true)
+  }, [])
+
+  useEffect(() => {
+    if (revealed) return
+    paintCanvas()
+  }, [revealed, paintCanvas])
 
   const getPos = (e: React.TouchEvent | React.MouseEvent, canvas: HTMLCanvasElement) => {
     const rect = canvas.getBoundingClientRect()
@@ -135,14 +144,14 @@ function ScratchCard({ reward, lang, onScratched }: {
 
   if (revealed) {
     return (
-      <div className="flex flex-col items-center gap-1.5">
-        <div className="w-[100px] h-[100px] rounded-2xl border border-amber-400/30 bg-amber-400/5 flex flex-col items-center justify-center gap-1.5">
+      <div className="flex flex-col items-center gap-2">
+        <div className="w-[100px] h-[100px] rounded-2xl border border-border/60 bg-card flex flex-col items-center justify-center gap-2 shadow-sm">
           {reward.img
-            ? <img src={reward.img} alt={name} className="w-12 h-12 object-contain" draggable={false} />
-            : <Sparkles className="w-9 h-9 text-amber-400" />}
-          <span className="text-[9px] font-bold text-amber-400 text-center px-1 leading-tight">{name}</span>
+            ? <img src={reward.img} alt={name} className="w-14 h-14 object-contain" draggable={false} />
+            : <Sparkles className="w-10 h-10 text-foreground/40" />}
+          {name && <span className="text-[9px] font-semibold text-foreground/60 text-center px-1.5 leading-tight">{name}</span>}
         </div>
-        <p className="text-[9px] text-muted-foreground/60">{lang === 'fr' ? 'Révélé' : 'Revealed'}</p>
+        <p className="text-[9px] text-muted-foreground/30 uppercase tracking-wide">{lang === 'fr' ? 'Révélé' : 'Revealed'}</p>
       </div>
     )
   }
@@ -150,7 +159,8 @@ function ScratchCard({ reward, lang, onScratched }: {
   return (
     <div className="flex flex-col items-center gap-1.5">
       <div className="relative w-[100px] h-[100px] rounded-2xl overflow-hidden cursor-crosshair select-none" style={{ touchAction: 'none' }}>
-        <div className="absolute inset-0 bg-muted flex items-center justify-center">
+        {/* Background shown only after canvas covers it, to avoid flash */}
+        <div className={`absolute inset-0 bg-muted flex items-center justify-center transition-opacity duration-150 ${canvasPainted ? 'opacity-100' : 'opacity-0'}`}>
           {reward.img && <img src={reward.img} alt="" className="w-12 h-12 object-contain opacity-40" draggable={false} />}
         </div>
         <canvas
@@ -164,7 +174,7 @@ function ScratchCard({ reward, lang, onScratched }: {
           onTouchEnd={() => { lastPos.current = null }}
         />
       </div>
-      <p className="text-[9px] text-muted-foreground/50 animate-pulse">{lang === 'fr' ? 'Gratte ici' : 'Scratch here'}</p>
+      <p className="text-[9px] text-muted-foreground/40 animate-pulse">{lang === 'fr' ? 'Gratte ici' : 'Scratch here'}</p>
     </div>
   )
 }
@@ -602,60 +612,68 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
 
     return (
       <div className="h-full flex flex-col">
-        {/* Back button */}
+        {/* Back */}
         <button
           onClick={closeScratch}
-          className="flex items-center gap-1.5 text-primary text-sm font-medium mb-6 w-fit cursor-pointer active:opacity-60 transition-opacity"
-          aria-label={lang === 'fr' ? 'Retour' : 'Back'}
+          className="flex items-center gap-1.5 text-muted-foreground/60 hover:text-foreground text-sm font-medium mb-8 w-fit cursor-pointer active:opacity-60 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          {t('Retour', 'Back')}
+          {t('Quêtes', 'Quests')}
         </button>
 
-        {/* Centered scratch area */}
-        <div className="flex-1 flex flex-col items-center justify-center gap-6 pb-10">
-          {/* Title */}
-          <div className="text-center">
-            <p className="text-[10px] font-semibold text-amber-400 uppercase tracking-widest mb-1">
+        <div className="flex-1 flex flex-col items-center justify-center gap-8 pb-10">
+          {/* Header */}
+          <div className="flex flex-col items-center gap-1 text-center">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400/70">
               {t('Récompense', 'Reward')}
-            </p>
-            <h2 className="text-xl font-bold text-foreground leading-tight">{title}</h2>
+            </span>
+            <h2 className="text-2xl font-bold text-foreground leading-tight text-balance">{title}</h2>
             {resultName && !allScratched && (
-              <p className="text-xs text-muted-foreground/60 mt-2">
-                {t('Pour créer : ', 'To create: ')}
-                <span className="font-semibold text-foreground/80">{resultName}</span>
+              <p className="text-xs text-muted-foreground/50 mt-1">
+                {t('Recette pour : ', 'Recipe for: ')}
+                <span className="font-semibold text-foreground/70">{resultName}</span>
               </p>
             )}
           </div>
 
-          {/* Cards */}
-          <div className="flex items-center justify-center gap-4 flex-wrap">
-            {scratchQuest.rewards.sort((a, b) => a.slot - b.slot).map((r, i) => (
-              <div key={r.slot} className="flex items-center gap-4">
-                <ScratchCard reward={r} lang={lang} onScratched={(slot) => handleScratch(scratchQuest.id, slot)} />
-                {i < scratchQuest.rewards.length - 1 && (
-                  <Plus className="w-4 h-4 text-muted-foreground/25 flex-shrink-0" />
-                )}
-              </div>
-            ))}
+          {/* Scratch cards */}
+          <div className="flex flex-col items-center gap-5">
+            <div className="flex items-center justify-center gap-5 flex-wrap">
+              {scratchQuest.rewards.sort((a, b) => a.slot - b.slot).map((r, i) => (
+                <div key={r.slot} className="flex items-center gap-5">
+                  <ScratchCard reward={r} lang={lang} onScratched={(slot) => handleScratch(scratchQuest.id, slot)} />
+                  {i < scratchQuest.rewards.length - 1 && (
+                    <Plus className="w-3.5 h-3.5 text-muted-foreground/20 flex-shrink-0" />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {!allScratched && (
+              <p className="text-[10px] text-muted-foreground/25 tracking-widest uppercase animate-pulse">
+                {t('Gratte pour révéler', 'Scratch to reveal')}
+              </p>
+            )}
           </div>
 
-          {allScratched ? (
-            <div className="flex flex-col items-center gap-4">
-              <p className="text-xs text-center text-muted-foreground/60 leading-relaxed max-w-[200px]">
-                {t('Retiens cette combinaison et va la créer sur le terrain !', 'Remember this combo and try it on the field!')}
-              </p>
+          {/* Post-scratch */}
+          {allScratched && (
+            <div className="flex flex-col items-center gap-5 w-full max-w-[260px]">
+              <div className="w-full rounded-2xl bg-card border border-border/50 px-5 py-4 text-center">
+                <p className="text-xs text-muted-foreground/60 leading-relaxed">
+                  {t(
+                    'Retiens cette combinaison et va la créer sur le terrain !',
+                    'Remember this combo and try it on the field!'
+                  )}
+                </p>
+              </div>
               <button
                 onClick={closeScratch}
-                className="h-11 px-8 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold active:scale-95 transition-all cursor-pointer"
+                className="w-full h-11 rounded-2xl bg-foreground text-background text-sm font-semibold active:scale-95 transition-all cursor-pointer"
               >
                 {t("J'ai noté !", 'Got it!')}
               </button>
             </div>
-          ) : (
-            <p className="text-[10px] text-muted-foreground/30 animate-pulse tracking-wide">
-              {t('Gratte pour révéler', 'Scratch to reveal')}
-            </p>
           )}
         </div>
       </div>
