@@ -517,13 +517,38 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
   // Sections
   const daily = quests.filter(q => q.is_daily)
   const permanent = quests.filter(q => !q.is_daily)
-  // Include claimed-but-not-yet-scratched quests in their respective sections
-  const pendingPermanent = permanent.filter(q => !q.claimed_at || (!!q.claimed_at && q.rewards.some(r => !r.scratched_at))).sort((a, b) => (b.progress / b.target_value) - (a.progress / a.target_value))
-  const pendingDaily = daily.filter(q => !q.claimed_at || (!!q.claimed_at && q.rewards.some(r => !r.scratched_at))).sort((a, b) => (b.progress / b.target_value) - (a.progress / a.target_value))
-  const done = quests.filter(q => !!q.claimed_at && q.rewards.every(r => !!r.scratched_at))
+
+  // A quest is "fully done" when claimed + all rewards scratched
+  const isDone = (q: Quest) => !!q.claimed_at && q.rewards.every(r => !!r.scratched_at)
+  // A quest is "active" (visible) when not fully done
+  const isActive = (q: Quest) => !isDone(q)
+
+  // Daily: show all pending (not fully done), ordered by progress desc
+  const pendingDaily = daily
+    .filter(isActive)
+    .sort((a, b) => (b.progress / b.target_value) - (a.progress / a.target_value))
+
+  // Permanent: group by target_value tier, show only the first active quest per tier
+  // Tier order: 1 → 10 → 20 → 30 → 50 (anything else at the end)
+  const TIER_ORDER = [1, 10, 20, 30, 50]
+  const permanentByTier = TIER_ORDER.reduce<Quest[]>((acc, tier) => {
+    const inTier = permanent.filter(q => q.target_value === tier)
+    // Find the first quest in this tier that isn't fully done
+    const current = inTier.find(isActive)
+    if (current) acc.push(current)
+    return acc
+  }, [])
+  // Catch any quests with target_value not in TIER_ORDER
+  const otherPermanent = permanent
+    .filter(q => !TIER_ORDER.includes(q.target_value) && isActive(q))
+    .sort((a, b) => a.sort_order - b.sort_order)
+
+  const pendingPermanent = [...permanentByTier, ...otherPermanent]
 
   const hasPermanent = pendingPermanent.length > 0
   const hasDaily = pendingDaily.length > 0
+
+  const allDone = !hasPermanent && !hasDaily && quests.length > 0
 
   // ── Inline scratch view — replaces the quest list entirely ──────────────
   if (scratchQuest) {
@@ -639,14 +664,16 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
               </Section>
             )}
 
-            {/* Done quests */}
-            {done.length > 0 && (
-              <Section label={t('Terminées', 'Completed')}>
-                {done.map(q => (
-                  <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={setScratchQuestId} />
-                ))}
-              </Section>
+            {/* All done empty state */}
+            {allDone && (
+              <div className="flex flex-col items-center gap-2 py-12 text-center">
+                <Trophy className="w-8 h-8 text-amber-400/50" />
+                <p className="text-sm font-semibold text-foreground/60">{t('Toutes les quêtes terminées !', 'All quests completed!')}</p>
+                <p className="text-xs text-muted-foreground/40">{t('Reviens demain pour les journalières.', 'Come back tomorrow for daily quests.')}</p>
+              </div>
             )}
+
+
 
           </div>
         )}
