@@ -1789,12 +1789,12 @@ function StatsTab() {
                 <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: 'oklch(0.55 0 0)' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => v + '%'} />
                 <YAxis type="category" dataKey="label" tick={{ fontSize: 12, fontWeight: 600, fill: 'oklch(0.85 0 0)' }} axisLine={false} tickLine={false} width={28} />
                 <Tooltip
-                  content={({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) => {
-                    if (!active || !payload?.length) return null
+                  content={(props: any) => {
+                    if (!props.active || !props.payload?.length) return null
                     return (
                       <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-xl text-xs">
-                        <span className="text-muted-foreground">{label}: </span>
-                        <span className="font-bold">{payload[0].value}%</span>
+                        <span className="text-muted-foreground">{props.label}: </span>
+                        <span className="font-bold">{props.payload[0].value}%</span>
                       </div>
                     )
                   }}
@@ -1821,12 +1821,12 @@ function StatsTab() {
                     {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} opacity={0.9} />)}
                   </Pie>
                   <Tooltip
-                    content={({ active, payload }: { active?: boolean; payload?: { name: string; value: number }[] }) => {
-                      if (!active || !payload?.length) return null
+                    content={(props: any) => {
+                      if (!props.active || !props.payload?.length) return null
                       return (
                         <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-xl text-xs">
-                          <p className="font-semibold">{payload[0].name}</p>
-                          <p className="text-muted-foreground">{Number(payload[0].value).toLocaleString()} joueurs</p>
+                          <p className="font-semibold">{props.payload[0].name}</p>
+                          <p className="text-muted-foreground">{Number(props.payload[0].value).toLocaleString()} joueurs</p>
                         </div>
                       )
                     }}
