@@ -409,13 +409,17 @@ function QuestRow({ quest, lang, onClaim, onScratch, diffDot }: {
 
 // ─── Section ───��──────────────────────────────────────────────────────────────
 
-function Section({ label, children }: {
+function Section({ label, children, dot }: {
   label: string
   children: React.ReactNode
+  dot?: string
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <p className="text-[10px] font-semibold uppercase tracking-widest px-0.5 text-muted-foreground/40">{label}</p>
+      <div className="flex items-center gap-1.5 px-0.5">
+        {dot && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}`} />}
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/40">{label}</p>
+      </div>
       <div className="rounded-2xl bg-card border border-border/40 px-3">
         {children}
       </div>
@@ -551,10 +555,25 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
     .filter(q => diffFilter === 'all' || q.difficulty === diffFilter)
     .sort((a, b) => (b.progress / b.target_value) - (a.progress / a.target_value))
 
+  const DIFF_ORDER: Difficulty[] = ['easy', 'medium', 'hard', 'impossible']
+
   const pendingPermanent = permanent
     .filter(q => !isDone(q))
     .filter(q => diffFilter === 'all' || q.difficulty === diffFilter)
-    .sort((a, b) => a.sort_order - b.sort_order)
+    .sort((a, b) => {
+      if (diffFilter === 'all') {
+        const da = DIFF_ORDER.indexOf(a.difficulty)
+        const db = DIFF_ORDER.indexOf(b.difficulty)
+        if (da !== db) return da - db
+      }
+      return a.sort_order - b.sort_order
+    })
+
+  // When showing "All", group permanent quests by difficulty section
+  const permanentByDiff: Record<Difficulty, Quest[]> = {
+    easy: [], medium: [], hard: [], impossible: [],
+  }
+  pendingPermanent.forEach(q => permanentByDiff[q.difficulty].push(q))
 
   const hasPermanent = pendingPermanent.length > 0
   const hasDaily = pendingDaily.length > 0
@@ -688,9 +707,26 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
               </Section>
             )}
 
-            {/* Permanent quests */}
-            {hasPermanent && (
-              <Section label={t('Quêtes', 'Quests')}>
+            {/* Permanent quests — grouped by difficulty in All mode, flat otherwise */}
+            {hasPermanent && diffFilter === 'all' && DIFF_ORDER.map(diff => {
+              const group = permanentByDiff[diff]
+              if (!group.length) return null
+              const labels: Record<Difficulty, [string, string]> = {
+                easy:       ['Facile',     'Easy'],
+                medium:     ['Moyen',      'Medium'],
+                hard:       ['Difficile',  'Hard'],
+                impossible: ['Impossible', 'Impossible'],
+              }
+              return (
+                <Section key={diff} label={lang === 'fr' ? labels[diff][0] : labels[diff][1]} dot={DIFF_DOT[diff]}>
+                  {group.map(q => (
+                    <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={setScratchQuestId} diffDot={DIFF_DOT[q.difficulty]} />
+                  ))}
+                </Section>
+              )
+            })}
+            {hasPermanent && diffFilter !== 'all' && (
+              <Section label={DIFF_CONFIG.find(d => d.value === diffFilter)?.[lang === 'fr' ? 'labelFr' : 'labelEn'] ?? ''} dot={DIFF_DOT[diffFilter as Difficulty]}>
                 {pendingPermanent.map(q => (
                   <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={setScratchQuestId} diffDot={DIFF_DOT[q.difficulty]} />
                 ))}

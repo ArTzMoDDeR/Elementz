@@ -61,11 +61,8 @@ export async function GET() {
       WHERE user_id = ${userId} AND discovered_at >= DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC')
     `
 
-    let comboCount = { n: 0 }
-    try {
-      const [r] = await sql`SELECT COUNT(*)::int AS n FROM element_actions WHERE user_id = ${userId}`
-      if (r) comboCount = r
-    } catch {}
+    // Total unlocks is used as a proxy for total combos (no separate combo log table)
+    const totalCombos = unlockCount.n
 
     const [sessionCount] = await sql`
       SELECT COUNT(DISTINCT DATE_TRUNC('day', discovered_at))::int AS n
@@ -89,12 +86,8 @@ export async function GET() {
       } else if (q.type === 'discover_n') {
         liveProgress = Math.min(unlockCount.n, q.target_value)
       } else if (q.type === 'combinations_n') {
-        // If this combo quest requires a specific element, lock it until discovered
-        if (q.required_element) {
-          liveProgress = 0 // resolved below in batch
-        } else {
-          liveProgress = Math.min(comboCount.n, q.target_value)
-        }
+        // Resolved below per-element via batch query; placeholder 0 for now
+        liveProgress = 0
       } else if (q.type === 'session_n') {
         liveProgress = Math.min(sessionCount.n, q.target_value)
       } else {
@@ -113,13 +106,12 @@ export async function GET() {
       }
     })
 
-    // Resolve discover_element / specific_element / combinations_n(with element) progress in batch
-    const elementGatedQuests = result.filter((q: any) =>
-      (q.type === 'specific_element' || q.type === 'discover_element' ||
-       (q.type === 'combinations_n' && q.required_element)) && q.required_element
+    // Resolve discover_element / specific_element: is element in user's unlocks?
+    const singleElementQuests = result.filter((q: any) =>
+      (q.type === 'specific_element' || q.type === 'discover_element') && q.required_element
     )
-    if (elementGatedQuests.length > 0) {
-      const elementNums = [...new Set(elementGatedQuests.map((q: any) => q.required_element))]
+    if (singleElementQuests.length > 0) {
+      const elementNums = [...new Set(singleElementQuests.map((q: any) => q.required_element))]
       const unlocked = await sql`
         SELECT element_number FROM unlocks
         WHERE user_id = ${userId} AND element_number = ANY(${elementNums})
@@ -128,9 +120,28 @@ export async function GET() {
       for (const q of result as any[]) {
         if ((q.type === 'specific_element' || q.type === 'discover_element') && q.required_element) {
           q.progress = unlockedSet.has(q.required_element) ? 1 : 0
-        } else if (q.type === 'combinations_n' && q.required_element) {
-          // Only show combo progress if the required element has been discovered
-          q.progress = unlockedSet.has(q.required_element) ? Math.min(comboCount.n, q.target_value) : 0
+        }
+      }
+    }
+
+    // Resolve combinations_n: count distinct unlocks the user has that were produced
+    // by a recipe involving required_element as an ingredient
+    const comboQuests = result.filter((q: any) => q.type === 'combinations_n')
+    if (comboQuests.length > 0) {
+      for (const q of comboQuests as any[]) {
+        if (q.required_element) {
+          // Count: how many elements has this user discovered that require required_element as ingredient
+          const [row] = await sql`
+            SELECT COUNT(DISTINCT u.element_number)::int AS n
+            FROM unlocks u
+            JOIN recipes r ON r.result_number = u.element_number
+            WHERE u.user_id = ${userId}
+              AND (r.ingredient1_number = ${q.required_element} OR r.ingredient2_number = ${q.required_element})
+          `
+          q.progress = Math.min(row?.n ?? 0, q.target_value)
+        } else {
+          // No required element: count all discovered elements as combo proxy
+          q.progress = Math.min(totalCombos, q.target_value)
         }
       }
     }
@@ -168,17 +179,19 @@ export async function POST(req: NextRequest) {
   } else if (quest.type === 'discover_n') {
     liveProgress = unlockCount.n
   } else if (quest.type === 'combinations_n') {
-    try {
-      const [r] = await sql`SELECT COUNT(*)::int AS n FROM element_actions WHERE user_id = ${userId}`
-      const rawCount = r?.n ?? 0
-      if (quest.required_element) {
-        // Check element is discovered first
-        const [elRow] = await sql`SELECT 1 FROM unlocks WHERE user_id = ${userId} AND element_number = ${quest.required_element} LIMIT 1`
-        liveProgress = elRow ? Math.min(rawCount, quest.target_value) : 0
-      } else {
-        liveProgress = rawCount
-      }
-    } catch { liveProgress = 0 }
+    if (quest.required_element) {
+      const [r] = await sql`
+        SELECT COUNT(DISTINCT u.element_number)::int AS n
+        FROM unlocks u
+        JOIN recipes r ON r.result_number = u.element_number
+        WHERE u.user_id = ${userId}
+          AND (r.ingredient1_number = ${quest.required_element} OR r.ingredient2_number = ${quest.required_element})
+      `
+      liveProgress = r?.n ?? 0
+    } else {
+      const [r] = await sql`SELECT COUNT(*)::int AS n FROM unlocks WHERE user_id = ${userId}`
+      liveProgress = r?.n ?? 0
+    }
   } else if (quest.type === 'session_n') {
     const [r] = await sql`SELECT COUNT(DISTINCT DATE_TRUNC('day', discovered_at))::int AS n FROM unlocks WHERE user_id = ${userId}`
     liveProgress = r?.n ?? 0
