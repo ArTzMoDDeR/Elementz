@@ -1699,7 +1699,6 @@ type ImpactRow = {
   name_en: string
   img: string | null
   recipes_as_ingredient: number
-  unique_results: number
   discovered_by: number
 }
 
@@ -1736,9 +1735,6 @@ function ElementsImpact() {
       <div className="divide-y divide-border/40">
         {data.impact.map((el, i) => {
           const pct = max > 0 ? (el.recipes_as_ingredient / max) * 100 : 0
-          const coverage = data.totalRecipes > 0
-            ? ((el.recipes_as_ingredient / data.totalRecipes) * 100).toFixed(1)
-            : '0'
           return (
             <div key={el.number} className="flex items-center gap-3 px-5 py-3 group hover:bg-muted/20 transition-colors">
               {/* Rank */}
@@ -1773,19 +1769,9 @@ function ElementsImpact() {
               </div>
 
               {/* Stats */}
-              <div className="flex items-center gap-4 flex-shrink-0 text-right">
-                <div className="hidden sm:flex flex-col items-end">
-                  <span className="text-xs font-bold tabular-nums">{el.unique_results}</span>
-                  <span className="text-[10px] text-muted-foreground leading-none">resultats</span>
-                </div>
-                <div className="hidden sm:flex flex-col items-end">
-                  <span className="text-xs font-semibold tabular-nums text-muted-foreground">{coverage}%</span>
-                  <span className="text-[10px] text-muted-foreground leading-none">couverture</span>
-                </div>
-                <div className="flex flex-col items-end">
-                  <span className="text-sm font-bold tabular-nums">{el.recipes_as_ingredient}</span>
-                  <span className="text-[10px] text-muted-foreground leading-none">recettes</span>
-                </div>
+              <div className="flex-shrink-0 flex flex-col items-end">
+                <span className="text-sm font-bold tabular-nums">{el.recipes_as_ingredient}</span>
+                <span className="text-[10px] text-muted-foreground leading-none">recettes</span>
               </div>
             </div>
           )
