@@ -5,6 +5,7 @@ import {
   Sparkles, Star, Droplets, Flame, Wind, Mountain, Sun, Compass, Crown,
   Gem, CheckCircle2, Microscope, FlaskConical, Trophy, ArrowLeft,
   Clock, Ticket, Plus, ChevronRight, X,
+  Shield, Medal, Atom as AtomIcon, Lightbulb, Gift,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
