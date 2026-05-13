@@ -875,15 +875,7 @@ export function Playground({
               </div>
             </div>
 
-            {/* Crown easter egg — absolute right, only at 100% */}
-            {discovered.size >= totalElements && (
-              <div
-                className="absolute right-0 flex items-center gap-1.5 h-9 px-2.5 rounded-xl bg-gradient-to-r from-yellow-400/20 via-pink-400/20 to-cyan-400/20 border border-yellow-400/30 select-none cursor-default"
-                title={lang === 'fr' ? 'Maître alchimiste !' : 'Alchemy master!'}
-              >
-                <span className="text-sm leading-none" role="img" aria-label="crown">👑</span>
-              </div>
-            )}
+
           </div>
 
           {/* ── Header row 2: search + sort — only on home tab ── */}
@@ -1150,7 +1142,7 @@ export function Playground({
           )}
         </div>
 
-        {/* ── TAB BAR — iOS Liquid Glass ───────────────────────������──�����─ */}
+        {/* ── TAB BAR — iOS Liquid Glass ───────────────────────�������──�����─ */}
         <div
           className="flex-shrink-0 border-t border-white/[0.06] glass"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 12px) + 2px)' }}
