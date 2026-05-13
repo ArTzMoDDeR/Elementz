@@ -286,7 +286,8 @@ export function Playground({
   lang, onSetLang,
   onDrop, onMove, onMerge, onDropAndMerge, onRemove, onClear, onReset,
   onUnlockAll, sessionUser, hintsEnabled, onToggleHints, onRequestHint, hintShouldPulse = false, hintAdLocked = true,
-  hapticEnabled = true, onToggleHaptic, pushNotificationsEnabled = true, onTogglePushNotifications, onTapModeChange, recipeMap,
+  hapticEnabled = true, onToggleHaptic, pushNotificationsEnabled = true, onTogglePushNotifications,
+  suppressUnlockNotif = false, onToggleSuppressUnlockNotif, onTapModeChange, recipeMap,
   playgroundItemsCount = 0, avatarRefreshKey = 0,
 }: PlaygroundProps) {
   const containerRef = useRef<HTMLDivElement>(null)
