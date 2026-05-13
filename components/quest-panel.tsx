@@ -179,18 +179,23 @@ function ScratchCard({ reward, lang, onScratched }: {
   )
 }
 
-// ─── Scratch Modal ────────────────────────────────────────────────────────────
+// ─── Scratch Modal ──────────────────────────────────────���─────────────────────
 
-function ScratchModal({ quest, lang, onScratch, onClose }: {
+function ScratchModal({ quest, lang, onScratch, onClose, onGoToPlay }: {
   quest: Quest
   lang: 'fr' | 'en'
-  onScratch: (questId: number, slot: number) => Promise<void>
+  onScratch: (questId: number, slot: number) => void
   onClose: () => void
+  onGoToPlay?: () => void
 }) {
-  const title = lang === 'fr' ? quest.title_fr : quest.title_en
   const allScratched = quest.rewards.every(r => !!r.scratched_at)
   const anyReward = quest.rewards[0]
-  const resultName = anyReward ? (lang === 'fr' ? anyReward.result_name_french : anyReward.result_name_english) : null
+  const resultName = anyReward
+    ? (lang === 'fr' ? anyReward.result_name_french : anyReward.result_name_english)
+    : null
+  const resultImg = anyReward?.result_img ?? null
+
+  const handleDone = () => { onClose(); onGoToPlay?.() }
 
   return (
     <div
@@ -198,21 +203,14 @@ function ScratchModal({ quest, lang, onScratch, onClose }: {
       style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      {/* Mobile: true fullscreen. Desktop: centered card */}
       <div className="fixed inset-0 sm:static sm:inset-auto sm:w-full sm:max-w-sm sm:h-auto sm:rounded-3xl bg-card border-0 sm:border sm:border-border overflow-y-auto flex flex-col">
-        {/* Header */}
+        {/* Close button */}
         <div
-          className="flex items-center justify-between px-5 pb-4"
-          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 20px)' }}
+          className="flex items-start justify-between px-5 pb-2"
+          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
         >
-          {/* Drag handle visual — mobile only */}
           <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-muted-foreground/20 sm:hidden" />
-          <div>
-            <p className="text-[10px] font-semibold text-amber-400 uppercase tracking-widest mb-0.5">
-              {lang === 'fr' ? 'Récompense' : 'Reward'}
-            </p>
-            <h3 className="text-base font-bold text-foreground leading-tight">{title}</h3>
-          </div>
+          <div />
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors flex-shrink-0 cursor-pointer"
@@ -221,38 +219,51 @@ function ScratchModal({ quest, lang, onScratch, onClose }: {
           </button>
         </div>
 
-        {/* Scratch area */}
-        <div className="px-5 flex-1 flex flex-col justify-center sm:block sm:pb-6"
-          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
-        >
-          {resultName && !allScratched && (
-            <p className="text-[11px] text-muted-foreground text-center mb-4">
-              {lang === 'fr' ? 'Pour créer : ' : 'To create: '}
-              <span className="font-bold text-foreground">{resultName}</span>
-            </p>
-          )}
+        {/* Element hero */}
+        <div className="flex flex-col items-center gap-4 px-5 pt-4 pb-6">
+          <div className="w-24 h-24 rounded-3xl bg-muted/50 flex items-center justify-center">
+            {resultImg
+              ? <img src={resultImg} alt={resultName ?? ''} className="w-16 h-16 object-contain" draggable={false} />
+              : <Sparkles className="w-10 h-10 text-foreground/30" />
+            }
+          </div>
+          <h2 className="text-3xl font-bold text-foreground text-balance text-center leading-tight">
+            {resultName ?? (lang === 'fr' ? 'Récompense' : 'Reward')}
+          </h2>
+        </div>
 
-          <div className="flex items-center justify-center gap-3 flex-wrap">
+        {/* Scratch area */}
+        <div
+          className="px-5 pb-6 flex flex-col items-center gap-5"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 28px)' }}
+        >
+          <div className="flex items-center justify-center gap-4 flex-wrap">
             {quest.rewards.sort((a, b) => a.slot - b.slot).map((r, i) => (
-              <div key={r.slot} className="flex items-center gap-3">
+              <div key={r.slot} className="flex items-center gap-4">
                 <ScratchCard reward={r} lang={lang} onScratched={(slot) => onScratch(quest.id, slot)} />
-                {i < quest.rewards.length - 1 && <Plus className="w-4 h-4 text-muted-foreground/30 flex-shrink-0" />}
+                {i < quest.rewards.length - 1 && <Plus className="w-3.5 h-3.5 text-muted-foreground/20 flex-shrink-0" />}
               </div>
             ))}
           </div>
 
+          {!allScratched && (
+            <p className="text-[10px] text-muted-foreground/25 uppercase tracking-widest animate-pulse">
+              {lang === 'fr' ? 'Gratte pour révéler' : 'Scratch to reveal'}
+            </p>
+          )}
+
           {allScratched && (
-            <div className="mt-5 flex flex-col items-center gap-3">
-              <p className="text-[11px] text-center text-muted-foreground/70 leading-relaxed max-w-[220px]">
+            <div className="flex flex-col items-center gap-3 w-full max-w-[260px]">
+              <p className="text-xs text-center text-muted-foreground/50 leading-relaxed">
                 {lang === 'fr'
                   ? 'Retiens cette combinaison et va la créer sur le terrain !'
                   : 'Remember this combo and try it on the field!'}
               </p>
               <button
-                onClick={onClose}
-                className="px-6 py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-sm font-semibold text-primary hover:bg-primary/20 transition-colors active:scale-95 cursor-pointer"
+                onClick={handleDone}
+                className="w-full h-11 rounded-2xl bg-foreground text-background text-sm font-semibold active:scale-95 transition-all cursor-pointer"
               >
-                {lang === 'fr' ? "J'ai noté !" : 'Got it!'}
+                {lang === 'fr' ? "J'y vais !" : "Let's go!"}
               </button>
             </div>
           )}
@@ -262,228 +273,35 @@ function ScratchModal({ quest, lang, onScratch, onClose }: {
   )
 }
 
-// ─── Scratch CTA Banner ───────────────────────────────────────────────────────
-
-function ScratchBanner({ count, lang, onClick }: {
-  count: number
-  lang: 'fr' | 'en'
-  onClick: () => void
-}) {
-  if (count === 0) {
-    return (
-      <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-muted/30 border border-border/40">
-        <div className="w-8 h-8 rounded-xl bg-muted/50 flex items-center justify-center flex-shrink-0">
-          <Ticket className="w-4 h-4 text-muted-foreground/30" />
-        </div>
-        <p className="text-sm text-muted-foreground/40 font-medium">
-          {lang === 'fr' ? 'Termine une quête pour gratter' : 'Complete a quest to scratch'}
-        </p>
-      </div>
-    )
-  }
-
-  return (
-    <button
-      onClick={onClick}
-      className="w-full flex items-center gap-3.5 px-5 py-4 rounded-2xl active:scale-[0.98] transition-all cursor-pointer"
-      style={{
-        background: 'rgba(99,102,241,0.18)',
-        border: '3px solid #6366f1',
-        boxShadow: '0 4px 20px rgba(99,102,241,0.15)',
-      }}
-    >
-      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(99,102,241,0.25)' }}>
-        <Ticket className="w-4 h-4" style={{ color: '#818cf8' }} />
-      </div>
-      <div className="flex-1 text-left">
-        <p className="text-sm font-bold leading-tight" style={{ color: '#818cf8' }}>
-          {lang === 'fr' ? 'Gratter ma récompense' : 'Scratch my reward'}
-        </p>
-        <p className="text-[11px] font-medium mt-0.5" style={{ color: '#818cf880' }}>
-          {count === 1
-            ? (lang === 'fr' ? '1 quête terminée' : '1 quest ready')
-            : (lang === 'fr' ? `${count} quêtes terminées` : `${count} quests ready`)}
-        </p>
-      </div>
-      <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: '#818cf860' }} />
-    </button>
-  )
-}
-
-// ─── Quest Row ────────────────────────────────────────────────────────────────
-
-function QuestRow({ quest, lang, onClaim, onScratch, diffDot }: {
-  quest: Quest
-  lang: 'fr' | 'en'
-  onClaim: (id: number) => Promise<void>
-  onScratch?: (id: number) => void
-  diffDot?: string
-}) {
-  const [claiming, setClaiming] = useState(false)
-  const [open, setOpen] = useState(false)
-
-  const title = lang === 'fr' ? quest.title_fr : quest.title_en
-  const desc = lang === 'fr' ? quest.desc_fr : quest.desc_en
-  const pct = Math.min(100, Math.round((quest.progress / quest.target_value) * 100))
-  const isReady = quest.progress >= quest.target_value
-  const isClaimed = !!quest.claimed_at
-  const allScratched = quest.rewards.length > 0 && quest.rewards.every(r => !!r.scratched_at)
-  const isDone = isClaimed && allScratched
-
-  const Icon = ICON_MAP[quest.icon] ?? Star
-  const isIconUrl = quest.icon && (quest.icon.startsWith('http') || quest.icon.startsWith('/'))
-
-  const handleClaim = async (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (claiming) return
-    setClaiming(true)
-    await onClaim(quest.id)
-    setClaiming(false)
-  }
-
-  const trackStyle = isReady ? { background: '#818cf8' } : {}
-
-  return (
-    <div className={`border-b border-border/20 last:border-b-0 transition-opacity ${isDone ? 'opacity-30' : ''}`}>
-      <button
-        className="w-full flex items-center gap-3 py-3.5 text-left cursor-pointer"
-        onClick={() => setOpen(o => !o)}
-        aria-expanded={open}
-      >
-        {/* Icon */}
-        <div className="relative flex-shrink-0">
-          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center overflow-hidden ${isDone ? 'bg-muted/30' : isReady ? 'bg-muted/60' : 'bg-muted/40'}`}>
-            {isDone ? (
-              <CheckCircle2 className="w-4 h-4 text-muted-foreground/25" />
-            ) : isIconUrl ? (
-              <img src={quest.icon} alt="" className="w-6 h-6 object-contain" draggable={false} />
-            ) : (
-              <Icon className={`w-4 h-4 ${isReady ? 'text-foreground/70' : 'text-muted-foreground/50'}`} />
-            )}
-          </div>
-          {diffDot && !isDone && (
-            <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${diffDot}`} />
-          )}
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <span className={`text-sm font-medium leading-tight block truncate ${isDone ? 'line-through text-muted-foreground/35' : 'text-foreground'}`}>
-            {title}
-          </span>
-
-          {/* Progress bar — only when not yet claimed */}
-          {!isClaimed && !isDone && (
-            <div className="flex items-center gap-2 mt-1.5">
-              <div className="flex-1 h-[3px] rounded-full bg-muted/60 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-700"
-                  style={{ width: `${pct}%`, background: isReady ? '#818cf8' : 'hsl(var(--muted-foreground) / 0.35)', ...trackStyle }}
-                />
-              </div>
-              <span className="text-[10px] tabular-nums text-muted-foreground/35 flex-shrink-0">
-                {quest.progress}/{quest.target_value}
-              </span>
-            </div>
-          )}
-
-          {/* "Ready to scratch" subtitle */}
-          {isClaimed && !allScratched && !isDone && (
-            <span className="text-[10px] font-medium mt-0.5 block" style={{ color: '#818cf8aa' }}>
-              {lang === 'fr' ? 'Prête à gratter' : 'Ready to scratch'}
-            </span>
-          )}
-        </div>
-
-        {/* Right badge */}
-        {isReady && !isClaimed ? (
-          <span
-            className="flex-shrink-0 self-center text-[10px] font-bold px-2 py-0.5 rounded-full"
-            style={{ background: 'rgba(99,102,241,0.18)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.3)' }}
-          >
-            {lang === 'fr' ? 'Prête' : 'Ready'}
-          </span>
-        ) : (
-          <ChevronRight className={`w-3.5 h-3.5 flex-shrink-0 self-center transition-transform duration-200 ${open ? 'rotate-90' : ''} text-muted-foreground/20`} />
-        )}
-      </button>
-
-      {open && desc && (
-        <div className="pb-3.5 pl-11 pr-1">
-          <p className="text-[11px] text-muted-foreground/50 leading-relaxed">{desc}</p>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── Section ───��──────────────────────────────────────────────────────────────
-
-function Section({ label, children, dot }: {
-  label: string
-  children: React.ReactNode
-  dot?: string
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center gap-1.5 px-0.5">
-        {dot && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}`} />}
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/40">{label}</p>
-      </div>
-      <div className="rounded-2xl bg-card border border-border/40 px-3">
-        {children}
-      </div>
-    </div>
-  )
-}
-
-// ─── Daily Reset Chip ─────────────────────────────────────────────────────────
-
-function DailyChip({ lang }: { lang: 'fr' | 'en' }) {
-  const countdown = useDailyCountdown()
-  return (
-    <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-muted/60 border border-border/40 self-start">
-      <Clock className="w-3 h-3 text-muted-foreground/50 flex-shrink-0" />
-      <span className="text-[10px] font-semibold text-muted-foreground/70 tabular-nums">{countdown}</span>
-    </div>
-  )
-}
-
-// ─── Main Panel ───────────────────────────────────────────────────────────────
+// ─── QuestInlinePanel ─────────────────────────────────────────────────────────
 
 export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGoToPlay?: () => void }) {
-  const [quests, setQuests] = useState<Quest[]>([])
-  const [loading, setLoading] = useState(true)
-  // Which quest is currently open in the scratch modal (cycle through claimable ones)
-  const [scratchQuestId, setScratchQuestId] = useState<number | null>(null)
-
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
-  const fetchQuests = useCallback(async (): Promise<Quest[]> => {
-    try {
-      const res = await fetch('/api/quests')
+  const [quests, setQuests] = useState<Quest[]>([])
+  const [loading, setLoading] = useState(true)
+  const [scratchQuestId, setScratchQuestId] = useState<number | null>(null)
+
+  const fetchQuests = async () => {
+    const res = await fetch('/api/quests')
+    if (res.ok) {
       const data = await res.json()
-      const list: Quest[] = data.quests ?? []
-      setQuests(list)
+      setQuests(data)
       setLoading(false)
-      return list
-    } catch {}
+      return data as Quest[]
+    }
     setLoading(false)
-    return []
-  }, [])
+    return [] as Quest[]
+  }
+
+  useEffect(() => { fetchQuests() }, [])
 
   useEffect(() => {
-    fetchQuests()
-    // Refresh every 30s while the panel is open
-    const interval = setInterval(fetchQuests, 30_000)
-    // Also refresh when the user comes back to the tab
-    const onFocus = () => fetchQuests()
-    window.addEventListener('visibilitychange', onFocus)
-    return () => {
-      clearInterval(interval)
-      window.removeEventListener('visibilitychange', onFocus)
-    }
-  }, [fetchQuests])
+    const handler = () => fetchQuests()
+    document.addEventListener('visibilitychange', handler)
+    const id = setInterval(fetchQuests, 30000)
+    return () => { document.removeEventListener('visibilitychange', handler); clearInterval(id) }
+  }, [])
 
   const handleClaim = async (questId: number) => {
     const res = await fetch('/api/quests', {
@@ -668,10 +486,10 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
                 </p>
               </div>
               <button
-                onClick={closeScratch}
+                onClick={() => { closeScratch(); onGoToPlay?.() }}
                 className="w-full h-11 rounded-2xl bg-foreground text-background text-sm font-semibold active:scale-95 transition-all cursor-pointer"
               >
-                {t("J'ai noté !", 'Got it!')}
+                {t("J'y vais !", "Let's go!")}
               </button>
             </div>
           )}
