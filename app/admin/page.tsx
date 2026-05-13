@@ -86,6 +86,8 @@ type QuestDef = {
   completed_count: number
   claimed_count: number
   in_progress_count: number
+  element_img: string | null
+  element_name: string | null
 }
 
 // ─── Shared components ─────────────────────────────────────────────────────────
@@ -585,6 +587,16 @@ const QUEST_ICONS: Record<string, string> = {
   droplets: '💧', flame: '🔥', wind: '〜', mountain: '△', sun: '☀', star: '★',
 }
 
+const QUEST_FILTERS = [
+  { label: 'Tout', value: null as number | null },
+  { label: 'Daily', value: -1 },
+  { label: '1 élément', value: 1 },
+  { label: '10 éléments', value: 10 },
+  { label: '20 éléments', value: 20 },
+  { label: '30 éléments', value: 30 },
+  { label: '50 éléments', value: 50 },
+]
+
 function QuestsTab() {
   const [quests, setQuests] = useState<QuestDef[]>([])
   const [loading, setLoading] = useState(true)
@@ -592,6 +604,7 @@ function QuestsTab() {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState<number | null>(null)
   const [showAdd, setShowAdd] = useState(false)
+  const [activeFilter, setActiveFilter] = useState<number | null>(null)
 
   const fetchQuests = useCallback(async () => {
     setLoading(true)
@@ -631,13 +644,44 @@ function QuestsTab() {
     setEditing(null)
   }
 
+  const filteredQuests = quests.filter(q => {
+    if (activeFilter === null) return true
+    if (activeFilter === -1) return q.is_daily
+    return q.target_value === activeFilter
+  })
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">{quests.length} quête{quests.length !== 1 ? 's' : ''}</p>
-        <Button size="sm" onClick={() => setShowAdd(true)}>
+      {/* Toolbar */}
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-muted-foreground flex-shrink-0">{filteredQuests.length} quête{filteredQuests.length !== 1 ? 's' : ''}</p>
+        <Button size="sm" onClick={() => setShowAdd(true)} className="flex-shrink-0">
           <Plus className="w-3.5 h-3.5 mr-1.5" />Nouvelle quête
         </Button>
+      </div>
+
+      {/* Filter tabs */}
+      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+        {QUEST_FILTERS.map(f => (
+          <button
+            key={String(f.value)}
+            onClick={() => setActiveFilter(f.value)}
+            className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              activeFilter === f.value
+                ? 'bg-foreground text-background'
+                : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+            }`}
+          >
+            {f.label}
+            {f.value !== null && (
+              <span className="ml-1.5 opacity-60">
+                {f.value === -1
+                  ? quests.filter(q => q.is_daily).length
+                  : quests.filter(q => q.target_value === f.value).length}
+              </span>
+            )}
+          </button>
+        ))}
       </div>
 
       {/* Add modal */}
@@ -759,19 +803,24 @@ function QuestsTab() {
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-16"><Spinner size="md" /></div>
-        ) : quests.length === 0 ? (
+        ) : filteredQuests.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-12">Aucune quête</p>
         ) : (
           <div className="divide-y divide-border/40">
-            {quests.map(q => (
+            {filteredQuests.map(q => (
               <button
                 key={q.id}
                 onClick={() => setEditing(q)}
                 className="w-full flex items-center gap-4 px-5 py-4 hover:bg-muted/30 active:bg-muted/50 transition-colors text-left group"
               >
-                {/* Icon / ID pill */}
-                <div className="w-10 h-10 rounded-xl bg-muted border border-border flex items-center justify-center flex-shrink-0 text-lg select-none">
-                  {q.icon && q.icon.length <= 2 ? q.icon : <span className="text-[10px] font-mono text-muted-foreground">#{q.id}</span>}
+                {/* Element image or fallback icon */}
+                <div className="w-10 h-10 rounded-xl bg-muted border border-border flex items-center justify-center flex-shrink-0 overflow-hidden select-none">
+                  {q.element_img
+                    ? <img src={q.element_img} alt={q.element_name ?? ''} className="w-7 h-7 object-contain" />
+                    : q.icon && q.icon.length <= 2
+                      ? <span className="text-lg">{q.icon}</span>
+                      : <span className="text-[10px] font-mono text-muted-foreground">#{q.id}</span>
+                  }
                 </div>
 
                 {/* Main info */}
@@ -2447,7 +2496,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'push',      label: 'Notifications',   icon: Bell       },
 ]
 
-// ─── CSV download helper ──────────────────────────────────────────────────────
+// ─── CSV download helper ───────���──────────────────────────────────────────────
 async function downloadCsv(type: 'elements' | 'recipes') {
   const res = await fetch(`/api/admin/export?type=${type}`)
   if (!res.ok) { alert(`Export "${type}" échoué (${res.status})`); return }

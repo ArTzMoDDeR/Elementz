@@ -22,7 +22,21 @@ export async function GET() {
         FROM quest_rewards qr
         WHERE qr.quest_id = qd.id AND qr.scratched_at IS NOT NULL
       ) AS claimed_count,
-      COUNT(DISTINCT uq.user_id) FILTER (WHERE uq.progress > 0)::int AS in_progress_count
+      COUNT(DISTINCT uq.user_id) FILTER (WHERE uq.progress > 0)::int AS in_progress_count,
+      (
+        SELECT e.img FROM elements e
+        WHERE qd.title_fr ILIKE ('%' || e.name_french || '%')
+           OR qd.desc_fr  ILIKE ('%' || e.name_french || '%')
+        ORDER BY length(e.name_french) DESC
+        LIMIT 1
+      ) AS element_img,
+      (
+        SELECT e.name_french FROM elements e
+        WHERE qd.title_fr ILIKE ('%' || e.name_french || '%')
+           OR qd.desc_fr  ILIKE ('%' || e.name_french || '%')
+        ORDER BY length(e.name_french) DESC
+        LIMIT 1
+      ) AS element_name
     FROM quest_definitions qd
     LEFT JOIN user_quests uq ON uq.quest_id = qd.id
     GROUP BY qd.id
