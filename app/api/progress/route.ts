@@ -101,6 +101,42 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Update combinations_n quest progress: count unlocks produced via required_element as ingredient
+  if (discovered.length > 0 || (Array.isArray(combo_ingredients) && combo_ingredients.length > 0)) {
+    const comboQuestDefs = await sql`
+      SELECT id, required_element, target_value FROM quest_definitions WHERE type = 'combinations_n'
+    `
+    for (const qd of comboQuestDefs) {
+      let comboProgress = 0
+      if (qd.required_element) {
+        const [row] = await sql`
+          SELECT COUNT(DISTINCT u.element_number)::int AS n
+          FROM unlocks u
+          JOIN recipes r ON r.result_number = u.element_number
+          WHERE u.user_id = ${session.user.id}
+            AND (r.ingredient1_number = ${qd.required_element} OR r.ingredient2_number = ${qd.required_element})
+        `
+        comboProgress = Math.min(row?.n ?? 0, qd.target_value)
+      } else {
+        const [row] = await sql`SELECT COUNT(*)::int AS n FROM unlocks WHERE user_id = ${session.user.id}`
+        comboProgress = Math.min(row?.n ?? 0, qd.target_value)
+      }
+      if (comboProgress > 0) {
+        await sql`
+          INSERT INTO user_quests (user_id, quest_id, progress, completed_at)
+          VALUES (${session.user.id}, ${qd.id}, ${comboProgress}, ${comboProgress >= qd.target_value ? sql`NOW()` : null})
+          ON CONFLICT (user_id, quest_id) DO UPDATE
+            SET progress = ${comboProgress},
+                completed_at = CASE
+                  WHEN ${comboProgress} >= ${qd.target_value} AND user_quests.completed_at IS NULL THEN NOW()
+                  ELSE user_quests.completed_at
+                END
+            WHERE user_quests.claimed_at IS NULL
+        `
+      }
+    }
+  }
+
   // Update discover_n quest progress for all tiers
   if (discovered.length > 0) {
     const [totalUnlocks] = await sql`SELECT COUNT(*)::int AS n FROM unlocks WHERE user_id = ${session.user.id}`
