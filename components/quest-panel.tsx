@@ -179,7 +179,7 @@ function ScratchCard({ reward, lang, onScratched }: {
   )
 }
 
-// ─── Scratch Modal ────────────────────────────────────────────────────────────
+// ─── Scratch Modal ──────────────────────────────────────���─────────────────────
 
 function ScratchModal({ quest, lang, onScratch, onClose }: {
   quest: Quest
@@ -187,10 +187,12 @@ function ScratchModal({ quest, lang, onScratch, onClose }: {
   onScratch: (questId: number, slot: number) => Promise<void>
   onClose: () => void
 }) {
-  const title = lang === 'fr' ? quest.title_fr : quest.title_en
   const allScratched = quest.rewards.every(r => !!r.scratched_at)
   const anyReward = quest.rewards[0]
-  const resultName = anyReward ? (lang === 'fr' ? anyReward.result_name_french : anyReward.result_name_english) : null
+  const resultName = anyReward
+    ? (lang === 'fr' ? anyReward.result_name_french : anyReward.result_name_english)
+    : null
+  const resultImg = anyReward?.result_img ?? null
 
   return (
     <div
@@ -198,21 +200,15 @@ function ScratchModal({ quest, lang, onScratch, onClose }: {
       style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      {/* Mobile: true fullscreen. Desktop: centered card */}
       <div className="fixed inset-0 sm:static sm:inset-auto sm:w-full sm:max-w-sm sm:h-auto sm:rounded-3xl bg-card border-0 sm:border sm:border-border overflow-y-auto flex flex-col">
-        {/* Header */}
+
+        {/* Close button */}
         <div
-          className="flex items-center justify-between px-5 pb-4"
-          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 20px)' }}
+          className="flex items-start justify-between px-5 pb-2"
+          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
         >
-          {/* Drag handle visual — mobile only */}
           <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-muted-foreground/20 sm:hidden" />
-          <div>
-            <p className="text-[10px] font-semibold text-amber-400 uppercase tracking-widest mb-0.5">
-              {lang === 'fr' ? 'Récompense' : 'Reward'}
-            </p>
-            <h3 className="text-base font-bold text-foreground leading-tight">{title}</h3>
-          </div>
+          <div />
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors flex-shrink-0 cursor-pointer"
@@ -221,36 +217,51 @@ function ScratchModal({ quest, lang, onScratch, onClose }: {
           </button>
         </div>
 
-        {/* Scratch area */}
-        <div className="px-5 flex-1 flex flex-col justify-center sm:block sm:pb-6"
-          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
-        >
-          {resultName && !allScratched && (
-            <p className="text-[11px] text-muted-foreground text-center mb-4">
-              {lang === 'fr' ? 'Pour créer : ' : 'To create: '}
-              <span className="font-bold text-foreground">{resultName}</span>
-            </p>
-          )}
+        {/* Element hero */}
+        <div className="flex flex-col items-center gap-4 px-5 pt-4 pb-6">
+          {/* Icon / image */}
+          <div className="w-24 h-24 rounded-3xl bg-muted/50 flex items-center justify-center">
+            {resultImg
+              ? <img src={resultImg} alt={resultName ?? ''} className="w-16 h-16 object-contain" draggable={false} />
+              : <Sparkles className="w-10 h-10 text-foreground/30" />
+            }
+          </div>
+          {/* Name */}
+          <h2 className="text-3xl font-bold text-foreground text-balance text-center leading-tight">
+            {resultName ?? (lang === 'fr' ? 'Récompense' : 'Reward')}
+          </h2>
+        </div>
 
-          <div className="flex items-center justify-center gap-3 flex-wrap">
+        {/* Scratch area */}
+        <div
+          className="px-5 pb-6 flex flex-col items-center gap-5"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 28px)' }}
+        >
+          <div className="flex items-center justify-center gap-4 flex-wrap">
             {quest.rewards.sort((a, b) => a.slot - b.slot).map((r, i) => (
-              <div key={r.slot} className="flex items-center gap-3">
+              <div key={r.slot} className="flex items-center gap-4">
                 <ScratchCard reward={r} lang={lang} onScratched={(slot) => onScratch(quest.id, slot)} />
-                {i < quest.rewards.length - 1 && <Plus className="w-4 h-4 text-muted-foreground/30 flex-shrink-0" />}
+                {i < quest.rewards.length - 1 && <Plus className="w-3.5 h-3.5 text-muted-foreground/20 flex-shrink-0" />}
               </div>
             ))}
           </div>
 
+          {!allScratched && (
+            <p className="text-[10px] text-muted-foreground/25 uppercase tracking-widest animate-pulse">
+              {lang === 'fr' ? 'Gratte pour révéler' : 'Scratch to reveal'}
+            </p>
+          )}
+
           {allScratched && (
-            <div className="mt-5 flex flex-col items-center gap-3">
-              <p className="text-[11px] text-center text-muted-foreground/70 leading-relaxed max-w-[220px]">
+            <div className="flex flex-col items-center gap-3 w-full max-w-[260px]">
+              <p className="text-xs text-center text-muted-foreground/50 leading-relaxed">
                 {lang === 'fr'
                   ? 'Retiens cette combinaison et va la créer sur le terrain !'
                   : 'Remember this combo and try it on the field!'}
               </p>
               <button
                 onClick={onClose}
-                className="px-6 py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-sm font-semibold text-primary hover:bg-primary/20 transition-colors active:scale-95 cursor-pointer"
+                className="w-full h-11 rounded-2xl bg-foreground text-background text-sm font-semibold active:scale-95 transition-all cursor-pointer"
               >
                 {lang === 'fr' ? "J'ai noté !" : 'Got it!'}
               </button>
