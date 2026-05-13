@@ -1698,7 +1698,6 @@ type ImpactRow = {
   name_fr: string
   name_en: string
   img: string | null
-  tier: number | null
   recipes_as_ingredient: number
   unique_results: number
   discovered_by: number
@@ -1719,14 +1718,6 @@ function ElementsImpact() {
   if (!data) return <p className="text-sm text-muted-foreground text-center py-12">Erreur de chargement</p>
 
   const max = data.impact[0]?.recipes_as_ingredient ?? 1
-
-  const tierColor = (tier: number | null) => {
-    if (tier == null) return 'text-muted-foreground/40'
-    if (tier <= 1) return 'text-sky-400'
-    if (tier <= 3) return 'text-emerald-400'
-    if (tier <= 6) return 'text-amber-400'
-    return 'text-orange-400'
-  }
 
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden">
@@ -1767,9 +1758,6 @@ function ElementsImpact() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 mb-1">
                   <span className="text-sm font-semibold truncate">{el.name_fr}</span>
-                  {el.tier != null && (
-                    <span className={`text-[10px] font-mono ${tierColor(el.tier)}`}>T{el.tier}</span>
-                  )}
                 </div>
                 {/* Progress bar */}
                 <div className="h-1.5 rounded-full bg-muted overflow-hidden">
@@ -2458,7 +2446,7 @@ function PushTab() {
   )
 }
 
-// ─── Main Admin Page ──────────────────────────────────────────────────────────
+// ──�� Main Admin Page ──────────────────────────────────────────────────────────
 
 type Tab = 'overview' | 'elements' | 'quests' | 'users' | 'email' | 'stats' | 'push'
 
