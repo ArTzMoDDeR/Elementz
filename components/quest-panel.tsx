@@ -51,9 +51,30 @@ const ICON_MAP: Record<string, React.ElementType> = {
   trophy: Trophy,
 }
 
-// ─── Daily Reset Timer ────────────────────────────────────────────────────────
 
-function useDailyCountdown() {
+// ─── Section ─────────────────────────────────────────────────────────────────
+
+function Section({ label, children, dot }: {
+  label: string
+  children: React.ReactNode
+  dot?: string
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-1.5 px-0.5">
+        {dot && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}`} />}
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/40">{label}</p>
+      </div>
+      <div className="rounded-2xl bg-card border border-border/40 px-3">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// ─── DailyChip ───────────────────────────────────────────────────────────────
+
+function DailyChip({ lang }: { lang: 'fr' | 'en' }) {
   const [secondsLeft, setSecondsLeft] = useState(0)
   useEffect(() => {
     const calc = () => {
@@ -70,7 +91,132 @@ function useDailyCountdown() {
   const h = Math.floor(secondsLeft / 3600)
   const m = Math.floor((secondsLeft % 3600) / 60)
   const s = secondsLeft % 60
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+  const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+  return (
+    <span className="text-[10px] font-mono font-semibold text-foreground/50 tabular-nums">{time}</span>
+  )
+}
+
+// ─── ScratchBanner ───────────────────────────────────────────────────────────
+
+function ScratchBanner({ count, lang, onClick }: { count: number; lang: 'fr' | 'en'; onClick: () => void }) {
+  if (count === 0) return null
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-2xl bg-amber-400/10 border border-amber-400/20 active:scale-[0.98] transition-all cursor-pointer"
+    >
+      <div className="flex items-center gap-3">
+        <Sparkles className="w-4 h-4 text-amber-400 flex-shrink-0" />
+        <div className="text-left">
+          <p className="text-sm font-semibold text-amber-400 leading-tight">
+            {lang === 'fr' ? `${count} récompense${count > 1 ? 's' : ''} à gratter` : `${count} reward${count > 1 ? 's' : ''} to scratch`}
+          </p>
+          <p className="text-[10px] text-amber-400/60 mt-0.5">
+            {lang === 'fr' ? 'Gratte pour révéler ton élément' : 'Scratch to reveal your element'}
+          </p>
+        </div>
+      </div>
+      <ChevronRight className="w-4 h-4 text-amber-400/50 flex-shrink-0" />
+    </button>
+  )
+}
+
+// ─── QuestRow ────────────────────────────────────────────────────────────────
+
+function QuestRow({ quest, lang, onClaim, onScratch, diffDot }: {
+  quest: Quest
+  lang: 'fr' | 'en'
+  onClaim: (id: number) => Promise<void>
+  onScratch?: (id: number) => void
+  diffDot?: string
+}) {
+  const [claiming, setClaiming] = useState(false)
+  const t = (fr: string, en: string) => lang === 'fr' ? fr : en
+
+  const isClaimed = !!quest.claimed_at
+  const allScratched = quest.rewards.every(r => !!r.scratched_at)
+  const isDone = isClaimed && allScratched
+  const isReady = quest.progress >= quest.target_value && !isClaimed
+  const isIconUrl = quest.icon?.startsWith('http') || quest.icon?.startsWith('/')
+  const pct = Math.min(100, Math.round((quest.progress / quest.target_value) * 100))
+
+  const iconMap: Record<string, React.ElementType> = {
+    star: Star, shield: Shield, trophy: Trophy, medal: Medal, atom: AtomIcon, lightbulb: Lightbulb,
+  }
+  const Icon = iconMap[quest.icon] ?? Star
+
+  const handleClaim = async () => {
+    if (claiming || isClaimed || !isReady) return
+    setClaiming(true)
+    try {
+      await onClaim(quest.id)
+    } finally {
+      setClaiming(false)
+    }
+  }
+
+  return (
+    <div className={`border-b border-border/20 last:border-b-0 transition-opacity ${isDone ? 'opacity-30' : ''}`}>
+      <div className="flex items-center gap-3 py-3">
+        {/* Icon */}
+        <div className="relative flex-shrink-0">
+          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center overflow-hidden ${isDone ? 'bg-muted/30' : isReady ? 'bg-muted/60' : 'bg-muted/40'}`}>
+            {isDone ? (
+              <CheckCircle2 className="w-4 h-4 text-muted-foreground/25" />
+            ) : isIconUrl ? (
+              <img src={quest.icon} alt="" className="w-6 h-6 object-contain" draggable={false} />
+            ) : (
+              <Icon className={`w-4 h-4 ${isReady ? 'text-foreground/70' : 'text-muted-foreground/50'}`} />
+            )}
+          </div>
+          {diffDot && !isDone && (
+            <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${diffDot}`} />
+          )}
+        </div>
+
+        {/* Text + progress */}
+        <div className="flex-1 min-w-0">
+          <p className={`text-sm font-semibold leading-snug truncate ${isDone ? 'text-muted-foreground/40' : 'text-foreground'}`}>
+            {lang === 'fr' ? quest.title_fr : quest.title_en}
+          </p>
+          <div className="flex items-center gap-2 mt-1.5">
+            <div className="flex-1 h-[3px] rounded-full bg-muted/60 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-700 ${isReady ? '' : 'bg-foreground/25'}`}
+                style={{ width: `${pct}%`, ...(isReady ? { background: '#818cf8' } : {}) }}
+              />
+            </div>
+            <span className="text-[10px] font-mono text-muted-foreground/40 flex-shrink-0 tabular-nums">
+              {quest.progress}/{quest.target_value}
+            </span>
+          </div>
+        </div>
+
+        {/* Action */}
+        <div className="flex-shrink-0">
+          {isClaimed && !allScratched ? (
+            <button
+              onClick={() => onScratch?.(quest.id)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-400/10 border border-amber-400/20 text-xs font-semibold text-amber-400 active:scale-95 transition-all cursor-pointer"
+            >
+              <Sparkles className="w-3 h-3" />
+              {t('Gratter', 'Scratch')}
+            </button>
+          ) : isReady ? (
+            <button
+              onClick={handleClaim}
+              disabled={claiming}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-foreground/10 text-xs font-semibold text-foreground active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+            >
+              {claiming ? <div className="w-3 h-3 border border-foreground/40 border-t-foreground rounded-full animate-spin" /> : <Gift className="w-3 h-3" />}
+              {t('Réclamer', 'Claim')}
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ─── Scratch Card ─────────────────────────────────────────────────────────────
