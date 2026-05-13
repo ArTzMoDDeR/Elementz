@@ -405,74 +405,58 @@ function UsersTab() {
       {/* Table */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[700px]">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Utilisateur</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Pseudo</th>
-                <th className="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort('discovered')}>
-                  Découvertes<SortIcon k="discovered" />
+                <th className="px-3 sm:px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Utilisateur</th>
+                <th className="hidden sm:table-cell px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Pseudo</th>
+                <th className="px-3 sm:px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort('discovered')}>
+                  <span className="hidden sm:inline">Découvertes</span><span className="sm:hidden">Disc.</span><SortIcon k="discovered" />
                 </th>
-                <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort('rank')}>
-                  Classement<SortIcon k="rank" />
-                </th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort('last_active')}>
+                <th className="hidden md:table-cell px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort('last_active')}>
                   Dernière activité<SortIcon k="last_active" />
                 </th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort('created_at')}>
-                  Inscription<SortIcon k="created_at" />
-                </th>
-                <th className="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground">Actions</th>
+                <th className="px-3 sm:px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center">
+                  <td colSpan={5} className="px-4 py-10 text-center">
                     <div className="flex justify-center"><Spinner size="md" /></div>
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">Aucun utilisateur trouvé</td>
+                  <td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">Aucun utilisateur trouvé</td>
                 </tr>
               ) : sortedUsers.map(u => (
                 <tr key={u.id} className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors group">
-                  <td className="px-4 py-3 max-w-[200px]">
-                    <p className="font-medium truncate">{u.name ?? '—'}</p>
-                    <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                  <td className="px-3 sm:px-4 py-3 min-w-0 max-w-[160px] sm:max-w-[220px]">
+                    <p className="font-medium truncate text-sm">{u.name ?? u.username ?? '—'}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{u.email}</p>
                   </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground font-mono truncate max-w-[120px]">
+                  <td className="hidden sm:table-cell px-4 py-3 text-sm text-muted-foreground font-mono truncate max-w-[120px]">
                     {u.username ?? <span className="text-muted-foreground/40">—</span>}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums font-bold">{u.discovered}</td>
-                  <td className="px-4 py-3 text-center">
-                    {u.show_in_leaderboard
-                      ? <Badge color="green" label="Visible" />
-                      : <Badge color="zinc" label="Caché" />
-                    }
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                  <td className="px-3 sm:px-4 py-3 text-right tabular-nums font-bold text-sm">{u.discovered}</td>
+                  <td className="hidden md:table-cell px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                     {u.last_active ? new Date(u.last_active).toLocaleDateString('fr', { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
                   </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                    {new Date(u.created_at).toLocaleDateString('fr', { day: 'numeric', month: 'short', year: '2-digit' })}
-                  </td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 sm:px-4 py-3">
                     <div className="flex items-center justify-end gap-1.5">
                       <button
                         onClick={() => setMissingUser(u)}
                         title="Voir les éléments manquants"
-                        className="inline-flex items-center gap-1 px-2 py-1 h-7 rounded-lg border border-border text-xs text-muted-foreground hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-colors"
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-xl border border-border text-muted-foreground hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-colors"
                       >
-                        <Layers className="w-3 h-3 flex-shrink-0" />
-                        <span className="hidden sm:inline">Manquants</span>
+                        <Layers className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => toggleAdmin(u)}
                         disabled={!!toggling}
                         title={u.is_admin ? 'Révoquer admin' : 'Donner admin'}
-                        className={`inline-flex items-center justify-center w-7 h-7 rounded-lg border transition-colors ${u.is_admin ? 'bg-primary/10 border-primary/30 text-primary hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive' : 'border-border text-muted-foreground hover:bg-primary/10 hover:border-primary/30 hover:text-primary'}`}
+                        className={`inline-flex items-center justify-center w-8 h-8 rounded-xl border transition-colors ${u.is_admin ? 'bg-primary/10 border-primary/30 text-primary hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive' : 'border-border text-muted-foreground hover:bg-primary/10 hover:border-primary/30 hover:text-primary'}`}
                       >
                         {toggling === u.id ? <Spinner /> : u.is_admin ? <Shield className="w-3.5 h-3.5" /> : <ShieldOff className="w-3.5 h-3.5" />}
                       </button>
@@ -806,8 +790,8 @@ function EditModal({ element, elements, onClose, onSaved }: {
     : elements.slice(0, 30)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-card border border-border rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-card border-t sm:border border-border sm:rounded-2xl w-full sm:max-w-2xl h-[96dvh] sm:max-h-[92vh] overflow-y-auto shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-border sticky top-0 bg-card z-10">
           <div className="flex items-center gap-3">
@@ -1714,49 +1698,49 @@ function StatsTab() {
 
       {/* Main chart */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 border-b border-border">
-          <div className="flex items-center gap-1 bg-muted/60 rounded-lg p-0.5 border border-border">
-            {(['hour', 'day', 'week'] as Granularity[]).map(g => {
-              const labels: Record<Granularity, string> = { hour: '24h', day: '14 jours', week: '13 sem.' }
-              return (
-                <button key={g} onClick={() => setGran(g)}
-                  className={'px-3 py-1.5 text-xs font-semibold rounded-md transition-all ' + (gran === g ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
-                  {labels[g]}
-                </button>
-              )
-            })}
-          </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-1 bg-muted/60 rounded-lg p-0.5 border border-border">
+        <div className="flex flex-col gap-3 px-4 sm:px-5 py-3.5 border-b border-border">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-0.5 bg-muted/60 rounded-lg p-0.5 border border-border">
+              {(['hour', 'day', 'week'] as Granularity[]).map(g => {
+                const labels: Record<Granularity, string> = { hour: '24h', day: '14j', week: '13S' }
+                return (
+                  <button key={g} onClick={() => setGran(g)}
+                    className={'px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all ' + (gran === g ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+                    {labels[g]}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="flex items-center gap-0.5 bg-muted/60 rounded-lg p-0.5 border border-border">
               {(['area', 'bar', 'line'] as ChartKind[]).map(c => {
                 const labels: Record<ChartKind, string> = { area: 'Aire', bar: 'Barres', line: 'Lignes' }
                 return (
                   <button key={c} onClick={() => setChartKind(c)}
-                    className={'px-3 py-1.5 text-xs font-semibold rounded-md transition-all ' + (chartKind === c ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+                    className={'px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all ' + (chartKind === c ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
                     {labels[c]}
                   </button>
                 )
               })}
             </div>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {SERIES_CFG.map(s => (
-                <button key={s.key} onClick={() => toggleSeries(s.key)}
-                  className={'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ' + (activeSeries.has(s.key) ? 'text-foreground' : 'border-border text-muted-foreground opacity-40')}
-                  style={activeSeries.has(s.key) ? { background: s.color + '15', borderColor: s.color + '45' } : undefined}>
-                  <div className="w-2 h-2 rounded-full" style={{ background: s.color }} />
-                  {s.label}
-                </button>
-              ))}
-            </div>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {SERIES_CFG.map(s => (
+              <button key={s.key} onClick={() => toggleSeries(s.key)}
+                className={'flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium border transition-all ' + (activeSeries.has(s.key) ? 'text-foreground' : 'border-border text-muted-foreground opacity-40')}
+                style={activeSeries.has(s.key) ? { background: s.color + '15', borderColor: s.color + '45' } : undefined}>
+                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.color }} />
+                {s.label}
+              </button>
+            ))}
           </div>
         </div>
-        <div style={{ height: 420 }} className="px-2 pt-4 pb-2">
+        <div className="h-[240px] sm:h-[360px] px-1 sm:px-2 pt-4 pb-2">
           {loading ? (
             <div className="flex items-center justify-center h-full"><Spinner size="md" /></div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               {chartKind === 'bar' ? (
-                <BarChart data={series} barGap={2} barCategoryGap={28}>
+                <BarChart data={series} barGap={2} barCategoryGap={20}>
                   {gridEl}{xEl}{yEl}
                   <Tooltip content={<StatsTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
                   {activeSer.map(s => <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[3, 3, 0, 0]} opacity={0.85} />)}
@@ -1798,9 +1782,9 @@ function StatsTab() {
             <Repeat2 className="w-4 h-4 text-muted-foreground" />
             <p className="text-sm font-semibold">Retention</p>
           </div>
-          <div style={{ height: 160 }}>
+          <div className="h-[140px] sm:h-[160px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={retentionData} layout="vertical" barCategoryGap={30}>
+              <BarChart data={retentionData} layout="vertical" barCategoryGap={26}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
                 <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: 'oklch(0.55 0 0)' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => v + '%'} />
                 <YAxis type="category" dataKey="label" tick={{ fontSize: 12, fontWeight: 600, fill: 'oklch(0.85 0 0)' }} axisLine={false} tickLine={false} width={28} />
@@ -1829,11 +1813,11 @@ function StatsTab() {
             <Activity className="w-4 h-4 text-muted-foreground" />
             <p className="text-sm font-semibold">Distribution joueurs</p>
           </div>
-          <div className="flex items-center gap-5">
-            <div style={{ width: 130, height: 130, flexShrink: 0 }}>
+          <div className="flex items-center gap-4">
+            <div style={{ width: 110, height: 110, flexShrink: 0 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={pieData} dataKey="value" cx="50%" cy="50%" innerRadius={36} outerRadius={58} paddingAngle={2} strokeWidth={0}>
+                  <Pie data={pieData} dataKey="value" cx="50%" cy="50%" innerRadius={30} outerRadius={48} paddingAngle={2} strokeWidth={0}>
                     {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} opacity={0.9} />)}
                   </Pie>
                   <Tooltip
@@ -2204,7 +2188,6 @@ async function downloadCsv(type: 'elements' | 'recipes') {
 
 export default function AdminPanel() {
   const [tab, setTab] = useState<Tab>('overview')
-  const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
     <div className="h-[100dvh] bg-background flex overflow-hidden">
@@ -2284,77 +2267,47 @@ export default function AdminPanel() {
 
       {/* ── Top bar (mobile) ─────────────────────────────────────────────── */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-30 border-b border-white/[0.06] flex items-end justify-between px-4 pb-3"
-        style={{ background: 'rgba(10,10,10,0.92)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingTop: 'calc(env(safe-area-inset-top) + 12px)', minHeight: 'calc(env(safe-area-inset-top) + 56px)' }}
+        style={{ background: 'rgba(10,10,10,0.92)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingTop: 'calc(env(safe-area-inset-top) + 12px)', minHeight: 'calc(env(safe-area-inset-top) + 52px)' }}
       >
         <a href="/" className="flex items-center gap-2">
           <img src="/logo.png" alt="Elementz" className="w-7 h-7 rounded-xl" />
-          <span className="text-sm font-semibold text-foreground">Elementz</span>
-          <span className="text-[9px] font-bold text-primary bg-primary/10 border border-primary/20 rounded-md px-1.5 py-0.5">ADMIN</span>
+          <span className="text-sm font-semibold text-foreground">Admin</span>
         </a>
-        <div className="flex items-center gap-1.5">
-          <button onClick={() => setMobileOpen(true)}
-            className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted/50 transition-colors">
-            <div className="flex flex-col gap-[4px] items-center justify-center">
-              <span className="w-4 h-[1.5px] rounded-full bg-current block" />
-              <span className="w-4 h-[1.5px] rounded-full bg-current block" />
-              <span className="w-4 h-[1.5px] rounded-full bg-current block" />
-            </div>
-          </button>
-        </div>
+        <span className="text-sm font-semibold text-foreground/80">
+          {TABS.find(t => t.id === tab)?.label ?? ''}
+        </span>
       </header>
 
-      {/* ── Mobile menu overlay ───────────────────────────────────────────── */}
-      {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <div className="relative ml-auto w-72 h-full flex flex-col border-l border-white/[0.06]"
-            style={{ background: 'rgba(12,12,12,0.97)', paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
-          >
-            <div className="flex items-center justify-between px-4 h-14 border-b border-white/[0.06]">
-              <div className="flex items-center gap-2.5">
-                <img src="/logo.png" alt="Elementz" className="w-7 h-7 rounded-xl" />
-                <span className="text-sm font-semibold text-foreground">Admin Panel</span>
+      {/* ── Bottom tab bar (mobile iOS-style) ────────────────────────────── */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/[0.06] flex items-stretch"
+        style={{ background: 'rgba(10,10,10,0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        {TABS.map(t => {
+          const Icon = t.icon
+          const isActive = tab === t.id
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`flex-1 flex flex-col items-center justify-center gap-1 py-2.5 min-w-0 transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground/40'}`}
+            >
+              <div className={`w-8 h-8 flex items-center justify-center rounded-xl transition-colors ${isActive ? 'bg-foreground/10' : ''}`}>
+                <Icon className="w-4 h-4" />
               </div>
-              <button onClick={() => setMobileOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted/50 transition-colors">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <nav className="flex-1 flex flex-col gap-0.5 p-3 overflow-y-auto no-scrollbar">
-              {TABS.map(t => {
-                const Icon = t.icon
-                const isActive = tab === t.id
-                return (
-                  <button key={t.id} onClick={() => { setTab(t.id); setMobileOpen(false) }}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
-                      isActive ? 'bg-foreground/10 text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4 flex-shrink-0" />
-                    {t.label}
-                  </button>
-                )
-              })}
-            </nav>
-            <div className="p-3 border-t border-white/[0.06] flex flex-col gap-1">
-              <button onClick={() => downloadCsv('elements')}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
-                <Download className="w-4 h-4" /> Éléments CSV
-              </button>
-              <button onClick={() => downloadCsv('recipes')}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
-                <Download className="w-4 h-4" /> Recettes CSV
-              </button>
-              <a href="/" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
-                <X className="w-4 h-4" /> Retour au jeu
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
+              <span className="text-[9px] font-semibold tracking-tight truncate w-full text-center px-0.5 leading-none">
+                {t.label.length > 8 ? t.label.slice(0, 7) + '…' : t.label}
+              </span>
+            </button>
+          )
+        })}
+      </nav>
 
       {/* ── Content ──────────────────────────────────────────────────────── */}
-      <main className="flex-1 lg:mr-[300px] min-w-0 h-full overflow-y-auto no-scrollbar pb-10 lg:pt-10 px-4 lg:px-10 xl:px-16 2xl:px-24"
-        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 72px)' }}
+      <main className="flex-1 lg:mr-[300px] min-w-0 h-full overflow-y-auto no-scrollbar px-4 lg:px-10 xl:px-16 2xl:px-24 lg:py-10"
+        style={{
+          paddingTop: 'calc(env(safe-area-inset-top) + 64px)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom) + 96px)',
+        }}
       >
         {tab === 'overview'  && <OverviewTab />}
         {tab === 'stats'     && <StatsTab />}
