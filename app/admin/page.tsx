@@ -591,15 +591,13 @@ const QUEST_ICONS: Record<string, string> = {
 // ─── Quest types config ───────────────────────────────────────────────────────
 
 const QUEST_TYPES = [
-  { value: 'discover_n',       label: 'Découvrir N éléments',        hasElement: false, targetLabel: 'Nombre d\'éléments' },
-  { value: 'discover_n_daily', label: 'Découvrir N éléments (daily)', hasElement: false, targetLabel: 'Nombre d\'éléments' },
-  { value: 'combinations_n',   label: 'Faire N combinaisons',         hasElement: true,  targetLabel: 'Nombre de combos'   },
-  { value: 'discover_element', label: 'Découvrir un élément précis',  hasElement: true,  targetLabel: 'Objectif (1)'       },
-  { value: 'specific_element', label: 'Créer un élément précis',      hasElement: true,  targetLabel: 'Objectif (1)'       },
-  { value: 'session_n',        label: 'Jouer N sessions',             hasElement: false, targetLabel: 'Nombre de sessions' },
+  { value: 'discover_n',       label: 'Découvrir N éléments',        hasElement: false, targetLabel: 'Nombre d\'éléments', hideTarget: false },
+  { value: 'discover_n_daily', label: 'Découvrir N éléments (daily)', hasElement: false, targetLabel: 'Nombre d\'éléments', hideTarget: false },
+  { value: 'combinations_n',   label: 'Faire N combinaisons',         hasElement: true,  targetLabel: 'Nombre de combos',   hideTarget: false },
+  { value: 'discover_element', label: 'Découvrir un élément précis',  hasElement: true,  targetLabel: 'Objectif (1)',       hideTarget: true  },
+  { value: 'specific_element', label: 'Créer un élément précis',      hasElement: true,  targetLabel: 'Objectif (1)',       hideTarget: true  },
+  { value: 'session_n',        label: 'Jouer N sessions',             hasElement: false, targetLabel: 'Nombre de sessions', hideTarget: false },
 ]
-
-const ICON_OPTIONS = ['star', 'flame', 'droplets', 'wind', 'mountain', 'sparkles', 'compass', 'gem', 'sun', 'crown', 'flask', 'microscope']
 
 // Shared fullscreen form sheet used by both create and edit
 function QuestFormSheet({
@@ -618,6 +616,9 @@ function QuestFormSheet({
   const [elementSearch, setElementSearch] = useState('')
   const [elementResults, setElementResults] = useState<{ number: number; name_french: string; img: string | null }[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
+  const [iconSearch, setIconSearch] = useState('')
+  const [iconResults, setIconResults] = useState<{ number: number; name_french: string; img: string | null }[]>([])
+  const [iconSearchLoading, setIconSearchLoading] = useState(false)
   const typeConfig = QUEST_TYPES.find(t => t.value === initial.type) ?? QUEST_TYPES[0]
 
   useEffect(() => {
@@ -633,6 +634,20 @@ function QuestFormSheet({
     }, 300)
     return () => clearTimeout(t)
   }, [elementSearch])
+
+  useEffect(() => {
+    if (!iconSearch.trim()) { setIconResults([]); return }
+    const t = setTimeout(async () => {
+      setIconSearchLoading(true)
+      try {
+        const res = await fetch(`/api/elements?q=${encodeURIComponent(iconSearch)}&limit=6`)
+        const data = await res.json()
+        setIconResults(data.elements ?? [])
+      } catch {}
+      setIconSearchLoading(false)
+    }, 300)
+    return () => clearTimeout(t)
+  }, [iconSearch])
 
   const selectElement = (el: { number: number; name_french: string; img: string | null }) => {
     onChange({ ...initial, required_element: el.number, element_name: el.name_french, element_img: el.img })
@@ -755,33 +770,56 @@ function QuestFormSheet({
             </div>
           )}
 
-          {/* Icon picker */}
+          {/* Icon — element image search */}
           <div>
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 block">Icône</label>
-            <div className="flex flex-wrap gap-1.5">
-              {ICON_OPTIONS.map(icon => (
-                <button
-                  key={icon}
-                  onClick={() => onChange({ ...initial, icon })}
-                  className={`px-2.5 py-1.5 rounded-lg border text-xs font-mono transition-all ${
-                    initial.icon === icon
-                      ? 'border-primary/50 bg-primary/10 text-primary'
-                      : 'border-border bg-muted/20 text-muted-foreground hover:bg-muted/40'
-                  }`}
-                >
-                  {icon}
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 block">Icône (image d&apos;élément)</label>
+            {/* Current icon preview */}
+            {initial.icon && (
+              <div className="flex items-center gap-3 mb-3 p-3 rounded-xl border border-border bg-muted/20">
+                <div className="w-9 h-9 rounded-xl bg-muted border border-border flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  {initial.icon.startsWith('http') || initial.icon.startsWith('/')
+                    ? <img src={initial.icon} alt="" className="w-7 h-7 object-contain" />
+                    : <span className="text-xs font-mono text-muted-foreground">{initial.icon}</span>
+                  }
+                </div>
+                <span className="text-sm text-muted-foreground flex-1 truncate font-mono">{initial.icon}</span>
+                <button onClick={() => onChange({ ...initial, icon: '' })} className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
+                  <X className="w-3.5 h-3.5" />
                 </button>
-              ))}
+              </div>
+            )}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
               <Input
-                value={initial.icon}
-                onChange={e => onChange({ ...initial, icon: e.target.value })}
-                className="h-8 w-28 text-xs font-mono"
-                placeholder="autre..."
+                placeholder="Rechercher un élément comme icône..."
+                value={iconSearch}
+                onChange={e => setIconSearch(e.target.value)}
+                className="pl-9 h-10 text-sm"
               />
+              {(iconResults.length > 0 || iconSearchLoading) && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-xl overflow-hidden z-10">
+                  {iconSearchLoading
+                    ? <div className="flex justify-center py-4"><Spinner /></div>
+                    : iconResults.map(el => (
+                      <button
+                        key={el.number}
+                        onClick={() => { onChange({ ...initial, icon: el.img ?? el.name_french }); setIconSearch(''); setIconResults([]) }}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted/40 transition-colors text-left"
+                      >
+                        <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          {el.img ? <img src={el.img} alt="" className="w-5 h-5 object-contain" /> : <span className="text-[9px] font-mono text-muted-foreground">#{el.number}</span>}
+                        </div>
+                        <span className="text-sm font-medium">{el.name_french}</span>
+                        <span className="text-xs font-mono text-muted-foreground ml-auto">#{el.number}</span>
+                      </button>
+                    ))
+                  }
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Titles */}
+          {/* Titles + fields */}
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2 sm:col-span-1">
               <label className="text-xs text-muted-foreground mb-1.5 block">Titre FR</label>
@@ -799,18 +837,22 @@ function QuestFormSheet({
               <label className="text-xs text-muted-foreground mb-1.5 block">Description EN</label>
               <Input value={initial.desc_en} onChange={e => onChange({ ...initial, desc_en: e.target.value })} className="h-10 text-sm" />
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">{typeConfig.targetLabel}</label>
-              <Input type="number" value={initial.target_value} onChange={e => onChange({ ...initial, target_value: parseInt(e.target.value) || 1 })} className="h-10 text-sm" />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Ordre</label>
-              <Input type="number" value={initial.sort_order} onChange={e => onChange({ ...initial, sort_order: parseInt(e.target.value) || 0 })} className="h-10 text-sm" />
-            </div>
+            {!typeConfig.hideTarget && (
+              <div className="col-span-2">
+                <label className="text-xs text-muted-foreground mb-1.5 block">{typeConfig.targetLabel}</label>
+                <Input type="number" value={initial.target_value} onChange={e => onChange({ ...initial, target_value: parseInt(e.target.value) || 1 })} className="h-10 text-sm" />
+              </div>
+            )}
             <div className="col-span-2 flex items-center gap-2.5">
               <input type="checkbox" id="is_daily_form" checked={!!initial.is_daily} onChange={e => onChange({ ...initial, is_daily: e.target.checked })} className="w-4 h-4 rounded accent-primary" />
               <label htmlFor="is_daily_form" className="text-sm font-medium cursor-pointer select-none">Quête daily (réinitialisée chaque jour)</label>
             </div>
+          </div>
+
+          {/* Sort order — alone at the bottom */}
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Ordre d&apos;affichage</label>
+            <Input type="number" value={initial.sort_order} onChange={e => onChange({ ...initial, sort_order: parseInt(e.target.value) || 0 })} className="h-10 text-sm w-32" />
           </div>
 
           {footer}
@@ -976,13 +1018,15 @@ function QuestsTab() {
                 onClick={() => setEditing(q)}
                 className="w-full flex items-center gap-4 px-5 py-4 hover:bg-muted/30 active:bg-muted/50 transition-colors text-left group"
               >
-                {/* Element image or fallback icon */}
+                {/* Element image or icon */}
                 <div className="w-10 h-10 rounded-xl bg-muted border border-border flex items-center justify-center flex-shrink-0 overflow-hidden select-none">
                   {q.element_img
                     ? <img src={q.element_img} alt={q.element_name ?? ''} className="w-7 h-7 object-contain" />
-                    : q.icon && q.icon.length <= 2
-                      ? <span className="text-lg">{q.icon}</span>
-                      : <span className="text-[10px] font-mono text-muted-foreground">#{q.id}</span>
+                    : q.icon && (q.icon.startsWith('http') || q.icon.startsWith('/'))
+                      ? <img src={q.icon} alt="" className="w-7 h-7 object-contain" />
+                      : q.icon && q.icon.length <= 2
+                        ? <span className="text-lg">{q.icon}</span>
+                        : <span className="text-[10px] font-mono text-muted-foreground">#{q.id}</span>
                   }
                 </div>
 
