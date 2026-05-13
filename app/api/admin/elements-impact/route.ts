@@ -31,7 +31,7 @@ export async function GET() {
       LEFT JOIN unlocks ul
         ON ul.element_number = e.number
       GROUP BY e.number, e.name_french, e.name_english, e.img
-      ORDER BY recipes_as_ingredient DESC
+      ORDER BY unique_results DESC
       LIMIT 30
     `
 

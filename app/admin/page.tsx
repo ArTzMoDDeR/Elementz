@@ -1699,6 +1699,7 @@ type ImpactRow = {
   name_en: string
   img: string | null
   recipes_as_ingredient: number
+  unique_results: number
   discovered_by: number
 }
 
@@ -1716,7 +1717,7 @@ function ElementsImpact() {
   if (loading) return <div className="flex justify-center py-12"><Spinner size="md" /></div>
   if (!data) return <p className="text-sm text-muted-foreground text-center py-12">Erreur de chargement</p>
 
-  const max = data.impact[0]?.recipes_as_ingredient ?? 1
+  const max = data.impact[0]?.unique_results ?? 1
 
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden">
@@ -1734,7 +1735,7 @@ function ElementsImpact() {
       {/* List */}
       <div className="divide-y divide-border/40">
         {data.impact.map((el, i) => {
-          const pct = max > 0 ? (el.recipes_as_ingredient / max) * 100 : 0
+          const pct = max > 0 ? (el.unique_results / max) * 100 : 0
           return (
             <div key={el.number} className="flex items-center gap-3 px-5 py-3 group hover:bg-muted/20 transition-colors">
               {/* Rank */}
@@ -1770,8 +1771,8 @@ function ElementsImpact() {
 
               {/* Stats */}
               <div className="flex-shrink-0 flex flex-col items-end">
-                <span className="text-sm font-bold tabular-nums">{el.recipes_as_ingredient}</span>
-                <span className="text-[10px] text-muted-foreground leading-none">recettes</span>
+                <span className="text-sm font-bold tabular-nums">{el.unique_results}</span>
+                <span className="text-[10px] text-muted-foreground leading-none">resultats</span>
               </div>
             </div>
           )
