@@ -30,10 +30,12 @@ export default function LegalPage() {
       lastUpdatedFr="29 avril 2025"
       lastUpdatedEn="29 April 2025"
       footerFr={<>
+        <Link href="/about" className="hover:text-foreground transition-colors">À propos</Link>
         <Link href="/privacy" className="hover:text-foreground transition-colors">Politique de confidentialité</Link>
         <Link href="/terms" className="hover:text-foreground transition-colors">Conditions d&apos;utilisation</Link>
       </>}
       footerEn={<>
+        <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
         <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
         <Link href="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
       </>}

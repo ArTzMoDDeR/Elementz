@@ -523,59 +523,61 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
       : null
 
     return (
-      <div className="h-full flex flex-col gap-0 py-1">
-        {/* Header row */}
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="text-[10px] font-semibold text-amber-400 uppercase tracking-widest mb-0.5">
+      <div className="h-full flex flex-col">
+        {/* Back button */}
+        <button
+          onClick={closeScratch}
+          className="flex items-center gap-1.5 text-primary text-sm font-medium mb-6 w-fit cursor-pointer active:opacity-60 transition-opacity"
+          aria-label={lang === 'fr' ? 'Retour' : 'Back'}
+        >
+          <ArrowLeft className="w-4 h-4" />
+          {t('Retour', 'Back')}
+        </button>
+
+        {/* Centered scratch area */}
+        <div className="flex-1 flex flex-col items-center justify-center gap-6 pb-10">
+          {/* Title */}
+          <div className="text-center">
+            <p className="text-[10px] font-semibold text-amber-400 uppercase tracking-widest mb-1">
               {t('Récompense', 'Reward')}
             </p>
-            <h2 className="text-lg font-bold text-foreground leading-tight">{title}</h2>
+            <h2 className="text-xl font-bold text-foreground leading-tight">{title}</h2>
+            {resultName && !allScratched && (
+              <p className="text-xs text-muted-foreground/60 mt-2">
+                {t('Pour créer : ', 'To create: ')}
+                <span className="font-semibold text-foreground/80">{resultName}</span>
+              </p>
+            )}
           </div>
-          <button
-            onClick={closeScratch}
-            className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center hover:bg-muted/80 active:scale-95 transition-all flex-shrink-0 cursor-pointer"
-            aria-label={lang === 'fr' ? 'Retour' : 'Back'}
-          >
-            <ArrowLeft className="w-4 h-4 text-foreground/70" />
-          </button>
-        </div>
 
-        {/* Scratch area — centered vertically in remaining space */}
-        <div className="flex-1 flex flex-col items-center justify-center gap-4">
-          {resultName && !allScratched && (
-            <p className="text-[11px] text-muted-foreground text-center">
-              {t('Pour créer : ', 'To create: ')}
-              <span className="font-bold text-foreground">{resultName}</span>
-            </p>
-          )}
-
-          <div className="flex items-center justify-center gap-3 flex-wrap">
+          {/* Cards */}
+          <div className="flex items-center justify-center gap-4 flex-wrap">
             {scratchQuest.rewards.sort((a, b) => a.slot - b.slot).map((r, i) => (
-              <div key={r.slot} className="flex items-center gap-3">
+              <div key={r.slot} className="flex items-center gap-4">
                 <ScratchCard reward={r} lang={lang} onScratched={(slot) => handleScratch(scratchQuest.id, slot)} />
                 {i < scratchQuest.rewards.length - 1 && (
-                  <Plus className="w-4 h-4 text-muted-foreground/30 flex-shrink-0" />
+                  <Plus className="w-4 h-4 text-muted-foreground/25 flex-shrink-0" />
                 )}
               </div>
             ))}
           </div>
 
-          {allScratched && (
-            <div className="flex flex-col items-center gap-3 mt-2">
-              <p className="text-[11px] text-center text-muted-foreground/70 leading-relaxed max-w-[220px]">
-                {t(
-                  'Retiens cette combinaison et va la créer sur le terrain !',
-                  'Remember this combo and try it on the field!'
-                )}
+          {allScratched ? (
+            <div className="flex flex-col items-center gap-4">
+              <p className="text-xs text-center text-muted-foreground/60 leading-relaxed max-w-[200px]">
+                {t('Retiens cette combinaison et va la créer sur le terrain !', 'Remember this combo and try it on the field!')}
               </p>
               <button
                 onClick={closeScratch}
-                className="px-6 py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-sm font-semibold text-primary hover:bg-primary/20 transition-colors active:scale-95 cursor-pointer"
+                className="h-11 px-8 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold active:scale-95 transition-all cursor-pointer"
               >
                 {t("J'ai noté !", 'Got it!')}
               </button>
             </div>
+          ) : (
+            <p className="text-[10px] text-muted-foreground/30 animate-pulse tracking-wide">
+              {t('Gratte pour révéler', 'Scratch to reveal')}
+            </p>
           )}
         </div>
       </div>
@@ -587,22 +589,10 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
     <>
       <div className="flex flex-col gap-4 py-1">
 
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onGoToPlay}
-            className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center hover:bg-muted/80 active:scale-95 transition-all flex-shrink-0 cursor-pointer"
-            aria-label={lang === 'fr' ? 'Retour' : 'Back'}
-          >
-            <ArrowLeft className="w-4 h-4 text-foreground/70" />
-          </button>
-          <div className="flex-1">
-            <p className="text-[10px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#818cf8' }}>
-              {t('Objectifs', 'Objectives')}
-            </p>
-            <h2 className="text-lg font-bold text-foreground leading-tight">{t('Quêtes', 'Quests')}</h2>
-          </div>
-
+        {/* Header — iOS style */}
+        <div className="flex flex-col gap-0.5">
+          <h2 className="text-2xl font-bold text-foreground tracking-tight">{t('Quêtes', 'Quests')}</h2>
+          <p className="text-xs text-muted-foreground/40">{t('Objectifs & récompenses', 'Goals & rewards')}</p>
         </div>
 
         {loading ? (

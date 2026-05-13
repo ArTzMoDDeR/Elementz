@@ -29,10 +29,12 @@ export default function PrivacyPage() {
       lastUpdatedFr="6 mars 2025"
       lastUpdatedEn="6 March 2025"
       footerFr={<>
+        <Link href="/about" className="hover:text-foreground transition-colors">À propos</Link>
         <Link href="/legal" className="hover:text-foreground transition-colors">Mentions légales</Link>
         <Link href="/terms" className="hover:text-foreground transition-colors">Conditions d&apos;utilisation</Link>
       </>}
       footerEn={<>
+        <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
         <Link href="/legal" className="hover:text-foreground transition-colors">Legal Notice</Link>
         <Link href="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
       </>}
