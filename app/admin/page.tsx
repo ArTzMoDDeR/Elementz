@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 
 import {
   Search, Upload, Check, FileUp, Plus, X, Trash2, Save, Hash,
@@ -245,8 +246,8 @@ function MissingElementsModal({ user, onClose }: { user: AdminUser; onClose: () 
     String(el.number).includes(search)
   )
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       <div
         className="relative bg-card border border-border rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col"
@@ -320,7 +321,7 @@ function MissingElementsModal({ user, onClose }: { user: AdminUser; onClose: () 
         </div>
       </div>
     </div>
-  )
+  , document.body)
 }
 
 // ─── Tab: Users ─────────────────────────────────────────────────────────────────
@@ -642,8 +643,8 @@ function QuestsTab() {
       {/* Add modal */}
       {showAdd && <AddQuestModal onClose={() => setShowAdd(false)} onAdded={() => { setShowAdd(false); fetchQuests() }} />}
 
-      {/* Quest detail / edit — fullscreen sheet */}
-      {editing && (
+      {/* Quest detail / edit — fullscreen sheet, portaled to body to escape stacking context */}
+      {editing && createPortal(
         <div
           className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex flex-col"
           onClick={() => setEditing(null)}
@@ -752,7 +753,7 @@ function QuestsTab() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* Quest card list — unified for all screen sizes */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
@@ -948,7 +949,7 @@ function EditModal({ element, elements, onClose, onSaved }: {
     ? elements.filter(e => e.name_french.toLowerCase().includes(recipeSearch.toLowerCase()) || e.number.toString().includes(recipeSearch)).slice(0, 30)
     : elements.slice(0, 30)
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex flex-col" onClick={onClose}>
       {/* Full-height sheet — covers everything including topbar */}
       <div
@@ -1113,7 +1114,7 @@ function EditModal({ element, elements, onClose, onSaved }: {
         </div>
       </div>
     </div>
-  )
+  , document.body)
 }
 
 function AddModal({ onClose, onAdded }: { onClose: () => void; onAdded: (el: Element) => void }) {
@@ -2033,7 +2034,7 @@ function StatsTab() {
   )
 }
 
-// ─── Push Notifications Tab ───────────────────────────────────────────────────
+// ─── Push Notifications Tab ─────���─────────────────────────────────────────────
 type Subscriber = { id: number; label: string; lang: string; last_seen: string; email: string }
 type PushSendResult = { id: number; label: string; lang: string; status: 'sent' | 'failed' | 'expired' }
 type LogEntry = {
