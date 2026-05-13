@@ -27,11 +27,29 @@ export default function LegalLayout({
   const [lang, setLang] = useState<'fr' | 'en'>(defaultLang)
   const isFr = lang === 'fr'
 
-  // Auto-detect browser language on mount
+  // On mount: read geo cookie first, then fall back to navigator.language
   useEffect(() => {
+    // 1. Try the cookie set by middleware (geo-based)
+    const cookieLang = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('lang='))
+      ?.split('=')[1] as 'fr' | 'en' | undefined
+
+    if (cookieLang === 'fr' || cookieLang === 'en') {
+      setLang(cookieLang)
+      return
+    }
+
+    // 2. Fall back to browser language
     const browserLang = navigator.language || ''
     setLang(browserLang.toLowerCase().startsWith('fr') ? 'fr' : 'en')
   }, [])
+
+  // When user manually switches lang, persist it in the cookie
+  const switchLang = (l: 'fr' | 'en') => {
+    setLang(l)
+    document.cookie = `lang=${l}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`
+  }
 
   return (
     <main
@@ -56,7 +74,7 @@ export default function LegalLayout({
           {/* Language switcher */}
           <div className="flex items-center gap-0.5 p-1 rounded-xl bg-muted/60">
             <button
-              onClick={() => setLang('fr')}
+              onClick={() => switchLang('fr')}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 isFr ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
               }`}
@@ -64,7 +82,7 @@ export default function LegalLayout({
               FR
             </button>
             <button
-              onClick={() => setLang('en')}
+              onClick={() => switchLang('en')}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 !isFr ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
               }`}
