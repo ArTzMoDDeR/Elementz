@@ -89,6 +89,7 @@ type QuestDef = {
   element_img: string | null
   element_name: string | null
   required_element: number | null
+  difficulty: 'easy' | 'medium' | 'hard' | 'impossible'
 }
 
 // ─── Shared components ─────────────────────────────────────────────────────────
@@ -849,6 +850,36 @@ function QuestFormSheet({
             </div>
           </div>
 
+          {/* Difficulty */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 block">Difficulté</label>
+            <div className="grid grid-cols-2 gap-1.5">
+              {([
+                { value: 'easy',       label: 'Facile',     color: 'text-emerald-400', bg: 'bg-emerald-400/10 border-emerald-400/30' },
+                { value: 'medium',     label: 'Moyen',      color: 'text-amber-400',   bg: 'bg-amber-400/10 border-amber-400/30'     },
+                { value: 'hard',       label: 'Difficile',  color: 'text-orange-400',  bg: 'bg-orange-400/10 border-orange-400/30'   },
+                { value: 'impossible', label: 'Impossible', color: 'text-rose-500',    bg: 'bg-rose-500/10 border-rose-500/30'       },
+              ] as const).map(d => (
+                <button
+                  key={d.value}
+                  onClick={() => onChange({ ...initial, difficulty: d.value })}
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                    initial.difficulty === d.value
+                      ? `${d.bg} ${d.color}`
+                      : 'border-border bg-muted/20 text-muted-foreground hover:bg-muted/40'
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                    d.value === 'easy' ? 'bg-emerald-400' :
+                    d.value === 'medium' ? 'bg-amber-400' :
+                    d.value === 'hard' ? 'bg-orange-400' : 'bg-rose-500'
+                  }`} />
+                  {d.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Sort order — alone at the bottom */}
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">Ordre d&apos;affichage</label>
@@ -1065,6 +1096,7 @@ function AddQuestModal({ onClose, onAdded }: { onClose: () => void; onAdded: () 
     type: 'discover_n', title_fr: '', title_en: '', desc_fr: '', desc_en: '',
     target_value: 10, icon: 'star', sort_order: 100, is_daily: false,
     required_element: null, element_img: null, element_name: null,
+    difficulty: 'easy' as const,
   })
   const [saving, setSaving] = useState(false)
 

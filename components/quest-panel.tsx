@@ -35,6 +35,7 @@ type Quest = {
   is_daily: boolean
   reset_hours: number | null
   required_element: number | null
+  difficulty: 'easy' | 'medium' | 'hard' | 'impossible'
   progress: number
   completed_at: string | null
   claimed_at: string | null
@@ -301,11 +302,12 @@ function ScratchBanner({ count, lang, onClick }: {
 
 // ─── Quest Row ────────────────────────────────────────────────────────────────
 
-function QuestRow({ quest, lang, onClaim, onScratch }: {
+function QuestRow({ quest, lang, onClaim, onScratch, diffDot }: {
   quest: Quest
   lang: 'fr' | 'en'
   onClaim: (id: number) => Promise<void>
   onScratch?: (id: number) => void
+  diffDot?: string
 }) {
   const [claiming, setClaiming] = useState(false)
   const [open, setOpen] = useState(false)
@@ -339,13 +341,18 @@ function QuestRow({ quest, lang, onClaim, onScratch }: {
         aria-expanded={open}
       >
         {/* Icon */}
-        <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden ${isDone ? 'bg-muted/30' : isReady ? 'bg-muted/60' : 'bg-muted/40'}`}>
-          {isDone ? (
-            <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground/25" />
-          ) : isIconUrl ? (
-            <img src={quest.icon} alt="" className="w-5 h-5 object-contain" draggable={false} />
-          ) : (
-            <Icon className={`w-3.5 h-3.5 ${isReady ? 'text-foreground/70' : 'text-muted-foreground/50'}`} />
+        <div className="relative flex-shrink-0">
+          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center overflow-hidden ${isDone ? 'bg-muted/30' : isReady ? 'bg-muted/60' : 'bg-muted/40'}`}>
+            {isDone ? (
+              <CheckCircle2 className="w-4 h-4 text-muted-foreground/25" />
+            ) : isIconUrl ? (
+              <img src={quest.icon} alt="" className="w-6 h-6 object-contain" draggable={false} />
+            ) : (
+              <Icon className={`w-4 h-4 ${isReady ? 'text-foreground/70' : 'text-muted-foreground/50'}`} />
+            )}
+          </div>
+          {diffDot && !isDone && (
+            <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${diffDot}`} />
           )}
         </div>
 
@@ -514,40 +521,43 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
 
   const scratchQuest = quests.find(q => q.id === scratchQuestId) ?? null
 
-  // Sections
-  const daily = quests.filter(q => q.is_daily)
-  const permanent = quests.filter(q => !q.is_daily)
+  const [diffFilter, setDiffFilter] = useState<'all' | 'easy' | 'medium' | 'hard' | 'impossible'>('all')
+
+  type Difficulty = 'easy' | 'medium' | 'hard' | 'impossible'
+
+  const DIFF_CONFIG: { value: 'all' | Difficulty; labelFr: string; labelEn: string; color: string }[] = [
+    { value: 'all',        labelFr: 'Tout',        labelEn: 'All',        color: 'text-foreground/70'        },
+    { value: 'easy',       labelFr: 'Facile',      labelEn: 'Easy',       color: 'text-emerald-400'          },
+    { value: 'medium',     labelFr: 'Moyen',       labelEn: 'Medium',     color: 'text-amber-400'            },
+    { value: 'hard',       labelFr: 'Difficile',   labelEn: 'Hard',       color: 'text-orange-400'           },
+    { value: 'impossible', labelFr: 'Impossible',  labelEn: 'Impossible', color: 'text-rose-500'             },
+  ]
+
+  const DIFF_DOT: Record<Difficulty, string> = {
+    easy:       'bg-emerald-400',
+    medium:     'bg-amber-400',
+    hard:       'bg-orange-400',
+    impossible: 'bg-rose-500',
+  }
 
   // A quest is "fully done" when claimed + all rewards scratched
   const isDone = (q: Quest) => !!q.claimed_at && q.rewards.every(r => !!r.scratched_at)
-  // A quest is "active" (visible) when not fully done
-  const isActive = (q: Quest) => !isDone(q)
 
-  // Daily: show all pending (not fully done), ordered by progress desc
+  const daily = quests.filter(q => q.is_daily)
+  const permanent = quests.filter(q => !q.is_daily)
+
   const pendingDaily = daily
-    .filter(isActive)
+    .filter(q => !isDone(q))
+    .filter(q => diffFilter === 'all' || q.difficulty === diffFilter)
     .sort((a, b) => (b.progress / b.target_value) - (a.progress / a.target_value))
 
-  // Permanent: group by target_value tier, show only the first active quest per tier
-  // Tier order: 1 → 10 → 20 → 30 → 50 (anything else at the end)
-  const TIER_ORDER = [1, 10, 20, 30, 50]
-  const permanentByTier = TIER_ORDER.reduce<Quest[]>((acc, tier) => {
-    const inTier = permanent.filter(q => q.target_value === tier)
-    // Find the first quest in this tier that isn't fully done
-    const current = inTier.find(isActive)
-    if (current) acc.push(current)
-    return acc
-  }, [])
-  // Catch any quests with target_value not in TIER_ORDER
-  const otherPermanent = permanent
-    .filter(q => !TIER_ORDER.includes(q.target_value) && isActive(q))
+  const pendingPermanent = permanent
+    .filter(q => !isDone(q))
+    .filter(q => diffFilter === 'all' || q.difficulty === diffFilter)
     .sort((a, b) => a.sort_order - b.sort_order)
-
-  const pendingPermanent = [...permanentByTier, ...otherPermanent]
 
   const hasPermanent = pendingPermanent.length > 0
   const hasDaily = pendingDaily.length > 0
-
   const allDone = !hasPermanent && !hasDaily && quests.length > 0
 
   // ── Inline scratch view — replaces the quest list entirely ──────────────
@@ -632,12 +642,35 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
           <p className="text-xs text-muted-foreground/40">{t('Objectifs & récompenses', 'Goals & rewards')}</p>
         </div>
 
+        {/* Difficulty filter */}
+        <div className="flex gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+          {DIFF_CONFIG.map(d => {
+            const active = diffFilter === d.value
+            return (
+              <button
+                key={d.value}
+                onClick={() => setDiffFilter(d.value)}
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                  active
+                    ? 'bg-foreground/10 text-foreground'
+                    : 'text-muted-foreground/50 hover:text-muted-foreground'
+                }`}
+              >
+                {d.value !== 'all' && (
+                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${DIFF_DOT[d.value as Difficulty]}`} />
+                )}
+                {lang === 'fr' ? d.labelFr : d.labelEn}
+              </button>
+            )
+          })}
+        </div>
+
         {loading ? (
           <div className="flex justify-center py-10">
             <div className="w-5 h-5 border-2 border-border border-t-foreground/40 rounded-full animate-spin" />
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-6">
 
             {/* Scratch CTA — always at top */}
             <ScratchBanner count={scratchable.length} lang={lang} onClick={openScratch} />
@@ -650,7 +683,7 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
                   <DailyChip lang={lang} />
                 </div>
                 {pendingDaily.map(q => (
-                  <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={setScratchQuestId} />
+                  <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={setScratchQuestId} diffDot={DIFF_DOT[q.difficulty]} />
                 ))}
               </Section>
             )}
@@ -659,12 +692,12 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
             {hasPermanent && (
               <Section label={t('Quêtes', 'Quests')}>
                 {pendingPermanent.map(q => (
-                  <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={setScratchQuestId} />
+                  <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={setScratchQuestId} diffDot={DIFF_DOT[q.difficulty]} />
                 ))}
               </Section>
             )}
 
-            {/* All done empty state */}
+            {/* Empty / all done */}
             {allDone && (
               <div className="flex flex-col items-center gap-2 py-12 text-center">
                 <Trophy className="w-8 h-8 text-amber-400/50" />
@@ -672,8 +705,11 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
                 <p className="text-xs text-muted-foreground/40">{t('Reviens demain pour les journalières.', 'Come back tomorrow for daily quests.')}</p>
               </div>
             )}
-
-
+            {!allDone && !hasPermanent && !hasDaily && !loading && (
+              <p className="text-sm text-muted-foreground/40 text-center py-10">
+                {t('Aucune quête dans cette catégorie.', 'No quests in this category.')}
+              </p>
+            )}
 
           </div>
         )}
