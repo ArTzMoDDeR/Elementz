@@ -328,6 +328,21 @@ function MissingElementsModal({ user, onClose }: { user: AdminUser; onClose: () 
 type SortKey = 'discovered' | 'rank' | 'last_active' | 'created_at'
 type SortDir = 'asc' | 'desc'
 
+function timeAgo(dateStr: string | null): string {
+  if (!dateStr) return '—'
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return "à l'instant"
+  if (mins < 60) return `il y a ${mins}m`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `il y a ${hrs}h`
+  const days = Math.floor(hrs / 24)
+  if (days < 30) return `il y a ${days}j`
+  const months = Math.floor(days / 30)
+  if (months < 12) return `il y a ${months} mois`
+  return `il y a ${Math.floor(months / 12)} an${Math.floor(months / 12) > 1 ? 's' : ''}`
+}
+
 function UsersTab() {
   const [users, setUsers] = useState<AdminUser[]>([])
   const [total, setTotal] = useState(0)
@@ -339,6 +354,7 @@ function UsersTab() {
   const [missingUser, setMissingUser] = useState<AdminUser | null>(null)
   const [sortKey, setSortKey] = useState<SortKey>('discovered')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300)
@@ -346,8 +362,6 @@ function UsersTab() {
   }, [search])
 
   useEffect(() => { setPage(1) }, [debouncedSearch])
-
-  // Reset to page 1 when sort changes
   useEffect(() => { setPage(1) }, [sortKey, sortDir])
 
   const fetchUsers = useCallback(async () => {
@@ -381,15 +395,26 @@ function UsersTab() {
     else { setSortKey(key); setSortDir('desc') }
   }
 
-  // No client-side sort needed — API handles it server-side across all pages
-  const sortedUsers = users
-
   const SortIcon = ({ k }: { k: SortKey }) => {
     if (sortKey !== k) return <ChevronsUpDown className="w-3 h-3 ml-1 opacity-30 inline-block" />
     return sortDir === 'asc'
       ? <ChevronUp className="w-3 h-3 ml-1 opacity-80 inline-block" />
       : <ChevronDown className="w-3 h-3 ml-1 opacity-80 inline-block" />
   }
+
+  const Pagination = () => totalPages > 1 ? (
+    <div className="px-4 py-3 border-t border-border flex items-center justify-between">
+      <span className="text-xs text-muted-foreground">Page {page} / {totalPages}</span>
+      <div className="flex items-center gap-1">
+        <Button variant="outline" size="sm" className="h-7 w-7 p-0" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+          <ChevronLeft className="w-3.5 h-3.5" />
+        </Button>
+        <Button variant="outline" size="sm" className="h-7 w-7 p-0" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
+          <ChevronRight className="w-3.5 h-3.5" />
+        </Button>
+      </div>
+    </div>
+  ) : null
 
   return (
     <div className="space-y-4">
@@ -399,65 +424,50 @@ function UsersTab() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
           <Input placeholder="Rechercher email, nom, pseudo..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 text-sm" />
         </div>
-        <span className="text-xs text-muted-foreground">{total} utilisateur{total !== 1 ? 's' : ''}</span>
+        <span className="text-xs text-muted-foreground whitespace-nowrap">{total} utilisateur{total !== 1 ? 's' : ''}</span>
       </div>
 
-      {/* Table */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
+      {/* ── Desktop table (md+) ───────────────────────────────────────── */}
+      <div className="hidden md:block bg-card border border-border rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
-                <th className="px-3 sm:px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Utilisateur</th>
-                <th className="hidden sm:table-cell px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Pseudo</th>
-                <th className="px-3 sm:px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort('discovered')}>
-                  <span className="hidden sm:inline">Découvertes</span><span className="sm:hidden">Disc.</span><SortIcon k="discovered" />
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Utilisateur</th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Pseudo</th>
+                <th className="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort('discovered')}>
+                  Découvertes<SortIcon k="discovered" />
                 </th>
-                <th className="hidden md:table-cell px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort('last_active')}>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort('last_active')}>
                   Dernière activité<SortIcon k="last_active" />
                 </th>
-                <th className="px-3 sm:px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground">Actions</th>
+                <th className="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center">
-                    <div className="flex justify-center"><Spinner size="md" /></div>
-                  </td>
-                </tr>
+                <tr><td colSpan={5} className="px-4 py-10 text-center"><div className="flex justify-center"><Spinner size="md" /></div></td></tr>
               ) : users.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">Aucun utilisateur trouvé</td>
-                </tr>
-              ) : sortedUsers.map(u => (
-                <tr key={u.id} className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors group">
-                  <td className="px-3 sm:px-4 py-3 min-w-0 max-w-[160px] sm:max-w-[220px]">
+                <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">Aucun utilisateur trouvé</td></tr>
+              ) : users.map(u => (
+                <tr key={u.id} className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-3 max-w-[220px]">
                     <p className="font-medium truncate text-sm">{u.name ?? u.username ?? '—'}</p>
                     <p className="text-[11px] text-muted-foreground truncate">{u.email}</p>
                   </td>
-                  <td className="hidden sm:table-cell px-4 py-3 text-sm text-muted-foreground font-mono truncate max-w-[120px]">
+                  <td className="px-4 py-3 text-sm text-muted-foreground font-mono truncate max-w-[120px]">
                     {u.username ?? <span className="text-muted-foreground/40">—</span>}
                   </td>
-                  <td className="px-3 sm:px-4 py-3 text-right tabular-nums font-bold text-sm">{u.discovered}</td>
-                  <td className="hidden md:table-cell px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                    {u.last_active ? new Date(u.last_active).toLocaleDateString('fr', { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
-                  </td>
-                  <td className="px-3 sm:px-4 py-3">
+                  <td className="px-4 py-3 text-right tabular-nums font-bold text-sm">{u.discovered}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{timeAgo(u.last_active)}</td>
+                  <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1.5">
-                      <button
-                        onClick={() => setMissingUser(u)}
-                        title="Voir les éléments manquants"
-                        className="inline-flex items-center justify-center w-8 h-8 rounded-xl border border-border text-muted-foreground hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-colors"
-                      >
+                      <button onClick={() => setMissingUser(u)} title="Voir les éléments manquants"
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-xl border border-border text-muted-foreground hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-colors">
                         <Layers className="w-3.5 h-3.5" />
                       </button>
-                      <button
-                        onClick={() => toggleAdmin(u)}
-                        disabled={!!toggling}
-                        title={u.is_admin ? 'Révoquer admin' : 'Donner admin'}
-                        className={`inline-flex items-center justify-center w-8 h-8 rounded-xl border transition-colors ${u.is_admin ? 'bg-primary/10 border-primary/30 text-primary hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive' : 'border-border text-muted-foreground hover:bg-primary/10 hover:border-primary/30 hover:text-primary'}`}
-                      >
+                      <button onClick={() => toggleAdmin(u)} disabled={!!toggling} title={u.is_admin ? 'Révoquer admin' : 'Donner admin'}
+                        className={`inline-flex items-center justify-center w-8 h-8 rounded-xl border transition-colors ${u.is_admin ? 'bg-primary/10 border-primary/30 text-primary hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive' : 'border-border text-muted-foreground hover:bg-primary/10 hover:border-primary/30 hover:text-primary'}`}>
                         {toggling === u.id ? <Spinner /> : u.is_admin ? <Shield className="w-3.5 h-3.5" /> : <ShieldOff className="w-3.5 h-3.5" />}
                       </button>
                     </div>
@@ -467,21 +477,97 @@ function UsersTab() {
             </tbody>
           </table>
         </div>
+        <Pagination />
+      </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="px-4 py-3 border-t border-border flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">Page {page} / {totalPages}</span>
-            <div className="flex items-center gap-1">
-              <Button variant="outline" size="sm" className="h-7 w-7 p-0" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </Button>
-              <Button variant="outline" size="sm" className="h-7 w-7 p-0" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </Button>
-            </div>
+      {/* ── Mobile card list (< md) ───────────────────────────────────── */}
+      <div className="md:hidden bg-card border border-border rounded-xl overflow-hidden">
+        {loading ? (
+          <div className="flex justify-center py-16"><Spinner size="md" /></div>
+        ) : users.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-12">Aucun utilisateur trouvé</p>
+        ) : (
+          <div className="divide-y divide-border/40">
+            {users.map(u => {
+              const isOpen = expandedId === u.id
+              return (
+                <div key={u.id}>
+                  {/* Collapsed row — tap to expand */}
+                  <button
+                    onClick={() => setExpandedId(isOpen ? null : u.id)}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/20 active:bg-muted/40 transition-colors text-left"
+                  >
+                    {/* Avatar initial */}
+                    <div className="w-9 h-9 rounded-xl bg-muted border border-border flex items-center justify-center flex-shrink-0 text-sm font-semibold text-muted-foreground select-none">
+                      {(u.username ?? u.name ?? u.email ?? '?')[0].toUpperCase()}
+                    </div>
+
+                    {/* Name + last active */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate leading-tight">
+                        {u.username ?? u.name ?? '—'}
+                        {u.is_admin && <span className="ml-1.5 text-[9px] font-bold text-primary bg-primary/10 border border-primary/20 rounded px-1 py-0.5 align-middle">ADMIN</span>}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{timeAgo(u.last_active)}</p>
+                    </div>
+
+                    {/* Discovered count */}
+                    <div className="flex-shrink-0 flex flex-col items-end gap-0.5 mr-1">
+                      <span className="text-sm font-bold tabular-nums">{u.discovered}</span>
+                      <span className="text-[10px] text-muted-foreground leading-none">disc.</span>
+                    </div>
+
+                    <ChevronDown className={`w-4 h-4 text-muted-foreground/40 flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Expanded panel */}
+                  {isOpen && (
+                    <div className="px-4 pb-4 pt-1 bg-muted/10 border-t border-border/40 space-y-3">
+                      {/* Detail rows */}
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        {[
+                          { label: 'Email', value: u.email },
+                          { label: 'Nom', value: u.name ?? '—' },
+                          { label: 'Pseudo', value: u.username ?? '—' },
+                          { label: 'Inscription', value: new Date(u.created_at).toLocaleDateString('fr', { day: 'numeric', month: 'short', year: '2-digit' }) },
+                          { label: 'Classement', value: u.show_in_leaderboard ? 'Visible' : 'Caché' },
+                          { label: 'Dernière activité', value: timeAgo(u.last_active) },
+                        ].map(({ label, value }) => (
+                          <div key={label} className="flex flex-col gap-0.5">
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">{label}</span>
+                            <span className="text-xs font-medium truncate">{value}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          onClick={() => setMissingUser(u)}
+                          className="flex-1 flex items-center justify-center gap-2 h-9 rounded-xl border border-border text-xs font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+                        >
+                          <Layers className="w-3.5 h-3.5" />
+                          Éléments manquants
+                        </button>
+                        <button
+                          onClick={() => toggleAdmin(u)}
+                          disabled={!!toggling}
+                          className={`flex-1 flex items-center justify-center gap-2 h-9 rounded-xl border text-xs font-medium transition-colors ${u.is_admin
+                            ? 'bg-primary/10 border-primary/30 text-primary hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive'
+                            : 'border-border text-muted-foreground hover:bg-primary/10 hover:border-primary/30 hover:text-primary'}`}
+                        >
+                          {toggling === u.id ? <Spinner /> : u.is_admin ? <Shield className="w-3.5 h-3.5" /> : <ShieldOff className="w-3.5 h-3.5" />}
+                          {u.is_admin ? 'Révoquer admin' : 'Donner admin'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
+        <Pagination />
       </div>
 
       {missingUser && (
