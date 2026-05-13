@@ -101,15 +101,64 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Track daily_combo quest: count new discoveries today
+  // Update discover_n quest progress for all tiers
+  if (discovered.length > 0) {
+    const [totalUnlocks] = await sql`SELECT COUNT(*)::int AS n FROM unlocks WHERE user_id = ${session.user.id}`
+    const total = totalUnlocks?.n ?? 0
+    if (total > 0) {
+      await sql`
+        INSERT INTO user_quests (user_id, quest_id, progress, completed_at)
+        SELECT
+          ${session.user.id},
+          qd.id,
+          LEAST(${total}, qd.target_value),
+          CASE WHEN ${total} >= qd.target_value THEN NOW() ELSE NULL END
+        FROM quest_definitions qd
+        WHERE qd.type = 'discover_n'
+        ON CONFLICT (user_id, quest_id) DO UPDATE
+          SET progress = LEAST(${total}, (SELECT target_value FROM quest_definitions WHERE id = user_quests.quest_id)),
+              completed_at = CASE
+                WHEN LEAST(${total}, (SELECT target_value FROM quest_definitions WHERE id = user_quests.quest_id))
+                     >= (SELECT target_value FROM quest_definitions WHERE id = user_quests.quest_id)
+                  AND user_quests.completed_at IS NULL
+                THEN NOW()
+                ELSE user_quests.completed_at
+              END
+          WHERE user_quests.claimed_at IS NULL
+      `
+    }
+  }
+
+  // Track discover_n_daily and daily_combo: count new discoveries today
   if (discovered.length > 0) {
     const todayNewCount = await sql`
       SELECT COUNT(*)::int AS n FROM unlocks
       WHERE user_id = ${session.user.id}
-        AND discovered_at >= CURRENT_DATE
+        AND discovered_at >= DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC')
     `
     const todayCount = todayNewCount[0]?.n ?? 0
     if (todayCount > 0) {
+      // discover_n_daily
+      await sql`
+        INSERT INTO user_quests (user_id, quest_id, progress, completed_at)
+        SELECT
+          ${session.user.id},
+          qd.id,
+          LEAST(${todayCount}, qd.target_value),
+          CASE WHEN ${todayCount} >= qd.target_value THEN NOW() ELSE NULL END
+        FROM quest_definitions qd WHERE qd.type = 'discover_n_daily'
+        ON CONFLICT (user_id, quest_id) DO UPDATE
+          SET progress = LEAST(${todayCount}, (SELECT target_value FROM quest_definitions WHERE id = user_quests.quest_id)),
+              completed_at = CASE
+                WHEN LEAST(${todayCount}, (SELECT target_value FROM quest_definitions WHERE id = user_quests.quest_id))
+                     >= (SELECT target_value FROM quest_definitions WHERE id = user_quests.quest_id)
+                  AND user_quests.completed_at IS NULL
+                THEN NOW()
+                ELSE user_quests.completed_at
+              END
+          WHERE user_quests.claimed_at IS NULL
+      `
+      // daily_combo (legacy type)
       await sql`
         INSERT INTO user_quests (user_id, quest_id, progress)
         SELECT ${session.user.id}, qd.id, LEAST(${todayCount}, qd.target_value)
