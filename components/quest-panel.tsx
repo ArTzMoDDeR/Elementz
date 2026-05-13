@@ -286,9 +286,10 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
     const res = await fetch('/api/quests')
     if (res.ok) {
       const data = await res.json()
-      setQuests(data)
+      const list: Quest[] = Array.isArray(data) ? data : (data.quests ?? [])
+      setQuests(list)
       setLoading(false)
-      return data as Quest[]
+      return list
     }
     setLoading(false)
     return [] as Quest[]
