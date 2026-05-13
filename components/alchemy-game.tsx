@@ -10,6 +10,7 @@ import { useGameStore } from '@/hooks/use-game-store'
 import { useHint } from '@/hooks/use-hint'
 import { subscribeToPush, unsubscribeFromPush } from '@/hooks/use-push-subscription'
 import { Lightbulb, Trash2, BarChart2, Hand, MousePointer, Lock } from 'lucide-react'
+import { type ElementDef } from '@/lib/game-data'
 import EmailSignIn from '@/components/email-sign-in'
 
 const PROGRESS_MILESTONES = [10, 20, 50, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900]
@@ -235,7 +236,6 @@ function QuestElementReveal({
 }
 
 // ─── iOS-style top discovery pill ────────────────────────────────────────────
-type ElementDef = { number: number; name: string; imageUrl?: string; color?: string }
 
 const DISCOVERY_MESSAGES_FR = [
   (name: string) => `Bravo ! Tu viens de découvrir ${name}`,
