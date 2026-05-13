@@ -1150,7 +1150,7 @@ export function Playground({
           )}
         </div>
 
-        {/* ── TAB BAR — iOS Liquid Glass ────────────────────────���──�����─ */}
+        {/* ── TAB BAR — iOS Liquid Glass ───────────────────────�����──�����─ */}
         <div
           className="flex-shrink-0 border-t border-white/[0.06] glass"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 12px) + 2px)' }}
@@ -1175,7 +1175,7 @@ export function Playground({
                   aria-label={label}
                 >
                   <div className="relative">
-                    <Icon size={24} weight={isActive ? 'fill' : 'regular'} className={`transition-colors duration-150 ${isActive ? 'text-foreground' : 'text-muted-foreground/50'}`} />
+                    <Icon size={26} weight={isActive ? 'fill' : 'regular'} className={`transition-colors duration-150 ${isActive ? 'text-foreground' : 'text-muted-foreground/50'}`} />
                     {id === 'quests' && questBadge && !isActive && (
                       <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 border border-card" />
                     )}
@@ -1184,36 +1184,46 @@ export function Playground({
               )
             })}
 
-            {/* Center: Hint */}
+            {/* Center: Crown (game complete) or Hint button */}
             <div className="flex-1 flex flex-col items-center justify-center py-3">
-              <button
-                onPointerDown={e => e.stopPropagation()}
-                onClick={e => {
-                  e.stopPropagation()
-                  // Reset idle glow timer
-                  setHintIdleGlow(false)
-                  if (hintIdleTimer.current) clearTimeout(hintIdleTimer.current)
-                  hintIdleTimer.current = setTimeout(() => {
-                    setHintIdleGlow(true)
-                    setTimeout(() => setHintIdleGlow(false), 15_000)
-                  }, 90_000)
-                  onRequestHint?.()
-                }}
-                aria-label={lang === 'fr' ? 'Obtenir un indice' : 'Get a hint'}
-                className={`
-                  flex items-center justify-center
-                  h-10 rounded-full tap-spring select-none
-                  border-2 border-border
-                  hover:bg-muted/60
-                  active:scale-95
-                  transition-all duration-700
-                  ${hintShouldPulse ? 'border-amber-400/70 shadow-[0_0_0_4px_rgba(251,191,36,0.08)]' : ''}
-                  ${hintIdleGlow && !hintShouldPulse ? 'hint-idle-glow' : ''}
-                `}
-                style={{ width: 50, background: 'rgb(149 143 143 / 5%)' }}
-              >
-                <Lightbulb size={20} className={hintShouldPulse || hintIdleGlow ? 'text-amber-400/80' : 'text-foreground/60'} />
-              </button>
+              {discovered.size >= totalElements ? (
+                <div
+                  className="flex items-center justify-center h-10 w-[50px] rounded-full select-none animate-in fade-in zoom-in duration-500"
+                  style={{ background: 'linear-gradient(135deg, rgba(250,204,21,0.15), rgba(251,146,60,0.15))', border: '2px solid rgba(250,204,21,0.4)' }}
+                  title={lang === 'fr' ? 'Maître alchimiste !' : 'Alchemy master!'}
+                  aria-label={lang === 'fr' ? 'Maître alchimiste' : 'Alchemy master'}
+                >
+                  <span className="text-lg leading-none" role="img" aria-label="crown">👑</span>
+                </div>
+              ) : (
+                <button
+                  onPointerDown={e => e.stopPropagation()}
+                  onClick={e => {
+                    e.stopPropagation()
+                    setHintIdleGlow(false)
+                    if (hintIdleTimer.current) clearTimeout(hintIdleTimer.current)
+                    hintIdleTimer.current = setTimeout(() => {
+                      setHintIdleGlow(true)
+                      setTimeout(() => setHintIdleGlow(false), 15_000)
+                    }, 90_000)
+                    onRequestHint?.()
+                  }}
+                  aria-label={lang === 'fr' ? 'Obtenir un indice' : 'Get a hint'}
+                  className={`
+                    flex items-center justify-center
+                    h-10 rounded-full tap-spring select-none
+                    border-2 border-border
+                    hover:bg-muted/60
+                    active:scale-95
+                    transition-all duration-700
+                    ${hintShouldPulse ? 'border-amber-400/70 shadow-[0_0_0_4px_rgba(251,191,36,0.08)]' : ''}
+                    ${hintIdleGlow && !hintShouldPulse ? 'hint-idle-glow' : ''}
+                  `}
+                  style={{ width: 50, background: 'rgb(149 143 143 / 5%)' }}
+                >
+                  <Lightbulb size={22} className={hintShouldPulse || hintIdleGlow ? 'text-amber-400/80' : 'text-foreground/60'} />
+                </button>
+              )}
             </div>
 
             {/* Right: Settings + Profile */}
@@ -1236,10 +1246,8 @@ export function Playground({
                   {isProfileWithUser ? (() => {
                     const tabEl = tabAvatarKey
       ? (
-          // New format: stored as element number string e.g. "42"
           /^\d+$/.test(tabAvatarKey)
             ? elements.get(Number(tabAvatarKey)) ?? null
-            // Legacy format: stored as FR/EN name e.g. "feu"
             : (elementsByName.get(tabAvatarKey)
               ?? elementsByName.get(tabAvatarKey.toLowerCase())
               ?? [...elementsByName.values()].find(e => e.name.toLowerCase() === tabAvatarKey.toLowerCase())
@@ -1259,7 +1267,7 @@ export function Playground({
                       </div>
                     )
                   })() : (
-                    <Icon size={24} weight={isActive ? 'fill' : 'regular'} className={`transition-colors duration-150 ${isActive ? 'text-foreground' : 'text-muted-foreground/50'}`} />
+                    <Icon size={26} weight={isActive ? 'fill' : 'regular'} className={`transition-colors duration-150 ${isActive ? 'text-foreground' : 'text-muted-foreground/50'}`} />
                   )}
                 </button>
               )
