@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { ElementBadge } from './element-badge'
-import { Search, X, ArrowLeft, ChevronUp, ChevronDown, ChevronRight, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Medal, Atom as AtomIcon, Star, Shield, Trophy, Sun, Moon, Play } from 'lucide-react'
+import { Search, X, ArrowLeft, ChevronUp, ChevronDown, ChevronRight, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Medal, Atom as AtomIcon, Star, Shield, Trophy, Sun, Moon, Play, Info } from 'lucide-react'
 import { HouseSimple, Bell, Gear, Lifebuoy, Question, User, UserCircle, Scroll, Books, Hand, Lightning } from '@phosphor-icons/react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import { HelpModal } from './help-modal'
@@ -1784,6 +1784,13 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
       <div className="flex flex-col gap-1">
         <p className="text-[11px] font-semibold text-muted-foreground/40 uppercase tracking-widest px-1 mb-1">{t('Aide & Infos', 'Help & Info')}</p>
         <div className="rounded-2xl overflow-hidden bg-card divide-y divide-border/60">
+          <a href="/about" className="flex items-center gap-3 px-4 py-3.5 active:bg-muted/50 transition-colors cursor-pointer">
+            <div className="w-8 h-8 rounded-xl bg-muted/60 flex items-center justify-center flex-shrink-0">
+              <Info className="w-4 h-4 text-muted-foreground/70" />
+            </div>
+            <span className="text-sm font-medium text-foreground flex-1">{t('À propos', 'About')}</span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground/30 flex-shrink-0" />
+          </a>
           <button onClick={onOpenHelp} className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-muted/50 transition-colors cursor-pointer text-left">
             <div className="w-8 h-8 rounded-xl bg-muted/60 flex items-center justify-center flex-shrink-0">
               <Question size={16} weight="regular" className="text-muted-foreground/70" />
