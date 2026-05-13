@@ -89,7 +89,12 @@ export async function GET() {
       } else if (q.type === 'discover_n') {
         liveProgress = Math.min(unlockCount.n, q.target_value)
       } else if (q.type === 'combinations_n') {
-        liveProgress = Math.min(comboCount.n, q.target_value)
+        // If this combo quest requires a specific element, lock it until discovered
+        if (q.required_element) {
+          liveProgress = 0 // resolved below in batch
+        } else {
+          liveProgress = Math.min(comboCount.n, q.target_value)
+        }
       } else if (q.type === 'session_n') {
         liveProgress = Math.min(sessionCount.n, q.target_value)
       } else {
@@ -108,12 +113,13 @@ export async function GET() {
       }
     })
 
-    // Resolve discover_element / specific_element progress in batch
-    const specificQuests = result.filter((q: any) =>
-      (q.type === 'specific_element' || q.type === 'discover_element') && q.required_element
+    // Resolve discover_element / specific_element / combinations_n(with element) progress in batch
+    const elementGatedQuests = result.filter((q: any) =>
+      (q.type === 'specific_element' || q.type === 'discover_element' ||
+       (q.type === 'combinations_n' && q.required_element)) && q.required_element
     )
-    if (specificQuests.length > 0) {
-      const elementNums = specificQuests.map((q: any) => q.required_element)
+    if (elementGatedQuests.length > 0) {
+      const elementNums = [...new Set(elementGatedQuests.map((q: any) => q.required_element))]
       const unlocked = await sql`
         SELECT element_number FROM unlocks
         WHERE user_id = ${userId} AND element_number = ANY(${elementNums})
@@ -122,6 +128,9 @@ export async function GET() {
       for (const q of result as any[]) {
         if ((q.type === 'specific_element' || q.type === 'discover_element') && q.required_element) {
           q.progress = unlockedSet.has(q.required_element) ? 1 : 0
+        } else if (q.type === 'combinations_n' && q.required_element) {
+          // Only show combo progress if the required element has been discovered
+          q.progress = unlockedSet.has(q.required_element) ? Math.min(comboCount.n, q.target_value) : 0
         }
       }
     }
@@ -161,7 +170,14 @@ export async function POST(req: NextRequest) {
   } else if (quest.type === 'combinations_n') {
     try {
       const [r] = await sql`SELECT COUNT(*)::int AS n FROM element_actions WHERE user_id = ${userId}`
-      liveProgress = r?.n ?? 0
+      const rawCount = r?.n ?? 0
+      if (quest.required_element) {
+        // Check element is discovered first
+        const [elRow] = await sql`SELECT 1 FROM unlocks WHERE user_id = ${userId} AND element_number = ${quest.required_element} LIMIT 1`
+        liveProgress = elRow ? Math.min(rawCount, quest.target_value) : 0
+      } else {
+        liveProgress = rawCount
+      }
     } catch { liveProgress = 0 }
   } else if (quest.type === 'session_n') {
     const [r] = await sql`SELECT COUNT(DISTINCT DATE_TRUNC('day', discovered_at))::int AS n FROM unlocks WHERE user_id = ${userId}`

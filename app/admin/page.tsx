@@ -587,14 +587,17 @@ const QUEST_ICONS: Record<string, string> = {
   droplets: '💧', flame: '🔥', wind: '〜', mountain: '△', sun: '☀', star: '★',
 }
 
-const QUEST_FILTERS = [
-  { label: 'Tout', value: null as number | null },
-  { label: 'Daily', value: -1 },
-  { label: '1 élément', value: 1 },
-  { label: '10 éléments', value: 10 },
-  { label: '20 éléments', value: 20 },
-  { label: '30 éléments', value: 30 },
-  { label: '50 éléments', value: 50 },
+type QuestFilter = 'all' | 'daily' | 'discover_n' | number
+
+const QUEST_FILTERS: { label: string; value: QuestFilter }[] = [
+  { label: 'Tout',          value: 'all'       },
+  { label: 'Daily',         value: 'daily'     },
+  { label: 'Découverte',    value: 'discover_n'},
+  { label: '1 élément',     value: 1           },
+  { label: '10 éléments',   value: 10          },
+  { label: '20 éléments',   value: 20          },
+  { label: '30 éléments',   value: 30          },
+  { label: '50 éléments',   value: 50          },
 ]
 
 function QuestsTab() {
@@ -604,7 +607,7 @@ function QuestsTab() {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState<number | null>(null)
   const [showAdd, setShowAdd] = useState(false)
-  const [activeFilter, setActiveFilter] = useState<number | null>(null)
+  const [activeFilter, setActiveFilter] = useState<QuestFilter>('all')
 
   const fetchQuests = useCallback(async () => {
     setLoading(true)
@@ -645,9 +648,10 @@ function QuestsTab() {
   }
 
   const filteredQuests = quests.filter(q => {
-    if (activeFilter === null) return true
-    if (activeFilter === -1) return q.is_daily
-    return q.target_value === activeFilter
+    if (activeFilter === 'all')       return !q.is_daily && q.type !== 'discover_n'
+    if (activeFilter === 'daily')     return q.is_daily
+    if (activeFilter === 'discover_n') return q.type === 'discover_n'
+    return !q.is_daily && q.type !== 'discover_n' && q.target_value === activeFilter
   })
 
   return (
@@ -673,13 +677,15 @@ function QuestsTab() {
             }`}
           >
             {f.label}
-            {f.value !== null && (
-              <span className="ml-1.5 opacity-60">
-                {f.value === -1
-                  ? quests.filter(q => q.is_daily).length
-                  : quests.filter(q => q.target_value === f.value).length}
-              </span>
-            )}
+            <span className="ml-1.5 opacity-60">
+              {f.value === 'all'
+                ? quests.filter(q => !q.is_daily && q.type !== 'discover_n').length
+                : f.value === 'daily'
+                ? quests.filter(q => q.is_daily).length
+                : f.value === 'discover_n'
+                ? quests.filter(q => q.type === 'discover_n').length
+                : quests.filter(q => !q.is_daily && q.type !== 'discover_n' && q.target_value === f.value).length}
+            </span>
           </button>
         ))}
       </div>
@@ -2177,7 +2183,7 @@ function StatsTab() {
   )
 }
 
-// ─── Push Notifications Tab ─────���─────────────────────────────────────────────
+// ─── Push Notifications Tab ─────���───────────────────────────���─────────────────
 type Subscriber = { id: number; label: string; lang: string; last_seen: string; email: string }
 type PushSendResult = { id: number; label: string; lang: string; status: 'sent' | 'failed' | 'expired' }
 type LogEntry = {
