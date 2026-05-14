@@ -366,17 +366,19 @@ function ScratchModal({ quest, lang, onScratch, onClose, onGoToPlay }: {
           </button>
         </div>
 
-        {/* Element hero */}
-        <div className="flex flex-col items-center gap-4 px-5 pt-4 pb-6">
-          <div className="w-24 h-24 rounded-3xl bg-muted/50 flex items-center justify-center">
+        {/* Element hero — image + name only, no quest title */}
+        <div className="flex flex-col items-center gap-3 px-5 pt-2 pb-6">
+          <div className="w-28 h-28 rounded-3xl bg-muted/40 flex items-center justify-center">
             {resultImg
-              ? <img src={resultImg} alt={resultName ?? ''} className="w-16 h-16 object-contain" draggable={false} />
-              : <Sparkles className="w-10 h-10 text-foreground/30" />
+              ? <img src={resultImg} alt={resultName ?? ''} className="w-20 h-20 object-contain" draggable={false} />
+              : <Sparkles className="w-12 h-12 text-foreground/20" />
             }
           </div>
-          <h2 className="text-3xl font-bold text-foreground text-balance text-center leading-tight">
-            {resultName ?? (lang === 'fr' ? 'Récompense' : 'Reward')}
-          </h2>
+          {resultName && (
+            <h2 className="text-3xl font-bold text-foreground text-balance text-center leading-tight">
+              {resultName}
+            </h2>
+          )}
         </div>
 
         {/* Scratch area */}
@@ -569,12 +571,12 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
 
   // ── Inline scratch view — replaces the quest list entirely ──────────────
   if (scratchQuest) {
-    const title = lang === 'fr' ? scratchQuest.title_fr : scratchQuest.title_en
     const allScratched = scratchQuest.rewards.every(r => !!r.scratched_at)
     const anyReward = scratchQuest.rewards[0]
     const resultName = anyReward
       ? (lang === 'fr' ? anyReward.result_name_french : anyReward.result_name_english)
       : null
+    const resultImg = anyReward?.result_img ?? null
 
     return (
       <div className="h-full flex flex-col">
@@ -588,17 +590,16 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
         </button>
 
         <div className="flex-1 flex flex-col items-center justify-center gap-8 pb-10">
-          {/* Header */}
-          <div className="flex flex-col items-center gap-1 text-center">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400/70">
-              {t('Récompense', 'Reward')}
-            </span>
-            <h2 className="text-2xl font-bold text-foreground leading-tight text-balance">{title}</h2>
-            {resultName && !allScratched && (
-              <p className="text-xs text-muted-foreground/50 mt-1">
-                {t('Recette pour : ', 'Recipe for: ')}
-                <span className="font-semibold text-foreground/70">{resultName}</span>
-              </p>
+          {/* Element hero — image + name only */}
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="w-28 h-28 rounded-3xl bg-muted/40 flex items-center justify-center">
+              {resultImg
+                ? <img src={resultImg} alt={resultName ?? ''} className="w-20 h-20 object-contain" draggable={false} />
+                : <Sparkles className="w-12 h-12 text-foreground/20" />
+              }
+            </div>
+            {resultName && (
+              <h2 className="text-3xl font-bold text-foreground leading-tight text-balance">{resultName}</h2>
             )}
           </div>
 
