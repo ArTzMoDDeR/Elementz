@@ -11,31 +11,6 @@ interface ElementBadgeProps {
   style?: React.CSSProperties
 }
 
-const ELEMENT_ICONS: Record<string, (color: string) => React.ReactNode> = {
-  'eau': (_c) => (
-    <svg viewBox="0 0 24 24" fill="none" className="w-full h-full">
-      <path d="M12 2C12 2 5 10 5 15a7 7 0 0014 0c0-5-7-13-7-13z" fill="rgba(255,255,255,0.7)"/>
-    </svg>
-  ),
-  'feu': (_c) => (
-    <svg viewBox="0 0 24 24" fill="none" className="w-full h-full">
-      <path d="M12 2c0 0-6 6-6 12a6 6 0 0012 0c0-3-1.5-5-3-7 0 2-1 3-3 3s-2-2 0-8z" fill="rgba(255,255,255,0.7)"/>
-    </svg>
-  ),
-  'terre': (_c) => (
-    <svg viewBox="0 0 24 24" fill="none" className="w-full h-full">
-      <circle cx="12" cy="12" r="10" fill="rgba(255,255,255,0.7)"/>
-    </svg>
-  ),
-  'air': (_c) => (
-    <svg viewBox="0 0 24 24" fill="none" className="w-full h-full">
-      <path d="M4 8h12a3 3 0 100-3" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round"/>
-      <path d="M4 12h14a3 3 0 110 3H4" stroke="rgba(255,255,255,0.5)" strokeWidth="2" strokeLinecap="round"/>
-      <path d="M4 16h8a2 2 0 110 2" stroke="rgba(255,255,255,0.3)" strokeWidth="2" strokeLinecap="round"/>
-    </svg>
-  ),
-}
-
 const FIXED_SIZE = {
   xs: 'w-12 h-12',
   sm: 'w-[68px] h-[68px]',
@@ -45,55 +20,54 @@ const FIXED_SIZE = {
 }
 
 const ICON_RATIO = {
-  xs: 'w-[65%] h-[65%]',
-  sm: 'w-[65%] h-[65%]',
-  md: 'w-[70%] h-[70%]',
-  lg: 'w-[72%] h-[72%]',
-  xl: 'w-[72%] h-[72%]',
+  xs: '55%',
+  sm: '58%',
+  md: '60%',
+  lg: '62%',
+  xl: '64%',
 }
 
-const LABEL_SIZE = {
-  xs: 'text-[8px]',
-  sm: 'text-[9px]',
-  md: 'text-[11px]',
-  lg: 'text-xs',
-  xl: 'text-sm',
-}
+const LABEL_FONT: Record<string, number> = { xs: 7.5, sm: 8.5, md: 10, lg: 11.5, xl: 13 }
+const RADIUS: Record<string, string> = { xs: '10px', sm: '12px', md: '14px', lg: '18px', xl: '22px' }
 
-// Returns a font-size in px that shrinks for longer names so text always fits
 function labelFontSize(size: 'xs' | 'sm' | 'md' | 'lg' | 'xl', nameLength: number): string {
-  const base: Record<string, number> = { xs: 8, sm: 9, md: 11, lg: 12, xl: 14 }
-  const b = base[size]
+  const b = LABEL_FONT[size]
   if (nameLength <= 10) return `${b}px`
   if (nameLength <= 14) return `${b - 1}px`
   if (nameLength <= 18) return `${b - 1.5}px`
   return `${b - 2}px`
 }
 
-// Single neutral background for all badges — uses CSS vars for theme support
-const BADGE_BG = 'var(--element-badge-bg)'
-const BADGE_BORDER = 'var(--element-badge-border)'
-const LABEL_BG = 'var(--element-badge-label)'
-const LABEL_TEXT = 'var(--element-badge-label-text)'
-
 function ElementBadgeInner({ element, size = 'md', fluid = false, className = '', style }: ElementBadgeProps & { size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' }) {
-  const hasIcon = ELEMENT_ICONS[element.name]
   const sizeClass = fluid ? 'w-full aspect-square' : FIXED_SIZE[size]
-  // Use imageUrl directly — optimizeImageUrl was returning the same value anyway
   const imgSrc = element.imageUrl || null
+  const iconSize = ICON_RATIO[size]
+  const borderRadius = RADIUS[size]
 
   return (
     <div
-      className={`${sizeClass} flex flex-col items-center justify-between rounded-xl select-none overflow-hidden ${className}`}
+      className={`${sizeClass} relative flex flex-col items-center justify-between select-none overflow-hidden ${className}`}
       style={{
-        backgroundColor: BADGE_BG,
-        border: `1px solid ${BADGE_BORDER}`,
+        borderRadius,
+        background: 'var(--badge-bg)',
+        border: '1px solid var(--badge-border)',
+        boxShadow: 'var(--badge-shadow)',
         ...style,
       }}
     >
-      {/* Image / icon — fills most of the badge */}
-      <div className="flex-1 w-full flex items-center justify-center p-1.5">
-        <div className={`${ICON_RATIO[size]} flex items-center justify-center`}>
+      {/* Subtle top highlight — iOS inner glow */}
+      <div
+        className="absolute inset-x-0 top-0 pointer-events-none"
+        style={{
+          height: '40%',
+          borderRadius: `${borderRadius} ${borderRadius} 0 0`,
+          background: 'var(--badge-shine)',
+        }}
+      />
+
+      {/* Icon area */}
+      <div className="flex-1 w-full flex items-center justify-center relative z-10" style={{ paddingTop: '8%', paddingBottom: '2%' }}>
+        <div style={{ width: iconSize, height: iconSize, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {imgSrc ? (
             <img
               src={imgSrc}
@@ -101,14 +75,13 @@ function ElementBadgeInner({ element, size = 'md', fluid = false, className = ''
               draggable={false}
               loading="eager"
               decoding="async"
-              className="w-full h-full object-contain pointer-events-none"
+              className="w-full h-full object-contain pointer-events-none drop-shadow-sm"
+              style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.25))' }}
             />
-          ) : hasIcon ? (
-            ELEMENT_ICONS[element.name](element.color)
           ) : (
             <div
-              className="w-[80%] h-[80%] flex items-center justify-center font-bold rounded-lg text-white"
-              style={{ backgroundColor: 'rgba(255,255,255,0.15)', fontSize: '120%' }}
+              className="w-[80%] h-[80%] flex items-center justify-center font-bold rounded-xl text-white"
+              style={{ backgroundColor: 'rgba(255,255,255,0.15)', fontSize: '130%' }}
             >
               {element.name.charAt(0).toUpperCase()}
             </div>
@@ -116,15 +89,21 @@ function ElementBadgeInner({ element, size = 'md', fluid = false, className = ''
         </div>
       </div>
 
-      {/* Label — shrinks font if name is long via fitText approach */}
+      {/* Label */}
       <div
-        className="w-full px-1 py-[3px] flex items-center justify-center shrink-0"
-        style={{ backgroundColor: LABEL_BG }}
+        className="w-full flex items-center justify-center shrink-0 relative z-10"
+        style={{
+          background: 'var(--badge-label-bg)',
+          paddingTop: '3px',
+          paddingBottom: '4px',
+          paddingLeft: '4px',
+          paddingRight: '4px',
+        }}
       >
         <span
           className="font-semibold leading-tight text-center w-full"
           style={{
-            color: LABEL_TEXT,
+            color: 'var(--badge-label-text)',
             fontSize: labelFontSize(size, element.name.length),
             display: '-webkit-box',
             WebkitLineClamp: 2,
