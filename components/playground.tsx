@@ -503,7 +503,8 @@ export function Playground({
       const trashEl = trashRef.current
       if (trashEl) {
         const r = trashEl.getBoundingClientRect()
-        const isOver = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom
+        const pad = 40
+        const isOver = e.clientX >= r.left - pad && e.clientX <= r.right + pad && e.clientY >= r.top - pad && e.clientY <= r.bottom + pad
         setOverTrash(prev => prev !== isOver ? isOver : prev)
       }
     }
@@ -518,16 +519,24 @@ export function Playground({
     const dropTarget = document.elementFromPoint(e.clientX, e.clientY)
     const droppedOnInventory = inventoryRef.current?.contains(dropTarget)
 
-    // Check if dropped on trash
+    // Check if dropped on trash — use a generous 40px padding around the button
     const trashEl = trashRef.current
-    const droppedOnTrash = trashEl ? trashEl.contains(dropTarget) || (() => {
+    const droppedOnTrash = trashEl ? (() => {
       const r = trashEl.getBoundingClientRect()
-      return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom
+      const pad = 40
+      return e.clientX >= r.left - pad && e.clientX <= r.right + pad && e.clientY >= r.top - pad && e.clientY <= r.bottom + pad
     })() : false
+
+    // Also treat dropping back on the inventory panel as a delete
+    const droppedOnInventory = inventoryRef.current?.contains(dropTarget) ||
+      (() => {
+        const r = inventoryRef.current?.getBoundingClientRect()
+        return r ? e.clientY >= r.top : false
+      })()
 
     setOverTrash(false)
 
-    if (droppedOnTrash && dragging.source === 'playground' && dragging.itemId) {
+    if ((droppedOnTrash || droppedOnInventory) && dragging.source === 'playground' && dragging.itemId) {
       // Animate then remove
       const id = dragging.itemId
       setDeletingId(id)
@@ -945,7 +954,7 @@ export function Playground({
                 {search && (
                   <button
                     onClick={() => setSearch('')}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-lg bg-muted-foreground/15 active:bg-muted-foreground/25 transition-colors"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-lg bg-muted-foreground/15 active:bg-muted-foreground/25 transition-colors"
                   >
                     <X className="w-4 h-4 text-foreground/60" />
                   </button>
