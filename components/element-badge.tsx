@@ -13,10 +13,19 @@ interface ElementBadgeProps {
 
 // Pill sizes: width × height
 const PILL_SIZE = {
-  xs: { w: 80,  h: 32,  icon: 20, font: 10, radius: 10 },
-  sm: { w: 100, h: 38,  icon: 24, font: 11, radius: 12 },
-  md: { w: 116, h: 44,  icon: 28, font: 12, radius: 13 },
-  lg: { w: 136, h: 52,  icon: 34, font: 13, radius: 16 },
+  xs: { w: 80,  h: 32,  icon: 16, font: 10, radius: 10 },
+  sm: { w: 100, h: 38,  icon: 19, font: 11, radius: 12 },
+  md: { w: 116, h: 44,  icon: 22, font: 12, radius: 13 },
+  lg: { w: 136, h: 52,  icon: 26, font: 13, radius: 16 },
+}
+
+// Returns a scaled-down font size when the name is long
+function adaptiveFont(baseFontSize: number, name: string): number {
+  const len = name.length
+  if (len <= 8)  return baseFontSize
+  if (len <= 13) return baseFontSize * 0.88
+  if (len <= 18) return baseFontSize * 0.78
+  return baseFontSize * 0.70
 }
 
 // Square sizes (playground canvas / xl / 2xl)
@@ -125,7 +134,7 @@ function ElementBadgeInner({ element, size = 'md', fluid = false, className = ''
         <span className="font-semibold leading-snug w-full"
           style={{
             color: 'var(--badge-label-text)',
-            fontSize: p.font,
+            fontSize: adaptiveFont(p.font, name),
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
