@@ -351,7 +351,7 @@ export function Playground({
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const trashRef = useRef<HTMLButtonElement>(null)
   const isMobile = useIsMobile()
-  const playgroundBadgeSize = isMobile ? 'sm' : 'lg'
+  const playgroundBadgeSize = (isMobile ? 'xl' : '2xl') as 'xl' | '2xl'
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<SortType>('name')
   const [sortReverse, setSortReverse] = useState(false)
@@ -840,7 +840,7 @@ export function Playground({
                     <UserCircle size={24} weight="regular" className="text-foreground/40" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-foreground">{lang === 'fr' ? 'Non connecté' : 'Not signed in'}</p>
+                    <p className="text-sm font-semibold text-foreground">{lang === 'fr' ? 'Non connect��' : 'Not signed in'}</p>
                     <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{lang === 'fr' ? 'Connecte-toi pour sauvegarder ta progression' : 'Sign in to save your progress'}</p>
                   </div>
                   <div className="flex flex-col gap-2 w-full max-w-xs">
@@ -1246,12 +1246,11 @@ export function Playground({
             <div className="flex-1 flex flex-col items-center justify-center py-3">
               {discovered.size >= totalElements ? (
                 <div
-                  className="flex items-center justify-center h-10 w-[50px] rounded-full select-none animate-in fade-in zoom-in duration-500"
-                  style={{ background: 'linear-gradient(135deg, rgba(250,204,21,0.15), rgba(251,146,60,0.15))', border: '2px solid rgba(250,204,21,0.4)' }}
+                  className="flex items-center justify-center select-none animate-in fade-in zoom-in duration-500"
                   title={lang === 'fr' ? 'Maître alchimiste !' : 'Alchemy master!'}
                   aria-label={lang === 'fr' ? 'Maître alchimiste' : 'Alchemy master'}
                 >
-                  <span className="text-lg leading-none" role="img" aria-label="crown">👑</span>
+                  <span className="text-2xl leading-none" role="img" aria-label="crown">👑</span>
                 </div>
               ) : (
                 <button
@@ -1267,19 +1266,18 @@ export function Playground({
                     onRequestHint?.()
                   }}
                   aria-label={lang === 'fr' ? 'Obtenir un indice' : 'Get a hint'}
-                  className={`
-                    flex items-center justify-center
-                    h-10 rounded-full tap-spring select-none
-                    border-2 border-border
-                    hover:bg-muted/60
-                    active:scale-95
-                    transition-all duration-700
-                    ${hintShouldPulse ? 'border-amber-400/70 shadow-[0_0_0_4px_rgba(251,191,36,0.08)]' : ''}
-                    ${hintIdleGlow && !hintShouldPulse ? 'hint-idle-glow' : ''}
-                  `}
-                  style={{ width: 50, background: 'rgb(149 143 143 / 5%)' }}
+                  className={`tap-spring select-none active:scale-95 transition-all duration-200 flex items-center justify-center rounded-full ${hintIdleGlow && !hintShouldPulse ? 'hint-idle-glow' : ''}`}
+                  style={{
+                    width: 44, height: 44,
+                    background: hintShouldPulse ? 'rgba(251,191,36,0.12)' : 'var(--muted)',
+                    border: `1.5px solid ${hintShouldPulse ? 'rgba(251,191,36,0.45)' : 'var(--border)'}`,
+                  }}
                 >
-                  <Lightbulb size={22} className={hintShouldPulse || hintIdleGlow ? 'text-amber-400/80' : 'text-foreground/60'} />
+                  <Lightbulb
+                    size={22}
+                    weight={hintShouldPulse || hintIdleGlow ? 'fill' : 'regular'}
+                    className={`transition-colors duration-200 ${hintShouldPulse || hintIdleGlow ? 'text-amber-400' : 'text-muted-foreground/70'}`}
+                  />
                 </button>
               )}
             </div>
