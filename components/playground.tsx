@@ -1243,21 +1243,14 @@ export function Playground({
             })}
 
             {/* Center: Crown (game complete) or Hint button */}
-            <div className="flex-1 flex flex-col items-center" style={{ paddingTop: 0, paddingBottom: 0 }}>
+            <div className="flex-1 flex flex-col items-center justify-center py-3">
               {discovered.size >= totalElements ? (
                 <div
                   className="flex items-center justify-center select-none animate-in fade-in zoom-in duration-500"
-                  style={{
-                    width: 48, height: 48, borderRadius: '50%',
-                    background: 'linear-gradient(135deg, rgba(250,204,21,0.14), rgba(251,146,60,0.14))',
-                    border: '1px solid rgba(250,204,21,0.35)',
-                    boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
-                    transform: 'translateY(-8px)',
-                  }}
                   title={lang === 'fr' ? 'Maître alchimiste !' : 'Alchemy master!'}
                   aria-label={lang === 'fr' ? 'Maître alchimiste' : 'Alchemy master'}
                 >
-                  <span className="text-lg leading-none" role="img" aria-label="crown">👑</span>
+                  <span className="text-2xl leading-none" role="img" aria-label="crown">👑</span>
                 </div>
               ) : (
                 <button
@@ -1274,20 +1267,11 @@ export function Playground({
                   }}
                   aria-label={lang === 'fr' ? 'Obtenir un indice' : 'Get a hint'}
                   className={`tap-spring select-none active:scale-95 transition-all duration-200 flex items-center justify-center ${hintIdleGlow && !hintShouldPulse ? 'hint-idle-glow' : ''}`}
-                  style={{
-                    width: 48, height: 48, borderRadius: '50%',
-                    transform: 'translateY(-8px)',
-                    background: hintShouldPulse
-                      ? 'rgba(251,191,36,0.12)'
-                      : 'var(--card)',
-                    border: `1px solid ${hintShouldPulse ? 'rgba(251,191,36,0.4)' : 'var(--border)'}`,
-                    boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
-                  }}
                 >
                   <Lightbulb
-                    size={22}
+                    size={26}
                     weight={hintShouldPulse || hintIdleGlow ? 'fill' : 'regular'}
-                    className={`transition-colors duration-200 ${hintShouldPulse || hintIdleGlow ? 'text-amber-400' : 'text-muted-foreground/70'}`}
+                    className={`transition-colors duration-200 ${hintShouldPulse || hintIdleGlow ? 'text-amber-400' : 'text-muted-foreground/50'}`}
                   />
                 </button>
               )}
