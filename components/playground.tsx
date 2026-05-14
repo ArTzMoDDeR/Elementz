@@ -346,6 +346,9 @@ export function Playground({
   const [mergeAnimation, setMergeAnimation] = useState<{ x: number; y: number } | null>(null)
   const [shakeId, setShakeId] = useState<string | null>(null)
   const [playgroundFlash, setPlaygroundFlash] = useState<'success' | 'fail' | null>(null)
+  const [overTrash, setOverTrash] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const trashRef = useRef<HTMLButtonElement>(null)
   const isMobile = useIsMobile()
   const playgroundBadgeSize = isMobile ? 'sm' : 'lg'
   const [search, setSearch] = useState('')
@@ -489,11 +492,15 @@ export function Playground({
     const newY = pos.y - dragging.offsetY
 
     if (dragging.source === 'playground' && dragging.itemId) {
-      setDragging(prev => prev ? { ...prev, x: newX, y: newY } : null)
+      onMove(dragging.itemId, newX, newY)
       setNearMergeId(findNearestItem(newX, newY, dragging.itemId)?.id || null)
-    } else {
-      setDragging(prev => prev ? { ...prev, x: newX, y: newY } : null)
-      setNearMergeId(findNearestItem(newX, newY)?.id || null)
+      // Detect hover over trash
+      const trashEl = trashRef.current
+      if (trashEl) {
+        const r = trashEl.getBoundingClientRect()
+        const isOver = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom
+        setOverTrash(prev => prev !== isOver ? isOver : prev)
+      }
     }
   }, [dragging, getRelativePos, onMove, findNearestItem])
 
@@ -505,6 +512,25 @@ export function Playground({
 
     const dropTarget = document.elementFromPoint(e.clientX, e.clientY)
     const droppedOnInventory = inventoryRef.current?.contains(dropTarget)
+
+    // Check if dropped on trash
+    const trashEl = trashRef.current
+    const droppedOnTrash = trashEl ? trashEl.contains(dropTarget) || (() => {
+      const r = trashEl.getBoundingClientRect()
+      return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom
+    })() : false
+
+    setOverTrash(false)
+
+    if (droppedOnTrash && dragging.source === 'playground' && dragging.itemId) {
+      // Animate then remove
+      const id = dragging.itemId
+      setDeletingId(id)
+      setDragging(null)
+      setNearMergeId(null)
+      setTimeout(() => { onRemove(id); setDeletingId(null) }, 280)
+      return
+    }
 
     if (dragging.source === 'inventory') {
       if (droppedOnInventory) {
@@ -548,7 +574,7 @@ export function Playground({
 
     setDragging(null)
     setNearMergeId(null)
-  }, [dragging, findNearestItem, onDrop, onMerge, onDropAndMerge])
+  }, [dragging, findNearestItem, onDrop, onMerge, onDropAndMerge, onRemove])
 
   // === SORT ===
   // discovered is Set<number> — map numbers to ElementDef for display
@@ -621,6 +647,7 @@ export function Playground({
         const isDragging = dragging?.source === 'playground' && dragging.itemId === item.id
         const isNear = nearMergeId === item.id
         const isShaking = shakeId === item.id
+        const isDeleting = deletingId === item.id
         const scale = isDragging ? 1.08 : isNear ? 1.05 : 1
         // While dragging, use live dragging coords — avoids flash when setDragging(null) and store update are in different render cycles
         const x = isDragging ? dragging.x : item.x
@@ -632,11 +659,13 @@ export function Playground({
             style={{
               left: 0,
               top: 0,
-              transform: `translate(${x}px, ${y}px) scale(${scale})`,
+              transform: `translate(${x}px, ${y}px) scale(${isDeleting ? 0 : scale})`,
+              opacity: isDeleting ? 0 : 1,
               zIndex: isDragging ? 1000 : 10 + index,
-              transition: isDragging ? 'none' : 'transform 0.15s',
+              transition: isDeleting ? 'transform 0.25s ease-in, opacity 0.25s ease-in' : isDragging ? 'none' : 'transform 0.15s',
               willChange: isDragging ? 'transform' : undefined,
               contain: 'layout style',
+              pointerEvents: isDeleting ? 'none' : undefined,
             }}
             onPointerDown={e => handlePointerDown(e, item.element, item.id)}
             onDoubleClick={() => onRemove(item.id)}
@@ -856,17 +885,23 @@ export function Playground({
 
             {/* Clear button — absolute left so it doesn't shift the center */}
             <button
+              ref={trashRef}
               onPointerDown={e => e.stopPropagation()}
               onClick={e => { e.stopPropagation(); if (items.length > 0) onClear() }}
               disabled={items.length === 0}
               title={lang === 'fr' ? 'Vider le terrain' : 'Clear field'}
-              className={`absolute left-0 w-9 h-9 rounded-xl flex items-center justify-center tap-spring transition-all disabled:opacity-25 disabled:pointer-events-none ${
-                items.length > 0
-                  ? 'bg-red-500/15 text-red-400 border border-red-500/20 hover:bg-red-500/25'
-                  : 'bg-muted/40 text-muted-foreground/40 border border-transparent'
+              className={`absolute left-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-150 disabled:opacity-25 disabled:pointer-events-none ${
+                overTrash
+                  ? 'bg-red-500/30 text-red-400 border border-red-500/40 scale-125'
+                  : items.length > 0
+                    ? 'bg-red-500/15 text-red-400 border border-red-500/20 hover:bg-red-500/25 hover:scale-110'
+                    : 'bg-muted/40 text-muted-foreground/40 border border-transparent'
               }`}
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              {/* Lid rotates open when overTrash */}
+              <span className={`transition-transform duration-150 origin-bottom block ${overTrash ? '-translate-y-0.5 rotate-[-20deg]' : ''}`}>
+                <Trash2 className="w-3.5 h-3.5" />
+              </span>
             </button>
 
             {/* Center: logo + title + counter */}
