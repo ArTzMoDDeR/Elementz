@@ -146,6 +146,7 @@ html, body {
   --badge-border: rgba(180, 170, 155, 0.55);
   --badge-shadow: 0 1px 4px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.55);
   --badge-shine: linear-gradient(180deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0) 100%);
+  --badge-shine-h: linear-gradient(90deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 100%);
   --badge-label-bg: rgba(0,0,0,0.06);
   --badge-label-text: rgba(25,25,35,0.88);
 }
@@ -183,11 +184,12 @@ html, body {
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
-  /* Element badge — dark mode (iOS style) */
+  /* Element badge — dark mode */
   --badge-bg: rgba(255,255,255,0.07);
   --badge-border: rgba(255,255,255,0.12);
   --badge-shadow: 0 2px 10px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.09);
   --badge-shine: linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0) 100%);
+  --badge-shine-h: linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 100%);
   --badge-label-bg: rgba(0,0,0,0.30);
   --badge-label-text: rgba(255,255,255,0.88);
 }

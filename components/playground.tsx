@@ -351,7 +351,7 @@ export function Playground({
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const trashRef = useRef<HTMLButtonElement>(null)
   const isMobile = useIsMobile()
-  const playgroundBadgeSize = isMobile ? 'sm' : 'lg'
+  const playgroundBadgeSize: 'xl' = 'xl'
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<SortType>('name')
   const [sortReverse, setSortReverse] = useState(false)
@@ -840,7 +840,7 @@ export function Playground({
                     <UserCircle size={24} weight="regular" className="text-foreground/40" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-foreground">{lang === 'fr' ? 'Non connecté' : 'Not signed in'}</p>
+                    <p className="text-sm font-semibold text-foreground">{lang === 'fr' ? 'Non connect��' : 'Not signed in'}</p>
                     <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{lang === 'fr' ? 'Connecte-toi pour sauvegarder ta progression' : 'Sign in to save your progress'}</p>
                   </div>
                   <div className="flex flex-col gap-2 w-full max-w-xs">

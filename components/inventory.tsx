@@ -240,7 +240,7 @@ export function Inventory({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-wrap gap-2 justify-start">
             {discoveredElements.map(element => (
               <div
                 key={element.name}
@@ -248,10 +248,10 @@ export function Inventory({
                 onDragStart={e => handleDragStart(e, element)}
                 onDragEnd={handleDragEnd}
                 onDoubleClick={() => handleDoubleClick(element)}
-                className="cursor-grab active:cursor-grabbing"
+                className="cursor-grab active:cursor-grabbing flex-shrink-0"
               >
                 <div data-element-badge>
-                  <ElementBadge element={element} size="lg" className="hover:opacity-80 transition-opacity" />
+                  <ElementBadge element={element} size="md" className="hover:opacity-75 active:scale-95 transition-all duration-100" />
                 </div>
               </div>
             ))}

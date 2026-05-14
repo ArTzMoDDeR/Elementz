@@ -11,108 +11,128 @@ interface ElementBadgeProps {
   style?: React.CSSProperties
 }
 
-const FIXED_SIZE = {
-  xs: 'w-12 h-12',
-  sm: 'w-[68px] h-[68px]',
-  md: 'w-20 h-20',
-  lg: 'w-28 h-28',
-  xl: 'w-36 h-36',
+// Pill sizes: width × height
+const PILL_SIZE = {
+  xs: { w: 80,  h: 32,  icon: 20, font: 10, radius: 10 },
+  sm: { w: 100, h: 38,  icon: 24, font: 11, radius: 12 },
+  md: { w: 116, h: 44,  icon: 28, font: 12, radius: 13 },
+  lg: { w: 136, h: 52,  icon: 34, font: 13, radius: 16 },
 }
 
-const ICON_RATIO = {
-  xs: '55%',
-  sm: '58%',
-  md: '60%',
-  lg: '62%',
-  xl: '64%',
-}
-
-const LABEL_FONT: Record<string, number> = { xs: 7.5, sm: 8.5, md: 10, lg: 11.5, xl: 13 }
-const RADIUS: Record<string, string> = { xs: '10px', sm: '12px', md: '14px', lg: '18px', xl: '22px' }
-
-function labelFontSize(size: 'xs' | 'sm' | 'md' | 'lg' | 'xl', nameLength: number): string {
-  const b = LABEL_FONT[size]
-  if (nameLength <= 10) return `${b}px`
-  if (nameLength <= 14) return `${b - 1}px`
-  if (nameLength <= 18) return `${b - 1.5}px`
-  return `${b - 2}px`
+// Square sizes (playground canvas / xl)
+const SQUARE_SIZE = {
+  xl: { w: 80, h: 80, icon: 44, labelFont: 10.5, radius: 18 },
 }
 
 function ElementBadgeInner({ element, size = 'md', fluid = false, className = '', style }: ElementBadgeProps & { size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' }) {
-  const sizeClass = fluid ? 'w-full aspect-square' : FIXED_SIZE[size]
   const imgSrc = element.imageUrl || null
-  const iconSize = ICON_RATIO[size]
-  const borderRadius = RADIUS[size]
+  const name = element.name
 
+  // xl and fluid → square layout (used on playground canvas)
+  if (size === 'xl' || fluid) {
+    const sq = SQUARE_SIZE.xl
+    const wClass = fluid ? 'w-full aspect-square' : undefined
+    return (
+      <div
+        className={`${fluid ? wClass : ''} relative flex flex-col items-center justify-between select-none overflow-hidden ${className}`}
+        style={{
+          width: fluid ? undefined : sq.w,
+          height: fluid ? undefined : sq.h,
+          borderRadius: sq.radius,
+          background: 'var(--badge-bg)',
+          border: '1px solid var(--badge-border)',
+          boxShadow: 'var(--badge-shadow)',
+          ...style,
+        }}
+      >
+        {/* Top shine */}
+        <div className="absolute inset-x-0 top-0 pointer-events-none" style={{ height: '45%', borderRadius: `${sq.radius}px ${sq.radius}px 0 0`, background: 'var(--badge-shine)' }} />
+
+        {/* Icon */}
+        <div className="flex-1 w-full flex items-center justify-center relative z-10 pt-1">
+          {imgSrc ? (
+            <img src={imgSrc} alt={name} draggable={false} loading="eager" decoding="async"
+              style={{ width: sq.icon, height: sq.icon, objectFit: 'contain', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.25))' }}
+              className="pointer-events-none"
+            />
+          ) : (
+            <div className="flex items-center justify-center rounded-xl font-bold text-white"
+              style={{ width: sq.icon, height: sq.icon, backgroundColor: 'rgba(255,255,255,0.12)', fontSize: sq.icon * 0.45 }}>
+              {name.charAt(0).toUpperCase()}
+            </div>
+          )}
+        </div>
+
+        {/* Label strip */}
+        <div className="w-full flex items-center justify-center shrink-0 relative z-10 px-1 pb-1.5">
+          <span className="font-semibold text-center leading-tight w-full"
+            style={{
+              color: 'var(--badge-label-text)',
+              fontSize: sq.labelFont,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              wordBreak: 'break-word',
+            }}>
+            {name}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  // Pill / horizontal layout for xs → lg (inventory grid)
+  const p = PILL_SIZE[size]
   return (
     <div
-      className={`${sizeClass} relative flex flex-col items-center justify-between select-none overflow-hidden ${className}`}
+      className={`relative flex flex-row items-center select-none overflow-hidden gap-0 ${className}`}
       style={{
-        borderRadius,
+        width: p.w,
+        height: p.h,
+        borderRadius: p.radius,
         background: 'var(--badge-bg)',
         border: '1px solid var(--badge-border)',
         boxShadow: 'var(--badge-shadow)',
         ...style,
       }}
     >
-      {/* Subtle top highlight — iOS inner glow */}
-      <div
-        className="absolute inset-x-0 top-0 pointer-events-none"
-        style={{
-          height: '40%',
-          borderRadius: `${borderRadius} ${borderRadius} 0 0`,
-          background: 'var(--badge-shine)',
-        }}
-      />
+      {/* Left shine on icon area */}
+      <div className="absolute inset-y-0 left-0 pointer-events-none" style={{ width: '45%', borderRadius: `${p.radius}px 0 0 ${p.radius}px`, background: 'var(--badge-shine-h)' }} />
 
-      {/* Icon area */}
-      <div className="flex-1 w-full flex items-center justify-center relative z-10" style={{ paddingTop: '8%', paddingBottom: '2%' }}>
-        <div style={{ width: iconSize, height: iconSize, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {imgSrc ? (
-            <img
-              src={imgSrc}
-              alt={element.name}
-              draggable={false}
-              loading="eager"
-              decoding="async"
-              className="w-full h-full object-contain pointer-events-none drop-shadow-sm"
-              style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.25))' }}
-            />
-          ) : (
-            <div
-              className="w-[80%] h-[80%] flex items-center justify-center font-bold rounded-xl text-white"
-              style={{ backgroundColor: 'rgba(255,255,255,0.15)', fontSize: '130%' }}
-            >
-              {element.name.charAt(0).toUpperCase()}
-            </div>
-          )}
-        </div>
+      {/* Icon */}
+      <div className="flex-shrink-0 flex items-center justify-center relative z-10"
+        style={{ width: p.h, height: p.h }}>
+        {imgSrc ? (
+          <img src={imgSrc} alt={name} draggable={false} loading="eager" decoding="async"
+            style={{ width: p.icon, height: p.icon, objectFit: 'contain', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.2))' }}
+            className="pointer-events-none"
+          />
+        ) : (
+          <div className="flex items-center justify-center rounded-lg font-bold text-white"
+            style={{ width: p.icon * 0.9, height: p.icon * 0.9, backgroundColor: 'rgba(255,255,255,0.12)', fontSize: p.icon * 0.48 }}>
+            {name.charAt(0).toUpperCase()}
+          </div>
+        )}
       </div>
 
-      {/* Label */}
-      <div
-        className="w-full flex items-center justify-center shrink-0 relative z-10"
-        style={{
-          background: 'var(--badge-label-bg)',
-          paddingTop: '3px',
-          paddingBottom: '4px',
-          paddingLeft: '4px',
-          paddingRight: '4px',
-        }}
-      >
-        <span
-          className="font-semibold leading-tight text-center w-full"
+      {/* Thin divider */}
+      <div className="flex-shrink-0 self-stretch" style={{ width: 1, background: 'var(--badge-border)', opacity: 0.6 }} />
+
+      {/* Name */}
+      <div className="flex-1 flex items-center relative z-10 min-w-0" style={{ paddingLeft: p.h * 0.18, paddingRight: p.h * 0.22 }}>
+        <span className="font-semibold leading-snug w-full"
           style={{
             color: 'var(--badge-label-text)',
-            fontSize: labelFontSize(size, element.name.length),
+            fontSize: p.font,
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
             wordBreak: 'break-word',
-          }}
-        >
-          {element.name}
+            hyphens: 'auto',
+          }}>
+          {name}
         </span>
       </div>
     </div>
