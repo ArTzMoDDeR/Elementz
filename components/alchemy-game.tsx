@@ -111,33 +111,46 @@ function GuestWallOverlay({ lang }: { lang: string }) {
 
 function PushPromptModal({ lang, onAccept, onDecline }: { lang: string; onAccept: () => void; onDecline: () => void }) {
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
+  const isDenied = typeof Notification !== 'undefined' && Notification.permission === 'denied'
+
   return (
     <div className="fixed inset-0 z-[9998] flex items-end justify-center sm:items-center bg-black/50 backdrop-blur-sm" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <div className="w-full max-w-sm bg-card border border-border rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden mx-4 sm:mx-0 mb-4 sm:mb-0">
         <div className="px-6 pt-6 pb-8 flex flex-col gap-5">
           <div className="flex flex-col items-center gap-3 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-              <span className="text-2xl">🔔</span>
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl ${isDenied ? 'bg-red-500/10 border border-red-500/20' : 'bg-indigo-500/10 border border-indigo-500/20'}`}>
+              {isDenied ? '🔕' : '🔔'}
             </div>
             <div>
-              <h2 className="text-lg font-bold text-foreground">{t('Activer les notifications ?', 'Enable notifications?')}</h2>
+              <h2 className="text-lg font-bold text-foreground">
+                {isDenied
+                  ? t('Notifications bloquées', 'Notifications blocked')
+                  : t('Activer les notifications ?', 'Enable notifications?')}
+              </h2>
               <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-                {t(
-                  "Reçois une alerte quand de nouveaux éléments sont ajoutés ou quand il y a une mise à jour.",
-                  "Get notified when new elements are added or when there's an update."
-                )}
+                {isDenied
+                  ? t(
+                      "Tu as bloqué les notifications. Pour les activer, va dans les réglages de ton navigateur et autorise les notifications pour ce site.",
+                      "You've blocked notifications. To enable them, go to your browser settings and allow notifications for this site."
+                    )
+                  : t(
+                      "Reçois une alerte quand de nouveaux éléments sont ajoutés ou quand il y a une mise à jour.",
+                      "Get notified when new elements are added or when there's an update."
+                    )}
               </p>
             </div>
           </div>
           <div className="flex gap-3">
             <button onClick={onDecline}
-              className="flex-1 h-12 rounded-2xl bg-muted/50 border border-border text-foreground/60 font-semibold text-sm active:scale-[0.98] transition-transform">
-              {t('Non merci', 'No thanks')}
+              className="flex-1 h-12 rounded-2xl bg-muted/50 border border-border text-foreground/60 font-semibold text-sm active:scale-[0.98] transition-transform cursor-pointer">
+              {t('Fermer', 'Close')}
             </button>
-            <button onClick={onAccept}
-              className="flex-1 h-12 rounded-2xl bg-indigo-500 text-white font-semibold text-sm active:scale-[0.98] transition-transform">
-              {t('Activer', 'Enable')}
-            </button>
+            {!isDenied && (
+              <button onClick={onAccept}
+                className="flex-1 h-12 rounded-2xl bg-indigo-500 text-white font-semibold text-sm active:scale-[0.98] transition-transform cursor-pointer">
+                {t('Activer', 'Enable')}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -375,7 +388,7 @@ export function AlchemyGame() {
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showPushPrompt, setShowPushPrompt] = useState(false)
   const [avatarRefreshKey, setAvatarRefreshKey] = useState(0)
-  const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(true)
+  const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(false)
   const [suppressUnlockNotif, setSuppressUnlockNotif] = useState(false)
 
   const {
@@ -556,8 +569,12 @@ export function AlchemyGame() {
       .then(d => {
         // Apply saved theme
         if (d.theme === 'light' || d.theme === 'dark') setTheme(d.theme)
-        // Apply saved push notifications preference
-        if (typeof d.push_notifications === 'boolean') setPushNotificationsEnabled(d.push_notifications)
+        // Apply push notifications state: cross-reference DB value with actual browser permission
+        // If browser permission is 'denied' or 'default', the subscription can't be active — force false
+        if (typeof d.push_notifications === 'boolean') {
+          const browserGranted = typeof Notification !== 'undefined' && Notification.permission === 'granted'
+          setPushNotificationsEnabled(d.push_notifications && browserGranted)
+        }
         if (typeof d.suppress_unlock_notif === 'boolean') setSuppressUnlockNotif(d.suppress_unlock_notif)
         // Show one-time push prompt for users who haven't been asked yet
         // Skip if onboarding is pending — onboarding already has its own notifications step
@@ -709,14 +726,29 @@ export function AlchemyGame() {
         onTogglePushNotifications={async () => {
           const next = !pushNotificationsEnabled
           if (next) {
+            // If permission was explicitly denied, we can't re-ask — show prompt to go to browser settings
+            if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
+              setShowPushPrompt(true)
+              return
+            }
             const ok = await subscribeToPush(lang as 'fr' | 'en')
-            if (!ok) return // permission denied — don't toggle on
+            if (!ok) {
+              // If still not granted, show the prompt to explain
+              if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
+                setShowPushPrompt(true)
+              }
+              return
+            }
+            setPushNotificationsEnabled(true)
+            if (session?.user?.id) {
+              fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push_notifications: true }) })
+            }
           } else {
             await unsubscribeFromPush()
-          }
-          setPushNotificationsEnabled(next)
-          if (session?.user?.id) {
-            fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push_notifications: next }) })
+            setPushNotificationsEnabled(false)
+            if (session?.user?.id) {
+              fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push_notifications: false }) })
+            }
           }
         }}
         suppressUnlockNotif={suppressUnlockNotif}
