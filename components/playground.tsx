@@ -1817,7 +1817,11 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground">{t('Notifications push', 'Push notifications')}</p>
-                <p className="text-xs text-muted-foreground/50 mt-0.5">{t("Alertes sur l'écran d'accueil", 'Alerts on home screen')}</p>
+                <p className="text-xs text-muted-foreground/50 mt-0.5">
+                  {typeof Notification !== 'undefined' && Notification.permission === 'denied'
+                    ? t('Bloquées — modifie les réglages du navigateur', 'Blocked — change browser settings')
+                    : t("Alertes sur l'écran d'accueil", 'Alerts on home screen')}
+                </p>
               </div>
               <Toggle on={!!pushNotificationsEnabled} onToggle={() => onTogglePushNotifications?.()} />
             </div>
