@@ -107,20 +107,20 @@ html, body {
 }
 
 :root {
-  /* Light mode — warm stone, not blinding white */
-  --background: oklch(0.96 0.006 65);
+  /* Light mode — warm stone, softer than white */
+  --background: oklch(0.91 0.008 65);
   --foreground: oklch(0.18 0.015 250);
-  --card: oklch(0.99 0.003 70);
+  --card: oklch(0.94 0.006 68);
   --card-foreground: oklch(0.18 0.015 250);
-  --popover: oklch(0.99 0.003 70);
+  --popover: oklch(0.94 0.006 68);
   --popover-foreground: oklch(0.18 0.015 250);
   --primary: oklch(0.50 0.16 250);
   --primary-foreground: oklch(0.99 0.003 70);
-  --secondary: oklch(0.93 0.008 65);
+  --secondary: oklch(0.88 0.010 65);
   --secondary-foreground: oklch(0.22 0.015 250);
-  --muted: oklch(0.93 0.008 65);
+  --muted: oklch(0.88 0.010 65);
   --muted-foreground: oklch(0.50 0.012 250);
-  --accent: oklch(0.91 0.012 65);
+  --accent: oklch(0.86 0.012 65);
   --accent-foreground: oklch(0.22 0.015 250);
   --destructive: oklch(0.55 0.22 25);
   --destructive-foreground: oklch(0.99 0.003 70);
@@ -141,13 +141,13 @@ html, body {
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  /* Element badge — light mode (iOS style) */
-  --badge-bg: rgba(255, 255, 255, 0.72);
-  --badge-border: rgba(255, 255, 255, 0.9);
-  --badge-shadow: 0 2px 8px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.8);
-  --badge-shine: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 100%);
-  --badge-label-bg: rgba(0,0,0,0.08);
-  --badge-label-text: rgba(30,30,30,0.92);
+  /* Element badge — light mode */
+  --badge-bg: rgba(248, 244, 238, 0.88);
+  --badge-border: rgba(180, 170, 155, 0.55);
+  --badge-shadow: 0 1px 4px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.55);
+  --badge-shine: linear-gradient(180deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0) 100%);
+  --badge-label-bg: rgba(0,0,0,0.06);
+  --badge-label-text: rgba(25,25,35,0.88);
 }
 
 .dark {
