@@ -526,17 +526,16 @@ export function Playground({
       return e.clientX >= r.left - pad && e.clientX <= r.right + pad && e.clientY >= r.top - pad && e.clientY <= r.bottom + pad
     })() : false
 
-    // Dropping on inventory panel also counts as delete
-    const droppedOnInventory = inventoryRef.current?.contains(dropTarget) ||
-      (() => {
-        const r = inventoryRef.current?.getBoundingClientRect()
-        return r ? e.clientY >= r.top : false
-      })()
+    // Whether pointer is physically inside the inventory panel rect
+    const inventoryRect = inventoryRef.current?.getBoundingClientRect()
+    const isInsideInventory = inventoryRect
+      ? e.clientY >= inventoryRect.top && e.clientX >= inventoryRect.left && e.clientX <= inventoryRect.right
+      : !!inventoryRef.current?.contains(dropTarget)
 
     setOverTrash(false)
 
-    if ((droppedOnTrash || droppedOnInventory) && dragging.source === 'playground' && dragging.itemId) {
-      // Animate then remove
+    // Delete: only when dragging FROM playground and dropping on trash or back on inventory
+    if (dragging.source === 'playground' && dragging.itemId && (droppedOnTrash || isInsideInventory)) {
       const id = dragging.itemId
       setDeletingId(id)
       setDragging(null)
@@ -546,7 +545,8 @@ export function Playground({
     }
 
     if (dragging.source === 'inventory') {
-      if (droppedOnInventory) {
+      // Cancel drag if dropped back on the inventory
+      if (isInsideInventory) {
         setDragging(null)
         setNearMergeId(null)
         return
