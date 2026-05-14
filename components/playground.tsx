@@ -904,8 +904,11 @@ export function Playground({
                   spellCheck={false}
                 />
                 {search && (
-                  <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground transition-colors">
-                    <X className="w-3 h-3" />
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-lg bg-muted-foreground/15 active:bg-muted-foreground/25 transition-colors"
+                  >
+                    <X className="w-4 h-4 text-foreground/60" />
                   </button>
                 )}
               </div>
