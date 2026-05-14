@@ -347,6 +347,7 @@ export function Playground({
   const [shakeId, setShakeId] = useState<string | null>(null)
   const [playgroundFlash, setPlaygroundFlash] = useState<'success' | 'fail' | null>(null)
   const [overTrash, setOverTrash] = useState(false)
+  const [overInventory, setOverInventory] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const trashRef = useRef<HTMLButtonElement>(null)
   const isMobile = useIsMobile()
@@ -499,13 +500,20 @@ export function Playground({
       // Also update the store so item.x/y is correct once isDragging becomes false
       onMove(dragging.itemId, newX, newY)
       setNearMergeId(findNearestItem(newX, newY, dragging.itemId)?.id || null)
-      // Detect hover over trash
+      // Detect hover over trash button
       const trashEl = trashRef.current
       if (trashEl) {
         const r = trashEl.getBoundingClientRect()
         const pad = 40
         const isOver = e.clientX >= r.left - pad && e.clientX <= r.right + pad && e.clientY >= r.top - pad && e.clientY <= r.bottom + pad
         setOverTrash(prev => prev !== isOver ? isOver : prev)
+      }
+      // Detect hover over inventory panel
+      const invEl = inventoryRef.current
+      if (invEl) {
+        const r = invEl.getBoundingClientRect()
+        const isOver = e.clientY >= r.top && e.clientX >= r.left && e.clientX <= r.right
+        setOverInventory(prev => prev !== isOver ? isOver : prev)
       }
     }
   }, [dragging, getRelativePos, onMove, findNearestItem])
@@ -533,6 +541,7 @@ export function Playground({
       : !!inventoryRef.current?.contains(dropTarget)
 
     setOverTrash(false)
+    setOverInventory(false)
 
     // Delete: only when dragging FROM playground and dropping on trash or back on inventory
     if (dragging.source === 'playground' && dragging.itemId && (droppedOnTrash || isInsideInventory)) {
@@ -903,15 +912,15 @@ export function Playground({
               disabled={items.length === 0}
               title={lang === 'fr' ? 'Vider le terrain' : 'Clear field'}
               className={`absolute left-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-150 disabled:opacity-25 disabled:pointer-events-none ${
-                overTrash
+                overTrash || overInventory
                   ? 'bg-red-500/30 text-red-400 border border-red-500/40 scale-125'
                   : items.length > 0
                     ? 'bg-red-500/15 text-red-400 border border-red-500/20 hover:bg-red-500/25 hover:scale-110'
                     : 'bg-muted/40 text-muted-foreground/40 border border-transparent'
               }`}
             >
-              {/* Lid rotates open when overTrash */}
-              <span className={`transition-transform duration-150 origin-bottom block ${overTrash ? '-translate-y-0.5 rotate-[-20deg]' : ''}`}>
+              {/* Lid rotates open when over trash or inventory */}
+              <span className={`transition-transform duration-150 origin-bottom block ${overTrash || overInventory ? '-translate-y-0.5 rotate-[-20deg]' : ''}`}>
                 <Trash2 className="w-3.5 h-3.5" />
               </span>
             </button>
