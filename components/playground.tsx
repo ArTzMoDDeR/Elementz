@@ -351,7 +351,7 @@ export function Playground({
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const trashRef = useRef<HTMLButtonElement>(null)
   const isMobile = useIsMobile()
-  const playgroundBadgeSize: 'xl' = 'xl'
+  const playgroundBadgeSize = (isMobile ? 'xl' : '2xl') as 'xl' | '2xl'
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<SortType>('name')
   const [sortReverse, setSortReverse] = useState(false)

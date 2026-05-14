@@ -5,7 +5,7 @@ import { type ElementDef } from '@/lib/game-data'
 
 interface ElementBadgeProps {
   element: ElementDef
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'
   fluid?: boolean
   className?: string
   style?: React.CSSProperties
@@ -19,18 +19,19 @@ const PILL_SIZE = {
   lg: { w: 136, h: 52,  icon: 34, font: 13, radius: 16 },
 }
 
-// Square sizes (playground canvas / xl)
+// Square sizes (playground canvas / xl / 2xl)
 const SQUARE_SIZE = {
-  xl: { w: 80, h: 80, icon: 44, labelFont: 10.5, radius: 18 },
+  xl:  { w: 80,  h: 80,  icon: 44, labelFont: 10.5, radius: 18 },
+  '2xl': { w: 110, h: 110, icon: 62, labelFont: 12,   radius: 22 },
 }
 
-function ElementBadgeInner({ element, size = 'md', fluid = false, className = '', style }: ElementBadgeProps & { size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' }) {
+function ElementBadgeInner({ element, size = 'md', fluid = false, className = '', style }: ElementBadgeProps & { size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' }) {
   const imgSrc = element.imageUrl || null
   const name = element.name
 
-  // xl and fluid → square layout (used on playground canvas)
-  if (size === 'xl' || fluid) {
-    const sq = SQUARE_SIZE.xl
+  // xl / 2xl / fluid → square layout (used on playground canvas)
+  if (size === 'xl' || size === '2xl' || fluid) {
+    const sq = size === '2xl' ? SQUARE_SIZE['2xl'] : SQUARE_SIZE.xl
     const wClass = fluid ? 'w-full aspect-square' : undefined
     return (
       <div
