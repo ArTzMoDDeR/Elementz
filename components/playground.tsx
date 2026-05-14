@@ -1242,16 +1242,22 @@ export function Playground({
               )
             })}
 
-            {/* Center: Crown (game complete) or Hint button */}
-            <div className="flex-1 flex flex-col items-center justify-center py-3">
+            {/* Center: Crown (game complete) or Hint button — elevated focal point */}
+            <div className="flex-1 flex flex-col items-center justify-center" style={{ paddingBottom: 4 }}>
               {discovered.size >= totalElements ? (
                 <div
-                  className="flex items-center justify-center h-10 w-[50px] rounded-full select-none animate-in fade-in zoom-in duration-500"
-                  style={{ background: 'linear-gradient(135deg, rgba(250,204,21,0.15), rgba(251,146,60,0.15))', border: '2px solid rgba(250,204,21,0.4)' }}
+                  className="flex items-center justify-center select-none animate-in fade-in zoom-in duration-500"
+                  style={{
+                    width: 52, height: 52, borderRadius: 16,
+                    background: 'linear-gradient(135deg, rgba(250,204,21,0.18), rgba(251,146,60,0.18))',
+                    border: '1.5px solid rgba(250,204,21,0.4)',
+                    boxShadow: '0 4px 16px rgba(250,204,21,0.18), 0 1px 4px rgba(0,0,0,0.18)',
+                    transform: 'translateY(-6px)',
+                  }}
                   title={lang === 'fr' ? 'Maître alchimiste !' : 'Alchemy master!'}
                   aria-label={lang === 'fr' ? 'Maître alchimiste' : 'Alchemy master'}
                 >
-                  <span className="text-lg leading-none" role="img" aria-label="crown">👑</span>
+                  <span className="text-xl leading-none" role="img" aria-label="crown">👑</span>
                 </div>
               ) : (
                 <button
@@ -1268,18 +1274,29 @@ export function Playground({
                   }}
                   aria-label={lang === 'fr' ? 'Obtenir un indice' : 'Get a hint'}
                   className={`
-                    flex items-center justify-center
-                    h-10 rounded-full tap-spring select-none
-                    border-2 border-border
-                    hover:bg-muted/60
-                    active:scale-95
-                    transition-all duration-700
-                    ${hintShouldPulse ? 'border-amber-400/70 shadow-[0_0_0_4px_rgba(251,191,36,0.08)]' : ''}
+                    tap-spring select-none active:scale-95 transition-all duration-200
                     ${hintIdleGlow && !hintShouldPulse ? 'hint-idle-glow' : ''}
                   `}
-                  style={{ width: 50, background: 'rgb(149 143 143 / 5%)' }}
+                  style={{
+                    width: 52, height: 52,
+                    borderRadius: 16,
+                    transform: 'translateY(-6px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: hintShouldPulse
+                      ? 'rgba(251,191,36,0.15)'
+                      : 'var(--badge-bg)',
+                    border: hintShouldPulse
+                      ? '1.5px solid rgba(251,191,36,0.5)'
+                      : '1.5px solid var(--badge-border)',
+                    boxShadow: hintShouldPulse
+                      ? '0 4px 16px rgba(251,191,36,0.22), 0 1px 4px rgba(0,0,0,0.18)'
+                      : '0 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.12)',
+                  }}
                 >
-                  <Lightbulb size={22} className={hintShouldPulse || hintIdleGlow ? 'text-amber-400/80' : 'text-foreground/60'} />
+                  <Lightbulb
+                    size={24}
+                    className={`transition-colors duration-200 ${hintShouldPulse || hintIdleGlow ? 'text-amber-400' : 'text-foreground/70'}`}
+                  />
                 </button>
               )}
             </div>
