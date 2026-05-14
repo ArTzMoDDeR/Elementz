@@ -1266,12 +1266,17 @@ export function Playground({
                     onRequestHint?.()
                   }}
                   aria-label={lang === 'fr' ? 'Obtenir un indice' : 'Get a hint'}
-                  className={`tap-spring select-none active:scale-95 transition-all duration-200 flex items-center justify-center ${hintIdleGlow && !hintShouldPulse ? 'hint-idle-glow' : ''}`}
+                  className={`tap-spring select-none active:scale-95 transition-all duration-200 flex items-center justify-center rounded-full ${hintIdleGlow && !hintShouldPulse ? 'hint-idle-glow' : ''}`}
+                  style={{
+                    width: 44, height: 44,
+                    background: hintShouldPulse ? 'rgba(251,191,36,0.12)' : 'var(--muted)',
+                    border: `1.5px solid ${hintShouldPulse ? 'rgba(251,191,36,0.45)' : 'var(--border)'}`,
+                  }}
                 >
                   <Lightbulb
-                    size={26}
+                    size={22}
                     weight={hintShouldPulse || hintIdleGlow ? 'fill' : 'regular'}
-                    className={`transition-colors duration-200 ${hintShouldPulse || hintIdleGlow ? 'text-amber-400' : 'text-muted-foreground/50'}`}
+                    className={`transition-colors duration-200 ${hintShouldPulse || hintIdleGlow ? 'text-amber-400' : 'text-muted-foreground/70'}`}
                   />
                 </button>
               )}
