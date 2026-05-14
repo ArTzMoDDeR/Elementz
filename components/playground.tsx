@@ -517,7 +517,6 @@ export function Playground({
     containerRef.current?.releasePointerCapture(e.pointerId)
 
     const dropTarget = document.elementFromPoint(e.clientX, e.clientY)
-    const droppedOnInventory = inventoryRef.current?.contains(dropTarget)
 
     // Check if dropped on trash — use a generous 40px padding around the button
     const trashEl = trashRef.current
@@ -527,7 +526,7 @@ export function Playground({
       return e.clientX >= r.left - pad && e.clientX <= r.right + pad && e.clientY >= r.top - pad && e.clientY <= r.bottom + pad
     })() : false
 
-    // Also treat dropping back on the inventory panel as a delete
+    // Dropping on inventory panel also counts as delete
     const droppedOnInventory = inventoryRef.current?.contains(dropTarget) ||
       (() => {
         const r = inventoryRef.current?.getBoundingClientRect()
@@ -2457,7 +2456,7 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
           )}
         </div>
 
-        {/* ── Stats ── */}
+        {/* ── Stats ─��� */}
         <div className="grid grid-cols-3 gap-2">
           {[
             { value: profile.discovered_count, label: t('éléments', 'elements') },
