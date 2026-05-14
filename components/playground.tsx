@@ -1242,22 +1242,22 @@ export function Playground({
               )
             })}
 
-            {/* Center: Crown (game complete) or Hint button — elevated focal point */}
-            <div className="flex-1 flex flex-col items-center justify-center" style={{ paddingBottom: 4 }}>
+            {/* Center: Crown (game complete) or Hint button */}
+            <div className="flex-1 flex flex-col items-center" style={{ paddingTop: 0, paddingBottom: 0 }}>
               {discovered.size >= totalElements ? (
                 <div
                   className="flex items-center justify-center select-none animate-in fade-in zoom-in duration-500"
                   style={{
-                    width: 52, height: 52, borderRadius: 16,
-                    background: 'linear-gradient(135deg, rgba(250,204,21,0.18), rgba(251,146,60,0.18))',
-                    border: '1.5px solid rgba(250,204,21,0.4)',
-                    boxShadow: '0 4px 16px rgba(250,204,21,0.18), 0 1px 4px rgba(0,0,0,0.18)',
-                    transform: 'translateY(-6px)',
+                    width: 48, height: 48, borderRadius: '50%',
+                    background: 'linear-gradient(135deg, rgba(250,204,21,0.14), rgba(251,146,60,0.14))',
+                    border: '1px solid rgba(250,204,21,0.35)',
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
+                    transform: 'translateY(-8px)',
                   }}
                   title={lang === 'fr' ? 'Maître alchimiste !' : 'Alchemy master!'}
                   aria-label={lang === 'fr' ? 'Maître alchimiste' : 'Alchemy master'}
                 >
-                  <span className="text-xl leading-none" role="img" aria-label="crown">👑</span>
+                  <span className="text-lg leading-none" role="img" aria-label="crown">👑</span>
                 </div>
               ) : (
                 <button
@@ -1273,29 +1273,21 @@ export function Playground({
                     onRequestHint?.()
                   }}
                   aria-label={lang === 'fr' ? 'Obtenir un indice' : 'Get a hint'}
-                  className={`
-                    tap-spring select-none active:scale-95 transition-all duration-200
-                    ${hintIdleGlow && !hintShouldPulse ? 'hint-idle-glow' : ''}
-                  `}
+                  className={`tap-spring select-none active:scale-95 transition-all duration-200 flex items-center justify-center ${hintIdleGlow && !hintShouldPulse ? 'hint-idle-glow' : ''}`}
                   style={{
-                    width: 52, height: 52,
-                    borderRadius: 16,
-                    transform: 'translateY(-6px)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: 48, height: 48, borderRadius: '50%',
+                    transform: 'translateY(-8px)',
                     background: hintShouldPulse
-                      ? 'rgba(251,191,36,0.15)'
-                      : 'var(--badge-bg)',
-                    border: hintShouldPulse
-                      ? '1.5px solid rgba(251,191,36,0.5)'
-                      : '1.5px solid var(--badge-border)',
-                    boxShadow: hintShouldPulse
-                      ? '0 4px 16px rgba(251,191,36,0.22), 0 1px 4px rgba(0,0,0,0.18)'
-                      : '0 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.12)',
+                      ? 'rgba(251,191,36,0.12)'
+                      : 'var(--card)',
+                    border: `1px solid ${hintShouldPulse ? 'rgba(251,191,36,0.4)' : 'var(--border)'}`,
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
                   }}
                 >
                   <Lightbulb
-                    size={24}
-                    className={`transition-colors duration-200 ${hintShouldPulse || hintIdleGlow ? 'text-amber-400' : 'text-foreground/70'}`}
+                    size={22}
+                    weight={hintShouldPulse || hintIdleGlow ? 'fill' : 'regular'}
+                    className={`transition-colors duration-200 ${hintShouldPulse || hintIdleGlow ? 'text-amber-400' : 'text-muted-foreground/70'}`}
                   />
                 </button>
               )}
