@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Elementz</string>
+    <string name="title_activity_main">Elementz</string>
+    <string name="package_name">com.eugenelabaleine.elementz</string>
+    <string name="custom_url_scheme">com.eugenelabaleine.elementz</string>
+</resources>
