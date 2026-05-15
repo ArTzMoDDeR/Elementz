@@ -840,7 +840,7 @@ export function Playground({
                     <UserCircle size={24} weight="regular" className="text-foreground/40" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-foreground">{lang === 'fr' ? 'Non connect��' : 'Not signed in'}</p>
+                    <p className="text-sm font-semibold text-foreground">{lang === 'fr' ? 'Non connect\u00e9' : 'Not signed in'}</p>
                     <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{lang === 'fr' ? 'Connecte-toi pour sauvegarder ta progression' : 'Sign in to save your progress'}</p>
                   </div>
                   <div className="flex flex-col gap-2 w-full max-w-xs">
