@@ -354,7 +354,7 @@ function CombineArena({
                 transition: isDragging ? 'none' : 'left 0.12s, top 0.12s, transform 0.12s',
               }}
             >
-              <ElementBadge element={item.el} size="md" />
+              <ElementBadge element={item.el} size="xl" />
             </div>
           )
         })}
@@ -381,7 +381,7 @@ function CombineArena({
                 className="relative flex flex-col items-center gap-1 transition-all active:scale-90 disabled:pointer-events-none cursor-pointer"
                 style={{ opacity: isPlaced ? 0.35 : 1 }}
               >
-                <ElementBadge element={el} size="sm" />
+                <ElementBadge element={el} size="md" />
                 {/* Pulse ring while waiting to be placed */}
                 {canPlace && (
                   <span
@@ -402,48 +402,40 @@ function CombineArena({
       {/* Reveal: "Tu viens de créer X" */}
       {phase === 'reveal' && lastResult && (
         <div
-          className="fixed inset-0 z-[10010] flex flex-col cursor-pointer"
-          style={{
-            background: 'var(--background)',
-            paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4rem)',
-            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 3rem)',
-          }}
+          className="fixed inset-0 z-[10010] flex flex-col items-center justify-center gap-10 cursor-pointer px-8"
+          style={{ background: 'var(--background)', paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
           onClick={handleOverlayTap}
         >
-          <div className="flex flex-col items-center justify-center gap-8 onboard-fade-up w-full max-w-sm mx-auto flex-1">
+          <div className="flex flex-col items-center gap-8 onboard-fade-up w-full max-w-sm">
             <div className="onboard-pop" style={{ animationDelay: '0.1s' }}>
               {lastResult.imageUrl
                 ? <img src={lastResult.imageUrl} alt={lastResult.name} className="w-28 h-28 object-contain" draggable={false} />
-                : <div className="w-28 h-28 rounded-3xl bg-muted flex items-center justify-center"><ElementBadge element={lastResult} size="lg" /></div>
+                : <div className="w-28 h-28 rounded-3xl bg-muted flex items-center justify-center"><ElementBadge element={lastResult} size="xl" /></div>
               }
             </div>
             <div className="flex flex-col items-center gap-3 text-center">
               <p className="text-sm text-muted-foreground/50 uppercase tracking-widest font-medium">
-                {t('Tu viens de créer', 'You just created')}
+                {t('Tu viens de cr\u00e9er', 'You just created')}
               </p>
               <h2 className="text-5xl font-bold text-foreground text-balance leading-tight">
                 {lastResult.name}
               </h2>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground/35 text-center w-full">{t('Appuie pour continuer', 'Tap to continue')}</p>
+          <p className="text-xs text-muted-foreground/35 text-center">{t('Appuie pour continuer', 'Tap to continue')}</p>
         </div>
       )}
 
-      {/* Next combo: "Créons X" */}
+      {/* Next combo: "Cr\u00e9ons X" */}
       {phase === 'next' && nextResultName && (
         <div
-          className="fixed inset-0 z-[10010] flex flex-col cursor-pointer"
-          style={{
-            background: 'var(--background)',
-            paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4rem)',
-            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 3rem)',
-          }}
+          className="fixed inset-0 z-[10010] flex flex-col items-center justify-center gap-10 cursor-pointer px-8"
+          style={{ background: 'var(--background)', paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
           onClick={handleOverlayTap}
         >
-          <div className="flex flex-col items-center justify-center gap-8 text-center onboard-slide-in w-full max-w-sm mx-auto flex-1">
+          <div className="flex flex-col items-center gap-8 text-center onboard-slide-in w-full max-w-sm">
             <p className="text-sm text-muted-foreground/50 uppercase tracking-widest font-medium">
-              {t('Maintenant, créons', "Now, let's create")}
+              {t('Maintenant, cr\u00e9ons', "Now, let's create")}
             </p>
             {nextResultEl?.imageUrl ? (
               <div
@@ -454,30 +446,33 @@ function CombineArena({
               </div>
             ) : (
               <div className="w-28 h-28 rounded-3xl bg-muted/30 flex items-center justify-center onboard-pop" style={{ animationDelay: '0.1s' }}>
-                <ElementBadge element={nextResultEl ?? { name: nextResultName, number: 0, color: 'oklch(0.72 0.22 200)' } as ElementDef} size="lg" />
+                <ElementBadge element={nextResultEl ?? { name: nextResultName, number: 0, color: 'oklch(0.72 0.22 200)' } as ElementDef} size="xl" />
               </div>
             )}
             <h2 className="text-5xl font-bold text-foreground text-balance leading-tight capitalize">
               {nextResultName}
             </h2>
           </div>
-          <p className="text-xs text-muted-foreground/35 text-center w-full">{t('Appuie pour continuer', 'Tap to continue')}</p>
+          <p className="text-xs text-muted-foreground/35 text-center">{t('Appuie pour continuer', 'Tap to continue')}</p>
         </div>
       )}
 
       {/* All done */}
       {phase === 'done' && (
-        <div className="fixed inset-0 z-[10010] flex flex-col items-center justify-center px-8 pointer-events-none" style={{ background: 'var(--background)' }}>
+        <div
+          className="fixed inset-0 z-[10010] flex flex-col items-center justify-center px-8 pointer-events-none"
+          style={{ background: 'var(--background)', paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        >
           <div className="flex flex-col items-center gap-8 text-center onboard-fade-up w-full max-w-sm">
             <div className="w-20 h-20 rounded-full bg-foreground/8 border border-border flex items-center justify-center onboard-pop">
               <Check className="w-10 h-10 text-foreground" />
             </div>
             <div className="flex flex-col items-center gap-3">
               <p className="text-sm text-muted-foreground/50 uppercase tracking-widest font-medium">
-                {t('Voila !', 'Well done!')}
+                {t('Voil\u00e0\u00a0!', 'Well done!')}
               </p>
               <h2 className="text-5xl font-bold text-foreground text-balance">
-                {t('Tu es prêt.', "You're ready.")}
+                {t('Tu es pr\u00eat.', "You're ready.")}
               </h2>
             </div>
           </div>
