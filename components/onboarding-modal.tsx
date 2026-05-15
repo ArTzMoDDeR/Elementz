@@ -381,11 +381,11 @@ function CombineArena({
                 className="relative flex flex-col items-center gap-1 transition-all active:scale-90 disabled:pointer-events-none cursor-pointer"
                 style={{ opacity: isPlaced ? 0.35 : 1 }}
               >
-                <ElementBadge element={el} size="md" />
+                <ElementBadge element={el} size="xl" />
                 {/* Pulse ring while waiting to be placed */}
                 {canPlace && (
                   <span
-                    className="absolute inset-0 rounded-2xl animate-ping pointer-events-none"
+                    className="absolute inset-0 rounded-[18px] animate-ping pointer-events-none"
                     style={{ border: `2px solid ${color}45`, animationDuration: '1.8s' }}
                   />
                 )}
