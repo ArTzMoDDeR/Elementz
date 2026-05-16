@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { elements as localElementsData } from '@/lib/data/elements.js'
 import {
   ResponsiveContainer, AreaChart, BarChart, LineChart,
   Area, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -624,30 +625,22 @@ function QuestFormSheet({
 
   useEffect(() => {
     if (!elementSearch.trim()) { setElementResults([]); return }
-    const t = setTimeout(async () => {
-      setSearchLoading(true)
-      try {
-        const res = await fetch(`/api/elements?q=${encodeURIComponent(elementSearch)}&limit=6`)
-        const data = await res.json()
-        setElementResults(data.elements ?? [])
-      } catch {}
-      setSearchLoading(false)
-    }, 300)
-    return () => clearTimeout(t)
+    const q = elementSearch.toLowerCase()
+    const results = (localElementsData as Array<{ id: number; name_fr: string; name_en: string; img: string | null }>)
+      .filter(e => e.name_fr.toLowerCase().includes(q) || e.name_en.toLowerCase().includes(q) || String(e.id).includes(q))
+      .slice(0, 6)
+      .map(e => ({ number: e.id, name_french: e.name_fr, name_english: e.name_en, img: e.img }))
+    setElementResults(results)
   }, [elementSearch])
 
   useEffect(() => {
     if (!iconSearch.trim()) { setIconResults([]); return }
-    const t = setTimeout(async () => {
-      setIconSearchLoading(true)
-      try {
-        const res = await fetch(`/api/elements?q=${encodeURIComponent(iconSearch)}&limit=6`)
-        const data = await res.json()
-        setIconResults(data.elements ?? [])
-      } catch {}
-      setIconSearchLoading(false)
-    }, 300)
-    return () => clearTimeout(t)
+    const q = iconSearch.toLowerCase()
+    const results = (localElementsData as Array<{ id: number; name_fr: string; name_en: string; img: string | null }>)
+      .filter(e => e.name_fr.toLowerCase().includes(q) || e.name_en.toLowerCase().includes(q) || String(e.id).includes(q))
+      .slice(0, 6)
+      .map(e => ({ number: e.id, name_french: e.name_fr, name_english: e.name_en, img: e.img }))
+    setIconResults(results)
   }, [iconSearch])
 
   const selectElement = (el: { number: number; name_french: string; img: string | null }) => {
@@ -1448,12 +1441,15 @@ function ElementsTab() {
   // Reset to page 1 whenever filters change
   useEffect(() => { setPage(1) }, [search, filterStatus, sortBy, sortDir])
 
-  const fetchElements = async () => {
-    try {
-      const res = await fetch('/api/elements', { cache: 'no-store' })
-      const data = await res.json()
-      setElements(Array.isArray(data) ? data : [])
-    } catch {}
+  const fetchElements = () => {
+    // Load from local static file — fast, no network, always in sync
+    const mapped: Element[] = (localElementsData as Array<{ id: number; name_fr: string; name_en: string; img: string | null }>).map(e => ({
+      number: e.id,
+      name_french: e.name_fr,
+      name_english: e.name_en,
+      img: e.img,
+    }))
+    setElements(mapped)
     setLoading(false)
   }
 
@@ -2057,7 +2053,7 @@ function ElementsImpact() {
   )
 }
 
-// ─── Tab: Stats ───────────────────────────────��─────────────────────────────
+// ��── Tab: Stats ───────────────────────────────��─────────────────────────────
 
 type DayCount = { day: string; count: number }
 type Granularity = 'hour' | 'day' | 'week'

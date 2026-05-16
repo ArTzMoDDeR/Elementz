@@ -23,6 +23,11 @@ function GuestWallOverlay({ lang }: { lang: string }) {
 
   const handleSignIn = (provider: 'google' | 'discord') => {
     setLoadingProvider(provider)
+    // Snapshot guest discoveries before redirecting to OAuth so they survive the page reload
+    try {
+      const raw = localStorage.getItem('alchemy-discovered-v4')
+      if (raw) localStorage.setItem('alchemy-guest-snapshot', raw)
+    } catch {}
     signIn(provider, { callbackUrl: '/' })
   }
 
@@ -870,7 +875,7 @@ export function AlchemyGame() {
         />
       )}
 
-      {/* ── iOS-style top discovery pill ───────────────────────────��─ */}
+      {/* ── iOS-style top discovery pill ───────────────────────────���─ */}
       {!suppressUnlockNotif && !questReveal && (
         <DiscoveryPill
           newlyDiscovered={newlyDiscovered}
