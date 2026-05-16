@@ -88,18 +88,20 @@ export async function GET(req: NextRequest) {
       const rows = await sql`
         SELECT
           qd.id,
+          qd.type,
           qd.title_fr,
           qd.title_en,
-          qd.description_fr,
-          qd.description_en,
-          qd.target_count,
-          qd.quest_type,
-          qd.reward_element_number,
-          qd.reset_type,
-          qd.is_active,
-          qd.created_at
+          qd.desc_fr,
+          qd.desc_en,
+          qd.target_value,
+          qd.icon,
+          qd.sort_order,
+          qd.is_daily,
+          qd.required_element,
+          qd.reset_hours,
+          qd.difficulty
         FROM quest_definitions qd
-        ORDER BY qd.id
+        ORDER BY qd.sort_order, qd.id
       `
       const csv = toCSV(rows as Record<string, unknown>[])
       return new NextResponse(csv, {
