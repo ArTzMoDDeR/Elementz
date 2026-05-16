@@ -2719,7 +2719,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
 ]
 
 // ─── CSV download helper ───────���──────────────────────────────────────────────
-async function downloadCsv(type: 'elements' | 'recipes') {
+async function downloadCsv(type: 'elements' | 'recipes' | 'quests') {
   const res = await fetch(`/api/admin/export?type=${type}`)
   if (!res.ok) { alert(`Export "${type}" échoué (${res.status})`); return }
   const blob = await res.blob()
@@ -2799,6 +2799,13 @@ export default function AdminPanel() {
             </div>
             Recettes CSV
           </button>
+          <button onClick={() => downloadCsv('quests')}
+            className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.04] transition-colors">
+            <div className="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center flex-shrink-0">
+              <Download className="w-3.5 h-3.5" />
+            </div>
+            Quêtes CSV
+          </button>
           <div className="h-px bg-white/[0.05] mx-0 my-1" />
           <a href="/"
             className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.04] transition-colors">
@@ -2871,6 +2878,10 @@ export default function AdminPanel() {
               <button onClick={() => downloadCsv('recipes')}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
                 <Download className="w-4 h-4" /> Recettes CSV
+              </button>
+              <button onClick={() => downloadCsv('quests')}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                <Download className="w-4 h-4" /> Quêtes CSV
               </button>
               <a href="/" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
                 <X className="w-4 h-4" /> Retour au jeu

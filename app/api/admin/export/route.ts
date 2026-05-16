@@ -84,7 +84,34 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    return NextResponse.json({ error: 'Invalid type. Use ?type=elements or ?type=recipes' }, { status: 400 })
+    if (type === 'quests') {
+      const rows = await sql`
+        SELECT
+          qd.id,
+          qd.title_fr,
+          qd.title_en,
+          qd.description_fr,
+          qd.description_en,
+          qd.target_count,
+          qd.quest_type,
+          qd.reward_element_number,
+          qd.reset_type,
+          qd.is_active,
+          qd.created_at
+        FROM quest_definitions qd
+        ORDER BY qd.id
+      `
+      const csv = toCSV(rows as Record<string, unknown>[])
+      return new NextResponse(csv, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': 'attachment; filename="quests.csv"',
+        },
+      })
+    }
+
+    return NextResponse.json({ error: 'Invalid type. Use ?type=elements, ?type=recipes or ?type=quests' }, { status: 400 })
 
   } catch (err) {
     console.error('[v0] export: unexpected error =', err)
