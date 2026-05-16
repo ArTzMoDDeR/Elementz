@@ -241,16 +241,18 @@ export function useGameStore() {
       )
       const validDisc = new Set<number>(baseNums)
 
-      // Read any guest progress saved in localStorage (used for migration to DB below)
-      const localDiscovered = new Set<number>()
+      // Read guest snapshot saved just before OAuth redirect (GuestWallOverlay → handleSignIn)
+      const guestSnapshot = new Set<number>()
       try {
-        const saved = localStorage.getItem(STORAGE_KEY)
-        if (saved) {
-          const parsed = JSON.parse(saved) as unknown[]
+        const snap = localStorage.getItem('alchemy-guest-snapshot')
+        if (snap) {
+          const parsed = JSON.parse(snap) as unknown[]
           parsed.forEach(raw => {
             const n = Number(raw)
-            if (Number.isInteger(n) && n > 0 && elMap.has(n)) localDiscovered.add(n)
+            if (Number.isInteger(n) && n > 0 && elMap.has(n)) guestSnapshot.add(n)
           })
+          // Consume the snapshot immediately so it only runs once
+          localStorage.removeItem('alchemy-guest-snapshot')
         }
       } catch {}
 
@@ -261,14 +263,11 @@ export function useGameStore() {
           if (Number.isInteger(n) && n > 0 && elMap.has(n)) validDisc.add(n)
         })
 
-        // New account migration: if DB has no discoveries and localStorage has any,
-        // flush them all to DB so progress isn't lost after sign-up.
-        const isNewAccount = progressData.discovered.length === 0
-        if (isNewAccount && localDiscovered.size > 0) {
-          // Merge localStorage discoveries into validDisc
-          localDiscovered.forEach(n => validDisc.add(n))
-          // Non-base elements are the ones to save (base elements are implicit)
-          const toSave = [...localDiscovered].filter(n => !baseNums.has(n))
+        // Guest migration: if we have a pre-login snapshot, merge it into DB
+        // regardless of how many elements the DB already has (onboarding adds some)
+        if (guestSnapshot.size > 0) {
+          guestSnapshot.forEach(n => validDisc.add(n))
+          const toSave = [...guestSnapshot].filter(n => !baseNums.has(n) && !progressData.discovered.includes(n))
           if (toSave.length > 0) {
             fetch('/api/progress', {
               method: 'POST',
@@ -280,8 +279,17 @@ export function useGameStore() {
 
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...validDisc])) } catch {}
       } else {
-        // Not logged in — load from localStorage (may contain old name-based data; ignore if so)
-        localDiscovered.forEach(n => validDisc.add(n))
+        // Not logged in — load from localStorage
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY)
+          if (saved) {
+            const parsed = JSON.parse(saved) as unknown[]
+            parsed.forEach(raw => {
+              const n = Number(raw)
+              if (Number.isInteger(n) && n > 0 && elMap.has(n)) validDisc.add(n)
+            })
+          }
+        } catch {}
       }
 
       setDiscovered(validDisc)
