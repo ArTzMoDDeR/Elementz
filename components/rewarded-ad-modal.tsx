@@ -4,13 +4,37 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { Lightbulb, Plus, Lock, PlayCircle } from 'lucide-react'
 import type { HintResult } from '@/hooks/use-hint'
 
-// ── AdSense config ────────────────────────────────────────────────────────────
-// Replace with your publisher ID once AdSense approves your site.
-// The rewarded interstitial ad unit must be created in your AdSense dashboard
-// under Ads > By ad unit > Rewarded interstitial.
+// ── AdMob config (Capacitor native) ──────────────────────────────────────────
+const ADMOB_APP_ID      = 'ca-app-pub-2003923325493504~9495366197'
+const ADMOB_REWARDED_ID = 'ca-app-pub-2003923325493504/3839106022'
+// ── AdSense config (web fallback) ────────────────────────────────────────────
 const ADSENSE_CLIENT = 'ca-pub-2003923325493504'
 const ADSENSE_SLOT   = 'REPLACE_WITH_YOUR_REWARDED_SLOT_ID'
 // ─────────────────────────────────────────────────────────────────────────────
+
+// Detect if running inside a Capacitor native app
+function isNative(): boolean {
+  try {
+    // @ts-ignore
+    return typeof window !== 'undefined' && !!(window.Capacitor?.isNativePlatform?.())
+  } catch {
+    return false
+  }
+}
+
+// Show AdMob rewarded video on native platforms
+async function requestAdMobRewarded(): Promise<boolean> {
+  try {
+    const { AdMob } = await import('@capacitor-community/admob')
+    await AdMob.prepareRewardVideoAd({ adId: ADMOB_REWARDED_ID })
+    const result = await AdMob.showRewardVideoAd()
+    // result.type === 'earned' means the user completed the ad
+    return !!result
+  } catch (err) {
+    console.error('[admob] rewarded error', err)
+    return false
+  }
+}
 
 type ElementDef = { number: number; name: string; imageUrl?: string; color?: string }
 
@@ -129,14 +153,15 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
 
   const handleWatchAd = useCallback(async () => {
     setPhase('loading')
-    const rewarded = await requestRewardedAd()
-    if (rewarded) {
-      setPhase('reveal')
+    let rewarded = false
+    if (isNative()) {
+      rewarded = await requestAdMobRewarded()
     } else {
-      // No fill or AdSense not yet active — grant anyway (site not monetised yet)
-      // Once AdSense is live and approved, remove this fallback to require a real ad view.
-      setPhase('reveal')
+      rewarded = await requestRewardedAd()
     }
+    // Always reveal hint — grant on no-fill/web until fully monetised
+    setPhase('reveal')
+    void rewarded
   }, [])
 
   // ── REVEAL ────────────────────────────────────────────────────────────────
@@ -254,7 +279,9 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
         </button>
 
         <p className="text-[10px] text-muted-foreground/20 text-center -mt-4 pb-2">
-          {t(lang, 'Propulsé par Google AdSense', 'Powered by Google AdSense')}
+          {isNative()
+            ? t(lang, 'Propulsé par Google AdMob', 'Powered by Google AdMob')
+            : t(lang, 'Propulsé par Google AdSense', 'Powered by Google AdSense')}
         </p>
       </div>
     </div>

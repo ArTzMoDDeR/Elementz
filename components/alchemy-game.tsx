@@ -561,6 +561,25 @@ export function AlchemyGame() {
 
   useEffect(() => { setMounted(true) }, [])
 
+  // Initialize AdMob on native platforms (iOS / Android)
+  useEffect(() => {
+    async function initAdMob() {
+      try {
+        // @ts-ignore
+        if (typeof window === 'undefined' || !window.Capacitor?.isNativePlatform?.()) return
+        const { AdMob } = await import('@capacitor-community/admob')
+        await AdMob.initialize({
+          requestTrackingAuthorization: true, // iOS ATT prompt
+          testingDevices: [],
+          initializeForTesting: false,
+        })
+      } catch (err) {
+        console.error('[admob] init error', err)
+      }
+    }
+    initAdMob()
+  }, [])
+
   // Load theme from DB and show onboarding on first login
   useEffect(() => {
     if (!session?.user?.id) return
