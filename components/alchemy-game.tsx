@@ -471,16 +471,18 @@ export function AlchemyGame() {
   )
 
   // Preload all element images once the elements map is ready so they are
-  // already cached when rendered in the inventory, playground, or codex tab.
+  // Preload only discovered element images — avoids flooding mobile with 700 requests at startup.
+  // New discoveries are added to the preload set incrementally via the discovered dep.
   useEffect(() => {
-    if (!elements || elements.size === 0) return
-    elements.forEach(el => {
-      if (el.imageUrl) {
+    if (!elements || elements.size === 0 || !discovered || discovered.size === 0) return
+    discovered.forEach(num => {
+      const el = elements.get(num)
+      if (el?.imageUrl) {
         const img = new Image()
         img.src = el.imageUrl
       }
     })
-  }, [elements])
+  }, [elements, discovered])
 
   useEffect(() => {
     // Both newlyDiscovered and currentHint.result are element numbers now — direct comparison

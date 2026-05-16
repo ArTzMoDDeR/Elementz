@@ -52,6 +52,8 @@ function ElementBadgeInner({ element, size = 'md', fluid = false, className = ''
           background: 'var(--badge-bg)',
           border: '1px solid var(--badge-border)',
           boxShadow: 'var(--badge-shadow)',
+          contentVisibility: 'auto',
+          containIntrinsicSize: `${sq.w}px ${sq.h}px`,
           ...style,
         }}
       >
@@ -104,6 +106,8 @@ function ElementBadgeInner({ element, size = 'md', fluid = false, className = ''
         background: 'var(--badge-bg)',
         border: '1px solid var(--badge-border)',
         boxShadow: 'var(--badge-shadow)',
+        contentVisibility: 'auto',
+        containIntrinsicSize: `${p.w}px ${p.h}px`,
         ...style,
       }}
     >

@@ -19,6 +19,13 @@ const nextConfig = {
         source: '/(.*)',
         headers: securityHeaders,
       },
+      {
+        // Local element images — immutable after first load, cached 1 year on device
+        source: '/elements/:id*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
     ]
   },
   images: {
