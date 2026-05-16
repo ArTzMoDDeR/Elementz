@@ -3,8 +3,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { type ElementDef } from '@/lib/game-data'
-import rawElements from '@/lib/data/elements.js'
-import rawRecipes from '@/lib/data/recipes.js'
+import { elements as rawElements } from '@/lib/data/elements.js'
+import { recipes as rawRecipes } from '@/lib/data/recipes.js'
 
 const STORAGE_KEY = 'alchemy-discovered-v4'  // bumped — now stores numbers
 const LANG_KEY = 'alchemy-lang'
@@ -226,7 +226,7 @@ export function useGameStore() {
 
       setDbRecipes(recipes)
 
-      const elMap = buildElementMap(rows, savedLang)
+      const elMap = buildElementMap(rows, (savedLang === 'fr' ? 'fr' : 'en') as Lang)
       setElements(elMap)
       setElementsByName(buildNameIndex(elMap))
 
