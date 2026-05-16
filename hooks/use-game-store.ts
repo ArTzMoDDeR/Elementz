@@ -3,6 +3,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { type ElementDef } from '@/lib/game-data'
+import { elements as rawElements } from '@/lib/data/elements.js'
+import { recipes as rawRecipes } from '@/lib/data/recipes.js'
 
 const STORAGE_KEY = 'alchemy-discovered-v4'  // bumped — now stores numbers
 const LANG_KEY = 'alchemy-lang'
@@ -50,7 +52,8 @@ function getColor(nameFr: string): string {
 
 function proxyImg(url: string | null): string | null {
   if (!url) return null
-  if (url.includes('cloudinary.com') || url.includes('res.cloudinary.com')) return url
+  // Never serve Cloudinary URLs — all images are local now
+  if (url.includes('cloudinary.com')) return null
   if (url.includes('.blob.vercel-storage.com')) return `/api/img?url=${encodeURIComponent(url)}`
   return url
 }
@@ -193,27 +196,37 @@ export function useGameStore() {
     return () => window.removeEventListener('storage', handler)
   }, [])
 
-  // ─── Load everything from DB ─────────────────────────────────────────────
+  // ─── Load everything from DB ──────────────────────────────────────��──────
   const loadGameData = useCallback((currentLang?: string) => {
     const savedLang = currentLang ?? (() => {
       try { return (localStorage.getItem(LANG_KEY) as Lang | null) || 'en' } catch { return 'en' }
     })()
 
-    Promise.all([
-      fetch('/api/elements', { cache: 'no-store' }).then(r => r.json()),
-      fetch('/api/recipes',  { cache: 'no-store' }).then(r => r.json()).catch(() => []),
-      session?.user?.id
-        ? fetch('/api/progress').then(r => r.json()).catch(() => null)
-        : Promise.resolve(null),
-    ]).then(([elementsData, recipesData, progressData]) => {
-      const rows: DbRow[] = Array.isArray(elementsData) ? elementsData : []
+    // Build rows from local files — no network needed for game data
+    const rows: DbRow[] = (rawElements as Array<{ id: number; name_fr: string; name_en: string; img: string | null }>).map(e => ({
+      number: e.id,
+      name_french: e.name_fr,
+      name_english: e.name_en,
+      img: e.img,
+    }))
+
+    const recipes: RecipeRow[] = (rawRecipes as Array<{ ingredient1: number; ingredient2: number; result: number }>).map(r => ({
+      ingredient1_number: r.ingredient1,
+      ingredient2_number: r.ingredient2,
+      result_number: r.result,
+    }))
+
+    const progressPromise = session?.user?.id
+      ? fetch('/api/progress').then(r => r.json()).catch(() => null)
+      : Promise.resolve(null)
+
+    progressPromise.then((progressData) => {
       setDbRows(rows)
       setTotalDbCount(rows.length)
 
-      const recipes: RecipeRow[] = Array.isArray(recipesData) ? recipesData : []
       setDbRecipes(recipes)
 
-      const elMap = buildElementMap(rows, savedLang)
+      const elMap = buildElementMap(rows, (savedLang === 'fr' ? 'fr' : 'en') as Lang)
       setElements(elMap)
       setElementsByName(buildNameIndex(elMap))
 
@@ -306,27 +319,10 @@ export function useGameStore() {
     prevUserIdRef.current = currentId
   }, [session?.user?.id, sessionStatus, dbRows])
 
-  // Reload elements+recipes when the tab regains focus (catches admin edits in another tab)
+  // Data is now local — nothing to reload on focus
   useEffect(() => {
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible' && initialized) {
-        Promise.all([
-          fetch('/api/elements', { cache: 'no-store' }).then(r => r.json()),
-          fetch('/api/recipes',  { cache: 'no-store' }).then(r => r.json()).catch(() => []),
-        ]).then(([elementsData, recipesData]) => {
-          const rows: DbRow[] = Array.isArray(elementsData) ? elementsData : []
-          if (rows.length === 0) return
-          setDbRows(rows)
-          setTotalDbCount(rows.length)
-          const recipes: RecipeRow[] = Array.isArray(recipesData) ? recipesData : []
-          setDbRecipes(recipes)
-          const lang = (() => { try { return (localStorage.getItem(LANG_KEY) as Lang | null) || 'en' } catch { return 'en' } })()
-          const elMap = buildElementMap(rows, lang)
-          setElements(elMap)
-          setElementsByName(buildNameIndex(elMap))
-          setRecipeMap(buildRecipeMap(recipes))
-        }).catch(() => {})
-      }
+      // No-op: elements and recipes come from local static files
     }
     document.addEventListener('visibilitychange', handleVisibility)
     return () => document.removeEventListener('visibilitychange', handleVisibility)

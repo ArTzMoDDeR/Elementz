@@ -1,35 +1,45 @@
-import { neon } from '@neondatabase/serverless'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
+import { neon } from '@neondatabase/serverless'
+import { elements as localElements } from '@/lib/data/elements'
+
+// Map local data format to the API shape the game expects
+const elementsList = localElements.map(e => ({
+  number: e.id,
+  name_french: e.name_fr,
+  name_english: e.name_en,
+  img: e.img,
+}))
+
+// Build lookup maps for fast access
+const byNumber = new Map(elementsList.map(e => [e.number, e]))
 
 export async function GET(request: NextRequest) {
   try {
-    if (!process.env.DATABASE_URL) return NextResponse.json({ error: 'No DB' }, { status: 500 })
-    const sql = neon(process.env.DATABASE_URL)
     const { searchParams } = new URL(request.url)
     const q = searchParams.get('q')?.trim() ?? ''
     const limit = Math.min(parseInt(searchParams.get('limit') ?? '0') || 0, 50)
 
+    let results = elementsList
+
     if (q) {
-      const pattern = `%${q}%`
-      const rows = await sql`
-        SELECT number, name_english, name_french, img
-        FROM elements
-        WHERE name_french ILIKE ${pattern} OR name_english ILIKE ${pattern}
-        ORDER BY length(name_french) ASC, number ASC
-        LIMIT ${limit > 0 ? limit : 10}
-      `
-      return NextResponse.json({ elements: rows }, { headers: { 'Cache-Control': 'no-store' } })
+      const lower = q.toLowerCase()
+      results = elementsList
+        .filter(e =>
+          e.name_french.toLowerCase().includes(lower) ||
+          (e.name_english ?? '').toLowerCase().includes(lower)
+        )
+        .sort((a, b) => a.name_french.length - b.name_french.length)
+        .slice(0, limit > 0 ? limit : 10)
+      return NextResponse.json({ elements: results }, {
+        headers: { 'Cache-Control': 'public, max-age=86400' },
+      })
     }
 
-    const elements = await sql`
-      SELECT number, name_english, name_french, img
-      FROM elements
-      ORDER BY number
-      ${limit > 0 ? sql`LIMIT ${limit}` : sql``}
-    `
-    return NextResponse.json(elements, {
-      headers: { 'Cache-Control': 'no-store' },
+    if (limit > 0) results = results.slice(0, limit)
+
+    return NextResponse.json(results, {
+      headers: { 'Cache-Control': 'public, max-age=86400' },
     })
   } catch (err) {
     console.error('[v0] /api/elements error:', err instanceof Error ? err.message : err)
@@ -38,6 +48,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Element creation still writes to DB (admin feature)
   try {
     if (!process.env.DATABASE_URL) return NextResponse.json({ error: 'No DB' }, { status: 500 })
 

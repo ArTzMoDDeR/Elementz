@@ -305,7 +305,11 @@ export async function PATCH(req: NextRequest) {
   `
   if (!reward) return NextResponse.json({ error: 'Card not found or already scratched' }, { status: 400 })
 
-  const [el] = await sql`SELECT name_french, name_english, img FROM elements WHERE number = ${reward.element_number}`
+  const { elements: localElements } = await import('@/lib/data/elements')
+  const localEl = localElements.find((e: { id: number }) => e.id === reward.element_number)
+  const el = localEl
+    ? { name_french: localEl.name_fr, name_english: localEl.name_en, img: localEl.img }
+    : null
 
   return NextResponse.json({ ok: true, element: el })
 }
