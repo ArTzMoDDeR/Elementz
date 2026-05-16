@@ -14,9 +14,9 @@ import { type ElementDef } from '@/lib/game-data'
 import EmailSignIn from '@/components/email-sign-in'
 
 const PROGRESS_MILESTONES = [10, 20, 50, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900]
-const GUEST_WALL_THRESHOLD = 10
+const GUEST_WALL_THRESHOLD = 20
 
-// ─── Guest wall overlay — shown when a non-logged-in user hits 10 elements ───
+// ─── Guest wall overlay — shown when a non-logged-in user hits 20 elements ───
 function GuestWallOverlay({ lang }: { lang: string }) {
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
   const [loadingProvider, setLoadingProvider] = useState<'google' | 'discord' | null>(null)
@@ -870,7 +870,7 @@ export function AlchemyGame() {
         />
       )}
 
-      {/* ── iOS-style top discovery pill ───────────────────────────── */}
+      {/* ── iOS-style top discovery pill ───────────────────────────��─ */}
       {!suppressUnlockNotif && !questReveal && (
         <DiscoveryPill
           newlyDiscovered={newlyDiscovered}
