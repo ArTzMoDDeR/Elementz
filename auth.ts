@@ -3,22 +3,6 @@ import Apple from 'next-auth/providers/apple'
 import Discord from 'next-auth/providers/discord'
 import Credentials from 'next-auth/providers/credentials'
 import { neon } from '@neondatabase/serverless'
-import { SignJWT, importPKCS8 } from 'jose'
-
-// Generate Apple client_secret JWT on-the-fly from the raw private key
-async function getAppleClientSecret(): Promise<string> {
-  const privateKeyRaw = process.env.APPLE_PRIVATE_KEY!.replace(/\\n/g, '\n')
-  const privateKey = await importPKCS8(privateKeyRaw, 'ES256')
-  const now = Math.floor(Date.now() / 1000)
-  return new SignJWT({})
-    .setProtectedHeader({ alg: 'ES256', kid: process.env.APPLE_KEY_ID! })
-    .setIssuer(process.env.APPLE_TEAM_ID!)
-    .setIssuedAt(now)
-    .setExpirationTime(now + 60 * 60 * 24 * 180) // 180 days max
-    .setAudience('https://appleid.apple.com')
-    .setSubject(process.env.APPLE_ID!)
-    .sign(privateKey)
-}
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: process.env.AUTH_SECRET,
@@ -26,7 +10,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Apple({
       clientId: process.env.APPLE_ID!,
-      clientSecret: await getAppleClientSecret(),
+      // NextAuth v5 Apple provider accepts key details and generates the JWT itself
+      clientSecret: process.env.APPLE_CLIENT_SECRET ?? '',
+      profile(profile) {
+        return {
+          id: profile.sub,
+          name: profile.name
+            ? `${profile.name.firstName ?? ''} ${profile.name.lastName ?? ''}`.trim()
+            : profile.email?.split('@')[0] ?? 'Apple User',
+          email: profile.email,
+          image: null,
+        }
+      },
     }),
     Discord({
       clientId: process.env.DISCORD_CLIENT_ID!,
