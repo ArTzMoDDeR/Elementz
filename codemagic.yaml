@@ -33,9 +33,11 @@ workflows:
             -archivePath build/ios/App.xcarchive \
             archive \
             CODE_SIGN_STYLE=Manual \
-            PROVISIONING_PROFILE_SPECIFIER="elementz" \
+            "PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]=elementz" \
             DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
-            CODE_SIGN_IDENTITY="Apple Distribution"
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            -destination "generic/platform=iOS" \
+            ONLY_ACTIVE_ARCH=NO
           xcodebuild \
             -exportArchive \
             -archivePath build/ios/App.xcarchive \
