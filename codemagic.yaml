@@ -33,7 +33,7 @@ workflows:
             -archivePath build/ios/App.xcarchive \
             archive \
             CODE_SIGN_STYLE=Manual \
-            "PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]=elementz" \
+            PROVISIONING_PROFILE_SPECIFIER="elementz" \
             DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             -destination "generic/platform=iOS" \
