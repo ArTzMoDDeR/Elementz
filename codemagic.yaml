@@ -24,6 +24,11 @@ workflows:
         script: |
           cd ios/App
           pod install
+      - name: Set build number
+        script: |
+          BUILD_NUMBER=$(($(date +%s)))
+          cd ios/App
+          agvtool new-version -all $BUILD_NUMBER
       - name: Build iOS
         script: |
           xcodebuild \
@@ -48,4 +53,4 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
-        submit_to_testflight: false
+        submit_to_testflight: true
