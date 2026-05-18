@@ -4,8 +4,6 @@
 <dict>
 	<key>CAPACITOR_DEBUG</key>
 	<string>$(CAPACITOR_DEBUG)</string>
-
-	<!-- App Identity -->
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
@@ -24,22 +22,14 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
-
-	<!-- AdMob -->
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-2003923325493504~9495366197</string>
-
-	<!-- ATT - Tracking Authorization (obligatoire pour AdMob sur iOS 14+) -->
 	<key>NSUserTrackingUsageDescription</key>
 	<string>Cette app affiche des publicités pour rester gratuite. Votre consentement nous aide à vous proposer des annonces pertinentes.</string>
-
-	<!-- Notifications Push -->
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
 	</array>
-
-	<!-- Interface -->
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
@@ -50,8 +40,6 @@
 	<array>
 		<string>armv7</string>
 	</array>
-
-	<!-- Portrait uniquement -->
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -60,8 +48,9 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 </dict>
