@@ -1,5 +1,5 @@
 import NextAuth from 'next-auth'
-import Apple from 'next-auth/providers/apple'
+import Google from 'next-auth/providers/google'
 import Discord from 'next-auth/providers/discord'
 import Credentials from 'next-auth/providers/credentials'
 import { neon } from '@neondatabase/serverless'
@@ -8,19 +8,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: process.env.AUTH_SECRET,
   trustHost: true,
   providers: [
-    Apple({
-      clientId: process.env.APPLE_ID!,
-      clientSecret: process.env.APPLE_CLIENT_SECRET!,
-      profile(profile) {
-        return {
-          id: profile.sub,
-          name: profile.name
-            ? `${(profile.name as { firstName?: string; lastName?: string }).firstName ?? ''} ${(profile.name as { firstName?: string; lastName?: string }).lastName ?? ''}`.trim()
-            : profile.email?.split('@')[0] ?? 'Apple User',
-          email: profile.email,
-          image: null,
-        }
-      },
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: { params: { prompt: 'select_account' } },
     }),
     Discord({
       clientId: process.env.DISCORD_CLIENT_ID!,
