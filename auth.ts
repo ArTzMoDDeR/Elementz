@@ -54,6 +54,28 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   session: { strategy: 'jwt' },
+  // Apple Sign In uses response_mode: form_post — the callback is a POST from
+  // appleid.apple.com. On mobile Safari/PWA, cookies with SameSite=Lax are
+  // blocked on cross-site POSTs, so the state/pkce check fails with "invalid".
+  // Setting SameSite=None + Secure on the auth cookies fixes this.
+  cookies: {
+    pkceCodeVerifier: {
+      name: 'authjs.pkce.code_verifier',
+      options: { httpOnly: true, sameSite: 'none', secure: true, path: '/' },
+    },
+    state: {
+      name: 'authjs.state',
+      options: { httpOnly: true, sameSite: 'none', secure: true, path: '/' },
+    },
+    callbackUrl: {
+      name: 'authjs.callback-url',
+      options: { httpOnly: true, sameSite: 'none', secure: true, path: '/' },
+    },
+    csrfToken: {
+      name: 'authjs.csrf-token',
+      options: { httpOnly: true, sameSite: 'none', secure: true, path: '/' },
+    },
+  },
   callbacks: {
     async jwt({ token, user, trigger }) {
       if (user?.email) {
@@ -105,8 +127,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (token.isAdmin !== undefined) session.user.isAdmin = token.isAdmin as boolean
       return session
     },
-  },
-  pages: {
-    signIn: '/login',
   },
 })
