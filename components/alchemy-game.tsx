@@ -19,9 +19,9 @@ const GUEST_WALL_THRESHOLD = 20
 // ─── Guest wall overlay — shown when a non-logged-in user hits 20 elements ───
 function GuestWallOverlay({ lang }: { lang: string }) {
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
-  const [loadingProvider, setLoadingProvider] = useState<'apple' | 'discord' | null>(null)
+  const [loadingProvider, setLoadingProvider] = useState<'apple' | null>(null)
 
-  const handleSignIn = (provider: 'apple' | 'discord') => {
+  const handleSignIn = (provider: 'apple') => {
     setLoadingProvider(provider)
     try {
       const raw = localStorage.getItem('alchemy-discovered-v4')
