@@ -14,13 +14,14 @@ workflows:
         XCODE_SCHEME: "App"
     scripts:
       - name: Install dependencies
-        script: npm install
+        script: |
+          npm install @capacitor/app @capacitor/haptics @capacitor/keyboard @capacitor/status-bar @capacitor-community/admob
+          npm install
       - name: Capacitor sync
         script: npx cap sync ios
       - name: Install pods
         script: |
           cd ios/App
-          ls -la
           pod install
       - name: Build iOS
         script: |
