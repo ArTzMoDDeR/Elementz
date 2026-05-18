@@ -1,5 +1,6 @@
 import NextAuth from 'next-auth'
 import Apple from 'next-auth/providers/apple'
+import Google from 'next-auth/providers/google'
 import Discord from 'next-auth/providers/discord'
 import Credentials from 'next-auth/providers/credentials'
 import { neon } from '@neondatabase/serverless'
@@ -9,8 +10,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
   providers: [
     Apple({
-      clientId: process.env.APPLE_CLIENT_ID!,  // Service ID: com.eugenelabaleine.elementz
-      clientSecret: process.env.APPLE_SECRET!,  // Generated JWT client secret
+      clientId: process.env.AUTH_APPLE_ID!,
+      clientSecret: process.env.AUTH_APPLE_CLIENT_SECRET!,
+    }),
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: { params: { prompt: 'select_account' } },
     }),
     Discord({
       clientId: process.env.DISCORD_CLIENT_ID!,
@@ -41,10 +47,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         `
         if (!rows.length) return null
 
-        // Mark code as used
         await sql`UPDATE email_otps SET used = TRUE WHERE id = ${rows[0].id}`
 
-        // Return a minimal user object — the jwt callback will upsert into users
         return { id: email, email, name: email.split('@')[0] }
       },
     }),
@@ -52,11 +56,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   session: { strategy: 'jwt' },
   callbacks: {
     async jwt({ token, user, trigger }) {
-      // Only hit DB on first sign-in or explicit session update
       if (user?.email) {
         const sql = neon(process.env.DATABASE_URL!)
 
-        // Upsert user
         const rows = await sql`
           INSERT INTO users (id, name, email, image)
           VALUES (gen_random_uuid()::text, ${user.name ?? ''}, ${user.email}, ${user.image ?? null})
@@ -67,26 +69,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           token.userId = rows[0].id as string
           token.isAdmin = rows[0].is_admin === 1
 
-          // Assign default Hunter username + random starting avatar on first sign-in
           const existing = await sql`SELECT user_id FROM user_progress WHERE user_id = ${rows[0].id as string}`
           if (!existing.length) {
-            // Find next available HunterN
             let username: string | null = null
             for (let n = 1; n <= 9999; n++) {
               const candidate = `Hunter${n}`
               const taken = await sql`SELECT 1 FROM user_progress WHERE LOWER(username) = LOWER(${candidate}) LIMIT 1`
               if (!taken.length) { username = candidate; break }
             }
-            // Pick random starting avatar
             const starters = ['eau', 'feu', 'terre', 'air']
             const avatar = starters[Math.floor(Math.random() * starters.length)]
-            // Insert profile row (no discovered column — progression is in unlocks)
             await sql`
               INSERT INTO user_progress (user_id, username, avatar, show_in_leaderboard)
               VALUES (${rows[0].id as string}, ${username}, ${avatar}, true)
               ON CONFLICT (user_id) DO NOTHING
             `
-            // Seed the 4 starter elements into unlocks
             await sql`
               INSERT INTO unlocks (user_id, element_number, discovered_at)
               SELECT ${rows[0].id as string}, number, NOW()
@@ -97,12 +94,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
         }
       } else if (trigger === 'update' && token.userId) {
-        // Explicit refresh (called via useSession().update()) — re-read is_admin
         const sql = neon(process.env.DATABASE_URL!)
         const rows = await sql`SELECT is_admin FROM users WHERE id = ${token.userId as string}`
         if (rows[0]) token.isAdmin = rows[0].is_admin === 1
       }
-      // All other requests: return cached token — zero DB calls
       return token
     },
     async session({ session, token }) {

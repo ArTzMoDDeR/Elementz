@@ -54,23 +54,28 @@ self.addEventListener('fetch', (event) => {
     url.pathname.startsWith('/admin')
   ) return
 
+  // Helper: only cache complete (non-partial) successful responses
+  function safePut(cache, request, response) {
+    if (response && response.ok && response.status !== 206) {
+      cache.put(request, response.clone()).catch(() => {})
+    }
+  }
+
   const isGameData = GAME_DATA_ROUTES.some(r => url.pathname === r || url.pathname.startsWith(r + '?'))
   if (isGameData) {
     event.respondWith(
       caches.open(DATA_CACHE).then(async cache => {
         const cached = await cache.match(event.request)
         const networkFetch = fetch(event.request)
-          .then(res => {
-            if (res.ok) cache.put(event.request, res.clone())
-            return res
-          })
+          .then(res => { safePut(cache, event.request, res); return res })
           .catch(() => null)
 
         if (cached) {
           networkFetch.catch(() => {})
           return cached
         }
-        return networkFetch || new Response('{"error":"offline"}', {
+        const res = await networkFetch
+        return res || new Response('{"error":"offline"}', {
           status: 503,
           headers: { 'Content-Type': 'application/json' }
         })
@@ -83,10 +88,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(event.request)
         .then(res => {
-          if (res.ok) {
-            const clone = res.clone()
-            caches.open(CACHE_VERSION).then(cache => cache.put(event.request, clone))
-          }
+          caches.open(CACHE_VERSION).then(cache => safePut(cache, event.request, res))
           return res
         })
         .catch(() => caches.match(event.request).then(cached =>
@@ -102,11 +104,12 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.open(CACHE_VERSION).then(async cache => {
       const cached = await cache.match(event.request)
-      const networkFetch = fetch(event.request).then(res => {
-        if (res.ok) cache.put(event.request, res.clone())
-        return res
-      }).catch(() => null)
-      return cached || networkFetch
+      const networkFetch = fetch(event.request)
+        .then(res => { safePut(cache, event.request, res); return res })
+        .catch(() => null)
+      if (cached) return cached
+      const res = await networkFetch
+      return res || new Response('', { status: 503 })
     })
   )
 })
