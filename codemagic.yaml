@@ -8,6 +8,8 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.eugenelabaleine.elementz
+        certificate_private_key: $CM_CERTIFICATE_PRIVATE_KEY
+        provisioning_profile: $CM_PROVISIONING_PROFILE
       node: latest
       vars:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
