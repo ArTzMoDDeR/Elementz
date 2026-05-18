@@ -25,21 +25,23 @@ export async function GET(
     await signIn(provider, { redirectTo: callbackUrl })
   } catch (err: unknown) {
     // NextAuth throws a NEXT_REDIRECT — extract the location and forward it
-    const isRedirect =
-      err instanceof Error &&
-      'digest' in err &&
-      typeof (err as { digest?: string }).digest === 'string' &&
-      (err as { digest: string }).digest.startsWith('NEXT_REDIRECT')
+    const digest =
+      err instanceof Error && 'digest' in err
+        ? (err as { digest?: string }).digest ?? ''
+        : ''
 
-    if (isRedirect) {
-      const digest = (err as { digest: string }).digest
+    console.log('[v0] redirect route digest:', digest)
+
+    if (digest.startsWith('NEXT_REDIRECT')) {
       // Format: NEXT_REDIRECT;replace;https://accounts.google.com/...
       const parts = digest.split(';')
+      console.log('[v0] redirect parts:', parts)
       const location = parts[parts.length - 1]
       if (location.startsWith('http')) {
         return NextResponse.redirect(location)
       }
     }
+    console.log('[v0] redirect route unexpected error:', err)
     throw err
   }
 
