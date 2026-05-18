@@ -30,18 +30,14 @@ export async function GET(
         ? (err as { digest?: string }).digest ?? ''
         : ''
 
-    console.log('[v0] redirect route digest:', digest)
-
     if (digest.startsWith('NEXT_REDIRECT')) {
-      // Format: NEXT_REDIRECT;replace;https://accounts.google.com/...
-      const parts = digest.split(';')
-      console.log('[v0] redirect parts:', parts)
-      const location = parts[parts.length - 1]
-      if (location.startsWith('http')) {
+      // Format: NEXT_REDIRECT;replace;https://...;307;
+      // The URL is always at index 2 — NOT parts.at(-1) which is empty
+      const location = digest.split(';')[2]
+      if (location?.startsWith('http')) {
         return NextResponse.redirect(location)
       }
     }
-    console.log('[v0] redirect route unexpected error:', err)
     throw err
   }
 
