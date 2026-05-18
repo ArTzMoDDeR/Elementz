@@ -9,8 +9,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
   providers: [
     Apple({
-      clientId: process.env.APPLE_CLIENT_ID!,  // Service ID: com.eugenelabaleine.elementz
-      clientSecret: process.env.APPLE_SECRET!,  // Generated JWT client secret
+      clientId: process.env.APPLE_CLIENT_ID!,      // Service ID: com.eugenelabaleine.elementz
+      clientSecret: process.env.APPLE_CLIENT_SECRET!,  // Generated JWT client secret
     }),
     Discord({
       clientId: process.env.DISCORD_CLIENT_ID!,
