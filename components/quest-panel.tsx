@@ -447,9 +447,11 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
   useEffect(() => { fetchQuests() }, [])
 
   useEffect(() => {
-    const handler = () => fetchQuests()
+    // Only refetch when tab becomes visible again (not on every visibility event)
+    const handler = () => { if (document.visibilityState === 'visible') fetchQuests() }
     document.addEventListener('visibilitychange', handler)
-    const id = setInterval(fetchQuests, 30000)
+    // Poll every 60s instead of 30s to halve the request rate
+    const id = setInterval(() => { if (document.visibilityState === 'visible') fetchQuests() }, 60000)
     return () => { document.removeEventListener('visibilitychange', handler); clearInterval(id) }
   }, [])
 

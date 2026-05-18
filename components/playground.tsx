@@ -428,7 +428,7 @@ export function Playground({
       } catch {}
     }
     check()
-    const id = setInterval(check, 30000)
+    const id = setInterval(() => { if (document.visibilityState === 'visible') check() }, 60000)
     return () => clearInterval(id)
   }, [sessionUser])
 
