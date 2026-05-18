@@ -9,7 +9,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
   providers: [
     Apple({
-      clientId: process.env.APPLE_ID!,
+      clientId: process.env.APPLE_CLIENT_ID ?? process.env.APPLE_ID ?? '',
       clientSecret: process.env.APPLE_SECRET!,
     }),
     Discord({
