@@ -6,7 +6,12 @@ const config: CapacitorConfig = {
   webDir: 'out',
   server: {
     url: 'https://elementz.fun',
-    cleartext: false
+    cleartext: false,
+    allowNavigation: ['elementz.fun', '*.elementz.fun', 'accounts.google.com']
+  },
+  ios: {
+    allowsLinkPreview: false,
+    scrollEnabled: false
   },
   android: {
     allowMixedContent: false
