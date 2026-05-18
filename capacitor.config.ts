@@ -12,13 +12,15 @@ const config: CapacitorConfig = {
       '*.elementz.fun',
       'accounts.google.com',
       '*.google.com',
-      '*.googleapis.com'
+      '*.googleapis.com',
+      'appleid.apple.com',
+      '*.apple.com'
     ]
   },
   ios: {
     allowsLinkPreview: false,
     scrollEnabled: false,
-    limitsNavigationsToAppBoundDomains: true
+    limitsNavigationsToAppBoundDomains: false
   },
   android: {
     allowMixedContent: false
