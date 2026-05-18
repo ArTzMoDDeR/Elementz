@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { signIn as nextAuthSignIn } from 'next-auth/react'
 
 const BASE_URL = 'https://www.elementz.fun'
 
@@ -12,27 +13,24 @@ function isNative(): boolean {
 
 export function useCapacitorAuth() {
   const signIn = useCallback(async (provider: Provider) => {
-    if (!isNative()) {
-      // Web: use server action redirect (normal NextAuth flow)
-      const { signInWithApple, signInWithGoogle, signInWithDiscord } = await import(
-        '@/app/actions/auth'
-      )
-      if (provider === 'apple') return signInWithApple()
-      if (provider === 'google') return signInWithGoogle()
-      if (provider === 'discord') return signInWithDiscord()
+    if (isNative()) {
+      // iOS native: open SFSafariViewController via @capacitor/browser.
+      // We use our own GET route /api/auth/redirect/[provider] because
+      // NextAuth's signIn page requires a POST which Browser.open() can't do.
+      const { Browser } = await import('@capacitor/browser')
+      const callbackUrl = encodeURIComponent(BASE_URL + '/')
+      const url = `${BASE_URL}/api/auth/redirect/${provider}?callbackUrl=${callbackUrl}`
+      await Browser.open({
+        url,
+        presentationStyle: 'popover',
+        toolbarColor: '#ffffff',
+      })
       return
     }
 
-    // iOS native: open SFSafariViewController via @capacitor/browser
-    // NextAuth will redirect back to elementz.fun after auth,
-    // which triggers the Universal Link and brings the user back to the app.
-    const { Browser } = await import('@capacitor/browser')
-    const url = `${BASE_URL}/api/auth/signin/${provider}?callbackUrl=${encodeURIComponent(BASE_URL + '/')}`
-    await Browser.open({
-      url,
-      presentationStyle: 'popover', // SFSafariViewController — stays within app flow
-      toolbarColor: '#ffffff',
-    })
+    // Web (desktop + mobile): use next-auth/react signIn with redirect mode.
+    // This avoids popup blockers on mobile Safari and works on all browsers.
+    await nextAuthSignIn(provider, { callbackUrl: '/', redirect: true })
   }, [])
 
   return { signIn }
