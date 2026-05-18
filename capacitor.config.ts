@@ -7,11 +7,18 @@ const config: CapacitorConfig = {
   server: {
     url: 'https://elementz.fun',
     cleartext: false,
-    allowNavigation: ['elementz.fun', '*.elementz.fun', 'accounts.google.com']
+    allowNavigation: [
+      'elementz.fun',
+      '*.elementz.fun',
+      'accounts.google.com',
+      '*.google.com',
+      '*.googleapis.com'
+    ]
   },
   ios: {
     allowsLinkPreview: false,
-    scrollEnabled: false
+    scrollEnabled: false,
+    limitsNavigationsToAppBoundDomains: true
   },
   android: {
     allowMixedContent: false
