@@ -1,66 +1,56 @@
-import { useCallback, useEffect } from 'react'
-import { signIn as nextAuthSignIn } from 'next-auth/react'
+'use client'
 
-const BASE_URL = 'https://www.elementz.fun'
+import { useCallback, useEffect } from 'react'
+import { signIn } from 'next-auth/react'
 
 type Provider = 'apple' | 'google' | 'discord'
 
 function isNative(): boolean {
   if (typeof window === 'undefined') return false
-  // @ts-expect-error — Capacitor is injected at runtime
+  // @ts-expect-error — Capacitor injected at runtime
   return !!window.Capacitor?.isNativePlatform?.()
 }
 
 export function useCapacitorAuth() {
-  // On iOS native: listen for Universal Links coming back into the app
-  // and close the SFSafariViewController automatically.
+  // On iOS native: listen for Universal Links and close the SFSafariViewController
   useEffect(() => {
     if (!isNative()) return
+    let remove: (() => void) | undefined
 
-    let cleanup: (() => void) | undefined
-
-    const setup = async () => {
-      const { App } = await import('@capacitor/app')
-      const { Browser } = await import('@capacitor/browser')
-
-      const handle = await App.addListener('appUrlOpen', async (event) => {
-        // Any deep link back to elementz.fun means auth is done — close browser
-        if (event.url.includes('elementz.fun')) {
-          await Browser.close()
-          // Let Next.js router handle the URL — reload session
-          window.location.href = '/'
-        }
+    import('@capacitor/app').then(({ App }) => {
+      import('@capacitor/browser').then(({ Browser }) => {
+        App.addListener('appUrlOpen', async (event) => {
+          if (event.url.includes('elementz.fun')) {
+            await Browser.close()
+            // Force session refresh
+            window.location.href = '/'
+          }
+        }).then((handle) => {
+          remove = () => handle.remove()
+        })
       })
+    })
 
-      cleanup = () => handle.remove()
-    }
-
-    setup()
-    return () => cleanup?.()
+    return () => remove?.()
   }, [])
 
-  const signIn = useCallback(async (provider: Provider) => {
-    const callbackUrl = encodeURIComponent(BASE_URL + '/')
-    const redirectUrl = `${BASE_URL}/api/auth/redirect/${provider}?callbackUrl=${callbackUrl}`
-
+  const handleSignIn = useCallback(async (provider: Provider) => {
     if (isNative()) {
-      // iOS native: open SFSafariViewController.
-      // After auth, the callback redirects to elementz.fun which triggers
-      // the Universal Link → appUrlOpen fires → Browser.close() is called above.
+      // iOS native app: open SFSafariViewController with NextAuth's direct signin URL.
+      // Since we removed pages.signIn, /api/auth/signin/[provider] now redirects
+      // directly to the OAuth provider without any intermediate page.
       const { Browser } = await import('@capacitor/browser')
       await Browser.open({
-        url: redirectUrl,
+        url: `https://www.elementz.fun/api/auth/signin/${provider}?callbackUrl=${encodeURIComponent('https://www.elementz.fun/')}`,
         presentationStyle: 'popover',
         toolbarColor: '#ffffff',
       })
       return
     }
 
-    // Mobile web (Safari, PWA) + desktop: full-page redirect via our GET route.
-    // This avoids popup blockers and the "invalid address" Apple OAuth error
-    // that happens when next-auth/react tries to redirect directly on mobile.
-    window.location.href = redirectUrl
+    // Web (mobile Safari, PWA, desktop): standard NextAuth redirect flow.
+    await signIn(provider, { callbackUrl: '/', redirect: true })
   }, [])
 
-  return { signIn }
+  return { signIn: handleSignIn }
 }
