@@ -26,6 +26,21 @@
 	<string>ca-app-pub-2003923325493504~9495366197</string>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>Cette app affiche des publicités pour rester gratuite. Votre consentement nous aide à vous proposer des annonces pertinentes.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>elementz.fun</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<false/>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
