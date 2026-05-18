@@ -2,6 +2,10 @@
 
 import { signIn } from '@/auth'
 
+export async function signInWithApple() {
+  await signIn('apple', { redirectTo: '/' })
+}
+
 export async function signInWithGoogle() {
   await signIn('google', { redirectTo: '/' })
 }

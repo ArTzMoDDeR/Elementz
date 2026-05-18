@@ -1,4 +1,5 @@
 import NextAuth from 'next-auth'
+import Apple from 'next-auth/providers/apple'
 import Google from 'next-auth/providers/google'
 import Discord from 'next-auth/providers/discord'
 import Credentials from 'next-auth/providers/credentials'
@@ -8,6 +9,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: process.env.AUTH_SECRET,
   trustHost: true,
   providers: [
+    Apple({
+      clientId: process.env.AUTH_APPLE_ID!,
+      clientSecret: process.env.AUTH_APPLE_CLIENT_SECRET!,
+    }),
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
