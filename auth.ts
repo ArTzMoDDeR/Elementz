@@ -3,7 +3,7 @@ import Apple from 'next-auth/providers/apple'
 import Discord from 'next-auth/providers/discord'
 import Credentials from 'next-auth/providers/credentials'
 import { neon } from '@neondatabase/serverless'
-import { getAppleClientSecret } from '@/lib/apple-secret'
+import { generateAppleClientSecret } from '@/lib/apple-secret'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: process.env.AUTH_SECRET,
@@ -11,41 +11,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Apple({
       clientId: process.env.APPLE_ID!,
-      clientSecret: 'placeholder', // overridden at request time in token.request below
-      authorization: {
-        params: { response_type: 'code', response_mode: 'form_post' },
-      },
-      token: {
-        async request(ctx) {
-          console.log('[v0] Apple token request — env vars present:', {
-            APPLE_ID: !!process.env.APPLE_ID,
-            APPLE_TEAM_ID: !!process.env.APPLE_TEAM_ID,
-            APPLE_KEY_ID: !!process.env.APPLE_KEY_ID,
-            APPLE_PRIVATE_KEY: !!process.env.APPLE_PRIVATE_KEY,
-          })
-          const clientSecret = await getAppleClientSecret()
-          console.log('[v0] Apple clientSecret generated, length:', clientSecret.length)
-          const baseUrl = process.env.NEXTAUTH_URL ?? 'https://www.elementz.fun'
-          const redirectUri = `${baseUrl}/api/auth/callback/apple`
-          console.log('[v0] Apple redirect_uri:', redirectUri)
-          console.log('[v0] Apple client_id:', process.env.APPLE_ID)
-          const params = new URLSearchParams({
-            client_id: process.env.APPLE_ID!,
-            client_secret: clientSecret,
-            code: ctx.params.code as string,
-            grant_type: 'authorization_code',
-            redirect_uri: redirectUri,
-          })
-          const res = await fetch('https://appleid.apple.com/auth/token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: params.toString(),
-          })
-          const tokens = await res.json()
-          console.log('[v0] Apple token response:', JSON.stringify(tokens))
-          return { tokens }
-        },
-      },
+      clientSecret: generateAppleClientSecret(),
       profile(profile) {
         return {
           id: profile.sub,
