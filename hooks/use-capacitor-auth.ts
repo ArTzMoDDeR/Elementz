@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { signIn as nextAuthSignIn } from 'next-auth/react'
 
 const BASE_URL = 'https://www.elementz.fun'
@@ -12,25 +12,54 @@ function isNative(): boolean {
 }
 
 export function useCapacitorAuth() {
-  const signIn = useCallback(async (provider: Provider) => {
-    if (isNative()) {
-      // iOS native: open SFSafariViewController via @capacitor/browser.
-      // We use our own GET route /api/auth/redirect/[provider] because
-      // NextAuth's signIn page requires a POST which Browser.open() can't do.
+  // On iOS native: listen for Universal Links coming back into the app
+  // and close the SFSafariViewController automatically.
+  useEffect(() => {
+    if (!isNative()) return
+
+    let cleanup: (() => void) | undefined
+
+    const setup = async () => {
+      const { App } = await import('@capacitor/app')
       const { Browser } = await import('@capacitor/browser')
-      const callbackUrl = encodeURIComponent(BASE_URL + '/')
-      const url = `${BASE_URL}/api/auth/redirect/${provider}?callbackUrl=${callbackUrl}`
+
+      const handle = await App.addListener('appUrlOpen', async (event) => {
+        // Any deep link back to elementz.fun means auth is done — close browser
+        if (event.url.includes('elementz.fun')) {
+          await Browser.close()
+          // Let Next.js router handle the URL — reload session
+          window.location.href = '/'
+        }
+      })
+
+      cleanup = () => handle.remove()
+    }
+
+    setup()
+    return () => cleanup?.()
+  }, [])
+
+  const signIn = useCallback(async (provider: Provider) => {
+    const callbackUrl = encodeURIComponent(BASE_URL + '/')
+    const redirectUrl = `${BASE_URL}/api/auth/redirect/${provider}?callbackUrl=${callbackUrl}`
+
+    if (isNative()) {
+      // iOS native: open SFSafariViewController.
+      // After auth, the callback redirects to elementz.fun which triggers
+      // the Universal Link → appUrlOpen fires → Browser.close() is called above.
+      const { Browser } = await import('@capacitor/browser')
       await Browser.open({
-        url,
+        url: redirectUrl,
         presentationStyle: 'popover',
         toolbarColor: '#ffffff',
       })
       return
     }
 
-    // Web (desktop + mobile): use next-auth/react signIn with redirect mode.
-    // This avoids popup blockers on mobile Safari and works on all browsers.
-    await nextAuthSignIn(provider, { callbackUrl: '/', redirect: true })
+    // Mobile web (Safari, PWA) + desktop: full-page redirect via our GET route.
+    // This avoids popup blockers and the "invalid address" Apple OAuth error
+    // that happens when next-auth/react tries to redirect directly on mobile.
+    window.location.href = redirectUrl
   }, [])
 
   return { signIn }
