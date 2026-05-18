@@ -28,7 +28,11 @@ workflows:
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME" \
-            --export-options-plist /Users/builder/clone/ios/App/ExportOptions.plist
+            --config Release \
+            --archive-flags="-destination 'generic/platform=iOS'" \
+            CODE_SIGN_STYLE=Manual \
+            PROVISIONING_PROFILE_SPECIFIER="elementz" \
+            DEVELOPMENT_TEAM="JLTG5A7S34"
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
