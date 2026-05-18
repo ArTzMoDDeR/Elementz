@@ -3,6 +3,7 @@ import Apple from 'next-auth/providers/apple'
 import Discord from 'next-auth/providers/discord'
 import Credentials from 'next-auth/providers/credentials'
 import { neon } from '@neondatabase/serverless'
+import { getAppleClientSecret } from '@/lib/apple-secret'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: process.env.AUTH_SECRET,
@@ -10,13 +11,35 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Apple({
       clientId: process.env.APPLE_ID!,
-      // NextAuth v5 Apple provider accepts key details and generates the JWT itself
-      clientSecret: process.env.APPLE_CLIENT_SECRET ?? '',
+      clientSecret: 'placeholder', // overridden at request time in token.request below
+      authorization: {
+        params: { response_type: 'code', response_mode: 'form_post' },
+      },
+      token: {
+        async request(ctx) {
+          const clientSecret = await getAppleClientSecret()
+          const baseUrl = process.env.NEXTAUTH_URL ?? 'https://www.elementz.fun'
+          const params = new URLSearchParams({
+            client_id: process.env.APPLE_ID!,
+            client_secret: clientSecret,
+            code: ctx.params.code as string,
+            grant_type: 'authorization_code',
+            redirect_uri: `${baseUrl}/api/auth/callback/apple`,
+          })
+          const res = await fetch('https://appleid.apple.com/auth/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params.toString(),
+          })
+          const tokens = await res.json()
+          return { tokens }
+        },
+      },
       profile(profile) {
         return {
           id: profile.sub,
           name: profile.name
-            ? `${profile.name.firstName ?? ''} ${profile.name.lastName ?? ''}`.trim()
+            ? `${(profile.name as { firstName?: string; lastName?: string }).firstName ?? ''} ${(profile.name as { firstName?: string; lastName?: string }).lastName ?? ''}`.trim()
             : profile.email?.split('@')[0] ?? 'Apple User',
           email: profile.email,
           image: null,
