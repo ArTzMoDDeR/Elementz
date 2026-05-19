@@ -542,25 +542,38 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
       if (!claimed.includes(questId)) {
         localStorage.setItem(GUEST_QUESTS_KEY, JSON.stringify([...claimed, questId]))
       }
-      const fresh = await fetchQuests()
-      // Inject a fake reward using the quest icon so the same scratch view works
-      const claimedQuest = fresh.find(q => q.id === questId)
-      if (claimedQuest) {
-        const fakeReward: QuestReward = {
-          quest_id: questId,
-          slot: 0,
-          scratched_at: null,
-          name_french: claimedQuest.title_fr,
-          name_english: claimedQuest.title_en,
-          img: claimedQuest.icon ?? null,
-          result_name_french: claimedQuest.title_fr,
-          result_name_english: claimedQuest.title_en,
-          result_img: claimedQuest.icon ?? null,
-          result_number: null,
-        }
-        // Mutate local state so scratch view can open
+
+      // Fetch a recipe reward from the API based on what the guest has discovered
+      const discoveredIds: number[] = JSON.parse(localStorage.getItem(GUEST_DISCOVERED_KEY) ?? '[]')
+      const res = await fetch('/api/quest-reward', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discovered: discoveredIds }),
+      })
+
+      await fetchQuests()
+
+      if (res.ok) {
+        const r = await res.json()
+        // Build 2 scratch rewards — ing1 (slot 0) and ing2 (slot 1), both reveal the result
+        const rewards: QuestReward[] = [
+          {
+            quest_id: questId, slot: 0, scratched_at: null,
+            name_french: r.ing1_name_fr, name_english: r.ing1_name_en,
+            img: r.ing1_img,
+            result_name_french: r.result_name_fr, result_name_english: r.result_name_en,
+            result_img: r.result_img, result_number: r.result,
+          },
+          {
+            quest_id: questId, slot: 1, scratched_at: null,
+            name_french: r.ing2_name_fr, name_english: r.ing2_name_en,
+            img: r.ing2_img,
+            result_name_french: r.result_name_fr, result_name_english: r.result_name_en,
+            result_img: r.result_img, result_number: r.result,
+          },
+        ]
         setQuests(prev => prev.map(q =>
-          q.id === questId ? { ...q, rewards: [fakeReward] } : q
+          q.id === questId ? { ...q, rewards } : q
         ))
         setScratchQuestId(questId)
       }
@@ -582,7 +595,19 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
 
   const handleScratch = async (questId: number, slot: number) => {
     if (isGuest) {
-      // Mark the fake reward as scratched in local state
+      // Find the reward being scratched
+      const quest = quests.find(q => q.id === questId)
+      const reward = quest?.rewards.find(r => r.slot === slot)
+
+      // Unlock the ingredient element in localStorage when scratched
+      if (reward?.result_number != null) {
+        const discovered: number[] = JSON.parse(localStorage.getItem(GUEST_DISCOVERED_KEY) ?? '[]')
+        if (!discovered.includes(reward.result_number)) {
+          localStorage.setItem(GUEST_DISCOVERED_KEY, JSON.stringify([...discovered, reward.result_number]))
+        }
+      }
+
+      // Mark as scratched in local state
       setQuests(prev => prev.map(q =>
         q.id === questId
           ? { ...q, rewards: q.rewards.map(r => r.slot === slot ? { ...r, scratched_at: new Date().toISOString() } : r) }
