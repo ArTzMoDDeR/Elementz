@@ -54,9 +54,9 @@ export default function LegalLayout({
   return (
     <main
       className="min-h-screen bg-background text-foreground"
-      style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
-      {/* Sticky top bar */}
+      {/* Sticky top bar — handles safe area top itself */}
       <div
         className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border/40"
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
