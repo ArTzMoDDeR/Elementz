@@ -1239,6 +1239,19 @@ export function Playground({
       {helpOpen && <HelpModal lang={lang} onSetLang={onSetLang} onClose={() => setHelpOpen(false)} />}
       {leaderboardOpen && <LeaderboardModal lang={lang} onClose={() => setLeaderboardOpen(false)} />}
       {profileOpen && sessionUser && <ProfileModal lang={lang} sessionUser={sessionUser} elementsByName={elementsByName} discovered={discovered} totalElements={totalElements} onClose={() => setProfileOpen(false)} onOpenLeaderboard={() => { setProfileOpen(false); setLeaderboardOpen(true) }} onSignOut={onReset} />}
+
+      {/* Fullscreen guest tutorial — portal ensures it's never clipped by parent transforms */}
+      {showTutorial && typeof document !== 'undefined' && createPortal(
+        <GuestOnboardingModal
+          elements={elements}
+          recipeMap={recipeMap ?? new Map()}
+          lang={lang}
+          onTutorialDiscover={nums => onTutorialDiscover?.(nums)}
+          onSignUp={() => { setShowTutorial(false); setActiveTab('profile') }}
+          onClose={() => setShowTutorial(false)}
+        />,
+        document.body
+      )}
     </div>
   )
 }
@@ -2487,19 +2500,6 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
         )}
 
       </div>
-
-      {/* Fullscreen guest tutorial modal — rendered via portal so it's never clipped by parent transforms */}
-      {showTutorial && typeof document !== 'undefined' && createPortal(
-        <GuestOnboardingModal
-          elements={elements}
-          recipeMap={recipeMap ?? new Map()}
-          lang={lang}
-          onTutorialDiscover={nums => onTutorialDiscover?.(nums)}
-          onSignUp={() => { setShowTutorial(false); setActiveTab('profile') }}
-          onClose={() => setShowTutorial(false)}
-        />,
-        document.body
-      )}
     </>
   )
 }
