@@ -19,15 +19,25 @@ function triggerHaptic(style: 'medium' | 'heavy') {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cap = (window as any).Capacitor
-    if (cap?.isNativePlatform?.()) {
+    const isNative = cap?.isNativePlatform?.()
+    console.log('[v0] triggerHaptic', style, 'isNative=', isNative, 'plugins=', Object.keys(cap?.Plugins ?? {}))
+    if (isNative) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const Haptics = cap.Plugins?.Haptics as any
+      const Haptics = (cap.Plugins?.Haptics ?? cap.Plugins?.HapticsPlugin) as any
+      console.log('[v0] Haptics plugin=', Haptics, 'impact=', Haptics?.impact)
       if (Haptics?.impact) {
-        Haptics.impact({ style: style === 'heavy' ? 'HEAVY' : 'MEDIUM' })
+        // Capacitor 6 bridge expects ImpactStyle enum value (number): Light=0 Medium=1 Heavy=2
+        const impactStyle = style === 'heavy' ? 2 : 1
+        Haptics.impact({ style: impactStyle })
+        console.log('[v0] Haptics.impact called with style=', impactStyle)
+      } else if (Haptics?.notification) {
+        Haptics.notification({ type: 0 })
       }
       return
     }
-  } catch {}
+  } catch (e) {
+    console.log('[v0] triggerHaptic error', e)
+  }
   // Web fallback
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
     navigator.vibrate(style === 'heavy' ? [30, 20, 60] : 10)
