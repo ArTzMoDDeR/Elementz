@@ -7,33 +7,15 @@ const config: CapacitorConfig = {
   server: {
     url: 'https://elementz.fun',
     cleartext: false,
-    allowNavigation: [
-      'elementz.fun',
-      '*.elementz.fun',
-      'accounts.google.com',
-      '*.google.com',
-      '*.googleapis.com',
-      'appleid.apple.com',
-      '*.apple.com'
-    ]
+    allowNavigation: ['elementz.fun', '*.elementz.fun', 'accounts.google.com']
   },
   ios: {
     allowsLinkPreview: false,
-    scrollEnabled: false,
-    limitsNavigationsToAppBoundDomains: false
+    scrollEnabled: false
   },
   android: {
     allowMixedContent: false
-  },
-  plugins: {
-    GoogleAuth: {
-      // iOS Client ID from Google Cloud Console (different from web client ID)
-      iosClientId: process.env.GOOGLE_IOS_CLIENT_ID ?? '',
-      scopes: ['profile', 'email'],
-      serverClientId: process.env.GOOGLE_CLIENT_ID ?? '',
-      forceCodeForRefreshToken: true,
-    },
-  },
+  }
 };
 
 export default config;
