@@ -468,8 +468,26 @@ export function useGameStore() {
         newlyDiscoveredTimerRef.current = null
       }, 3000)
 
-      if (hapticEnabledRef.current && typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate([30, 20, 60])
+      // Heavy haptic for new discovery on native, pattern fallback on web
+      if (hapticEnabledRef.current) {
+        if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
+          import('@capacitor/haptics').then(({ Haptics, ImpactStyle }) => {
+            Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {})
+          }).catch(() => {})
+        } else if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate([30, 20, 60])
+        }
+      }
+    } else if (results.length > 0) {
+      // Known combination — Medium haptic
+      if (hapticEnabledRef.current) {
+        if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
+          import('@capacitor/haptics').then(({ Haptics, ImpactStyle }) => {
+            Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {})
+          }).catch(() => {})
+        } else if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate(10)
+        }
       }
     }
 
