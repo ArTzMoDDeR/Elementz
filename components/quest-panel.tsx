@@ -105,20 +105,19 @@ function ScratchBanner({ count, lang, onClick }: { count: number; lang: 'fr' | '
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-2xl bg-amber-400/10 border border-amber-400/20 active:scale-[0.98] transition-all cursor-pointer"
+      className="w-full flex items-center justify-between gap-3 px-5 py-4 rounded-2xl bg-amber-400/10 border border-amber-400/25 active:scale-[0.98] transition-all cursor-pointer"
     >
-      <div className="flex items-center gap-3">
-        <Sparkles className="w-4 h-4 text-amber-400 flex-shrink-0" />
-        <div className="text-left">
-          <p className="text-sm font-semibold text-amber-400 leading-tight">
-            {lang === 'fr' ? `${count} récompense${count > 1 ? 's' : ''} à gratter` : `${count} reward${count > 1 ? 's' : ''} to scratch`}
-          </p>
-          <p className="text-[10px] text-amber-400/60 mt-0.5">
-            {lang === 'fr' ? 'Gratte pour révéler ton élément' : 'Scratch to reveal your element'}
-          </p>
-        </div>
+      <div className="text-left">
+        <p className="text-sm font-bold text-amber-400 leading-tight">
+          {lang === 'fr'
+            ? `${count} récompense${count > 1 ? 's' : ''} à révéler`
+            : `${count} reward${count > 1 ? 's' : ''} to reveal`}
+        </p>
+        <p className="text-xs text-amber-400/60 mt-0.5 font-medium">
+          {lang === 'fr' ? 'Appuie pour découvrir ton élément' : 'Tap to discover your element'}
+        </p>
       </div>
-      <ChevronRight className="w-4 h-4 text-amber-400/50 flex-shrink-0" />
+      <ChevronRight className="w-5 h-5 text-amber-400/60 flex-shrink-0" />
     </button>
   )
 }
@@ -199,10 +198,9 @@ function QuestRow({ quest, lang, onClaim, onScratch, diffDot }: {
           {isClaimed && !allScratched ? (
             <button
               onClick={() => onScratch?.(quest.id)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-400/10 border border-amber-400/20 text-xs font-semibold text-amber-400 active:scale-95 transition-all cursor-pointer"
+              className="px-3.5 py-1.5 rounded-xl bg-amber-400/15 border border-amber-400/30 text-xs font-bold text-amber-400 active:scale-95 transition-all cursor-pointer"
             >
-              <Sparkles className="w-3 h-3" />
-              {t('Gratter', 'Scratch')}
+              {t('Révéler', 'Reveal')}
             </button>
           ) : isReady ? (
             <button
@@ -240,12 +238,16 @@ function ScratchCard({ reward, lang, onScratched }: {
     if (!canvas) return
     const ctx = canvas.getContext('2d')!
     ctx.clearRect(0, 0, SIZE, SIZE)
-    ctx.fillStyle = 'var(--color-card, #1c1c28)'
+    // Use a silver/light color that contrasts in both light and dark mode
+    const grad = ctx.createLinearGradient(0, 0, SIZE, SIZE)
+    grad.addColorStop(0, '#c8c8d0')
+    grad.addColorStop(1, '#a8a8b8')
+    ctx.fillStyle = grad
     ctx.fillRect(0, 0, SIZE, SIZE)
-    // subtle grid of ? marks
-    ctx.fillStyle = 'rgba(255,255,255,0.07)'
-    ctx.font = 'bold 11px sans-serif'
-    for (let x = 12; x < SIZE; x += 22)
+    // ? marks visible on light background
+    ctx.fillStyle = 'rgba(0,0,0,0.12)'
+    ctx.font = 'bold 12px sans-serif'
+    for (let x = 10; x < SIZE; x += 22)
       for (let y = 18; y < SIZE; y += 22)
         ctx.fillText('?', x, y)
     setCanvasPainted(true)

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Lightbulb, Plus, Lock, PlayCircle } from 'lucide-react'
+import { Lightbulb, Plus, Lock, PlayCircle, ChevronDown } from 'lucide-react'
 import type { HintResult } from '@/hooks/use-hint'
 
 // ── AdMob config (Capacitor native) ──────────────────────────────────────────
@@ -100,10 +100,10 @@ function requestRewardedAd(): Promise<boolean> {
 function Tile({ el, hidden = false, size = 'md' }: {
   el: ElementDef | undefined
   hidden?: boolean
-  size?: 'sm' | 'md'
+  size?: 'sm' | 'md' | 'lg'
 }) {
-  const dim    = size === 'sm' ? 'w-16 h-16' : 'w-20 h-20'
-  const imgDim = size === 'sm' ? 'w-7 h-7'   : 'w-10 h-10'
+  const dim    = size === 'sm' ? 'w-16 h-16' : size === 'lg' ? 'w-28 h-28' : 'w-20 h-20'
+  const imgDim = size === 'sm' ? 'w-7 h-7'   : size === 'lg' ? 'w-16 h-16' : 'w-10 h-10'
 
   if (hidden || !el) {
     return (
@@ -127,6 +127,80 @@ function Tile({ el, hidden = false, size = 'md' }: {
       <span className="text-[9px] font-semibold text-center leading-tight text-foreground/60 w-full truncate px-0.5">
         {el.name}
       </span>
+    </div>
+  )
+}
+
+// ── HintReveal — staggered animated reveal ────────────────────────────────────
+
+function HintReveal({ lang, resultEl, ing1El, ing2El, onComplete }: {
+  lang: 'fr' | 'en'
+  resultEl: ElementDef | undefined
+  ing1El: ElementDef | undefined
+  ing2El: ElementDef | undefined
+  onComplete: () => void
+}) {
+  const [step, setStep] = useState(0)
+  // step 0 = title only, 1 = + result element, 2 = + "avec" + ing1, 3 = + ing2 hidden, 4 = show button
+  useEffect(() => {
+    const delays = [600, 1100, 1700, 2300]
+    const timers = delays.map((d, i) => setTimeout(() => setStep(i + 1), d))
+    return () => timers.forEach(clearTimeout)
+  }, [])
+
+  return (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center">
+      <div className="absolute inset-0 bg-background/98 backdrop-blur-2xl" />
+      <div className="relative z-10 w-full max-w-xs mx-auto flex flex-col items-center px-6 gap-0">
+
+        {/* Step 0 — title */}
+        <div className={`flex flex-col items-center gap-2 transition-all duration-500 ${step >= 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+          <div className="inline-flex items-center gap-1.5 bg-amber-400/10 px-3 py-1 rounded-full">
+            <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-[11px] font-semibold text-amber-400 uppercase tracking-widest">
+              {t(lang, 'Indice', 'Hint')}
+            </span>
+          </div>
+          <h2 className="text-3xl font-bold text-foreground text-center leading-tight mt-1">
+            {t(lang, 'Tu peux créer', 'You can create')}
+          </h2>
+        </div>
+
+        {/* Step 1 — result element */}
+        <div className={`mt-7 transition-all duration-500 ${step >= 1 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-6 scale-90'}`}>
+          <Tile el={resultEl} hidden={false} size="lg" />
+        </div>
+
+        {/* Step 2 — "avec" divider + ing1 */}
+        <div className={`mt-7 w-full flex flex-col items-center gap-5 transition-all duration-500 ${step >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+          <div className="flex items-center gap-3 w-full">
+            <div className="flex-1 h-px bg-border/40" />
+            <span className="text-xs text-muted-foreground/50 font-medium uppercase tracking-widest">
+              {t(lang, 'avec', 'with')}
+            </span>
+            <div className="flex-1 h-px bg-border/40" />
+          </div>
+          <div className="flex items-center gap-5">
+            <Tile el={ing1El} hidden={false} />
+            <Plus className="w-5 h-5 text-muted-foreground/20 flex-shrink-0" />
+            {/* Step 3 — ing2 hidden */}
+            <div className={`transition-all duration-500 ${step >= 3 ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}>
+              <Tile el={ing2El} hidden />
+            </div>
+          </div>
+        </div>
+
+        {/* Step 4 — button */}
+        <div className={`mt-10 w-full transition-all duration-500 ${step >= 4 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+          <button
+            onClick={onComplete}
+            className="w-full py-4 rounded-2xl bg-foreground text-background text-sm font-bold active:scale-[0.97] transition-transform cursor-pointer"
+          >
+            {t(lang, "J'ai compris !", 'Got it!')}
+          </button>
+        </div>
+
+      </div>
     </div>
   )
 }
@@ -168,48 +242,7 @@ export function RewardedAdModal({ lang, hint, elements, onComplete, onDismiss }:
 
   // ── REVEAL ────────────────────────────────────────────────────────────────
   if (phase === 'reveal') {
-    return (
-      <div className="fixed inset-0 z-[110] flex items-center justify-center">
-        <div className="absolute inset-0 bg-background/95 backdrop-blur-2xl" />
-        <div className="relative z-10 w-full max-w-sm mx-auto flex flex-col items-center px-6 gap-7 animate-in fade-in slide-in-from-bottom-3 duration-300">
-
-          <div className="text-center space-y-1.5">
-            <div className="inline-flex items-center gap-1.5 bg-amber-400/10 px-3 py-1 rounded-full mb-1">
-              <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
-              <span className="text-[11px] font-semibold text-amber-400 uppercase tracking-widest">
-                {t(lang, 'Votre indice', 'Your hint')}
-              </span>
-            </div>
-            <h2 className="text-xl font-bold text-foreground">
-              {t(lang, 'Essayez de créer', 'Try to create')}
-            </h2>
-          </div>
-
-          <Tile el={resultEl} hidden={false} />
-
-          <div className="w-full flex items-center gap-3">
-            <div className="flex-1 h-px bg-white/[0.06]" />
-            <span className="text-[10px] text-muted-foreground/30 font-medium uppercase tracking-widest">
-              {t(lang, 'avec', 'with')}
-            </span>
-            <div className="flex-1 h-px bg-white/[0.06]" />
-          </div>
-
-          <div className="flex items-center gap-4">
-            <Tile el={ing1El} hidden={false} />
-            <Plus className="w-5 h-5 text-muted-foreground/20 flex-shrink-0" />
-            <Tile el={ing2El} hidden />
-          </div>
-
-          <button
-            onClick={onComplete}
-            className="w-full py-3.5 rounded-2xl bg-foreground text-background text-sm font-bold active:scale-[0.97] transition-all cursor-pointer"
-          >
-            {t(lang, "J'ai compris !", 'Got it!')}
-          </button>
-        </div>
-      </div>
-    )
+    return <HintReveal lang={lang} resultEl={resultEl} ing1El={ing1El} ing2El={ing2El} onComplete={onComplete} />
   }
 
   // ── INTRO / LOADING ───────────────────────────────────────────────────────
