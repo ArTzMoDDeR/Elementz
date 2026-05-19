@@ -33,7 +33,7 @@ type MiniDrag = { id: string; offsetX: number; offsetY: number; pointerId: numbe
 const MERGE_DIST_PCT = 22
 
 // ── Cinematic combine arena ────────────────────────────────────────────────────
-function CombineArena({
+export function CombineArena({
   lang,
   elements,
   recipeMap,

@@ -10,7 +10,7 @@ import { LeaderboardModal } from './leaderboard-modal'
 import { ProfileModal } from './profile-modal'
 import { QuestInlinePanel } from './quest-panel'
 import { CodexInlinePanel } from './codex-panel'
-import { OnboardingModal } from './onboarding-modal'
+import { GuestOnboardingModal } from './guest-onboarding-modal'
 import EmailSignIn from '@/components/email-sign-in'
 import { signOut } from 'next-auth/react'
 import { useTheme } from 'next-themes'
@@ -2484,19 +2484,16 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
 
       </div>
 
-      {/* Fullscreen tutorial modal — shown when beginner taps the ? button */}
+      {/* Fullscreen guest tutorial modal — shown when beginner taps the ? button */}
       {showTutorial && (
-        <div className="fixed inset-0 z-[9999]" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
-          <OnboardingModal
-            elementsByName={elementsByName}
-            elements={elements}
-            recipeMap={recipeMap ?? new Map()}
-            onTutorialDiscover={nums => onTutorialDiscover?.(nums)}
-            onLangChange={l => onSetLang?.(l)}
-            onComplete={() => setShowTutorial(false)}
-            initialStep="combine"
-          />
-        </div>
+        <GuestOnboardingModal
+          elements={elements}
+          recipeMap={recipeMap ?? new Map()}
+          lang={lang}
+          onTutorialDiscover={nums => onTutorialDiscover?.(nums)}
+          onSignUp={() => { setShowTutorial(false); setActiveTab('profile') }}
+          onClose={() => setShowTutorial(false)}
+        />
       )}
     </>
   )
