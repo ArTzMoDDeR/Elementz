@@ -428,29 +428,62 @@ function ScratchModal({ quest, lang, onScratch, onClose, onGoToPlay }: {
 // ─── QuestInlinePanel ─────────────────────────────────────────────────────────
 
 // ─── Local quest definitions for guests (no DB needed) ───────────────────────
-const GUEST_QUEST_DEFS = [
-  { id: -1, type: 'discover_n', title_fr: 'Premiers pas', title_en: 'First steps', desc_fr: 'Découvre 10 éléments', desc_en: 'Discover 10 elements', target_value: 10, icon: 'Star', sort_order: 1, is_daily: false },
-  { id: -2, type: 'discover_n', title_fr: 'Explorateur', title_en: 'Explorer', desc_fr: 'Découvre 25 éléments', desc_en: 'Discover 25 elements', target_value: 25, icon: 'Compass', sort_order: 2, is_daily: false },
-  { id: -3, type: 'discover_n', title_fr: 'Alchimiste', title_en: 'Alchemist', desc_fr: 'Découvre 50 éléments', desc_en: 'Discover 50 elements', target_value: 50, icon: 'FlaskConical', sort_order: 3, is_daily: false },
-  { id: -4, type: 'discover_n', title_fr: 'Maître alchimiste', title_en: 'Master alchemist', desc_fr: 'Découvre 100 éléments', desc_en: 'Discover 100 elements', target_value: 100, icon: 'Trophy', sort_order: 4, is_daily: false },
-]
+import { quests as ALL_QUESTS } from '@/lib/data/quests'
+
 const GUEST_QUESTS_KEY = 'alchemy-guest-quests-v1'
 const GUEST_DISCOVERED_KEY = 'alchemy-discovered-v4'
+const GUEST_COMBOS_KEY = 'alchemy-combos-v1'
+
+type RawQuest = {
+  id: number; type: string; title_fr: string; title_en: string
+  desc_fr: string; desc_en: string; target_value: number; icon: string
+  sort_order: number; is_daily: boolean; required_element: number | null
+  reset_hours: number | null; difficulty: string
+}
 
 function getGuestQuests(): Quest[] {
-  const raw = typeof window !== 'undefined' ? localStorage.getItem(GUEST_DISCOVERED_KEY) : null
-  const discovered: number = raw ? (JSON.parse(raw) as number[]).length : 0
-  const claimed: number[] = JSON.parse(typeof window !== 'undefined' ? (localStorage.getItem(GUEST_QUESTS_KEY) ?? '[]') : '[]')
-  return GUEST_QUEST_DEFS.map(q => ({
-    ...q,
-    difficulty: 'easy' as const,
-    progress: Math.min(discovered, q.target_value),
-    completed_at: discovered >= q.target_value ? 'local' : null,
-    claimed_at: claimed.includes(q.id) ? 'local' : null,
-    reset_at: null,
-    rewards: [],
-    is_expired: false,
-  })) as unknown as Quest[]
+  if (typeof window === 'undefined') return []
+
+  const discoveredIds: number[] = JSON.parse(localStorage.getItem(GUEST_DISCOVERED_KEY) ?? '[]')
+  const discoveredSet = new Set(discoveredIds)
+  const discoveredCount = discoveredIds.length
+  const comboCount: number = JSON.parse(localStorage.getItem(GUEST_COMBOS_KEY) ?? '0')
+  const claimedIds: number[] = JSON.parse(localStorage.getItem(GUEST_QUESTS_KEY) ?? '[]')
+  const todayKey = `alchemy-daily-${new Date().toISOString().slice(0, 10)}`
+  const dailyCount: number = JSON.parse(localStorage.getItem(todayKey) ?? '0')
+
+  return (ALL_QUESTS as unknown as RawQuest[]).map(q => {
+    let progress = 0
+    let visible = true
+
+    if (q.type === 'discover_n') {
+      progress = Math.min(discoveredCount, q.target_value)
+    } else if (q.type === 'discover_n_daily') {
+      progress = Math.min(dailyCount, q.target_value)
+    } else if (q.type === 'discover_element') {
+      const needed = q.required_element
+      visible = needed == null || discoveredSet.has(needed)
+      progress = needed != null && discoveredSet.has(needed) ? 1 : 0
+    } else if (q.type === 'combinations_n') {
+      const needed = q.required_element
+      visible = needed == null || discoveredSet.has(needed)
+      progress = visible ? Math.min(comboCount, q.target_value) : 0
+    }
+
+    if (!visible) return null
+
+    const completed = progress >= q.target_value
+    return {
+      ...q,
+      difficulty: q.difficulty as Quest['difficulty'],
+      progress,
+      completed_at: completed ? 'local' : null,
+      claimed_at: claimedIds.includes(q.id) ? 'local' : null,
+      reset_at: null,
+      rewards: [],
+      is_expired: false,
+    }
+  }).filter(Boolean) as Quest[]
 }
 
 export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGoToPlay?: () => void }) {
