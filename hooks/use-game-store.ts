@@ -61,9 +61,15 @@ function getColor(nameFr: string): string {
 
 function proxyImg(url: string | null): string | null {
   if (!url) return null
-  // Never serve Cloudinary URLs — all images are local now
-  if (url.includes('cloudinary.com')) return null
+  // Cloudinary URLs: extract element number and serve local webp instead
+  if (url.includes('cloudinary.com')) {
+    const match = url.match(/element-(\d+)\.webp/)
+    if (match) return `/elements/${match[1]}.webp`
+    return null
+  }
   if (url.includes('.blob.vercel-storage.com')) return `/api/img?url=${encodeURIComponent(url)}`
+  // Strip stale .png extension if present (e.g. "1.png.webp" → "1.webp")
+  if (url.endsWith('.png.webp')) return url.replace('.png.webp', '.webp')
   return url
 }
 

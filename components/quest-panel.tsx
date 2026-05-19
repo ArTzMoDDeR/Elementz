@@ -837,6 +837,16 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
         )}
       </div>
 
+      {/* Scratch modal — shown when a quest is claimed and has unscratched rewards */}
+      {scratchQuest && !isGuest && (
+        <ScratchModal
+          quest={scratchQuest}
+          lang={lang}
+          onScratch={handleScratch}
+          onClose={closeScratch}
+          onGoToPlay={onGoToPlay}
+        />
+      )}
     </>
   )
 }
