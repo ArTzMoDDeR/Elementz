@@ -30,6 +30,7 @@ function adaptiveFont(baseFontSize: number, name: string): number {
 
 // Square sizes (playground canvas / xl / 2xl)
 const SQUARE_SIZE = {
+  sm:  { w: 60,  h: 60,  icon: 32, labelFont: 9,    radius: 14 },
   xl:  { w: 80,  h: 80,  icon: 44, labelFont: 10.5, radius: 18 },
   '2xl': { w: 110, h: 110, icon: 62, labelFont: 12,   radius: 22 },
 }
@@ -40,7 +41,7 @@ function ElementBadgeInner({ element, size = 'md', fluid = false, className = ''
 
   // xl / 2xl / fluid → square layout (used on playground canvas)
   if (size === 'xl' || size === '2xl' || fluid) {
-    const sq = size === '2xl' ? SQUARE_SIZE['2xl'] : SQUARE_SIZE.xl
+    const sq = size === '2xl' ? SQUARE_SIZE['2xl'] : size === 'sm' && fluid ? SQUARE_SIZE.sm : SQUARE_SIZE.xl
     const wClass = fluid ? 'w-full aspect-square' : undefined
     return (
       <div
