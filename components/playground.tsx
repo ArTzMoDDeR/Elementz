@@ -1040,8 +1040,6 @@ export function Playground({
                     onToggleHaptic={onToggleHaptic}
                     pushNotificationsEnabled={pushNotificationsEnabled}
                     onTogglePushNotifications={onTogglePushNotifications}
-                    suppressUnlockNotif={suppressUnlockNotif}
-                    onToggleSuppressUnlockNotif={onToggleSuppressUnlockNotif}
                     mergeFlashEnabled={mergeFlashEnabled}
                     onToggleMergeFlash={() => setMergeFlashEnabled(!mergeFlashEnabled)}
                     onOpenHelp={() => setActiveTab('help')}
