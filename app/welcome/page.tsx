@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { CheckCircle, Loader2, ArrowRight } from 'lucide-react'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const WATER = { id: 168, img: '/elements/168.webp', name_fr: 'Eau',    name_en: 'Water' }
