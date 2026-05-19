@@ -126,7 +126,7 @@ function ScratchBanner({ count, lang, onClick }: { count: number; lang: 'fr' | '
 
 // ─── QuestRow ────────────────────────────────────────────────────────────────
 
-function QuestRow({ quest, lang, onClaim, onScratch, diffDot }: {
+function QuestRow({ quest, lang, onClaim, onScratch, diffDot, isGuest }: {
   quest: Quest
   lang: 'fr' | 'en'
   onClaim: (id: number) => Promise<void>
