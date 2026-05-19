@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ElementBadge } from './element-badge'
 import { Search, X, ArrowLeft, ChevronUp, ChevronDown, ChevronRight, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Medal, Atom as AtomIcon, Star, Shield, Trophy, Sun, Moon, Play, Info } from 'lucide-react'
 import { HouseSimple, Bell, Gear, Lifebuoy, Question, User, UserCircle, Scroll, Books, Hand, Lightning, Sparkle } from '@phosphor-icons/react'
@@ -1139,9 +1140,7 @@ export function Playground({
                   onPointerDown={e => e.stopPropagation()}
                   onClick={e => {
                     e.stopPropagation()
-                    console.log('[v0] tutorial btn clicked, discovered.size=', discovered.size, 'showTutorial=', showTutorial)
                     setShowTutorial(true)
-                    console.log('[v0] setShowTutorial(true) called')
                   }}
                   aria-label={lang === 'fr' ? 'Voir le tutoriel' : 'View tutorial'}
                   className="tap-spring select-none active:scale-95 transition-all duration-200 flex items-center justify-center rounded-full"
@@ -2489,9 +2488,8 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
 
       </div>
 
-      {/* Fullscreen guest tutorial modal — shown when beginner taps the ? button */}
-      {console.log('[v0] render: showTutorial=', showTutorial, 'elements.size=', elements?.size, 'recipeMap=', recipeMap?.size) as unknown as null}
-      {showTutorial && (
+      {/* Fullscreen guest tutorial modal — rendered via portal so it's never clipped by parent transforms */}
+      {showTutorial && typeof document !== 'undefined' && createPortal(
         <GuestOnboardingModal
           elements={elements}
           recipeMap={recipeMap ?? new Map()}
@@ -2499,7 +2497,8 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
           onTutorialDiscover={nums => onTutorialDiscover?.(nums)}
           onSignUp={() => { setShowTutorial(false); setActiveTab('profile') }}
           onClose={() => setShowTutorial(false)}
-        />
+        />,
+        document.body
       )}
     </>
   )
