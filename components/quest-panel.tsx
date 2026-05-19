@@ -430,98 +430,6 @@ function ScratchModal({ quest, lang, onScratch, onClose, onGoToPlay }: {
 
 // ─── QuestInlinePanel ─────────────────────────────────────────────────────────
 
-// ─── Quest completion toast ───────────────────────────────────────────────────
-function QuestCompletedToast({ quest, lang, onClaim, onDismiss }: {
-  quest: Quest
-  lang: 'fr' | 'en'
-  onClaim: () => void
-  onDismiss: () => void
-}) {
-  const title = lang === 'fr' ? quest.title_fr : quest.title_en
-  const t = (fr: string, en: string) => lang === 'fr' ? fr : en
-
-  useEffect(() => {
-    const id = setTimeout(onDismiss, 6000)
-    return () => clearTimeout(id)
-  }, [onDismiss])
-
-  return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] w-[calc(100%-2rem)] max-w-sm animate-in slide-in-from-top-2 fade-in duration-300">
-      <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-amber-400/15 border border-amber-400/30 backdrop-blur-xl shadow-lg">
-        {quest.icon && (
-          <img src={quest.icon} alt="" className="w-8 h-8 rounded-lg flex-shrink-0" />
-        )}
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-amber-400 uppercase tracking-widest leading-none mb-0.5">
-            {t('Quête complétée !', 'Quest completed!')}
-          </p>
-          <p className="text-sm font-bold text-foreground truncate">{title}</p>
-        </div>
-        <button
-          onClick={onClaim}
-          className="flex-shrink-0 px-3 py-1.5 rounded-xl bg-amber-400 text-background text-xs font-bold active:scale-95 transition-transform cursor-pointer"
-        >
-          {t('Réclamer', 'Claim')}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// ─── Guest celebration modal — shown after a guest claims a quest ─────────────
-function GuestCelebrationModal({ quest, lang, onClose }: {
-  quest: Quest
-  lang: 'fr' | 'en'
-  onClose: () => void
-}) {
-  const t = (fr: string, en: string) => lang === 'fr' ? fr : en
-  const title = lang === 'fr' ? quest.title_fr : quest.title_en
-  const isIconUrl = typeof quest.icon === 'string' && quest.icon.startsWith('/')
-
-  // Auto-close after 4s
-  useEffect(() => {
-    const id = setTimeout(onClose, 4000)
-    return () => clearTimeout(id)
-  }, [onClose])
-
-  return (
-    <div className="fixed inset-0 z-[200] flex items-end justify-center pb-8 px-4" onClick={onClose}>
-      <div
-        className="w-full max-w-sm animate-in slide-in-from-bottom-4 fade-in duration-300"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex flex-col items-center gap-5 px-6 py-8 rounded-3xl bg-card border border-border shadow-2xl">
-          {/* Icon */}
-          <div className="w-20 h-20 rounded-3xl bg-amber-400/10 border-2 border-amber-400/30 flex items-center justify-center">
-            {isIconUrl
-              ? <img src={quest.icon} alt="" className="w-12 h-12 object-contain" />
-              : <span className="text-3xl">+</span>
-            }
-          </div>
-
-          {/* Text */}
-          <div className="text-center space-y-1.5">
-            <p className="text-xs font-bold text-amber-400 uppercase tracking-widest">
-              {t('Quête accomplie !', 'Quest completed!')}
-            </p>
-            <h3 className="text-xl font-bold text-foreground text-balance">{title}</h3>
-            <p className="text-sm text-muted-foreground">
-              {t('Continue à explorer pour débloquer de nouvelles quêtes.', 'Keep exploring to unlock new quests.')}
-            </p>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="w-full py-3.5 rounded-2xl bg-foreground text-background text-sm font-bold active:scale-[0.97] transition-transform cursor-pointer"
-          >
-            {t('Continuer', 'Continue')}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ─── Local quest definitions for guests (no DB needed) ───────────────────────
 const GUEST_QUESTS_KEY = 'alchemy-guest-quests-v1'
 const GUEST_DISCOVERED_KEY = 'alchemy-discovered-v4'
@@ -587,20 +495,11 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
   const [quests, setQuests] = useState<Quest[]>([])
   const [loading, setLoading] = useState(true)
   const [scratchQuestId, setScratchQuestId] = useState<number | null>(null)
-  const [newlyCompleted, setNewlyCompleted] = useState<Quest | null>(null)
-  const [guestCelebration, setGuestCelebration] = useState<Quest | null>(null)
   const prevQuestsRef = useRef<Quest[]>([])
 
   const fetchQuests = useCallback(async () => {
     if (isGuest) {
       const fresh = getGuestQuests()
-      // Detect newly completed quests and trigger popup
-      const prev = prevQuestsRef.current
-      const justCompleted = fresh.find(q =>
-        q.completed_at && !q.claimed_at &&
-        !prev.find(p => p.id === q.id && p.completed_at)
-      )
-      if (justCompleted) setNewlyCompleted(justCompleted)
       prevQuestsRef.current = fresh
       setQuests(fresh)
       setLoading(false)
@@ -610,13 +509,6 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
     if (res.ok) {
       const data = await res.json()
       const list: Quest[] = Array.isArray(data) ? data : (data.quests ?? [])
-      // Detect newly completed quests
-      const prev = prevQuestsRef.current
-      const justCompleted = list.find(q =>
-        q.completed_at && !q.claimed_at &&
-        !prev.find(p => p.id === q.id && p.completed_at)
-      )
-      if (justCompleted) setNewlyCompleted(justCompleted)
       prevQuestsRef.current = list
       setQuests(list)
       setLoading(false)
@@ -645,16 +537,33 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
 
   const handleClaim = async (questId: number) => {
     if (isGuest) {
-      // Find the quest before claiming so we can show celebration
-      const questToCelebrate = quests.find(q => q.id === questId) ?? null
-      // Save claimed quest to localStorage
+      // Save as claimed in localStorage
       const claimed: number[] = JSON.parse(localStorage.getItem(GUEST_QUESTS_KEY) ?? '[]')
       if (!claimed.includes(questId)) {
         localStorage.setItem(GUEST_QUESTS_KEY, JSON.stringify([...claimed, questId]))
       }
-      await fetchQuests()
-      // Show celebration modal after claiming
-      if (questToCelebrate) setGuestCelebration(questToCelebrate)
+      const fresh = await fetchQuests()
+      // Inject a fake reward using the quest icon so the same scratch view works
+      const claimedQuest = fresh.find(q => q.id === questId)
+      if (claimedQuest) {
+        const fakeReward: QuestReward = {
+          quest_id: questId,
+          slot: 0,
+          scratched_at: null,
+          name_french: claimedQuest.title_fr,
+          name_english: claimedQuest.title_en,
+          img: claimedQuest.icon ?? null,
+          result_name_french: claimedQuest.title_fr,
+          result_name_english: claimedQuest.title_en,
+          result_img: claimedQuest.icon ?? null,
+          result_number: null,
+        }
+        // Mutate local state so scratch view can open
+        setQuests(prev => prev.map(q =>
+          q.id === questId ? { ...q, rewards: [fakeReward] } : q
+        ))
+        setScratchQuestId(questId)
+      }
       return
     }
     const res = await fetch('/api/quests', {
@@ -673,7 +582,12 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
 
   const handleScratch = async (questId: number, slot: number) => {
     if (isGuest) {
-      await fetchQuests()
+      // Mark the fake reward as scratched in local state
+      setQuests(prev => prev.map(q =>
+        q.id === questId
+          ? { ...q, rewards: q.rewards.map(r => r.slot === slot ? { ...r, scratched_at: new Date().toISOString() } : r) }
+          : q
+      ))
       return
     }
     await fetch('/api/quests', {
@@ -907,7 +821,7 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
                   <DailyChip lang={lang} />
                 </div>
                 {pendingDaily.map(q => (
-                  <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={setScratchQuestId} diffDot={DIFF_DOT[q.difficulty]} />
+                  <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={setScratchQuestId} diffDot={DIFF_DOT[q.difficulty]} isGuest={isGuest} />
                 ))}
               </Section>
             )}
@@ -956,25 +870,6 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
           </div>
         )}
       </div>
-
-      {/* Quest completion toast — pops when a quest is newly completed */}
-      {newlyCompleted && (
-        <QuestCompletedToast
-          quest={newlyCompleted}
-          lang={lang}
-          onClaim={() => { handleClaim(newlyCompleted.id); setNewlyCompleted(null) }}
-          onDismiss={() => setNewlyCompleted(null)}
-        />
-      )}
-
-      {/* Guest celebration modal — shown after a guest claims a quest */}
-      {guestCelebration && (
-        <GuestCelebrationModal
-          quest={guestCelebration}
-          lang={lang}
-          onClose={() => setGuestCelebration(null)}
-        />
-      )}
 
       {/* Scratch modal — shown when a quest is claimed and has unscratched rewards */}
       {scratchQuest && !isGuest && (
