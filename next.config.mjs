@@ -20,14 +20,6 @@ const nextConfig = {
         headers: securityHeaders,
       },
       {
-        // Apple App Site Association — must be served as JSON without extension
-        source: '/.well-known/apple-app-site-association',
-        headers: [
-          { key: 'Content-Type', value: 'application/json' },
-          { key: 'Cache-Control', value: 'public, max-age=3600' },
-        ],
-      },
-      {
         // Local element images — immutable after first load, cached 1 year on device
         source: '/elements/:id*',
         headers: [
