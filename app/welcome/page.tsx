@@ -262,33 +262,26 @@ function CombineArena({ lang, onDone }: { lang: Lang; onDone: () => void }) {
 // ── Sign-up step ──────────────────────────────────────────────────────────────
 function SignupStep({ lang, onSkip }: { lang: Lang; onSkip: () => void }) {
   return (
-    <div className="flex flex-col items-center gap-6 w-full px-6">
-      <div className="text-center space-y-1.5">
+    <div className="flex flex-col items-center gap-8 w-full px-6">
+      <div className="text-center space-y-3">
         <h2 className="text-2xl font-bold text-foreground text-balance">
-          {t(lang, 'Sauvegarde ta progression', 'Save your progress')}
+          {t(lang, "C'est parti !", "You're all set!")}
         </h2>
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          {t(lang, 'Connecte-toi pour ne jamais perdre tes découvertes.', "Sign in so you never lose your discoveries.")}
+        <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
+          {t(
+            lang,
+            'Connecte-toi depuis le menu profil pour sauvegarder ta progression et apparaître dans le classement.',
+            'Sign in from the profile menu to save your progress and appear in the leaderboard.'
+          )}
         </p>
       </div>
 
-      <div className="flex flex-col gap-3 w-full max-w-xs">
-        <button
-          onClick={() => {
-            try { localStorage.setItem('alchemy-open-tab', 'profile') } catch {}
-            window.location.href = '/'
-          }}
-          className="flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-foreground text-background text-sm font-bold active:scale-[0.97] transition-transform cursor-pointer"
-        >
-          {t(lang, 'Se connecter', 'Sign in')}
-        </button>
-        <button
-          onClick={onSkip}
-          className="py-3.5 rounded-2xl text-sm font-medium text-muted-foreground border border-border active:scale-[0.97] transition-transform cursor-pointer"
-        >
-          {t(lang, 'Plus tard', 'Not now')}
-        </button>
-      </div>
+      <button
+        onClick={onSkip}
+        className="w-full max-w-xs py-3.5 rounded-2xl bg-foreground text-background text-sm font-bold active:scale-[0.97] transition-transform cursor-pointer"
+      >
+        {t(lang, 'Jouer', 'Play')}
+      </button>
     </div>
   )
 }
