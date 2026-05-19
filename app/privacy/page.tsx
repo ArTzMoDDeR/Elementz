@@ -44,9 +44,7 @@ export default function PrivacyPage() {
         </Section>
         <Section title="2. Données collectées">
           <ul className="list-disc list-inside flex flex-col gap-1.5 text-foreground/70">
-            <li><strong className="text-foreground">Adresse e-mail</strong> — lors d&apos;une connexion par code OTP.</li>
-            <li><strong className="text-foreground">Données Google</strong> (nom, e-mail, avatar) — lors d&apos;une connexion via Google OAuth.</li>
-            <li><strong className="text-foreground">Données Discord</strong> (pseudo, e-mail, avatar) — lors d&apos;une connexion via Discord OAuth.</li>
+            <li><strong className="text-foreground">Adresse e-mail</strong> — lors d&apos;une connexion par code OTP (lien magique ou code à 6 chiffres).</li>
             <li><strong className="text-foreground">Progression de jeu</strong> — éléments découverts, quêtes complétées, pseudo, avatar.</li>
             <li><strong className="text-foreground">Données techniques</strong> — analytics anonymes via Vercel Analytics. Aucun suivi intersites.</li>
           </ul>
@@ -88,9 +86,7 @@ export default function PrivacyPage() {
         </Section>
         <Section title="2. Data we collect">
           <ul className="list-disc list-inside flex flex-col gap-1.5 text-foreground/70">
-            <li><strong className="text-foreground">Email address</strong> — when you sign in via email OTP.</li>
-            <li><strong className="text-foreground">Google account data</strong> (name, email, avatar) — via Google OAuth.</li>
-            <li><strong className="text-foreground">Discord account data</strong> (username, email, avatar) — via Discord OAuth.</li>
+            <li><strong className="text-foreground">Email address</strong> — when you sign in via email OTP (magic link or 6-digit code).</li>
             <li><strong className="text-foreground">Game progress</strong> — elements discovered, quests completed, username, avatar.</li>
             <li><strong className="text-foreground">Technical data</strong> — anonymous analytics via Vercel Analytics. No cross-site tracking.</li>
           </ul>
