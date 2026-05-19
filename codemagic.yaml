@@ -42,7 +42,9 @@ workflows:
             DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             -destination "generic/platform=iOS" \
-            ONLY_ACTIVE_ARCH=NO
+            ONLY_ACTIVE_ARCH=NO \
+            OTHER_IBTOOL_FLAGS="--errors --warnings --notices" 2>&1 | tee build.log
+          grep -A5 "error:" build.log || true
           xcodebuild \
             -exportArchive \
             -archivePath build/ios/App.xcarchive \
