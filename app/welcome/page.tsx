@@ -2,9 +2,6 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { signIn } from 'next-auth/react'
-import { OTPInput, SlotProps } from 'input-otp'
-import { ArrowRight, Loader2, CheckCircle } from 'lucide-react'
 import Image from 'next/image'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -16,22 +13,6 @@ type Lang   = 'fr' | 'en'
 type Step   = 'lang' | 'add-first' | 'add-second' | 'merge' | 'result' | 'signup'
 
 function t(lang: Lang, fr: string, en: string) { return lang === 'fr' ? fr : en }
-
-// ── OTP Slot ──────────────────────────────────────────────────────────────────
-function Slot({ char, isActive, hasFakeCaret }: SlotProps) {
-  return (
-    <div className={`relative w-12 h-14 flex items-center justify-center rounded-2xl border-2 text-xl font-bold transition-all
-      ${isActive
-        ? 'border-foreground bg-foreground/5 shadow-[0_0_0_4px_oklch(var(--foreground)/0.08)]'
-        : char
-        ? 'border-foreground/40 bg-foreground/5'
-        : 'border-border bg-muted/30'}`}
-    >
-      {char ?? <span className="text-muted-foreground/25">·</span>}
-      {hasFakeCaret && <span className="absolute w-0.5 h-6 bg-foreground animate-caret-blink rounded-full" />}
-    </div>
-  )
-}
 
 // ── Mini item on playground ───────────────────────────────────────────────────
 type Item = { id: 'a' | 'b'; x: number; y: number }
@@ -280,41 +261,6 @@ function CombineArena({ lang, onDone }: { lang: Lang; onDone: () => void }) {
 
 // ── Sign-up step ──────────────────────────────────────────────────────────────
 function SignupStep({ lang, onSkip }: { lang: Lang; onSkip: () => void }) {
-  const [email, setEmail]     = useState('')
-  const [otpSent, setOtpSent] = useState(false)
-  const [otp, setOtp]         = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState('')
-
-  async function sendOtp() {
-    if (!email.trim()) return
-    setLoading(true); setError('')
-    try {
-      const r = await signIn('email', { email: email.trim(), redirect: false })
-      if (r?.error) setError(t(lang, 'Erreur, réessaie.', 'Error, please retry.'))
-      else setOtpSent(true)
-    } catch { setError(t(lang, 'Erreur réseau.', 'Network error.')) }
-    finally { setLoading(false) }
-  }
-
-  async function verifyOtp(code: string) {
-    if (code.length < 6) return
-    setLoading(true); setError('')
-    try {
-      try {
-        const saved = localStorage.getItem('alchemy-discovered-v4')
-        if (saved) {
-          const ids: number[] = JSON.parse(saved)
-          if (ids.length > 4) localStorage.setItem('alchemy-guest-snapshot', saved)
-        }
-      } catch {}
-      const r = await signIn('email', { email: email.trim(), token: code, redirect: false, callbackUrl: '/' })
-      if (r?.error) { setError(t(lang, 'Code incorrect ou expiré.', 'Incorrect or expired code.')); setOtp('') }
-      else window.location.href = r?.url ?? '/'
-    } catch { setError(t(lang, 'Erreur réseau.', 'Network error.')) }
-    finally { setLoading(false) }
-  }
-
   return (
     <div className="flex flex-col items-center gap-6 w-full px-6">
       <div className="text-center space-y-1.5">
@@ -326,49 +272,23 @@ function SignupStep({ lang, onSkip }: { lang: Lang; onSkip: () => void }) {
         </p>
       </div>
 
-      {!otpSent ? (
-        <div className="flex flex-col gap-3 w-full max-w-xs">
-          <input
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && sendOtp()}
-            placeholder={t(lang, 'ton@email.com', 'your@email.com')}
-            className="w-full px-4 py-3.5 rounded-2xl bg-muted/40 border border-border text-foreground placeholder:text-muted-foreground text-sm outline-none focus:border-foreground/40 transition-colors"
-            autoCapitalize="none" autoCorrect="off"
-          />
-          {error && <p className="text-xs text-red-400 text-center">{error}</p>}
-          <button
-            onClick={sendOtp}
-            disabled={loading || !email.trim()}
-            className="flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-foreground text-background text-sm font-bold disabled:opacity-40 active:scale-[0.97] transition-transform cursor-pointer"
-          >
-            {loading ? <Loader2 size={16} className="animate-spin" /> : t(lang, 'Recevoir un code', 'Send me a code')}
-          </button>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center gap-4 w-full">
-          <p className="text-xs text-muted-foreground text-center">
-            {t(lang, `Code envoyé à ${email}`, `Code sent to ${email}`)}
-          </p>
-          <OTPInput
-            maxLength={6}
-            value={otp}
-            onChange={v => { setOtp(v); if (v.length === 6) verifyOtp(v) }}
-            containerClassName="flex gap-2"
-            render={({ slots }) => slots.map((s, i) => <Slot key={i} {...s} />)}
-          />
-          {loading && <Loader2 size={18} className="animate-spin text-muted-foreground" />}
-          {error && <p className="text-xs text-red-400 text-center">{error}</p>}
-        </div>
-      )}
-
-      <button
-        onClick={onSkip}
-        className="text-sm text-muted-foreground underline-offset-4 hover:underline cursor-pointer"
-      >
-        {t(lang, 'Pas maintenant', 'Not now')}
-      </button>
+      <div className="flex flex-col gap-3 w-full max-w-xs">
+        <button
+          onClick={() => {
+            try { localStorage.setItem('alchemy-open-tab', 'profile') } catch {}
+            window.location.href = '/'
+          }}
+          className="flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-foreground text-background text-sm font-bold active:scale-[0.97] transition-transform cursor-pointer"
+        >
+          {t(lang, 'Se connecter', 'Sign in')}
+        </button>
+        <button
+          onClick={onSkip}
+          className="py-3.5 rounded-2xl text-sm font-medium text-muted-foreground border border-border active:scale-[0.97] transition-transform cursor-pointer"
+        >
+          {t(lang, 'Plus tard', 'Not now')}
+        </button>
+      </div>
     </div>
   )
 }

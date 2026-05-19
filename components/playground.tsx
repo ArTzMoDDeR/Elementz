@@ -367,6 +367,17 @@ export function Playground({
   const [profileView, setProfileView] = useState<'profile' | 'leaderboard' | 'codex'>('profile')
   const [questBadge, setQuestBadge] = useState(false)
 
+  // On mount: check if /welcome asked us to open a specific tab (e.g. 'profile')
+  useEffect(() => {
+    try {
+      const tab = localStorage.getItem('alchemy-open-tab')
+      if (tab) {
+        localStorage.removeItem('alchemy-open-tab')
+        if (tab === 'profile') setActiveTab('profile')
+      }
+    } catch {}
+  }, [])
+
   // Reset mobile scroll to top whenever the active tab changes
   useEffect(() => {
     if (mobileScrollRef.current) mobileScrollRef.current.scrollTop = 0
