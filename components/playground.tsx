@@ -1016,7 +1016,7 @@ export function Playground({
                           }
                       )}
                     >
-                      <ElementBadge element={element} size={gridCols === 5 ? 'xs' : isMobile ? 'sm' : 'md'} fluid />
+                      <ElementBadge element={element} size={gridCols === 5 ? 'sm' : 'xl'} fluid />
                     </div>
                   ))}
                 </div>
