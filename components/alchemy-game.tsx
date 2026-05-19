@@ -635,6 +635,7 @@ export function AlchemyGame() {
         onRequestHint={requestHint}
         hintShouldPulse={shouldPulse}
         hintAdLocked={!isAdUnlocked}
+        onTutorialDiscover={discoverElements}
         hapticEnabled={hapticEnabled}
         onToggleHaptic={() => {
           const next = !hapticEnabled

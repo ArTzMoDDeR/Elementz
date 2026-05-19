@@ -10,6 +10,7 @@ import { LeaderboardModal } from './leaderboard-modal'
 import { ProfileModal } from './profile-modal'
 import { QuestInlinePanel } from './quest-panel'
 import { CodexInlinePanel } from './codex-panel'
+import { OnboardingModal } from './onboarding-modal'
 import EmailSignIn from '@/components/email-sign-in'
 import { signOut } from 'next-auth/react'
 import { useTheme } from 'next-themes'
@@ -61,6 +62,8 @@ interface PlaygroundProps {
   playgroundItemsCount?: number
   /** Increment to force the nav avatar to re-fetch from /api/profile */
   avatarRefreshKey?: number
+  /** Called when the in-playground tutorial discovers elements */
+  onTutorialDiscover?: (nums: number[]) => void
 }
 
 type SortType = 'name' | 'recent'
@@ -287,10 +290,11 @@ export function Playground({
   onUnlockAll, sessionUser, hintsEnabled, onToggleHints, onRequestHint, hintShouldPulse = false, hintAdLocked = true,
   hapticEnabled = true, onToggleHaptic, pushNotificationsEnabled = true, onTogglePushNotifications,
   suppressUnlockNotif = false, onToggleSuppressUnlockNotif, onTapModeChange, recipeMap,
-  playgroundItemsCount = 0, avatarRefreshKey = 0,
+  playgroundItemsCount = 0, avatarRefreshKey = 0, onTutorialDiscover,
 }: PlaygroundProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const inventoryRef = useRef<HTMLDivElement>(null)
+  const [showTutorial, setShowTutorial] = useState(false)
   const inventoryScrollRef = useRef<HTMLDivElement>(null)
   const mobileScrollRef = useRef<HTMLDivElement>(null)
 
@@ -1119,7 +1123,7 @@ export function Playground({
               )
             })}
 
-            {/* Center: Crown (game complete) or Hint button */}
+            {/* Center: Crown (game complete), Tutorial button (≤4 elements), or Hint button */}
             <div className="flex-1 flex flex-col items-center justify-center py-3">
               {discovered.size >= totalElements ? (
                 <div
@@ -1129,6 +1133,22 @@ export function Playground({
                 >
                   <span className="text-2xl leading-none" role="img" aria-label="crown">👑</span>
                 </div>
+              ) : discovered.size <= 4 ? (
+                /* Tutorial button — only shown while player has only the 4 base elements */
+                <button
+                  onPointerDown={e => e.stopPropagation()}
+                  onClick={e => { e.stopPropagation(); setShowTutorial(true) }}
+                  aria-label={lang === 'fr' ? 'Voir le tutoriel' : 'View tutorial'}
+                  className="tap-spring select-none active:scale-95 transition-all duration-200 flex items-center justify-center rounded-full animate-pulse-glow"
+                  style={{
+                    width: 44, height: 44,
+                    background: 'rgba(251,191,36,0.15)',
+                    border: '1.5px solid rgba(251,191,36,0.6)',
+                    boxShadow: '0 0 12px 2px rgba(251,191,36,0.25)',
+                  }}
+                >
+                  <Question size={22} weight="bold" className="text-amber-400" />
+                </button>
               ) : (
                 <button
                   onPointerDown={e => e.stopPropagation()}
@@ -2463,6 +2483,20 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
         )}
 
       </div>
+
+      {/* Fullscreen tutorial modal — shown when beginner taps the ? button */}
+      {showTutorial && elementsByName && recipeMap && (
+        <div className="fixed inset-0 z-[9999]" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          <OnboardingModal
+            elementsByName={elementsByName}
+            elements={elements}
+            recipeMap={recipeMap}
+            onTutorialDiscover={nums => onTutorialDiscover?.(nums)}
+            onLangChange={l => onSetLang?.(l)}
+            onComplete={() => setShowTutorial(false)}
+          />
+        </div>
+      )}
     </>
   )
 }
