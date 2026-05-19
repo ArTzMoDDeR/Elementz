@@ -29,14 +29,9 @@ workflows:
           BUILD_NUMBER=$(($(date +%s)))
           cd ios/App
           agvtool new-version -all $BUILD_NUMBER
-      - name: Fix LaunchScreen
+      - name: Restore LaunchScreen
         script: |
-          python3 -c "
-          content = '<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<document type=\"com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB\" version=\"3.0\" toolsVersion=\"17132\" targetRuntime=\"iOS.CocoaTouch\" propertyAccessControl=\"none\" useAutolayout=\"YES\" launchScreen=\"YES\" useTraitCollections=\"YES\" useSafeAreas=\"YES\" colorMatched=\"YES\" initialViewController=\"01J-lp-oVM\">\n    <device id=\"retina4_7\" orientation=\"portrait\" appearance=\"light\"/>\n    <dependencies>\n        <deployment identifier=\"iOS\"/>\n        <plugIn identifier=\"com.apple.InterfaceBuilder.IBCocoaTouchPlugin\" version=\"17105\"/>\n        <capability name=\"documents saved in the Xcode 8 format\" minToolsVersion=\"8.0\"/>\n    </dependencies>\n    <scenes>\n        <scene sceneID=\"EHf-IW-A2E\">\n            <objects>\n                <viewController id=\"01J-lp-oVM\" sceneMemberID=\"viewController\">\n                    <view key=\"view\" contentMode=\"scaleToFill\" id=\"snD-IY-ifK\">\n                        <rect key=\"frame\" x=\"0.0\" y=\"0.0\" width=\"375\" height=\"667\"/>\n                        <autoresizingMask key=\"autoresizingMask\" widthSizable=\"YES\" heightSizable=\"YES\"/>\n                        <color key=\"backgroundColor\" red=\"0.039\" green=\"0.055\" blue=\"0.067\" alpha=\"1\" colorSpace=\"custom\" customColorSpace=\"sRGBLinearColorSpace\"/>\n                    </view>\n                </viewController>\n                <placeholder placeholderIdentifier=\"IBFirstResponder\" id=\"iYj-Kq-Ea1\" userLabel=\"First Responder\" sceneMemberID=\"firstResponder\"/>\n            </objects>\n            <point key=\"canvasLocation\" x=\"53\" y=\"375\"/>\n        </scene>\n    </scenes>\n</document>'
-          with open('ios/App/App/Base.lproj/LaunchScreen.storyboard', 'w', encoding='utf-8', newline='\n') as f:
-              f.write(content)
-          print('LaunchScreen fixed!')
-          "
+          git checkout HEAD -- ios/App/App/Base.lproj/LaunchScreen.storyboard
       - name: Build iOS
         script: |
           xcodebuild \
