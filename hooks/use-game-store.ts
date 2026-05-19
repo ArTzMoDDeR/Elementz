@@ -12,6 +12,28 @@ const LANG_KEY = 'alchemy-lang'
 const getComboKey = (elementId: number) => `alchemy-combos-${elementId}`
 const getDailyKey = () => `alchemy-daily-${new Date().toISOString().slice(0, 10)}`
 
+// Haptic helper — uses the Capacitor native bridge directly (works in server-url mode
+// where npm packages aren't bundled into the remote JS). Falls back to navigator.vibrate on web.
+function triggerHaptic(style: 'medium' | 'heavy') {
+  if (typeof window === 'undefined') return
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cap = (window as any).Capacitor
+    if (cap?.isNativePlatform?.()) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const Haptics = cap.Plugins?.Haptics as any
+      if (Haptics?.impact) {
+        Haptics.impact({ style: style === 'heavy' ? 'HEAVY' : 'MEDIUM' })
+      }
+      return
+    }
+  } catch {}
+  // Web fallback
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate(style === 'heavy' ? [30, 20, 60] : 10)
+  }
+}
+
 function incrementLocalCounter(key: string) {
   try {
     const cur = parseInt(localStorage.getItem(key) ?? '0', 10)
@@ -468,26 +490,15 @@ export function useGameStore() {
         newlyDiscoveredTimerRef.current = null
       }, 3000)
 
-      // Heavy haptic for new discovery on native, pattern fallback on web
+      // Heavy haptic for new discovery
+      // Use Capacitor bridge directly — works even in server-url mode where npm packages aren't bundled
       if (hapticEnabledRef.current) {
-        if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
-          import('@capacitor/haptics').then(({ Haptics, ImpactStyle }) => {
-            Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {})
-          }).catch(() => {})
-        } else if (typeof navigator !== 'undefined' && navigator.vibrate) {
-          navigator.vibrate([30, 20, 60])
-        }
+        triggerHaptic('heavy')
       }
     } else if (results.length > 0) {
       // Known combination — Medium haptic
       if (hapticEnabledRef.current) {
-        if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
-          import('@capacitor/haptics').then(({ Haptics, ImpactStyle }) => {
-            Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {})
-          }).catch(() => {})
-        } else if (typeof navigator !== 'undefined' && navigator.vibrate) {
-          navigator.vibrate(10)
-        }
+        triggerHaptic('medium')
       }
     }
 
