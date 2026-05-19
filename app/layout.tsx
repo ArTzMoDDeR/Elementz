@@ -96,6 +96,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className="bg-background">
       <head>
         <meta name="google-adsense-account" content="ca-pub-2003923325493504" />
+        <meta name="apple-itunes-app" content="app-id=6770547790" />
       </head>
       <body className="font-sans antialiased">
         <SessionProvider>

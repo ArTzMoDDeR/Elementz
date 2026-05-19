@@ -108,7 +108,7 @@ function Tile({ el, hidden = false, size = 'md' }: {
   if (hidden || !el) {
     return (
       <div className={`${dim} rounded-2xl bg-white/[0.04] border-2 border-dashed border-white/10 flex items-center justify-center flex-shrink-0`}>
-        <Lock className="w-4 h-4 text-white/15" />
+        <span className="text-2xl font-bold text-white/20 select-none">?</span>
       </div>
     )
   }
