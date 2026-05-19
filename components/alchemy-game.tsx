@@ -516,10 +516,18 @@ export function AlchemyGame() {
         // Show onboarding if never done (onboarding handles push prompt internally via its last step).
         // If the localStorage flag is set, the user completed onboarding as a guest but the PATCH
         // failed (no session). Silently save it now and skip re-showing the modal.
-        if (!d.onboarding_done) {
+        let guestMigrated = false
+        try { guestMigrated = localStorage.getItem('alchemy-guest-migrated') === '1' } catch {}
+
+        if (!d.onboarding_done || guestMigrated) {
+          // Consume migration flag immediately
+          if (guestMigrated) {
+            try { localStorage.removeItem('alchemy-guest-migrated') } catch {}
+          }
           let guestDone = false
           try { guestDone = localStorage.getItem('onboarding-done') === '1' } catch {}
-          if (guestDone) {
+          if (guestDone && !guestMigrated) {
+            // Guest already did onboarding but PATCH failed — save silently
             try { localStorage.removeItem('onboarding-done') } catch {}
             fetch('/api/profile', {
               method: 'PATCH',

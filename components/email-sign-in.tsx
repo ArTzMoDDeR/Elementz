@@ -85,6 +85,17 @@ export default function EmailSignIn({ lang }: Props) {
         setError(t('Code incorrect ou expir\u00e9.', 'Incorrect or expired code.'))
         setOtp('')
       } else {
+        // Save guest progress snapshot before reload so use-game-store can migrate it into the DB
+        try {
+          const STORAGE_KEY = 'alchemy-discovered-v4'
+          const saved = localStorage.getItem(STORAGE_KEY)
+          if (saved) {
+            const ids: number[] = JSON.parse(saved)
+            if (ids.length > 4) {
+              localStorage.setItem('alchemy-guest-snapshot', saved)
+            }
+          }
+        } catch {}
         window.location.reload()
       }
     } catch {

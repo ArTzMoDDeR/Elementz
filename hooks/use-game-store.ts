@@ -8,7 +8,8 @@ import { recipes as rawRecipes } from '@/lib/data/recipes.js'
 
 const STORAGE_KEY = 'alchemy-discovered-v4'  // bumped — now stores numbers
 const LANG_KEY = 'alchemy-lang'
-const COMBOS_KEY = 'alchemy-combos-v1'
+// Per-element combo counter key — each element gets its own counter
+const getComboKey = (elementId: number) => `alchemy-combos-${elementId}`
 const getDailyKey = () => `alchemy-daily-${new Date().toISOString().slice(0, 10)}`
 
 function incrementLocalCounter(key: string) {
@@ -276,7 +277,6 @@ export function useGameStore() {
         })
 
         // Guest migration: if we have a pre-login snapshot, merge it into DB
-        // regardless of how many elements the DB already has (onboarding adds some)
         if (guestSnapshot.size > 0) {
           guestSnapshot.forEach(n => validDisc.add(n))
           const toSave = [...guestSnapshot].filter(n => !baseNums.has(n) && !progressData.discovered.includes(n))
@@ -287,6 +287,9 @@ export function useGameStore() {
               body: JSON.stringify({ discovered: toSave, combo_ingredients: [] }),
             }).catch(() => {})
           }
+          // Signal to alchemy-game that a guest migration just happened
+          // so onboarding is shown even if onboarding_done is already true in DB
+          try { localStorage.setItem('alchemy-guest-migrated', '1') } catch {}
         }
 
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...validDisc])) } catch {}
@@ -469,9 +472,11 @@ export function useGameStore() {
       }
     }
 
-    // Guest tracking — increment combo count and daily discovery count in localStorage
+    // Guest tracking — increment per-element combo counters + daily discovery count
     if (!session?.user?.id) {
-      incrementLocalCounter(COMBOS_KEY)
+      // Increment the counter for each ingredient that was used in this combo
+      incrementLocalCounter(getComboKey(ingredientA))
+      if (ingredientB !== ingredientA) incrementLocalCounter(getComboKey(ingredientB))
       if (newResults.length > 0) incrementLocalCounter(getDailyKey())
     }
 
