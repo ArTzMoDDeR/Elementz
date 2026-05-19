@@ -53,12 +53,12 @@ export default function LegalLayout({
 
   return (
     <main
-      className="min-h-screen bg-background text-foreground"
+      className="h-screen bg-background text-foreground flex flex-col overflow-hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       {/* Sticky top bar — handles safe area top itself */}
       <div
-        className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border/40"
+        className="flex-shrink-0 z-10 bg-background/80 backdrop-blur-md border-b border-border/40"
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
@@ -95,7 +95,11 @@ export default function LegalLayout({
         </div>
       </div>
 
-      {/* Content */}
+      {/* Content — flex-1 + overflow-y-auto for Capacitor WebView scroll */}
+      <div
+        className="flex-1 overflow-y-auto"
+        style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+      >
       <div className="max-w-2xl mx-auto px-5 py-10">
 
         {/* Title block */}
@@ -118,6 +122,7 @@ export default function LegalLayout({
         <div className="mt-14 pt-6 border-t border-border/40 flex flex-wrap gap-x-6 gap-y-2 text-xs text-muted-foreground/50">
           {isFr ? footerFr : footerEn}
         </div>
+      </div>
       </div>
     </main>
   )
