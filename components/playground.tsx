@@ -745,24 +745,7 @@ export function Playground({
           >
             <div className="px-4 py-4">
 
-              {/* ── Quests: logged in ── */}
-              {activeTab === 'quests' && sessionUser && <QuestInlinePanel lang={lang} onGoToPlay={() => setActiveTab('home')} />}
-
-              {/* ── Quests: logged out ── */}
-              {activeTab === 'quests' && !sessionUser && (
-                <div className="flex flex-col items-center justify-center gap-5 min-h-[60vh] text-center px-4">
-                  <div className="w-14 h-14 rounded-2xl bg-muted/50 border border-border flex items-center justify-center">
-                    <Scroll size={24} weight="regular" className="text-foreground/40" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">{lang === 'fr' ? 'Non connecté' : 'Not signed in'}</p>
-                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{lang === 'fr' ? 'Connecte-toi pour accéder aux quêtes' : 'Sign in to access quests'}</p>
-                  </div>
-                  <div className="flex flex-col gap-2 w-full max-w-xs">
-                    <EmailSignIn lang={lang} />
-                  </div>
-                </div>
-              )}
+              {activeTab === 'quests' && <QuestInlinePanel lang={lang} onGoToPlay={() => setActiveTab('home')} />}
 
               {/* ── Settings ── */}
               {activeTab === 'settings' && (
@@ -1037,22 +1020,7 @@ export function Playground({
           ) : (
             <div className="h-full overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div className="px-4 py-4">
-                {activeTab === 'quests' && sessionUser && <QuestInlinePanel lang={lang} onGoToPlay={() => setActiveTab('home')} />}
-
-                {activeTab === 'quests' && !sessionUser && (
-                  <div className="flex flex-col items-center gap-4 py-6">
-                    <div className="w-14 h-14 rounded-2xl bg-muted/50 border border-border flex items-center justify-center">
-                      <Scroll size={24} weight="regular" className="text-foreground/40" />
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm font-semibold text-foreground">{lang === 'fr' ? 'Non connecté' : 'Not signed in'}</p>
-                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{lang === 'fr' ? 'Connecte-toi pour accéder aux quêtes' : 'Sign in to access quests'}</p>
-                    </div>
-                    <div className="flex flex-col gap-2 w-full">
-                      <EmailSignIn lang={lang} />
-                    </div>
-                  </div>
-                )}
+                {activeTab === 'quests' && <QuestInlinePanel lang={lang} onGoToPlay={() => setActiveTab('home')} />}
                 {activeTab === 'settings' && (
                   <SettingsPanel
                     lang={lang}
