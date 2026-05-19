@@ -277,7 +277,6 @@ export function useGameStore() {
         })
 
         // Guest migration: if we have a pre-login snapshot, merge it into DB
-        // regardless of how many elements the DB already has (onboarding adds some)
         if (guestSnapshot.size > 0) {
           guestSnapshot.forEach(n => validDisc.add(n))
           const toSave = [...guestSnapshot].filter(n => !baseNums.has(n) && !progressData.discovered.includes(n))
@@ -288,6 +287,9 @@ export function useGameStore() {
               body: JSON.stringify({ discovered: toSave, combo_ingredients: [] }),
             }).catch(() => {})
           }
+          // Signal to alchemy-game that a guest migration just happened
+          // so onboarding is shown even if onboarding_done is already true in DB
+          try { localStorage.setItem('alchemy-guest-migrated', '1') } catch {}
         }
 
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...validDisc])) } catch {}
