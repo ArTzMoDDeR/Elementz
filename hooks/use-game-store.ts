@@ -59,17 +59,14 @@ function getColor(nameFr: string): string {
   return palette[hash % palette.length]
 }
 
+// All images are local — always /elements/[id].webp
+// Keep proxyImg as a passthrough for any legacy URLs that might still exist
 function proxyImg(url: string | null): string | null {
   if (!url) return null
-  // Cloudinary URLs: extract element number and serve local webp instead
-  if (url.includes('cloudinary.com')) {
-    const match = url.match(/element-(\d+)\.webp/)
-    if (match) return `/elements/${match[1]}.webp`
-    return null
-  }
-  if (url.includes('.blob.vercel-storage.com')) return `/api/img?url=${encodeURIComponent(url)}`
-  // Strip stale .png extension if present (e.g. "1.png.webp" → "1.webp")
-  if (url.endsWith('.png.webp')) return url.replace('.png.webp', '.webp')
+  if (url.startsWith('/elements/')) return url
+  // Legacy Cloudinary: extract id and serve local
+  const cloudMatch = url.match(/element-(\d+)\.webp/) ?? url.match(/\/(\d+)\.webp/)
+  if (cloudMatch) return `/elements/${cloudMatch[1]}.webp`
   return url
 }
 
@@ -476,6 +473,13 @@ export function useGameStore() {
     if (!session?.user?.id) {
       incrementLocalCounter(COMBOS_KEY)
       if (newResults.length > 0) incrementLocalCounter(getDailyKey())
+    }
+
+    // Notify quest panel in real-time (works for both guests and logged-in users)
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('quest-progress', {
+        detail: { newDiscoveries: newResults, isNewDiscovery: newResults.length > 0 }
+      }))
     }
 
     // Buffer discoveries + the ingredient pair — flushed to DB immediately on new discovery
