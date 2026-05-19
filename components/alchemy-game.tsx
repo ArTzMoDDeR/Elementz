@@ -822,46 +822,6 @@ export function AlchemyGame() {
         />
       )}
 
-      {/* ── AdMob banner (native only) ───────────────────────────── */}
-      <AdMobBanner />
     </div>
   )
-}
-
-// ── AdMob Banner component — mounts/unmounts with the game ───────────────────
-function AdMobBanner() {
-  useEffect(() => {
-    // @ts-ignore
-    if (typeof window === 'undefined' || !window.Capacitor?.isNativePlatform?.()) return
-
-    async function showBanner() {
-      try {
-        const { AdMob, BannerAdSize, BannerAdPosition } = await import('@capacitor-community/admob')
-        // Test banner ID — swap for production: ca-app-pub-2003923325493504/XXXXXXXXXX
-        await AdMob.showBanner({
-          adId: 'ca-app-pub-3940256099942544/6300978111',
-          adSize: BannerAdSize.ADAPTIVE_BANNER,
-          position: BannerAdPosition.BOTTOM_CENTER,
-          margin: 0,
-          isTesting: true,
-        })
-      } catch (err) {
-        console.error('[admob] banner error', err)
-      }
-    }
-
-    showBanner()
-
-    return () => {
-      async function hideBanner() {
-        try {
-          const { AdMob } = await import('@capacitor-community/admob')
-          await AdMob.removeBanner()
-        } catch {}
-      }
-      hideBanner()
-    }
-  }, [])
-
-  return null
 }
