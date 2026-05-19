@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSession } from 'next-auth/react'
+import { quests as ALL_QUESTS } from '@/lib/data/quests'
 import {
   Sparkles, Star, Droplets, Flame, Wind, Mountain, Sun, Compass, Crown,
   Gem, CheckCircle2, Microscope, FlaskConical, Trophy, ArrowLeft,
@@ -428,8 +429,6 @@ function ScratchModal({ quest, lang, onScratch, onClose, onGoToPlay }: {
 // ─── QuestInlinePanel ─────────────────────────────────────────────────────────
 
 // ─── Local quest definitions for guests (no DB needed) ───────────────────────
-import { quests as ALL_QUESTS } from '@/lib/data/quests'
-
 const GUEST_QUESTS_KEY = 'alchemy-guest-quests-v1'
 const GUEST_DISCOVERED_KEY = 'alchemy-discovered-v4'
 const GUEST_COMBOS_KEY = 'alchemy-combos-v1'
