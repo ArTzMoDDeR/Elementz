@@ -9,56 +9,10 @@ import { RewardedAdModal } from './rewarded-ad-modal'
 import { useGameStore } from '@/hooks/use-game-store'
 import { useHint } from '@/hooks/use-hint'
 import { capacitorSubscribeToPush, capacitorUnsubscribeFromPush, isPushDenied } from '@/hooks/use-capacitor-push'
-import { Lightbulb, Trash2, BarChart2, Hand, MousePointer, Lock } from 'lucide-react'
+import { Lightbulb, Trash2, BarChart2, Hand, MousePointer } from 'lucide-react'
 import { type ElementDef } from '@/lib/game-data'
-import EmailSignIn from '@/components/email-sign-in'
 
 const PROGRESS_MILESTONES = [10, 20, 50, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900]
-const GUEST_WALL_THRESHOLD = 20
-
-// ─── Guest wall overlay — shown when a non-logged-in user hits 20 elements ───
-function GuestWallOverlay({ lang }: { lang: string }) {
-  const t = (fr: string, en: string) => lang === 'fr' ? fr : en
-  return (
-    <div className="fixed inset-0 z-[9990] flex flex-col items-center justify-center bg-background/95 backdrop-blur-sm px-6" style={{ paddingBottom: 'env(safe-area-inset-bottom)', paddingTop: 'env(safe-area-inset-top)' }}>
-      <div className="w-full max-w-sm flex flex-col items-center gap-6">
-
-        {/* Icon */}
-        <div className="relative">
-          <div className="w-16 h-16 rounded-2xl bg-foreground/8 border border-border flex items-center justify-center">
-            <Lock className="w-8 h-8 text-foreground/60" />
-          </div>
-          <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-foreground text-background flex items-center justify-center">
-            <span className="text-[9px] font-bold">{GUEST_WALL_THRESHOLD}</span>
-          </div>
-        </div>
-
-        {/* Text */}
-        <div className="text-center space-y-2">
-          <h2 className="text-2xl font-bold text-foreground text-balance">
-            {t('Crée un compte pour continuer', 'Create an account to continue')}
-          </h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            {t(
-              `Tu as découvert ${GUEST_WALL_THRESHOLD} éléments ! Crée un compte gratuit pour sauvegarder ta progression.`,
-              `You've discovered ${GUEST_WALL_THRESHOLD} elements! Create a free account to save your progress.`
-            )}
-          </p>
-        </div>
-
-        {/* Sign-in */}
-        <div className="flex flex-col gap-2 w-full">
-
-          <EmailSignIn lang={lang as 'fr' | 'en'} />
-        </div>
-
-        <p className="text-[11px] text-muted-foreground/35 text-center leading-relaxed">
-          {t('Gratuit, sans abonnement. Ta progression sera sauvegardée.', 'Free, no subscription. Your progress will be saved.')}
-        </p>
-      </div>
-    </div>
-  )
-}
 
 function PushPromptModal({ lang, onAccept, onDecline }: { lang: string; onAccept: () => void; onDecline: () => void }) {
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
@@ -610,9 +564,6 @@ export function AlchemyGame() {
     )
   }
 
-  // Guest wall: shown when not logged-in and reached the threshold
-  const showGuestWall = !session && initialized && discovered.size >= GUEST_WALL_THRESHOLD
-
   return (
     <div className="game-container bg-background">
       {showOnboarding && (
@@ -624,10 +575,6 @@ export function AlchemyGame() {
           onTutorialDiscover={discoverElements}
           onLangChange={setLang}
         />
-      )}
-
-      {showGuestWall && (
-        <GuestWallOverlay lang={lang} />
       )}
 
       {/* One-time push notification permission prompt for existing users */}

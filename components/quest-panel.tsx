@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useSession } from 'next-auth/react'
 import {
   Sparkles, Star, Droplets, Flame, Wind, Mountain, Sun, Compass, Crown,
   Gem, CheckCircle2, Microscope, FlaskConical, Trophy, ArrowLeft,
@@ -426,14 +427,47 @@ function ScratchModal({ quest, lang, onScratch, onClose, onGoToPlay }: {
 
 // ─── QuestInlinePanel ─────────────────────────────────────────────────────────
 
+// ─── Local quest definitions for guests (no DB needed) ───────────────────────
+const GUEST_QUEST_DEFS = [
+  { id: -1, type: 'discover_n', title_fr: 'Premiers pas', title_en: 'First steps', desc_fr: 'Découvre 10 éléments', desc_en: 'Discover 10 elements', target_value: 10, icon: 'Star', sort_order: 1, is_daily: false },
+  { id: -2, type: 'discover_n', title_fr: 'Explorateur', title_en: 'Explorer', desc_fr: 'Découvre 25 éléments', desc_en: 'Discover 25 elements', target_value: 25, icon: 'Compass', sort_order: 2, is_daily: false },
+  { id: -3, type: 'discover_n', title_fr: 'Alchimiste', title_en: 'Alchemist', desc_fr: 'Découvre 50 éléments', desc_en: 'Discover 50 elements', target_value: 50, icon: 'FlaskConical', sort_order: 3, is_daily: false },
+  { id: -4, type: 'discover_n', title_fr: 'Maître alchimiste', title_en: 'Master alchemist', desc_fr: 'Découvre 100 éléments', desc_en: 'Discover 100 elements', target_value: 100, icon: 'Trophy', sort_order: 4, is_daily: false },
+]
+const GUEST_QUESTS_KEY = 'alchemy-guest-quests-v1'
+const GUEST_DISCOVERED_KEY = 'alchemy-discovered-v4'
+
+function getGuestQuests(): Quest[] {
+  const raw = typeof window !== 'undefined' ? localStorage.getItem(GUEST_DISCOVERED_KEY) : null
+  const discovered: number = raw ? (JSON.parse(raw) as number[]).length : 0
+  const claimed: number[] = JSON.parse(typeof window !== 'undefined' ? (localStorage.getItem(GUEST_QUESTS_KEY) ?? '[]') : '[]')
+  return GUEST_QUEST_DEFS.map(q => ({
+    ...q,
+    difficulty: 'easy' as const,
+    progress: Math.min(discovered, q.target_value),
+    completed_at: discovered >= q.target_value ? 'local' : null,
+    claimed_at: claimed.includes(q.id) ? 'local' : null,
+    reset_at: null,
+    rewards: [],
+    is_expired: false,
+  })) as unknown as Quest[]
+}
+
 export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGoToPlay?: () => void }) {
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
+  const { data: session } = useSession()
+  const isGuest = !session?.user?.id
 
   const [quests, setQuests] = useState<Quest[]>([])
   const [loading, setLoading] = useState(true)
   const [scratchQuestId, setScratchQuestId] = useState<number | null>(null)
 
-  const fetchQuests = async () => {
+  const fetchQuests = useCallback(async () => {
+    if (isGuest) {
+      setQuests(getGuestQuests())
+      setLoading(false)
+      return getGuestQuests()
+    }
     const res = await fetch('/api/quests')
     if (res.ok) {
       const data = await res.json()
@@ -444,7 +478,7 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
     }
     setLoading(false)
     return [] as Quest[]
-  }
+  }, [isGuest])
 
   useEffect(() => {
     fetchQuests()
@@ -457,15 +491,23 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
       document.removeEventListener('visibilitychange', handler)
       clearInterval(id)
     }
-  }, [])
+  }, [fetchQuests])
 
   const handleClaim = async (questId: number) => {
+    if (isGuest) {
+      // Save claimed quest to localStorage
+      const claimed: number[] = JSON.parse(localStorage.getItem(GUEST_QUESTS_KEY) ?? '[]')
+      if (!claimed.includes(questId)) {
+        localStorage.setItem(GUEST_QUESTS_KEY, JSON.stringify([...claimed, questId]))
+      }
+      await fetchQuests()
+      return
+    }
     const res = await fetch('/api/quests', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ quest_id: questId }),
     })
-    // Fetch fresh quests first, then open the scratch modal with confirmed data
     const fresh = await fetchQuests()
     if (res.ok) {
       const claimed = fresh.find(q => q.id === questId)
@@ -476,6 +518,10 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
   }
 
   const handleScratch = async (questId: number, slot: number) => {
+    if (isGuest) {
+      await fetchQuests()
+      return
+    }
     await fetch('/api/quests', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
