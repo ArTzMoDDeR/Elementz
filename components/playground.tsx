@@ -56,8 +56,7 @@ interface PlaygroundProps {
   onToggleHaptic?: () => void
   pushNotificationsEnabled?: boolean
   onTogglePushNotifications?: () => void
-  suppressUnlockNotif?: boolean
-  onToggleSuppressUnlockNotif?: () => void
+
   onTapModeChange?: (enabled: boolean) => void
   recipeMap?: Map<string, number[]>
   playgroundItemsCount?: number
@@ -290,7 +289,7 @@ export function Playground({
   onDrop, onMove, onMerge, onDropAndMerge, onRemove, onClear, onReset,
   onUnlockAll, sessionUser, hintsEnabled, onToggleHints, onRequestHint, hintShouldPulse = false, hintAdLocked = true,
   hapticEnabled = true, onToggleHaptic, pushNotificationsEnabled = true, onTogglePushNotifications,
-  suppressUnlockNotif = false, onToggleSuppressUnlockNotif, onTapModeChange, recipeMap,
+  onTapModeChange, recipeMap,
   playgroundItemsCount = 0, avatarRefreshKey = 0, onTutorialDiscover,
 }: PlaygroundProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -769,8 +768,7 @@ export function Playground({
                   onToggleHaptic={onToggleHaptic}
                   pushNotificationsEnabled={pushNotificationsEnabled}
                   onTogglePushNotifications={onTogglePushNotifications}
-                  suppressUnlockNotif={suppressUnlockNotif}
-                  onToggleSuppressUnlockNotif={onToggleSuppressUnlockNotif}
+
                   mergeFlashEnabled={mergeFlashEnabled}
                   onToggleMergeFlash={() => setMergeFlashEnabled(!mergeFlashEnabled)}
                   onOpenHelp={() => setActiveTab('help')}
@@ -1607,7 +1605,7 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
   tapMode: boolean; onToggleTapMode: () => void
   hapticEnabled?: boolean; onToggleHaptic?: () => void
   pushNotificationsEnabled?: boolean; onTogglePushNotifications?: () => void
-  suppressUnlockNotif?: boolean; onToggleSuppressUnlockNotif?: () => void
+
   mergeFlashEnabled: boolean; onToggleMergeFlash: () => void
   onOpenHelp?: () => void
   sessionUser?: { id?: string | null; name?: string | null; email?: string | null } | null
@@ -1739,19 +1737,7 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
             </div>
           )}
 
-          {/* Unlock notification bubbles */}
-          {sessionUser && (
-            <div className="flex items-center gap-3 px-4 py-3.5">
-              <div className="w-8 h-8 rounded-xl bg-muted/60 flex items-center justify-center flex-shrink-0">
-                <Bell size={16} weight="regular" className="text-muted-foreground/70" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">{t('Bulles de découverte', 'Discovery bubbles')}</p>
-                <p className="text-xs text-muted-foreground/50 mt-0.5">{t('Afficher quand un nouvel élément est débloqué', 'Show when a new element is unlocked')}</p>
-              </div>
-              <Toggle on={!suppressUnlockNotif} onToggle={() => onToggleSuppressUnlockNotif?.()} />
-            </div>
-          )}
+
         </div>
       </div>
 
