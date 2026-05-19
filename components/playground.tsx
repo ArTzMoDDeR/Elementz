@@ -2494,6 +2494,7 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
             onTutorialDiscover={nums => onTutorialDiscover?.(nums)}
             onLangChange={l => onSetLang?.(l)}
             onComplete={() => setShowTutorial(false)}
+            initialStep="combine"
           />
         </div>
       )}
