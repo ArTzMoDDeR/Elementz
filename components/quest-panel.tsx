@@ -601,19 +601,8 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
 
   const handleScratch = async (questId: number, slot: number) => {
     if (isGuest) {
-      // Find the reward being scratched
-      const quest = quests.find(q => q.id === questId)
-      const reward = quest?.rewards.find(r => r.slot === slot)
-
-      // Unlock the ingredient element in localStorage when scratched
-      if (reward?.result_number != null) {
-        const discovered: number[] = JSON.parse(localStorage.getItem(GUEST_DISCOVERED_KEY) ?? '[]')
-        if (!discovered.includes(reward.result_number)) {
-          localStorage.setItem(GUEST_DISCOVERED_KEY, JSON.stringify([...discovered, reward.result_number]))
-        }
-      }
-
-      // Mark as scratched in local state
+      // Only mark as scratched — do NOT unlock the element.
+      // The quest reveals the recipe so the player can make the combo themselves.
       setQuests(prev => prev.map(q =>
         q.id === questId
           ? { ...q, rewards: q.rewards.map(r => r.slot === slot ? { ...r, scratched_at: new Date().toISOString() } : r) }
