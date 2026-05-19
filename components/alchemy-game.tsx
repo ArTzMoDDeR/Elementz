@@ -294,7 +294,7 @@ export function AlchemyGame() {
   const [showPushPrompt, setShowPushPrompt] = useState(false)
   const [avatarRefreshKey, setAvatarRefreshKey] = useState(0)
   const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(false)
-  const [suppressUnlockNotif, setSuppressUnlockNotif] = useState(true)
+
 
   const {
     lang,
@@ -499,7 +499,7 @@ export function AlchemyGame() {
         if (typeof d.push_notifications === 'boolean') {
           setPushNotificationsEnabled(d.push_notifications)
         }
-        if (typeof d.suppress_unlock_notif === 'boolean') setSuppressUnlockNotif(d.suppress_unlock_notif)
+
         // Show one-time push prompt for users who haven't been asked yet
         // Skip if onboarding is pending — onboarding already has its own notifications step
         if (!d.push_prompt_shown && d.onboarding_done) {
@@ -667,14 +667,7 @@ export function AlchemyGame() {
             }
           }
         }}
-        suppressUnlockNotif={suppressUnlockNotif}
-        onToggleSuppressUnlockNotif={() => {
-          const next = !suppressUnlockNotif
-          setSuppressUnlockNotif(next)
-          if (session?.user?.id) {
-            fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ suppress_unlock_notif: next }) })
-          }
-        }}
+
         onTapModeChange={handleTapModeChange}
 
         playgroundItemsCount={playground.length}
@@ -767,16 +760,7 @@ export function AlchemyGame() {
         />
       )}
 
-      {/* ── iOS-style top discovery pill ─────────────────────────── */}
-      {!suppressUnlockNotif && !questReveal && (
-        <DiscoveryPill
-          newlyDiscovered={newlyDiscovered}
-          lastComboIngredients={lastComboIngredients}
-          elements={elements}
-          lang={lang}
-          onDismiss={handleDismissNotification}
-        />
-      )}
+
 
     </div>
   )
