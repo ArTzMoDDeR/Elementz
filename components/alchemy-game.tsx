@@ -294,7 +294,7 @@ export function AlchemyGame() {
   const [showPushPrompt, setShowPushPrompt] = useState(false)
   const [avatarRefreshKey, setAvatarRefreshKey] = useState(0)
   const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(false)
-  const [suppressUnlockNotif, setSuppressUnlockNotif] = useState(false)
+  const [suppressUnlockNotif, setSuppressUnlockNotif] = useState(true)
 
   const {
     lang,

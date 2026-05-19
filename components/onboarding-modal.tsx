@@ -14,6 +14,8 @@ type Props = {
   onComplete: (prefs: { lang: 'fr' | 'en'; theme: 'dark' | 'light'; haptic: boolean; username: string; avatar: string; enablePush: boolean }) => void
   onTutorialDiscover: (nums: number[]) => void
   onLangChange?: (lang: 'fr' | 'en') => void
+  /** When set, skip straight to this step (e.g. 'combine' for in-game tutorial) */
+  initialStep?: Step
 }
 
 const STEPS = ['lang', 'theme', 'combine', 'hints-quests', 'username', 'notifications'] as const
@@ -31,7 +33,7 @@ type MiniDrag = { id: string; offsetX: number; offsetY: number; pointerId: numbe
 const MERGE_DIST_PCT = 22
 
 // ── Cinematic combine arena ────────────────────────────────────────────────────
-function CombineArena({
+export function CombineArena({
   lang,
   elements,
   recipeMap,
@@ -484,8 +486,9 @@ function CombineArena({
 
 // ─── Main OnboardingModal ─────────────────────────────────────────────────────
 
-export function OnboardingModal({ elementsByName, elements, recipeMap, onComplete, onTutorialDiscover, onLangChange }: Props) {
-  const [step, setStep]               = useState<Step>('lang')
+export function OnboardingModal({ elementsByName, elements, recipeMap, onComplete, onTutorialDiscover, onLangChange, initialStep }: Props) {
+  const [step, setStep]               = useState<Step>(initialStep ?? 'lang')
+  const isTutorialMode = initialStep != null
   const [lang, setLang]               = useState<'fr' | 'en'>('fr')
   const [selectedTheme, setTheme]     = useState<'dark' | 'light' | null>(null)
   const [username, setUsername]       = useState('')
@@ -601,8 +604,16 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
         className={`flex items-center gap-3 px-4 sm:px-8 flex-shrink-0 transition-opacity duration-150 ${isCinematic ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)', paddingBottom: '0.75rem' }}
       >
-        {/* Back button — shown on all steps except lang */}
-        {step !== 'lang' ? (
+        {/* In tutorial mode: close button. In onboarding: back button */}
+        {isTutorialMode ? (
+          <button
+            onClick={() => onComplete({ lang, theme: selectedTheme ?? 'dark', haptic: false, username: '', avatar: '', enablePush: false })}
+            className="flex items-center justify-center w-9 h-9 rounded-full border border-border/50 bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all flex-shrink-0 cursor-pointer"
+            aria-label={t('Fermer', 'Close')}
+          >
+            ✕
+          </button>
+        ) : step !== 'lang' ? (
           <button
             onClick={handleBack}
             className="flex items-center gap-1.5 h-9 pl-2.5 pr-3.5 rounded-full border border-border/50 bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all flex-shrink-0 text-sm font-medium cursor-pointer"
@@ -613,7 +624,8 @@ export function OnboardingModal({ elementsByName, elements, recipeMap, onComplet
           </button>
         ) : (
           <div className="w-16 flex-shrink-0" />
-        )}
+        )
+        }
 
         {/* Progress bar — only for steps after lang */}
         <div className="flex flex-1 items-center gap-1.5">

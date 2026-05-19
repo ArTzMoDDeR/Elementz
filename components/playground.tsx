@@ -1,16 +1,17 @@
 'use client'
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ElementBadge } from './element-badge'
 import { Search, X, ArrowLeft, ChevronUp, ChevronDown, ChevronRight, Lightbulb, Trash2, Pencil, Check, LogOut, Eye, EyeOff, Medal, Atom as AtomIcon, Star, Shield, Trophy, Sun, Moon, Play, Info } from 'lucide-react'
-import { HouseSimple, Bell, Gear, Lifebuoy, Question, User, UserCircle, Scroll, Books, Hand, Lightning } from '@phosphor-icons/react'
+import { HouseSimple, Bell, Gear, Lifebuoy, Question, User, UserCircle, Scroll, Books, Hand, Lightning, Sparkle } from '@phosphor-icons/react'
 import type { ElementDef, PlaygroundItem } from '@/lib/game-data'
 import { HelpModal } from './help-modal'
 import { LeaderboardModal } from './leaderboard-modal'
 import { ProfileModal } from './profile-modal'
 import { QuestInlinePanel } from './quest-panel'
 import { CodexInlinePanel } from './codex-panel'
-import { OnboardingModal } from './onboarding-modal'
+import { GuestOnboardingModal } from './guest-onboarding-modal'
 import EmailSignIn from '@/components/email-sign-in'
 import { signOut } from 'next-auth/react'
 import { useTheme } from 'next-themes'
@@ -356,8 +357,8 @@ export function Playground({
   const isMobile = useIsMobile()
   const playgroundBadgeSize = (isMobile ? 'xl' : '2xl') as 'xl' | '2xl'
   const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState<SortType>('name')
-  const [sortReverse, setSortReverse] = useState(false)
+  const [sortBy, setSortBy] = useState<SortType>('recent')
+  const [sortReverse, setSortReverse] = useState(true)
   const [helpOpen, setHelpOpen] = useState(false)
   const [hintIdleGlow, setHintIdleGlow] = useState(false)
   const hintIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -1137,17 +1138,20 @@ export function Playground({
                 /* Tutorial button — only shown while player has only the 4 base elements */
                 <button
                   onPointerDown={e => e.stopPropagation()}
-                  onClick={e => { e.stopPropagation(); setShowTutorial(true) }}
+                  onClick={e => {
+                    e.stopPropagation()
+                    setShowTutorial(true)
+                  }}
                   aria-label={lang === 'fr' ? 'Voir le tutoriel' : 'View tutorial'}
-                  className="tap-spring select-none active:scale-95 transition-all duration-200 flex items-center justify-center rounded-full animate-pulse-glow"
+                  className="tap-spring select-none active:scale-95 transition-all duration-200 flex items-center justify-center rounded-full"
                   style={{
                     width: 44, height: 44,
                     background: 'rgba(251,191,36,0.15)',
                     border: '1.5px solid rgba(251,191,36,0.6)',
-                    boxShadow: '0 0 12px 2px rgba(251,191,36,0.25)',
+                    boxShadow: '0 0 14px 3px rgba(251,191,36,0.30)',
                   }}
                 >
-                  <Question size={22} weight="bold" className="text-amber-400" />
+                  <span className="text-amber-400 font-bold text-lg leading-none">?</span>
                 </button>
               ) : (
                 <button
@@ -2484,18 +2488,17 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
 
       </div>
 
-      {/* Fullscreen tutorial modal — shown when beginner taps the ? button */}
-      {showTutorial && elementsByName && recipeMap && (
-        <div className="fixed inset-0 z-[9999]" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
-          <OnboardingModal
-            elementsByName={elementsByName}
-            elements={elements}
-            recipeMap={recipeMap}
-            onTutorialDiscover={nums => onTutorialDiscover?.(nums)}
-            onLangChange={l => onSetLang?.(l)}
-            onComplete={() => setShowTutorial(false)}
-          />
-        </div>
+      {/* Fullscreen guest tutorial modal — rendered via portal so it's never clipped by parent transforms */}
+      {showTutorial && typeof document !== 'undefined' && createPortal(
+        <GuestOnboardingModal
+          elements={elements}
+          recipeMap={recipeMap ?? new Map()}
+          lang={lang}
+          onTutorialDiscover={nums => onTutorialDiscover?.(nums)}
+          onSignUp={() => { setShowTutorial(false); setActiveTab('profile') }}
+          onClose={() => setShowTutorial(false)}
+        />,
+        document.body
       )}
     </>
   )
