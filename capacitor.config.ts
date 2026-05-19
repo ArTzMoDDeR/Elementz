@@ -24,7 +24,16 @@ const config: CapacitorConfig = {
   },
   android: {
     allowMixedContent: false
-  }
+  },
+  plugins: {
+    GoogleAuth: {
+      // iOS Client ID from Google Cloud Console (different from web client ID)
+      iosClientId: process.env.GOOGLE_IOS_CLIENT_ID ?? '',
+      scopes: ['profile', 'email'],
+      serverClientId: process.env.GOOGLE_CLIENT_ID ?? '',
+      forceCodeForRefreshToken: true,
+    },
+  },
 };
 
 export default config;
