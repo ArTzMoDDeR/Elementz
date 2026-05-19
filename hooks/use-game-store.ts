@@ -5,29 +5,13 @@ import { useSession } from 'next-auth/react'
 import { type ElementDef } from '@/lib/game-data'
 import { elements as rawElements } from '@/lib/data/elements.js'
 import { recipes as rawRecipes } from '@/lib/data/recipes.js'
-import { Haptics, ImpactStyle } from '@capacitor/haptics'
+import { triggerHaptic } from '@/lib/haptics'
 
 const STORAGE_KEY = 'alchemy-discovered-v4'  // bumped — now stores numbers
 const LANG_KEY = 'alchemy-lang'
 // Per-element combo counter key — each element gets its own counter
 const getComboKey = (elementId: number) => `alchemy-combos-${elementId}`
 const getDailyKey = () => `alchemy-daily-${new Date().toISOString().slice(0, 10)}`
-
-// Haptic helper — uses @capacitor/haptics on native, navigator.vibrate on web.
-async function triggerHaptic(style: 'medium' | 'heavy') {
-  if (typeof window === 'undefined') return
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if ((window as any).Capacitor?.isNativePlatform?.()) {
-      await Haptics.impact({ style: style === 'heavy' ? ImpactStyle.Heavy : ImpactStyle.Medium })
-      return
-    }
-  } catch {}
-  // Web fallback
-  if (typeof navigator !== 'undefined' && navigator.vibrate) {
-    navigator.vibrate(style === 'heavy' ? [30, 20, 60] : 10)
-  }
-}
 
 function incrementLocalCounter(key: string) {
   try {

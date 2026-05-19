@@ -1714,7 +1714,7 @@ function SettingsPanel({ lang, onSetLang, hintsEnabled, onToggleHints, onClear, 
               <p className="text-sm font-medium text-foreground">{t('Flash fusion', 'Merge flash')}</p>
               <p className="text-xs text-muted-foreground/50 mt-0.5">{t('Vert/rouge sur le terrain', 'Green/red on canvas')}</p>
             </div>
-            <Toggle on={mergeFlashEnabled} onToggle={onToggleMergeFlash} color="#fe8f27" />
+            <Toggle on={mergeFlashEnabled} onToggle={onToggleMergeFlash} />
           </div>
 
           {/* Push notifications */}
