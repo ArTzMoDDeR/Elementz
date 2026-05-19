@@ -8,6 +8,15 @@ import { recipes as rawRecipes } from '@/lib/data/recipes.js'
 
 const STORAGE_KEY = 'alchemy-discovered-v4'  // bumped — now stores numbers
 const LANG_KEY = 'alchemy-lang'
+const COMBOS_KEY = 'alchemy-combos-v1'
+const getDailyKey = () => `alchemy-daily-${new Date().toISOString().slice(0, 10)}`
+
+function incrementLocalCounter(key: string) {
+  try {
+    const cur = parseInt(localStorage.getItem(key) ?? '0', 10)
+    localStorage.setItem(key, String(cur + 1))
+  } catch {}
+}
 // How long to batch new discoveries before flushing to DB (ms)
 const SYNC_DEBOUNCE_MS = 30_000
 
@@ -455,6 +464,12 @@ export function useGameStore() {
       if (hapticEnabledRef.current && typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate([30, 20, 60])
       }
+    }
+
+    // Guest tracking — increment combo count and daily discovery count in localStorage
+    if (!session?.user?.id) {
+      incrementLocalCounter(COMBOS_KEY)
+      if (newResults.length > 0) incrementLocalCounter(getDailyKey())
     }
 
     // Buffer discoveries + the ingredient pair — flushed to DB immediately on new discovery

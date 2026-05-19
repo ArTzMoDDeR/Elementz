@@ -132,13 +132,15 @@ function QuestRow({ quest, lang, onClaim, onScratch, diffDot }: {
   onClaim: (id: number) => Promise<void>
   onScratch?: (id: number) => void
   diffDot?: string
+  isGuest?: boolean
 }) {
   const [claiming, setClaiming] = useState(false)
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
   const isClaimed = !!quest.claimed_at
   const allScratched = quest.rewards.every(r => !!r.scratched_at)
-  const isDone = isClaimed && allScratched
+  // For guests there are no scratch rewards — done as soon as claimed
+  const isDone = isGuest ? isClaimed : isClaimed && allScratched
   const isReady = quest.progress >= quest.target_value && !isClaimed
   const isIconUrl = quest.icon?.startsWith('http') || quest.icon?.startsWith('/')
   const pct = Math.min(100, Math.round((quest.progress / quest.target_value) * 100))
@@ -606,8 +608,8 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
     impossible: 'bg-rose-500',
   }
 
-  // A quest is "fully done" when claimed + all rewards scratched
-  const isDone = (q: Quest) => !!q.claimed_at && q.rewards.every(r => !!r.scratched_at)
+  // A quest is "fully done" — guests have no scratch rewards, so claimed = done
+  const isDone = (q: Quest) => isGuest ? !!q.claimed_at : !!q.claimed_at && q.rewards.every(r => !!r.scratched_at)
 
   const daily = quests.filter(q => q.is_daily)
   const permanent = quests.filter(q => !q.is_daily)
@@ -803,7 +805,8 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
               return (
                 <Section key={diff} label={lang === 'fr' ? labels[diff][0] : labels[diff][1]} dot={DIFF_DOT[diff]}>
                   {group.map(q => (
-                    <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={setScratchQuestId} diffDot={DIFF_DOT[q.difficulty]} />
+                  <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={setScratchQuestId} diffDot={DIFF_DOT[q.difficulty]} isGuest={isGuest} />
+
                   ))}
                 </Section>
               )
@@ -811,7 +814,7 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
             {hasPermanent && diffFilter !== 'all' && (
               <Section label={DIFF_CONFIG.find(d => d.value === diffFilter)?.[lang === 'fr' ? 'labelFr' : 'labelEn'] ?? ''} dot={DIFF_DOT[diffFilter as Difficulty]}>
                 {pendingPermanent.map(q => (
-                  <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={setScratchQuestId} diffDot={DIFF_DOT[q.difficulty]} />
+                  <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={setScratchQuestId} diffDot={DIFF_DOT[q.difficulty]} isGuest={isGuest} />
                 ))}
               </Section>
             )}
