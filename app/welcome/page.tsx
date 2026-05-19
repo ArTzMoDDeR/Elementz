@@ -7,13 +7,13 @@ import { OTPInput, SlotProps } from 'input-otp'
 import { ArrowRight, Loader2, CheckCircle } from 'lucide-react'
 import Image from 'next/image'
 
-// ── Data ──────────────────────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
 const WATER = { id: 168, img: '/elements/168.webp', name_fr: 'Eau',    name_en: 'Water' }
 const SEA   = { id: 609, img: '/elements/609.webp', name_fr: 'Mer',    name_en: 'Sea'   }
+const MERGE_DIST_PCT = 18
 
-type Lang = 'fr' | 'en'
-type Step = 'lang' | 'combine' | 'signup'
-type CombinePhase = 'add-first' | 'add-second' | 'ready' | 'merging' | 'result'
+type Lang   = 'fr' | 'en'
+type Step   = 'lang' | 'add-first' | 'add-second' | 'merge' | 'result' | 'signup'
 
 function t(lang: Lang, fr: string, en: string) { return lang === 'fr' ? fr : en }
 
@@ -21,8 +21,10 @@ function t(lang: Lang, fr: string, en: string) { return lang === 'fr' ? fr : en 
 function Slot({ char, isActive, hasFakeCaret }: SlotProps) {
   return (
     <div className={`relative w-12 h-14 flex items-center justify-center rounded-2xl border-2 text-xl font-bold transition-all
-      ${isActive ? 'border-foreground bg-foreground/5 shadow-[0_0_0_4px_oklch(var(--foreground)/0.08)]'
-        : char ? 'border-foreground/40 bg-foreground/5'
+      ${isActive
+        ? 'border-foreground bg-foreground/5 shadow-[0_0_0_4px_oklch(var(--foreground)/0.08)]'
+        : char
+        ? 'border-foreground/40 bg-foreground/5'
         : 'border-border bg-muted/30'}`}
     >
       {char ?? <span className="text-muted-foreground/25">·</span>}
@@ -31,125 +33,201 @@ function Slot({ char, isActive, hasFakeCaret }: SlotProps) {
   )
 }
 
-// ── Playground slot ───────────────────────────────────────────────────────────
-function PlaygroundSlot({ filled, glowing }: { filled: boolean; glowing: boolean }) {
-  return (
-    <div className={`w-20 h-20 rounded-2xl border-2 flex items-center justify-center transition-all duration-300
-      ${filled
-        ? glowing
-          ? 'border-amber-400/70 bg-amber-400/10 shadow-[0_0_18px_4px_rgba(251,191,36,0.22)]'
-          : 'border-foreground/30 bg-muted/30'
-        : 'border-dashed border-border/50 bg-muted/10'}`}
-    >
-      {filled && (
-        <img
-          src={WATER.img}
-          alt="water"
-          className="w-14 h-14 object-contain animate-in zoom-in duration-200"
-          draggable={false}
-        />
-      )}
-    </div>
-  )
-}
+// ── Mini item on playground ───────────────────────────────────────────────────
+type Item = { id: 'a' | 'b'; x: number; y: number }
+type DragState = { id: 'a' | 'b'; pointerId: number; ox: number; oy: number }
 
-// ── Combine step ──────────────────────────────────────────────────────────────
-function CombineStep({ lang, onDone }: { lang: Lang; onDone: () => void }) {
-  const [phase, setPhase] = useState<CombinePhase>('add-first')
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+// ── Combine Arena ─────────────────────────────────────────────────────────────
+function CombineArena({ lang, onDone }: { lang: Lang; onDone: () => void }) {
+  const [step, setStep] = useState<Step>('add-first')
+  const [items, setItems] = useState<Item[]>([])
+  const [nearId, setNearId] = useState<'a' | 'b' | null>(null)
+  const [merging, setMerging] = useState(false)
+  const [showResult, setShowResult] = useState(false)
 
-  function handleTapWater() {
-    if (phase === 'add-first') {
-      setPhase('add-second')
-    } else if (phase === 'add-second') {
-      setPhase('ready')
-      // Auto-trigger merge after brief pause to let user see both slots filled
-      timerRef.current = setTimeout(() => triggerMerge(), 800)
-    }
+  const areaRef   = useRef<HTMLDivElement>(null)
+  const drag      = useRef<DragState | null>(null)
+  const itemsRef  = useRef<Item[]>([])
+  const mergingRef = useRef(false)
+
+  useEffect(() => { itemsRef.current = items }, [items])
+  useEffect(() => { mergingRef.current = merging }, [merging])
+
+  // ── Tap inventory item to place on playground
+  function handleInventoryTap(slot: 'a' | 'b') {
+    if (mergingRef.current) return
+    setItems(prev => {
+      if (prev.find(i => i.id === slot)) return prev
+      const existing = prev[0]
+      // Spawn items at different positions
+      const x = slot === 'a' ? 28 : 72
+      const y = 50
+      const next = [...prev, { id: slot, x, y }]
+      if (next.length === 2) setStep('merge')
+      return next
+    })
+    if (slot === 'a') setStep('add-second')
   }
 
-  function triggerMerge() {
-    setPhase('merging')
-    timerRef.current = setTimeout(() => setPhase('result'), 1400)
-  }
+  // ── Pointer drag on playground
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (mergingRef.current) return
+    const rect = areaRef.current!.getBoundingClientRect()
+    const px = ((e.clientX - rect.left) / rect.width) * 100
+    const py = ((e.clientY - rect.top) / rect.height) * 100
+    const hit = itemsRef.current.find(i => Math.hypot(px - i.x, py - i.y) < 12)
+    if (!hit) return
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+    drag.current = { id: hit.id, pointerId: e.pointerId, ox: px - hit.x, oy: py - hit.y }
+    e.preventDefault()
+  }, [])
 
-  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!drag.current || mergingRef.current) return
+    if (drag.current.pointerId !== e.pointerId) return
+    const rect = areaRef.current!.getBoundingClientRect()
+    const nx = Math.max(8, Math.min(92, ((e.clientX - rect.left) / rect.width) * 100 - drag.current.ox))
+    const ny = Math.max(8, Math.min(92, ((e.clientY - rect.top) / rect.height) * 100 - drag.current.oy))
+    const id = drag.current.id
+    setItems(prev => prev.map(i => i.id === id ? { ...i, x: nx, y: ny } : i))
+    const other = itemsRef.current.find(i => i.id !== id)
+    if (other) setNearId(Math.hypot(nx - other.x, ny - other.y) < MERGE_DIST_PCT ? other.id : null)
+    e.preventDefault()
+  }, [])
 
-  const showPlayground = phase !== 'result'
-  const showInventory  = phase === 'add-first' || phase === 'add-second'
+  const handlePointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!drag.current || mergingRef.current) return
+    if (drag.current.pointerId !== e.pointerId) return
+    drag.current = null
+    setNearId(null)
+    const [a, b] = itemsRef.current
+    if (!a || !b) return
+    if (Math.hypot(a.x - b.x, a.y - b.y) > MERGE_DIST_PCT) return
+    // Trigger merge
+    mergingRef.current = true
+    setMerging(true)
+    const cx = (a.x + b.x) / 2
+    const cy = (a.y + b.y) / 2
+    setItems([{ id: 'a', x: cx, y: cy }])
+    setTimeout(() => {
+      setMerging(false)
+      setShowResult(true)
+      setStep('result')
+    }, 900)
+    e.preventDefault()
+  }, [])
+
+  const showInventory = step === 'add-first' || step === 'add-second'
+  const slotAPlaced = items.some(i => i.id === 'a')
+  const slotBPlaced = items.some(i => i.id === 'b')
 
   return (
-    <div className="flex flex-col items-center gap-6 w-full px-4">
+    <div className="flex flex-col items-center gap-5 w-full px-4">
 
-      {/* Dynamic instruction title */}
-      <div className="text-center space-y-1 min-h-[60px] flex flex-col items-center justify-center">
-        {phase === 'add-first' && (
+      {/* Instruction header */}
+      <div className="text-center space-y-1 min-h-[56px] flex flex-col items-center justify-center">
+        {step === 'add-first' && (
           <>
-            <h2 className="text-2xl font-bold text-foreground animate-in fade-in duration-300">
+            <h2 className="text-xl font-bold text-foreground animate-in fade-in duration-300">
               {t(lang, 'Ajoute au terrain', 'Add to the field')}
             </h2>
             <p className="text-sm text-muted-foreground">
-              {t(lang, 'Appuie sur l\'Eau dans ton inventaire', 'Tap Water in your inventory')}
+              {t(lang, "Appuie sur l'Eau dans l'inventaire", 'Tap Water in your inventory')}
             </p>
           </>
         )}
-        {phase === 'add-second' && (
+        {step === 'add-second' && (
           <>
-            <h2 className="text-2xl font-bold text-foreground animate-in fade-in duration-300">
+            <h2 className="text-xl font-bold text-foreground animate-in fade-in duration-300">
               {t(lang, 'Encore une fois !', 'One more time!')}
             </h2>
             <p className="text-sm text-muted-foreground">
-              {t(lang, 'Appuie encore sur l\'Eau', 'Tap Water one more time')}
+              {t(lang, "Appuie encore sur l'Eau", 'Tap Water one more time')}
             </p>
           </>
         )}
-        {(phase === 'ready' || phase === 'merging') && (
+        {step === 'merge' && (
           <>
-            <h2 className="text-2xl font-bold text-foreground animate-in fade-in duration-300">
-              {t(lang, 'Fusion en cours…', 'Merging…')}
+            <h2 className="text-xl font-bold text-foreground animate-in fade-in duration-300">
+              {t(lang, 'Fusionne-les !', 'Merge them!')}
             </h2>
             <p className="text-sm text-muted-foreground">
-              {t(lang, 'Les éléments se combinent', 'The elements are combining')}
+              {t(lang, 'Glisse un élément sur l\'autre', 'Drag one element onto the other')}
             </p>
           </>
         )}
-        {phase === 'result' && (
+        {(step === 'merge' && merging) && (
+          <p className="text-sm text-amber-400 font-semibold animate-in fade-in duration-200">
+            {t(lang, 'Fusion…', 'Merging…')}
+          </p>
+        )}
+        {step === 'result' && (
           <div className="flex items-center gap-2 animate-in zoom-in fade-in duration-400">
             <CheckCircle size={18} className="text-amber-400 flex-shrink-0" />
             <h2 className="text-xl font-bold text-foreground">
-              {t(lang, 'Tu as découvert la Mer !', 'You discovered the Sea!')}
+              {t(lang, 'Tu as créé la Mer !', 'You created the Sea!')}
             </h2>
           </div>
         )}
       </div>
 
       {/* Playground arena */}
-      {showPlayground && (
-        <div className="flex flex-col items-center gap-3 w-full">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-            {t(lang, 'Terrain', 'Field')}
-          </p>
-          <div className="w-full max-w-xs rounded-3xl border border-border/50 bg-muted/10 p-5 flex items-center justify-center gap-6">
-            <PlaygroundSlot filled={phase !== 'add-first'} glowing={phase === 'ready' || phase === 'merging'} />
-
-            {/* Plus / Spinner */}
-            <div className="flex items-center justify-center w-8 h-8">
-              {phase === 'merging' ? (
-                <Loader2 size={22} className="text-amber-400 animate-spin" />
-              ) : (
-                <span className="text-2xl text-muted-foreground/60 font-light select-none">+</span>
-              )}
+      {step !== 'result' && (
+        <div
+          ref={areaRef}
+          className="relative w-full max-w-xs rounded-3xl border border-border/50 bg-muted/10 overflow-hidden touch-none select-none"
+          style={{ height: 200 }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+        >
+          {/* Merge target hint ring */}
+          {step === 'merge' && !merging && items.length === 2 && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-12 h-12 rounded-full border-2 border-dashed border-amber-400/30" />
             </div>
+          )}
 
-            <PlaygroundSlot filled={phase === 'ready' || phase === 'merging'} glowing={phase === 'ready' || phase === 'merging'} />
-          </div>
+          {/* Merging spinner */}
+          {merging && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <Loader2 size={28} className="text-amber-400 animate-spin" />
+            </div>
+          )}
+
+          {/* Items */}
+          {!merging && items.map(item => (
+            <div
+              key={item.id}
+              className={`absolute transition-none ${nearId === item.id ? 'scale-110' : ''}`}
+              style={{
+                left: `${item.x}%`,
+                top: `${item.y}%`,
+                transform: 'translate(-50%, -50%)',
+                willChange: 'left, top',
+              }}
+            >
+              <div className={`w-16 h-16 rounded-2xl border-2 flex items-center justify-center bg-muted/30 shadow-md
+                ${nearId === item.id ? 'border-amber-400/70 bg-amber-400/10 shadow-[0_0_12px_2px_rgba(251,191,36,0.25)]' : 'border-border/50'}`}
+              >
+                <img src={WATER.img} alt="water" className="w-10 h-10 object-contain" draggable={false} />
+              </div>
+            </div>
+          ))}
+
+          {/* Empty state hint */}
+          {items.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <p className="text-xs text-muted-foreground/40">{t(lang, 'Terrain vide', 'Empty field')}</p>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Result */}
-      {phase === 'result' && (
+      {/* Result card */}
+      {step === 'result' && showResult && (
         <div className="flex flex-col items-center gap-4 animate-in zoom-in fade-in duration-500">
-          {/* Toast-style result */}
           <div className="flex items-center gap-4 px-5 py-4 rounded-2xl border border-amber-400/30 bg-amber-400/10">
             <img src={SEA.img} alt={t(lang, SEA.name_fr, SEA.name_en)} className="w-16 h-16 object-contain drop-shadow-lg" draggable={false} />
             <div>
@@ -160,7 +238,6 @@ function CombineStep({ lang, onDone }: { lang: Lang; onDone: () => void }) {
               <p className="text-xs text-muted-foreground">{t(lang, 'Eau + Eau', 'Water + Water')}</p>
             </div>
           </div>
-
           <button
             onClick={onDone}
             className="flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-foreground text-background text-sm font-bold active:scale-[0.97] transition-transform cursor-pointer"
@@ -173,28 +250,28 @@ function CombineStep({ lang, onDone }: { lang: Lang; onDone: () => void }) {
 
       {/* Inventory */}
       {showInventory && (
-        <div className="flex flex-col items-center gap-2.5 w-full mt-2">
+        <div className="flex flex-col items-center gap-2 w-full mt-1">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
             {t(lang, 'Inventaire', 'Inventory')}
           </p>
-          <div className="w-full max-w-xs rounded-2xl border border-border/40 bg-muted/20 p-4 flex justify-center">
+          <div className="w-full max-w-xs rounded-2xl border border-border/40 bg-muted/20 p-3 flex justify-center">
             <button
-              onClick={handleTapWater}
-              className="flex flex-col items-center gap-2 active:scale-95 transition-transform cursor-pointer group"
+              onClick={() => handleInventoryTap(slotAPlaced ? 'b' : 'a')}
+              disabled={slotBPlaced}
+              className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform cursor-pointer disabled:opacity-40 disabled:cursor-default group"
             >
-              <div className="w-20 h-20 rounded-2xl border-2 border-amber-400/60 bg-amber-400/10 flex items-center justify-center shadow-[0_0_14px_2px_rgba(251,191,36,0.20)] group-active:shadow-[0_0_20px_4px_rgba(251,191,36,0.35)] transition-all">
-                <img src={WATER.img} alt={t(lang, WATER.name_fr, WATER.name_en)} className="w-14 h-14 object-contain" draggable={false} />
+              <div className={`w-16 h-16 rounded-2xl border-2 flex items-center justify-center transition-all
+                ${!slotBPlaced
+                  ? 'border-amber-400/60 bg-amber-400/10 shadow-[0_0_12px_2px_rgba(251,191,36,0.18)] group-active:shadow-[0_0_18px_4px_rgba(251,191,36,0.30)]'
+                  : 'border-border/40 bg-muted/30'}`}
+              >
+                <img src={WATER.img} alt={t(lang, WATER.name_fr, WATER.name_en)} className="w-10 h-10 object-contain" draggable={false} />
               </div>
-              <span className="text-xs font-semibold text-foreground capitalize">
+              <span className="text-xs font-medium text-foreground/80">
                 {t(lang, WATER.name_fr, WATER.name_en)}
               </span>
             </button>
           </div>
-          <p className="text-[11px] text-muted-foreground/50">
-            {phase === 'add-first'
-              ? t(lang, 'Appuie pour ajouter au terrain', 'Tap to add to the field')
-              : t(lang, 'Encore une fois', 'One more time')}
-          </p>
         </div>
       )}
     </div>
@@ -288,7 +365,7 @@ function SignupStep({ lang, onSkip }: { lang: Lang; onSkip: () => void }) {
 
       <button
         onClick={onSkip}
-        className="text-sm text-muted-foreground underline-offset-4 hover:underline cursor-pointer transition-colors"
+        className="text-sm text-muted-foreground underline-offset-4 hover:underline cursor-pointer"
       >
         {t(lang, 'Pas maintenant', 'Not now')}
       </button>
@@ -307,8 +384,9 @@ export default function WelcomePage() {
     router.push('/')
   }
 
-  const STEPS: Step[] = ['lang', 'combine', 'signup']
-  const stepIdx = STEPS.indexOf(step)
+  const STEPS = ['lang', 'combine', 'signup'] as const
+  const stepIdx = STEPS.indexOf(step === 'add-first' || step === 'add-second' || step === 'merge' || step === 'result'
+    ? 'combine' : step as typeof STEPS[number])
 
   return (
     <div
@@ -317,10 +395,7 @@ export default function WelcomePage() {
     >
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 pt-4 pb-2 flex-shrink-0">
-        {/* Logo */}
-        <Image src="/logo.svg" alt="Elementz" width={28} height={28} className="opacity-80" />
-
-        {/* Progress dots */}
+        <Image src="/logo.svg" alt="Elementz" width={26} height={26} className="opacity-70" />
         <div className="flex gap-1.5">
           {STEPS.map((s, i) => (
             <div
@@ -333,8 +408,6 @@ export default function WelcomePage() {
             />
           ))}
         </div>
-
-        {/* Skip (only on combine step) */}
         <div className="w-7" />
       </div>
 
@@ -344,25 +417,22 @@ export default function WelcomePage() {
         {/* STEP: lang */}
         {step === 'lang' && (
           <div className="flex flex-col items-center gap-8 w-full px-6 animate-in fade-in slide-in-from-bottom-4 duration-400">
-            {/* Logo + name */}
             <div className="flex flex-col items-center gap-3">
               <Image src="/logo.svg" alt="Elementz" width={72} height={72} className="drop-shadow-lg" />
               <h1 className="text-3xl font-bold text-foreground tracking-tight">Elementz</h1>
             </div>
-
-            {/* Language selection — tap directly validates */}
             <div className="flex flex-col gap-3 w-full">
               <p className="text-center text-sm text-muted-foreground mb-1">
                 Choose your language / Choisis ta langue
               </p>
               <button
-                onClick={() => { setLang('en'); setTimeout(() => setStep('combine'), 250) }}
+                onClick={() => { setLang('en'); setTimeout(() => setStep('add-first'), 220) }}
                 className="w-full py-4 rounded-2xl border border-border bg-muted/30 text-foreground text-sm font-bold active:scale-[0.97] transition-all cursor-pointer hover:border-foreground/30 hover:bg-muted/50"
               >
                 English
               </button>
               <button
-                onClick={() => { setLang('fr'); setTimeout(() => setStep('combine'), 250) }}
+                onClick={() => { setLang('fr'); setTimeout(() => setStep('add-first'), 220) }}
                 className="w-full py-4 rounded-2xl border border-border bg-muted/30 text-foreground text-sm font-bold active:scale-[0.97] transition-all cursor-pointer hover:border-foreground/30 hover:bg-muted/50"
               >
                 Français
@@ -371,10 +441,10 @@ export default function WelcomePage() {
           </div>
         )}
 
-        {/* STEP: combine */}
-        {step === 'combine' && (
+        {/* STEPS: combine (add-first, add-second, merge, result) */}
+        {['add-first', 'add-second', 'merge', 'result'].includes(step) && (
           <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-400">
-            <CombineStep lang={lang} onDone={() => setStep('signup')} />
+            <CombineArena lang={lang} onDone={() => setStep('signup')} />
           </div>
         )}
 
@@ -386,7 +456,6 @@ export default function WelcomePage() {
         )}
       </div>
 
-      {/* Bottom safe area */}
       <div className="h-4 flex-shrink-0" />
     </div>
   )
