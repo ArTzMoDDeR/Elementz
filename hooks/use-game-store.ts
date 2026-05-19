@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { type ElementDef } from '@/lib/game-data'
 import { elements as rawElements } from '@/lib/data/elements.js'
 import { recipes as rawRecipes } from '@/lib/data/recipes.js'
+import { Haptics, ImpactStyle } from '@capacitor/haptics'
 
 const STORAGE_KEY = 'alchemy-discovered-v4'  // bumped — now stores numbers
 const LANG_KEY = 'alchemy-lang'
@@ -12,32 +13,16 @@ const LANG_KEY = 'alchemy-lang'
 const getComboKey = (elementId: number) => `alchemy-combos-${elementId}`
 const getDailyKey = () => `alchemy-daily-${new Date().toISOString().slice(0, 10)}`
 
-// Haptic helper — uses the Capacitor native bridge directly (works in server-url mode
-// where npm packages aren't bundled into the remote JS). Falls back to navigator.vibrate on web.
-function triggerHaptic(style: 'medium' | 'heavy') {
+// Haptic helper — uses @capacitor/haptics on native, navigator.vibrate on web.
+async function triggerHaptic(style: 'medium' | 'heavy') {
   if (typeof window === 'undefined') return
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cap = (window as any).Capacitor
-    const isNative = cap?.isNativePlatform?.()
-    console.log('[v0] triggerHaptic', style, 'isNative=', isNative, 'plugins=', Object.keys(cap?.Plugins ?? {}))
-    if (isNative) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const Haptics = (cap.Plugins?.Haptics ?? cap.Plugins?.HapticsPlugin) as any
-      console.log('[v0] Haptics plugin=', Haptics, 'impact=', Haptics?.impact)
-      if (Haptics?.impact) {
-        // Capacitor 6 bridge expects ImpactStyle enum value (number): Light=0 Medium=1 Heavy=2
-        const impactStyle = style === 'heavy' ? 2 : 1
-        Haptics.impact({ style: impactStyle })
-        console.log('[v0] Haptics.impact called with style=', impactStyle)
-      } else if (Haptics?.notification) {
-        Haptics.notification({ type: 0 })
-      }
+    if ((window as any).Capacitor?.isNativePlatform?.()) {
+      await Haptics.impact({ style: style === 'heavy' ? ImpactStyle.Heavy : ImpactStyle.Medium })
       return
     }
-  } catch (e) {
-    console.log('[v0] triggerHaptic error', e)
-  }
+  } catch {}
   // Web fallback
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
     navigator.vibrate(style === 'heavy' ? [30, 20, 60] : 10)
