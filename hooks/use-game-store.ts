@@ -8,7 +8,8 @@ import { recipes as rawRecipes } from '@/lib/data/recipes.js'
 
 const STORAGE_KEY = 'alchemy-discovered-v4'  // bumped — now stores numbers
 const LANG_KEY = 'alchemy-lang'
-const COMBOS_KEY = 'alchemy-combos-v1'
+// Per-element combo counter key — each element gets its own counter
+const getComboKey = (elementId: number) => `alchemy-combos-${elementId}`
 const getDailyKey = () => `alchemy-daily-${new Date().toISOString().slice(0, 10)}`
 
 function incrementLocalCounter(key: string) {
@@ -469,9 +470,11 @@ export function useGameStore() {
       }
     }
 
-    // Guest tracking — increment combo count and daily discovery count in localStorage
+    // Guest tracking — increment per-element combo counters + daily discovery count
     if (!session?.user?.id) {
-      incrementLocalCounter(COMBOS_KEY)
+      // Increment the counter for each ingredient that was used in this combo
+      incrementLocalCounter(getComboKey(ingredientA))
+      if (ingredientB !== ingredientA) incrementLocalCounter(getComboKey(ingredientB))
       if (newResults.length > 0) incrementLocalCounter(getDailyKey())
     }
 

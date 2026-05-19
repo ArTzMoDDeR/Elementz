@@ -433,7 +433,7 @@ function ScratchModal({ quest, lang, onScratch, onClose, onGoToPlay }: {
 // ─── Local quest definitions for guests (no DB needed) ───────────────────────
 const GUEST_QUESTS_KEY = 'alchemy-guest-quests-v1'
 const GUEST_DISCOVERED_KEY = 'alchemy-discovered-v4'
-const GUEST_COMBOS_KEY = 'alchemy-combos-v1'
+const getGuestComboKey = (elementId: number) => `alchemy-combos-${elementId}`
 
 type RawQuest = {
   id: number; type: string; title_fr: string; title_en: string
@@ -448,7 +448,6 @@ function getGuestQuests(): Quest[] {
   const discoveredIds: number[] = JSON.parse(localStorage.getItem(GUEST_DISCOVERED_KEY) ?? '[]')
   const discoveredSet = new Set(discoveredIds)
   const discoveredCount = discoveredIds.length
-  const comboCount: number = JSON.parse(localStorage.getItem(GUEST_COMBOS_KEY) ?? '0')
   const claimedIds: number[] = JSON.parse(localStorage.getItem(GUEST_QUESTS_KEY) ?? '[]')
   const todayKey = `alchemy-daily-${new Date().toISOString().slice(0, 10)}`
   const dailyCount: number = JSON.parse(localStorage.getItem(todayKey) ?? '0')
@@ -467,8 +466,15 @@ function getGuestQuests(): Quest[] {
       progress = needed != null && discoveredSet.has(needed) ? 1 : 0
     } else if (q.type === 'combinations_n') {
       const needed = q.required_element
+      // Only show this quest once the required element has been discovered
       visible = needed == null || discoveredSet.has(needed)
-      progress = visible ? Math.min(comboCount, q.target_value) : 0
+      if (visible) {
+        // Read the per-element counter — each element has its own combo count
+        const elementComboCount = needed != null
+          ? parseInt(localStorage.getItem(getGuestComboKey(needed)) ?? '0', 10)
+          : 0
+        progress = Math.min(elementComboCount, q.target_value)
+      }
     }
 
     if (!visible) return null
