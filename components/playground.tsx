@@ -1137,7 +1137,12 @@ export function Playground({
                 /* Tutorial button — only shown while player has only the 4 base elements */
                 <button
                   onPointerDown={e => e.stopPropagation()}
-                  onClick={e => { e.stopPropagation(); setShowTutorial(true) }}
+                  onClick={e => {
+                    e.stopPropagation()
+                    console.log('[v0] tutorial btn clicked, discovered.size=', discovered.size, 'showTutorial=', showTutorial)
+                    setShowTutorial(true)
+                    console.log('[v0] setShowTutorial(true) called')
+                  }}
                   aria-label={lang === 'fr' ? 'Voir le tutoriel' : 'View tutorial'}
                   className="tap-spring select-none active:scale-95 transition-all duration-200 flex items-center justify-center rounded-full"
                   style={{
@@ -1147,7 +1152,7 @@ export function Playground({
                     boxShadow: '0 0 14px 3px rgba(251,191,36,0.30)',
                   }}
                 >
-                  <Sparkle size={20} weight="fill" className="text-amber-400" />
+                  <span className="text-amber-400 font-bold text-lg leading-none">?</span>
                 </button>
               ) : (
                 <button
@@ -2485,6 +2490,7 @@ function ProfileInlinePanel({ lang, sessionUser, elementsByName, discovered, tot
       </div>
 
       {/* Fullscreen guest tutorial modal — shown when beginner taps the ? button */}
+      {console.log('[v0] render: showTutorial=', showTutorial, 'elements.size=', elements?.size, 'recipeMap=', recipeMap?.size) as unknown as null}
       {showTutorial && (
         <GuestOnboardingModal
           elements={elements}
