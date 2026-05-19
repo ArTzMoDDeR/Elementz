@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useSession } from 'next-auth/react'
+import { quests as ALL_QUESTS } from '@/lib/data/quests'
 import {
   Sparkles, Star, Droplets, Flame, Wind, Mountain, Sun, Compass, Crown,
   Gem, CheckCircle2, Microscope, FlaskConical, Trophy, ArrowLeft,
@@ -124,19 +126,21 @@ function ScratchBanner({ count, lang, onClick }: { count: number; lang: 'fr' | '
 
 // ─── QuestRow ────────────────────────────────────────────────────────────────
 
-function QuestRow({ quest, lang, onClaim, onScratch, diffDot }: {
+function QuestRow({ quest, lang, onClaim, onScratch, diffDot, isGuest }: {
   quest: Quest
   lang: 'fr' | 'en'
   onClaim: (id: number) => Promise<void>
   onScratch?: (id: number) => void
   diffDot?: string
+  isGuest?: boolean
 }) {
   const [claiming, setClaiming] = useState(false)
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
   const isClaimed = !!quest.claimed_at
   const allScratched = quest.rewards.every(r => !!r.scratched_at)
-  const isDone = isClaimed && allScratched
+  // For guests there are no scratch rewards — done as soon as claimed
+  const isDone = isGuest ? isClaimed : isClaimed && allScratched
   const isReady = quest.progress >= quest.target_value && !isClaimed
   const isIconUrl = quest.icon?.startsWith('http') || quest.icon?.startsWith('/')
   const pct = Math.min(100, Math.round((quest.progress / quest.target_value) * 100))
@@ -426,46 +430,238 @@ function ScratchModal({ quest, lang, onScratch, onClose, onGoToPlay }: {
 
 // ─── QuestInlinePanel ─────────────────────────────────────────────────────────
 
+// ─── Quest completion toast ───────────────────────────────────────────────────
+function QuestCompletedToast({ quest, lang, onClaim, onDismiss }: {
+  quest: Quest
+  lang: 'fr' | 'en'
+  onClaim: () => void
+  onDismiss: () => void
+}) {
+  const title = lang === 'fr' ? quest.title_fr : quest.title_en
+  const t = (fr: string, en: string) => lang === 'fr' ? fr : en
+
+  useEffect(() => {
+    const id = setTimeout(onDismiss, 6000)
+    return () => clearTimeout(id)
+  }, [onDismiss])
+
+  return (
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] w-[calc(100%-2rem)] max-w-sm animate-in slide-in-from-top-2 fade-in duration-300">
+      <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-amber-400/15 border border-amber-400/30 backdrop-blur-xl shadow-lg">
+        {quest.icon && (
+          <img src={quest.icon} alt="" className="w-8 h-8 rounded-lg flex-shrink-0" />
+        )}
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-amber-400 uppercase tracking-widest leading-none mb-0.5">
+            {t('Quête complétée !', 'Quest completed!')}
+          </p>
+          <p className="text-sm font-bold text-foreground truncate">{title}</p>
+        </div>
+        <button
+          onClick={onClaim}
+          className="flex-shrink-0 px-3 py-1.5 rounded-xl bg-amber-400 text-background text-xs font-bold active:scale-95 transition-transform cursor-pointer"
+        >
+          {t('Réclamer', 'Claim')}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Guest celebration modal — shown after a guest claims a quest ─────────────
+function GuestCelebrationModal({ quest, lang, onClose }: {
+  quest: Quest
+  lang: 'fr' | 'en'
+  onClose: () => void
+}) {
+  const t = (fr: string, en: string) => lang === 'fr' ? fr : en
+  const title = lang === 'fr' ? quest.title_fr : quest.title_en
+  const isIconUrl = typeof quest.icon === 'string' && quest.icon.startsWith('/')
+
+  // Auto-close after 4s
+  useEffect(() => {
+    const id = setTimeout(onClose, 4000)
+    return () => clearTimeout(id)
+  }, [onClose])
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-end justify-center pb-8 px-4" onClick={onClose}>
+      <div
+        className="w-full max-w-sm animate-in slide-in-from-bottom-4 fade-in duration-300"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex flex-col items-center gap-5 px-6 py-8 rounded-3xl bg-card border border-border shadow-2xl">
+          {/* Icon */}
+          <div className="w-20 h-20 rounded-3xl bg-amber-400/10 border-2 border-amber-400/30 flex items-center justify-center">
+            {isIconUrl
+              ? <img src={quest.icon} alt="" className="w-12 h-12 object-contain" />
+              : <span className="text-3xl">+</span>
+            }
+          </div>
+
+          {/* Text */}
+          <div className="text-center space-y-1.5">
+            <p className="text-xs font-bold text-amber-400 uppercase tracking-widest">
+              {t('Quête accomplie !', 'Quest completed!')}
+            </p>
+            <h3 className="text-xl font-bold text-foreground text-balance">{title}</h3>
+            <p className="text-sm text-muted-foreground">
+              {t('Continue à explorer pour débloquer de nouvelles quêtes.', 'Keep exploring to unlock new quests.')}
+            </p>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="w-full py-3.5 rounded-2xl bg-foreground text-background text-sm font-bold active:scale-[0.97] transition-transform cursor-pointer"
+          >
+            {t('Continuer', 'Continue')}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Local quest definitions for guests (no DB needed) ───────────────────────
+const GUEST_QUESTS_KEY = 'alchemy-guest-quests-v1'
+const GUEST_DISCOVERED_KEY = 'alchemy-discovered-v4'
+const GUEST_COMBOS_KEY = 'alchemy-combos-v1'
+
+type RawQuest = {
+  id: number; type: string; title_fr: string; title_en: string
+  desc_fr: string; desc_en: string; target_value: number; icon: string
+  sort_order: number; is_daily: boolean; required_element: number | null
+  reset_hours: number | null; difficulty: string
+}
+
+function getGuestQuests(): Quest[] {
+  if (typeof window === 'undefined') return []
+
+  const discoveredIds: number[] = JSON.parse(localStorage.getItem(GUEST_DISCOVERED_KEY) ?? '[]')
+  const discoveredSet = new Set(discoveredIds)
+  const discoveredCount = discoveredIds.length
+  const comboCount: number = JSON.parse(localStorage.getItem(GUEST_COMBOS_KEY) ?? '0')
+  const claimedIds: number[] = JSON.parse(localStorage.getItem(GUEST_QUESTS_KEY) ?? '[]')
+  const todayKey = `alchemy-daily-${new Date().toISOString().slice(0, 10)}`
+  const dailyCount: number = JSON.parse(localStorage.getItem(todayKey) ?? '0')
+
+  return (ALL_QUESTS as unknown as RawQuest[]).map(q => {
+    let progress = 0
+    let visible = true
+
+    if (q.type === 'discover_n') {
+      progress = Math.min(discoveredCount, q.target_value)
+    } else if (q.type === 'discover_n_daily') {
+      progress = Math.min(dailyCount, q.target_value)
+    } else if (q.type === 'discover_element') {
+      const needed = q.required_element
+      visible = needed == null || discoveredSet.has(needed)
+      progress = needed != null && discoveredSet.has(needed) ? 1 : 0
+    } else if (q.type === 'combinations_n') {
+      const needed = q.required_element
+      visible = needed == null || discoveredSet.has(needed)
+      progress = visible ? Math.min(comboCount, q.target_value) : 0
+    }
+
+    if (!visible) return null
+
+    const completed = progress >= q.target_value
+    return {
+      ...q,
+      difficulty: q.difficulty as Quest['difficulty'],
+      progress,
+      completed_at: completed ? 'local' : null,
+      claimed_at: claimedIds.includes(q.id) ? 'local' : null,
+      reset_at: null,
+      rewards: [],
+      is_expired: false,
+    }
+  }).filter(Boolean) as Quest[]
+}
+
 export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGoToPlay?: () => void }) {
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
+  const { data: session } = useSession()
+  const isGuest = !session?.user?.id
 
   const [quests, setQuests] = useState<Quest[]>([])
   const [loading, setLoading] = useState(true)
   const [scratchQuestId, setScratchQuestId] = useState<number | null>(null)
+  const [newlyCompleted, setNewlyCompleted] = useState<Quest | null>(null)
+  const [guestCelebration, setGuestCelebration] = useState<Quest | null>(null)
+  const prevQuestsRef = useRef<Quest[]>([])
 
-  const fetchQuests = async () => {
+  const fetchQuests = useCallback(async () => {
+    if (isGuest) {
+      const fresh = getGuestQuests()
+      // Detect newly completed quests and trigger popup
+      const prev = prevQuestsRef.current
+      const justCompleted = fresh.find(q =>
+        q.completed_at && !q.claimed_at &&
+        !prev.find(p => p.id === q.id && p.completed_at)
+      )
+      if (justCompleted) setNewlyCompleted(justCompleted)
+      prevQuestsRef.current = fresh
+      setQuests(fresh)
+      setLoading(false)
+      return fresh
+    }
     const res = await fetch('/api/quests')
     if (res.ok) {
       const data = await res.json()
       const list: Quest[] = Array.isArray(data) ? data : (data.quests ?? [])
+      // Detect newly completed quests
+      const prev = prevQuestsRef.current
+      const justCompleted = list.find(q =>
+        q.completed_at && !q.claimed_at &&
+        !prev.find(p => p.id === q.id && p.completed_at)
+      )
+      if (justCompleted) setNewlyCompleted(justCompleted)
+      prevQuestsRef.current = list
       setQuests(list)
       setLoading(false)
       return list
     }
     setLoading(false)
     return [] as Quest[]
-  }
+  }, [isGuest])
 
   useEffect(() => {
     fetchQuests()
-    // Only refetch when the tab becomes visible again — NOT on every visibility event
-    const handler = () => { if (document.visibilityState === 'visible') fetchQuests() }
-    document.addEventListener('visibilitychange', handler)
-    // Poll every 2 minutes — quests don't change that often
+    // Listen to real-time quest-progress events dispatched by use-game-store after every merge
+    const onProgress = () => fetchQuests()
+    window.addEventListener('quest-progress', onProgress)
+    // Refresh on tab focus
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchQuests() }
+    document.addEventListener('visibilitychange', onVisible)
+    // Poll every 2 minutes for logged-in users (server-side quests)
     const id = setInterval(() => { if (document.visibilityState === 'visible') fetchQuests() }, 120000)
     return () => {
-      document.removeEventListener('visibilitychange', handler)
+      window.removeEventListener('quest-progress', onProgress)
+      document.removeEventListener('visibilitychange', onVisible)
       clearInterval(id)
     }
-  }, [])
+  }, [fetchQuests])
 
   const handleClaim = async (questId: number) => {
+    if (isGuest) {
+      // Find the quest before claiming so we can show celebration
+      const questToCelebrate = quests.find(q => q.id === questId) ?? null
+      // Save claimed quest to localStorage
+      const claimed: number[] = JSON.parse(localStorage.getItem(GUEST_QUESTS_KEY) ?? '[]')
+      if (!claimed.includes(questId)) {
+        localStorage.setItem(GUEST_QUESTS_KEY, JSON.stringify([...claimed, questId]))
+      }
+      await fetchQuests()
+      // Show celebration modal after claiming
+      if (questToCelebrate) setGuestCelebration(questToCelebrate)
+      return
+    }
     const res = await fetch('/api/quests', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ quest_id: questId }),
     })
-    // Fetch fresh quests first, then open the scratch modal with confirmed data
     const fresh = await fetchQuests()
     if (res.ok) {
       const claimed = fresh.find(q => q.id === questId)
@@ -476,6 +672,10 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
   }
 
   const handleScratch = async (questId: number, slot: number) => {
+    if (isGuest) {
+      await fetchQuests()
+      return
+    }
     await fetch('/api/quests', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -528,8 +728,8 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
     impossible: 'bg-rose-500',
   }
 
-  // A quest is "fully done" when claimed + all rewards scratched
-  const isDone = (q: Quest) => !!q.claimed_at && q.rewards.every(r => !!r.scratched_at)
+  // A quest is "fully done" — guests have no scratch rewards, so claimed = done
+  const isDone = (q: Quest) => isGuest ? !!q.claimed_at : !!q.claimed_at && q.rewards.every(r => !!r.scratched_at)
 
   const daily = quests.filter(q => q.is_daily)
   const permanent = quests.filter(q => !q.is_daily)
@@ -696,8 +896,8 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
         ) : (
           <div className="flex flex-col gap-6">
 
-            {/* Scratch CTA — always at top */}
-            <ScratchBanner count={scratchable.length} lang={lang} onClick={openScratch} />
+            {/* Scratch CTA — only for logged-in users who have rewards to scratch */}
+            {!isGuest && <ScratchBanner count={scratchable.length} lang={lang} onClick={openScratch} />}
 
             {/* Daily quests */}
             {hasDaily && (
@@ -725,7 +925,8 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
               return (
                 <Section key={diff} label={lang === 'fr' ? labels[diff][0] : labels[diff][1]} dot={DIFF_DOT[diff]}>
                   {group.map(q => (
-                    <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={setScratchQuestId} diffDot={DIFF_DOT[q.difficulty]} />
+                  <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={setScratchQuestId} diffDot={DIFF_DOT[q.difficulty]} isGuest={isGuest} />
+
                   ))}
                 </Section>
               )
@@ -733,7 +934,7 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
             {hasPermanent && diffFilter !== 'all' && (
               <Section label={DIFF_CONFIG.find(d => d.value === diffFilter)?.[lang === 'fr' ? 'labelFr' : 'labelEn'] ?? ''} dot={DIFF_DOT[diffFilter as Difficulty]}>
                 {pendingPermanent.map(q => (
-                  <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={setScratchQuestId} diffDot={DIFF_DOT[q.difficulty]} />
+                  <QuestRow key={q.id} quest={q} lang={lang} onClaim={handleClaim} onScratch={setScratchQuestId} diffDot={DIFF_DOT[q.difficulty]} isGuest={isGuest} />
                 ))}
               </Section>
             )}
@@ -756,6 +957,35 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
         )}
       </div>
 
+      {/* Quest completion toast — pops when a quest is newly completed */}
+      {newlyCompleted && (
+        <QuestCompletedToast
+          quest={newlyCompleted}
+          lang={lang}
+          onClaim={() => { handleClaim(newlyCompleted.id); setNewlyCompleted(null) }}
+          onDismiss={() => setNewlyCompleted(null)}
+        />
+      )}
+
+      {/* Guest celebration modal — shown after a guest claims a quest */}
+      {guestCelebration && (
+        <GuestCelebrationModal
+          quest={guestCelebration}
+          lang={lang}
+          onClose={() => setGuestCelebration(null)}
+        />
+      )}
+
+      {/* Scratch modal — shown when a quest is claimed and has unscratched rewards */}
+      {scratchQuest && !isGuest && (
+        <ScratchModal
+          quest={scratchQuest}
+          lang={lang}
+          onScratch={handleScratch}
+          onClose={closeScratch}
+          onGoToPlay={onGoToPlay}
+        />
+      )}
     </>
   )
 }

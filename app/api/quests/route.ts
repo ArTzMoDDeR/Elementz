@@ -44,9 +44,9 @@ export async function GET() {
 
     const rewards = await sql`
       SELECT qr.quest_id, qr.slot, qr.scratched_at,
-             e.name_french, e.name_english, e.img,
-             er.name_french AS result_name_french, er.name_english AS result_name_english,
-             er.img AS result_img, qr.result_number
+             e.number AS element_number,
+             er.number AS result_number_check, qr.result_number,
+             er.name_french AS result_name_french, er.name_english AS result_name_english
       FROM quest_rewards qr
       JOIN elements e ON e.number = qr.element_number
       LEFT JOIN elements er ON er.number = qr.result_number
@@ -69,10 +69,15 @@ export async function GET() {
       FROM unlocks WHERE user_id = ${userId}
     `
 
-    const rewardsByQuest: Record<number, typeof rewards> = {}
+    const rewardsByQuest: Record<number, any[]> = {}
     for (const r of rewards) {
       if (!rewardsByQuest[r.quest_id]) rewardsByQuest[r.quest_id] = []
-      rewardsByQuest[r.quest_id].push(r)
+      // Build local image paths from element numbers — avoids Cloudinary URLs
+      rewardsByQuest[r.quest_id].push({
+        ...r,
+        result_img: r.result_number ? `/elements/${r.result_number}.webp` : null,
+        img: r.element_number ? `/elements/${r.element_number}.webp` : null,
+      })
     }
 
     const now = new Date()

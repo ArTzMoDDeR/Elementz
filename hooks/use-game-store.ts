@@ -8,6 +8,15 @@ import { recipes as rawRecipes } from '@/lib/data/recipes.js'
 
 const STORAGE_KEY = 'alchemy-discovered-v4'  // bumped — now stores numbers
 const LANG_KEY = 'alchemy-lang'
+const COMBOS_KEY = 'alchemy-combos-v1'
+const getDailyKey = () => `alchemy-daily-${new Date().toISOString().slice(0, 10)}`
+
+function incrementLocalCounter(key: string) {
+  try {
+    const cur = parseInt(localStorage.getItem(key) ?? '0', 10)
+    localStorage.setItem(key, String(cur + 1))
+  } catch {}
+}
 // How long to batch new discoveries before flushing to DB (ms)
 const SYNC_DEBOUNCE_MS = 30_000
 
@@ -50,11 +59,14 @@ function getColor(nameFr: string): string {
   return palette[hash % palette.length]
 }
 
+// All images are local — always /elements/[id].webp
+// Keep proxyImg as a passthrough for any legacy URLs that might still exist
 function proxyImg(url: string | null): string | null {
   if (!url) return null
-  // Never serve Cloudinary URLs — all images are local now
-  if (url.includes('cloudinary.com')) return null
-  if (url.includes('.blob.vercel-storage.com')) return `/api/img?url=${encodeURIComponent(url)}`
+  if (url.startsWith('/elements/')) return url
+  // Legacy Cloudinary: extract id and serve local
+  const cloudMatch = url.match(/element-(\d+)\.webp/) ?? url.match(/\/(\d+)\.webp/)
+  if (cloudMatch) return `/elements/${cloudMatch[1]}.webp`
   return url
 }
 
@@ -455,6 +467,19 @@ export function useGameStore() {
       if (hapticEnabledRef.current && typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate([30, 20, 60])
       }
+    }
+
+    // Guest tracking — increment combo count and daily discovery count in localStorage
+    if (!session?.user?.id) {
+      incrementLocalCounter(COMBOS_KEY)
+      if (newResults.length > 0) incrementLocalCounter(getDailyKey())
+    }
+
+    // Notify quest panel in real-time (works for both guests and logged-in users)
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('quest-progress', {
+        detail: { newDiscoveries: newResults, isNewDiscovery: newResults.length > 0 }
+      }))
     }
 
     // Buffer discoveries + the ingredient pair — flushed to DB immediately on new discovery
