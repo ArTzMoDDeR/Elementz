@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState, useEffect } from 'react'
-import { useSession, signIn } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 import { useTheme } from 'next-themes'
 import { Playground } from './playground'
 import { OnboardingModal } from './onboarding-modal'
