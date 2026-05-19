@@ -468,6 +468,60 @@ function QuestCompletedToast({ quest, lang, onClaim, onDismiss }: {
   )
 }
 
+// ─── Guest celebration modal — shown after a guest claims a quest ─────────────
+function GuestCelebrationModal({ quest, lang, onClose }: {
+  quest: Quest
+  lang: 'fr' | 'en'
+  onClose: () => void
+}) {
+  const t = (fr: string, en: string) => lang === 'fr' ? fr : en
+  const title = lang === 'fr' ? quest.title_fr : quest.title_en
+  const isIconUrl = typeof quest.icon === 'string' && quest.icon.startsWith('/')
+
+  // Auto-close after 4s
+  useEffect(() => {
+    const id = setTimeout(onClose, 4000)
+    return () => clearTimeout(id)
+  }, [onClose])
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-end justify-center pb-8 px-4" onClick={onClose}>
+      <div
+        className="w-full max-w-sm animate-in slide-in-from-bottom-4 fade-in duration-300"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex flex-col items-center gap-5 px-6 py-8 rounded-3xl bg-card border border-border shadow-2xl">
+          {/* Icon */}
+          <div className="w-20 h-20 rounded-3xl bg-amber-400/10 border-2 border-amber-400/30 flex items-center justify-center">
+            {isIconUrl
+              ? <img src={quest.icon} alt="" className="w-12 h-12 object-contain" />
+              : <span className="text-3xl">+</span>
+            }
+          </div>
+
+          {/* Text */}
+          <div className="text-center space-y-1.5">
+            <p className="text-xs font-bold text-amber-400 uppercase tracking-widest">
+              {t('Quête accomplie !', 'Quest completed!')}
+            </p>
+            <h3 className="text-xl font-bold text-foreground text-balance">{title}</h3>
+            <p className="text-sm text-muted-foreground">
+              {t('Continue à explorer pour débloquer de nouvelles quêtes.', 'Keep exploring to unlock new quests.')}
+            </p>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="w-full py-3.5 rounded-2xl bg-foreground text-background text-sm font-bold active:scale-[0.97] transition-transform cursor-pointer"
+          >
+            {t('Continuer', 'Continue')}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Local quest definitions for guests (no DB needed) ───────────────────────
 const GUEST_QUESTS_KEY = 'alchemy-guest-quests-v1'
 const GUEST_DISCOVERED_KEY = 'alchemy-discovered-v4'
@@ -534,6 +588,7 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
   const [loading, setLoading] = useState(true)
   const [scratchQuestId, setScratchQuestId] = useState<number | null>(null)
   const [newlyCompleted, setNewlyCompleted] = useState<Quest | null>(null)
+  const [guestCelebration, setGuestCelebration] = useState<Quest | null>(null)
   const prevQuestsRef = useRef<Quest[]>([])
 
   const fetchQuests = useCallback(async () => {
@@ -590,12 +645,16 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
 
   const handleClaim = async (questId: number) => {
     if (isGuest) {
+      // Find the quest before claiming so we can show celebration
+      const questToCelebrate = quests.find(q => q.id === questId) ?? null
       // Save claimed quest to localStorage
       const claimed: number[] = JSON.parse(localStorage.getItem(GUEST_QUESTS_KEY) ?? '[]')
       if (!claimed.includes(questId)) {
         localStorage.setItem(GUEST_QUESTS_KEY, JSON.stringify([...claimed, questId]))
       }
       await fetchQuests()
+      // Show celebration modal after claiming
+      if (questToCelebrate) setGuestCelebration(questToCelebrate)
       return
     }
     const res = await fetch('/api/quests', {
@@ -837,8 +896,8 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
         ) : (
           <div className="flex flex-col gap-6">
 
-            {/* Scratch CTA — always at top */}
-            <ScratchBanner count={scratchable.length} lang={lang} onClick={openScratch} />
+            {/* Scratch CTA — only for logged-in users who have rewards to scratch */}
+            {!isGuest && <ScratchBanner count={scratchable.length} lang={lang} onClick={openScratch} />}
 
             {/* Daily quests */}
             {hasDaily && (
@@ -905,6 +964,15 @@ export function QuestInlinePanel({ lang, onGoToPlay }: { lang: 'fr' | 'en'; onGo
           lang={lang}
           onClaim={() => { handleClaim(newlyCompleted.id); setNewlyCompleted(null) }}
           onDismiss={() => setNewlyCompleted(null)}
+        />
+      )}
+
+      {/* Guest celebration modal — shown after a guest claims a quest */}
+      {guestCelebration && (
+        <GuestCelebrationModal
+          quest={guestCelebration}
+          lang={lang}
+          onClose={() => setGuestCelebration(null)}
         />
       )}
 
