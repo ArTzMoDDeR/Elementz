@@ -8,7 +8,7 @@ import { OnboardingModal } from './onboarding-modal'
 import { RewardedAdModal } from './rewarded-ad-modal'
 import { useGameStore } from '@/hooks/use-game-store'
 import { useHint } from '@/hooks/use-hint'
-import { subscribeToPush, unsubscribeFromPush } from '@/hooks/use-push-subscription'
+import { capacitorSubscribeToPush, capacitorUnsubscribeFromPush, isPushDenied } from '@/hooks/use-capacitor-push'
 import { Lightbulb, Trash2, BarChart2, Hand, MousePointer, Lock } from 'lucide-react'
 import { type ElementDef } from '@/lib/game-data'
 import EmailSignIn from '@/components/email-sign-in'
@@ -496,7 +496,7 @@ export function AlchemyGame() {
     // Force the nav avatar to re-fetch now that the new avatar is saved
     setAvatarRefreshKey(k => k + 1)
     if (prefs.enablePush) {
-      const ok = await subscribeToPush(prefs.lang)
+      const ok = await capacitorSubscribeToPush(prefs.lang)
       setPushNotificationsEnabled(ok)
     } else {
       setPushNotificationsEnabled(false)
@@ -524,7 +524,7 @@ export function AlchemyGame() {
         await AdMob.initialize({
           requestTrackingAuthorization: true, // iOS ATT prompt
           testingDevices: [],
-          initializeForTesting: false,
+          initializeForTesting: true, // use test ads until app is in production
         })
       } catch (err) {
         console.error('[admob] init error', err)
@@ -541,29 +541,23 @@ export function AlchemyGame() {
       .then(d => {
         // Apply saved theme
         if (d.theme === 'light' || d.theme === 'dark') setTheme(d.theme)
-        // Apply push notifications state: cross-reference DB value with actual browser permission
-        // If browser permission is 'denied' or 'default', the subscription can't be active — force false
+        // Apply push notifications state
         if (typeof d.push_notifications === 'boolean') {
-          const browserGranted = typeof Notification !== 'undefined' && Notification.permission === 'granted'
-          setPushNotificationsEnabled(d.push_notifications && browserGranted)
+          setPushNotificationsEnabled(d.push_notifications)
         }
         if (typeof d.suppress_unlock_notif === 'boolean') setSuppressUnlockNotif(d.suppress_unlock_notif)
         // Show one-time push prompt for users who haven't been asked yet
         // Skip if onboarding is pending — onboarding already has its own notifications step
-        if (!d.push_prompt_shown && d.onboarding_done && typeof window !== 'undefined' && 'Notification' in window) {
-          if (Notification.permission === 'default') {
-            // Small delay so the popup appears after the page is fully rendered
-            setTimeout(() => setShowPushPrompt(true), 1500)
-          } else if (Notification.permission === 'granted') {
-            // Already granted — silently re-subscribe and mark as shown
-            subscribeToPush(d.lang === 'fr' ? 'fr' : 'en').then(ok => {
-              setPushNotificationsEnabled(ok)
-              fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push_prompt_shown: true, push_notifications: ok }) })
-            })
-          } else {
-            // Denied — mark as shown silently
-            fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push_prompt_shown: true, push_notifications: false }) })
-          }
+        if (!d.push_prompt_shown && d.onboarding_done) {
+          isPushDenied().then(denied => {
+            if (denied) {
+              // Already denied — mark as shown silently
+              fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push_prompt_shown: true, push_notifications: false }) })
+            } else {
+              // Show the push prompt after a short delay
+              setTimeout(() => setShowPushPrompt(true), 1500)
+            }
+          })
         }
         // Show onboarding if never done (onboarding handles push prompt internally via its last step).
         // If the localStorage flag is set, the user completed onboarding as a guest but the PATCH
@@ -642,7 +636,7 @@ export function AlchemyGame() {
           lang={lang}
           onAccept={async () => {
             setShowPushPrompt(false)
-            const ok = await subscribeToPush(lang as 'fr' | 'en')
+            const ok = await capacitorSubscribeToPush(lang as 'fr' | 'en')
             setPushNotificationsEnabled(ok)
             fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push_prompt_shown: true, push_notifications: ok }) })
           }}
@@ -698,25 +692,19 @@ export function AlchemyGame() {
         onTogglePushNotifications={async () => {
           const next = !pushNotificationsEnabled
           if (next) {
-            // If permission was explicitly denied, we can't re-ask — show prompt to go to browser settings
-            if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
+            const denied = await isPushDenied()
+            if (denied) {
               setShowPushPrompt(true)
               return
             }
-            const ok = await subscribeToPush(lang as 'fr' | 'en')
-            if (!ok) {
-              // If still not granted, show the prompt to explain
-              if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
-                setShowPushPrompt(true)
-              }
-              return
-            }
+            const ok = await capacitorSubscribeToPush(lang as 'fr' | 'en')
+            if (!ok) { setShowPushPrompt(true); return }
             setPushNotificationsEnabled(true)
             if (session?.user?.id) {
               fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push_notifications: true }) })
             }
           } else {
-            await unsubscribeFromPush()
+            await capacitorUnsubscribeFromPush()
             setPushNotificationsEnabled(false)
             if (session?.user?.id) {
               fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push_notifications: false }) })
@@ -823,7 +811,7 @@ export function AlchemyGame() {
         />
       )}
 
-      {/* ── iOS-style top discovery pill ───────────────────────────���─ */}
+      {/* ── iOS-style top discovery pill ─────────────────────────── */}
       {!suppressUnlockNotif && !questReveal && (
         <DiscoveryPill
           newlyDiscovered={newlyDiscovered}
@@ -833,6 +821,47 @@ export function AlchemyGame() {
           onDismiss={handleDismissNotification}
         />
       )}
+
+      {/* ── AdMob banner (native only) ───────────────────────────── */}
+      <AdMobBanner />
     </div>
   )
+}
+
+// ── AdMob Banner component — mounts/unmounts with the game ───────────────────
+function AdMobBanner() {
+  useEffect(() => {
+    // @ts-ignore
+    if (typeof window === 'undefined' || !window.Capacitor?.isNativePlatform?.()) return
+
+    async function showBanner() {
+      try {
+        const { AdMob, BannerAdSize, BannerAdPosition } = await import('@capacitor-community/admob')
+        // Test banner ID — swap for production: ca-app-pub-2003923325493504/XXXXXXXXXX
+        await AdMob.showBanner({
+          adId: 'ca-app-pub-3940256099942544/6300978111',
+          adSize: BannerAdSize.ADAPTIVE_BANNER,
+          position: BannerAdPosition.BOTTOM_CENTER,
+          margin: 0,
+          isTesting: true,
+        })
+      } catch (err) {
+        console.error('[admob] banner error', err)
+      }
+    }
+
+    showBanner()
+
+    return () => {
+      async function hideBanner() {
+        try {
+          const { AdMob } = await import('@capacitor-community/admob')
+          await AdMob.removeBanner()
+        } catch {}
+      }
+      hideBanner()
+    }
+  }, [])
+
+  return null
 }
