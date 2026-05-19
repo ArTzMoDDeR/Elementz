@@ -254,7 +254,7 @@ export function useGameStore() {
       )
       const validDisc = new Set<number>(baseNums)
 
-      // Read guest snapshot saved just before OAuth redirect (GuestWallOverlay → handleSignIn)
+      // Read guest snapshot saved just before sign-in (email-sign-in.tsx → verifyCode)
       const guestSnapshot = new Set<number>()
       try {
         const snap = localStorage.getItem('alchemy-guest-snapshot')
@@ -264,22 +264,22 @@ export function useGameStore() {
             const n = Number(raw)
             if (Number.isInteger(n) && n > 0 && elMap.has(n)) guestSnapshot.add(n)
           })
-          // Consume the snapshot immediately so it only runs once
-          localStorage.removeItem('alchemy-guest-snapshot')
+          // Don't remove yet — keep until migration is confirmed persisted
         }
       } catch {}
 
-      if (progressData?.discovered && Array.isArray(progressData.discovered)) {
-        // Server returns element numbers directly
-        progressData.discovered.forEach((num: unknown) => {
+      if (progressData !== null && progressData !== undefined) {
+        // Logged in — load server-side discovered list (may be empty for a brand new account)
+        const serverDiscovered: number[] = Array.isArray(progressData?.discovered) ? progressData.discovered : []
+        serverDiscovered.forEach((num: unknown) => {
           const n = Number(num)
           if (Number.isInteger(n) && n > 0 && elMap.has(n)) validDisc.add(n)
         })
 
-        // Guest migration: if we have a pre-login snapshot, merge it into DB
+        // Guest migration: merge snapshot into DB regardless of whether account is new or existing
         if (guestSnapshot.size > 0) {
           guestSnapshot.forEach(n => validDisc.add(n))
-          const toSave = [...guestSnapshot].filter(n => !baseNums.has(n) && !progressData.discovered.includes(n))
+          const toSave = [...guestSnapshot].filter(n => !baseNums.has(n) && !serverDiscovered.includes(n))
           if (toSave.length > 0) {
             fetch('/api/progress', {
               method: 'POST',
@@ -287,8 +287,9 @@ export function useGameStore() {
               body: JSON.stringify({ discovered: toSave, combo_ingredients: [] }),
             }).catch(() => {})
           }
+          // Consume snapshot now that migration is queued
+          try { localStorage.removeItem('alchemy-guest-snapshot') } catch {}
           // Signal to alchemy-game that a guest migration just happened
-          // so onboarding is shown even if onboarding_done is already true in DB
           try { localStorage.setItem('alchemy-guest-migrated', '1') } catch {}
         }
 
