@@ -5,8 +5,10 @@ import { Lightbulb, Plus, Lock, PlayCircle } from 'lucide-react'
 import type { HintResult } from '@/hooks/use-hint'
 
 // ── AdMob config (Capacitor native) ──────────────────────────────────────────
-const ADMOB_APP_ID      = 'ca-app-pub-2003923325493504~9495366197'
-const ADMOB_REWARDED_ID = 'ca-app-pub-2003923325493504/3839106022'
+// Switch to production IDs once the app is live:
+// const ADMOB_APP_ID      = 'ca-app-pub-2003923325493504~9495366197'
+// const ADMOB_REWARDED_ID = 'ca-app-pub-2003923325493504/3839106022'
+const ADMOB_REWARDED_ID = 'ca-app-pub-3940256099942544/1712485313' // Test rewarded video
 // ── AdSense config (web fallback) ────────────────────────────────────────────
 const ADSENSE_CLIENT = 'ca-pub-2003923325493504'
 const ADSENSE_SLOT   = 'REPLACE_WITH_YOUR_REWARDED_SLOT_ID'
