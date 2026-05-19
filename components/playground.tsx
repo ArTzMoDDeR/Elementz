@@ -1016,7 +1016,7 @@ export function Playground({
                           }
                       )}
                     >
-                      <ElementBadge element={element} size={gridCols === 5 ? 'xs' : isMobile ? 'sm' : 'md'} fluid />
+                      <ElementBadge element={element} size={gridCols === 5 ? 'sm' : 'xl'} fluid />
                     </div>
                   ))}
                 </div>
@@ -1140,7 +1140,7 @@ export function Playground({
                   onPointerDown={e => e.stopPropagation()}
                   onClick={e => {
                     e.stopPropagation()
-                    setShowTutorial(true)
+                    window.location.href = '/welcome'
                   }}
                   aria-label={lang === 'fr' ? 'Voir le tutoriel' : 'View tutorial'}
                   className="tap-spring select-none active:scale-95 transition-all duration-200 flex items-center justify-center rounded-full"
