@@ -739,7 +739,7 @@ export function Playground({
           style={{
             zIndex: 150,
             paddingTop: 'env(safe-area-inset-top, 0px)',
-            paddingBottom: 'calc(56px + env(safe-area-inset-bottom, 0px))',
+            paddingBottom: 'calc(56px + max(env(safe-area-inset-bottom, 0px) - 8px, 0px))',
           }}
         >
           {/* Scrollable content */}
@@ -1093,7 +1093,7 @@ export function Playground({
         {/* ── TAB BAR — iOS Liquid Glass ───────────────────────�������──�����─ */}
         <div
           className="flex-shrink-0 border-t border-white/[0.06] glass"
-          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 12px) + 2px)' }}
+          style={{ paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px) - 8px, 0px) + 2px)' }}
         >
           <div className="flex items-center">
 
@@ -1115,7 +1115,7 @@ export function Playground({
                   aria-label={label}
                 >
                   <div className="relative">
-                    <Icon size={26} weight={isActive ? 'fill' : 'regular'} className={`transition-colors duration-150 ${isActive ? 'text-foreground' : 'text-muted-foreground/50'}`} />
+                    <Icon size={28} weight={isActive ? 'fill' : 'regular'} className={`transition-colors duration-150 ${isActive ? 'text-foreground' : 'text-muted-foreground/50'}`} />
                     {id === 'quests' && questBadge && !isActive && (
                       <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 border border-card" />
                     )}
@@ -1175,7 +1175,7 @@ export function Playground({
                   }}
                 >
                   <Lightbulb
-                    size={22}
+                    size={24}
                     weight={hintShouldPulse || hintIdleGlow ? 'fill' : 'regular'}
                     className={`transition-colors duration-200 ${hintShouldPulse || hintIdleGlow ? 'text-amber-400' : 'text-muted-foreground/70'}`}
                   />
@@ -1224,7 +1224,7 @@ export function Playground({
                       </div>
                     )
                   })() : (
-                    <Icon size={26} weight={isActive ? 'fill' : 'regular'} className={`transition-colors duration-150 ${isActive ? 'text-foreground' : 'text-muted-foreground/50'}`} />
+                    <Icon size={28} weight={isActive ? 'fill' : 'regular'} className={`transition-colors duration-150 ${isActive ? 'text-foreground' : 'text-muted-foreground/50'}`} />
                   )}
                 </button>
               )
