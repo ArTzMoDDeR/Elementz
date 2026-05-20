@@ -1,6 +1,7 @@
 // redeploy: apple-sign-in-clean
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
+import Script from 'next/script'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
 import { SessionProvider } from '@/components/session-provider'
@@ -107,6 +108,13 @@ export default function RootLayout({
             <IOSInstallPrompt />
           </ThemeProvider>
         </SessionProvider>
+        {/* AdSense script — loads after page is interactive, doesn't block render */}
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2003923325493504"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   )
