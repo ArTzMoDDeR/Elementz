@@ -475,10 +475,19 @@ export function AlchemyGame() {
         // @ts-ignore
         if (typeof window === 'undefined' || !window.Capacitor?.isNativePlatform?.()) return
         const { AdMob } = await import('@capacitor-community/admob')
+
+        // On iOS, explicitly request ATT before initializing AdMob so the system
+        // popup appears at the right moment (required for iOS 14+).
+        // @ts-ignore
+        const isIos = window.Capacitor?.getPlatform?.() === 'ios'
+        if (isIos) {
+          await AdMob.requestTrackingAuthorization()
+        }
+
         await AdMob.initialize({
-          requestTrackingAuthorization: true, // iOS ATT prompt
+          requestTrackingAuthorization: false, // already handled above
           testingDevices: [],
-          initializeForTesting: true, // use test ads until app is in production
+          initializeForTesting: false,
         })
       } catch (err) {
         console.error('[admob] init error', err)
